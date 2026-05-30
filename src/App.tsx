@@ -18,6 +18,7 @@ const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
 // POS
 const Shifts = lazy(() => import('@/pages/pos/Shifts'));
+const Transactions = lazy(() => import('@/pages/pos/Transactions'));
 
 // Inventory
 const Products = lazy(() => import('@/pages/inventory/Products'));
@@ -32,6 +33,8 @@ const Expenses = lazy(() => import('@/pages/expenses/Expenses'));
 
 // Reports
 const SalesSummary = lazy(() => import('@/pages/reports/SalesSummary'));
+const ProductReport = lazy(() => import('@/pages/reports/ProductReport'));
+const CashierReport = lazy(() => import('@/pages/reports/CashierReport'));
 const EndOfDay = lazy(() => import('@/pages/reports/EndOfDay'));
 
 export default function App() {
@@ -76,6 +79,7 @@ export default function App() {
           
           {/* POS Dashboard Views */}
           <Route path="/pos/shifts" element={<Shifts />} />
+          <Route path="/pos/transactions" element={<Transactions />} />
           
           {/* Inventory */}
           <Route path="/inventory/products" element={<Products />} />
@@ -90,6 +94,8 @@ export default function App() {
           
           {/* Reports */}
           <Route path="/reports/sales" element={<SalesSummary />} />
+          <Route path="/reports/products" element={<ProductReport />} />
+          <Route path="/reports/cashiers" element={<CashierReport />} />
           <Route path="/reports/end-of-day" element={<EndOfDay />} />
           {/* Catch-all for other dashboard routes */}
           <Route path="/dashboard/*" element={<Overview />} />
