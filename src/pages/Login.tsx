@@ -343,7 +343,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-pos-dark-app">
       {/* Left side - Dynamic Auth Panel */}
-      <div className="w-full lg:w-[480px] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-white dark:bg-pos-dark-card shadow-2xl">
+      <div className="w-full lg:max-w-[480px] xl:max-w-xl flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-white dark:bg-pos-dark-card shadow-2xl">
         <AnimatePresence mode="wait">
           {currentView === 'staff_grid' && renderStaffGrid()}
           {currentView === 'pin_entry' && renderPinEntry()}

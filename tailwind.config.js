@@ -133,18 +133,7 @@ export default {
       },
       borderRadius: {},
       fontFamily: {
-        sans: ["Shne", "AtypDisplay", "sans-serif"],
-        serif: ["RecklessNeue", "Cormorant", "serif"],
-        mono: ["ShneMono", "monospace"],
-        /* Named tokens for explicit use */
-        display: ["RecklessNeue", "Cormorant", "serif"],
-        "sohne": ["Shne", "system-ui", "sans-serif"],
-        "sohne-mono": ["ShneMono", "monospace"],
-        "false": ["False", "sans-serif"],
-        /* Legacy */
-        "a89-display": ["Cormorant", "Georgia", "serif"],
-        "a89-sans": ["AtypDisplay", "system-ui", "sans-serif"],
-        "RecklessNeue-Italic": ["RecklessNeue-Italic", "serif"],
+        sans: ["AtypDisplay", "system-ui", "sans-serif"],
       },
       fontSize: {
         xs: "11px",

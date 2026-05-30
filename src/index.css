@@ -1,3 +1,16 @@
+@font-face {
+  font-family: "AtypDisplay";
+  src:
+    url("./assets/fonts/AtypDisplay-Light.woff2") format("woff2"),
+    url("./assets/fonts/AtypDisplay-Light.woff") format("woff");
+}
+@font-face {
+  font-family: "AtypDisplay";
+  src:
+    url("./assets/fonts/AtypDisplay-Regular.woff2") format("woff2"),
+    url("./assets/fonts/AtypDisplay-Regular.woff") format("woff");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,7 +57,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    /* font-family: AtypDisplay, sans-serif; */
     min-height: 100vh;
   }
 }
