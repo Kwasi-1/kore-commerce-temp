@@ -48,7 +48,8 @@ export default function Sidebar() {
       show: modules.inventory,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
-        { name: 'Stock', to: '/inventory/stock', icon: Layers },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
+        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge },
       ],

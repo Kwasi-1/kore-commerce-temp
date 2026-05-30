@@ -16,6 +16,24 @@ const Overview = lazy(() => import('@/pages/dashboard/Overview'));
 const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
 const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
+// POS
+const Shifts = lazy(() => import('@/pages/pos/Shifts'));
+
+// Inventory
+const Products = lazy(() => import('@/pages/inventory/Products'));
+const Suppliers = lazy(() => import('@/pages/inventory/Suppliers'));
+const PurchaseOrders = lazy(() => import('@/pages/inventory/PurchaseOrders'));
+const StockManagement = lazy(() => import('@/pages/inventory/StockManagement'));
+const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconciliation'));
+
+// Staff & Expenses
+const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));
+const Expenses = lazy(() => import('@/pages/expenses/Expenses'));
+
+// Reports
+const SalesSummary = lazy(() => import('@/pages/reports/SalesSummary'));
+const EndOfDay = lazy(() => import('@/pages/reports/EndOfDay'));
+
 export default function App() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
@@ -51,8 +69,28 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Overview />} />
+          
+          {/* Settings */}
           <Route path="/settings/profile" element={<BusinessProfile />} />
           <Route path="/settings/plan" element={<PlanBilling />} />
+          
+          {/* POS Dashboard Views */}
+          <Route path="/pos/shifts" element={<Shifts />} />
+          
+          {/* Inventory */}
+          <Route path="/inventory/products" element={<Products />} />
+          <Route path="/inventory/suppliers" element={<Suppliers />} />
+          <Route path="/inventory/purchase-orders" element={<PurchaseOrders />} />
+          <Route path="/inventory/stock" element={<StockManagement />} />
+          <Route path="/inventory/stock-reconciliation" element={<StockReconciliation />} />
+          
+          {/* Operations */}
+          <Route path="/staff" element={<StaffManagement />} />
+          <Route path="/expenses" element={<Expenses />} />
+          
+          {/* Reports */}
+          <Route path="/reports/sales" element={<SalesSummary />} />
+          <Route path="/reports/end-of-day" element={<EndOfDay />} />
           {/* Catch-all for other dashboard routes */}
           <Route path="/dashboard/*" element={<Overview />} />
         </Route>
