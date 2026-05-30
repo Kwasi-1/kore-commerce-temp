@@ -107,6 +107,20 @@ export default {
             default: "rgba(0, 0, 0, 0.10)",
             strong: "rgba(0, 0, 0, 0.18)",
           }
+        },
+        pos: {
+          accent: "#CCFF00",           // lime green — buttons, active nav, stock badges
+          "accent-text": "#111111",    // text on lime backgrounds
+          "sidebar-light": "#111111",  // sidebar bg in light mode
+          "sidebar-dark": "#f0f0f0",   // sidebar bg in dark mode
+          "surface-app": "#f0f0f0",    // page bg light
+          "surface-card": "#f7f7f7",   // card bg light
+          "surface-panel": "#ffffff",  // content panels light
+          "dark-app": "#0a0a0a",       // page bg dark
+          "dark-card": "#1e1e1e",      // card bg dark
+          "dark-panel": "#141414",     // content panels dark
+          "dark-border": "#2a2a2a",    // borders dark
+          danger: "#ff4444",
         }
       },
       boxShadow: {
