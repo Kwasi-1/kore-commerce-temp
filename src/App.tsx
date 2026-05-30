@@ -10,7 +10,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 
 // Pages
 const Login = lazy(() => import('@/pages/Login'));
-const PinLogin = lazy(() => import('@/pages/PinLogin'));
+
 const Register = lazy(() => import('@/pages/pos/Register'));
 const Overview = lazy(() => import('@/pages/dashboard/Overview'));
 const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
@@ -47,7 +47,7 @@ export default function App() {
         {/* Auth Routes */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
-          <Route path="/pin" element={<PinLogin />} />
+
         </Route>
 
         {/* POS Routes (Requires Auth + POS Module) */}
