@@ -17,10 +17,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <NextUIProvider>
-        <SmoothScroll>
+        {/* <SmoothScroll> */}
           <App />
           <Toaster />
-        </SmoothScroll>
+        {/* </SmoothScroll> */}
       </NextUIProvider>
     </BrowserRouter>
   </React.StrictMode>,
