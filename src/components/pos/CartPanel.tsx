@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { Trash2, Plus, Minus, CreditCard, Banknote, Smartphone, PauseCircle } from 'lucide-react';
+import PaymentModal from './PaymentModal';
 
 export default function CartPanel() {
   const { items, subtotal, discount, total, removeItem, updateQuantity, setDiscount, clearCart } = useCartStore();
   const [discountInput, setDiscountInput] = useState(discount.toString() || '');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<'cash' | 'mobile_money' | 'card'>('cash');
 
   const handleDiscountApply = () => {
     const val = parseFloat(discountInput);
@@ -133,6 +136,10 @@ export default function CartPanel() {
         {/* Payment Buttons */}
         <div className="grid grid-cols-2 gap-2 pt-2">
           <button
+            onClick={() => {
+              setDefaultPaymentMethod('cash');
+              setIsPaymentModalOpen(true);
+            }}
             disabled={items.length === 0}
             className="flex items-center justify-center gap-2 py-3 px-4 bg-pos-accent text-pos-accent-text font-bold rounded-lg shadow-sm hover:brightness-95 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all col-span-2 text-lg"
           >
@@ -141,6 +148,10 @@ export default function CartPanel() {
           </button>
           
           <button
+            onClick={() => {
+              setDefaultPaymentMethod('mobile_money');
+              setIsPaymentModalOpen(true);
+            }}
             disabled={items.length === 0}
             className="flex items-center justify-center gap-2 py-2.5 px-4 bg-[#FFCC00] text-black font-semibold rounded-lg shadow-sm hover:brightness-95 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all"
           >
@@ -149,6 +160,10 @@ export default function CartPanel() {
           </button>
           
           <button
+            onClick={() => {
+              setDefaultPaymentMethod('card');
+              setIsPaymentModalOpen(true);
+            }}
             disabled={items.length === 0}
             className="flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all"
           >
@@ -166,6 +181,12 @@ export default function CartPanel() {
         </div>
 
       </div>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        defaultMethod={defaultPaymentMethod}
+      />
     </div>
   );
 }
