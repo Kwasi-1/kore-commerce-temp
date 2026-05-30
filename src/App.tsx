@@ -13,6 +13,8 @@ const Login = lazy(() => import('@/pages/Login'));
 const PinLogin = lazy(() => import('@/pages/PinLogin'));
 const Register = lazy(() => import('@/pages/pos/Register'));
 const Overview = lazy(() => import('@/pages/dashboard/Overview'));
+const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
+const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
 export default function App() {
   return (
@@ -49,6 +51,8 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Overview />} />
+          <Route path="/settings/profile" element={<BusinessProfile />} />
+          <Route path="/settings/plan" element={<PlanBilling />} />
           {/* Catch-all for other dashboard routes */}
           <Route path="/dashboard/*" element={<Overview />} />
         </Route>

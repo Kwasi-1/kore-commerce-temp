@@ -76,7 +76,10 @@ export default function Sidebar() {
     {
       title: 'Settings',
       show: modules.settings,
-      items: [{ name: 'Settings', to: '/settings', icon: Settings }],
+      items: [
+        { name: 'Business Profile', to: '/settings/profile', icon: Settings },
+        { name: 'Plan & Billing', to: '/settings/plan', icon: Receipt },
+      ],
     },
   ];
 
