@@ -7,6 +7,12 @@ import { NextUIProvider } from "@nextui-org/react";
 import SmoothScroll from "@/components/SmoothScroll";
 import "@/index.css";
 
+import { setupMockApi } from "@/api/mock";
+
+if (import.meta.env.VITE_USE_MOCK_API === 'true') {
+  setupMockApi();
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
