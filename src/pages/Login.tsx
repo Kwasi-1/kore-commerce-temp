@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { loginWithPin, loginWithPassword } from '@/api/auth';
 import apiClient from '@/api/client';
 import NumPad from '@/components/pos/NumPad';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { UserSquare2, ChevronLeft, Lock, Mail, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -85,7 +85,7 @@ export default function Login() {
     
     try {
       const response = await loginWithPin(selectedStaff.email, pin);
-      const { access_token, refresh_token, staff, tenant } = response.data;
+      const { access_token, refresh_token, staff, tenant } = response;
       toast.success('Logged in successfully', { id: toastId });
       handleSuccessfulAuth(access_token, refresh_token, staff, tenant);
     } catch (error: any) {
@@ -110,7 +110,7 @@ export default function Login() {
 
     try {
       const response = await loginWithPassword(loginEmail, password);
-      const { access_token, refresh_token, staff, tenant } = response.data;
+      const { access_token, refresh_token, staff, tenant } = response;
       toast.success('Welcome back!', { id: toastId });
       handleSuccessfulAuth(access_token, refresh_token, staff, tenant);
     } catch (error: any) {
