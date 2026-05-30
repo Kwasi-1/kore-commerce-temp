@@ -20,6 +20,7 @@ interface AuthState {
   tenant: Tenant | null;
   login: (token: string, refreshToken: string, staffUser: StaffUser, tenant: Tenant) => void;
   logout: () => void;
+  setTenant: (tenant: Tenant) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
         set({ token, refreshToken, staffUser, tenant }),
       logout: () =>
         set({ token: null, refreshToken: null, staffUser: null, tenant: null }),
+      setTenant: (tenant) => set({ tenant }),
     }),
     {
       name: 'headlesspos-auth', // localStorage key
