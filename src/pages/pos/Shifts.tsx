@@ -32,7 +32,7 @@ export default function Shifts() {
         .then((res) => {
           const breakdown = res.data.success.data.payment_breakdown;
           const totalCount = Object.values(breakdown).reduce((acc: number, curr: any) => acc + curr.count, 0);
-          setTxCount(totalCount);
+          setTxCount(Number(totalCount));
         })
         .catch((err) => console.error("Failed to load shift report", err));
     }

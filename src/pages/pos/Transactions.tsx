@@ -111,6 +111,7 @@ export default function Transactions() {
               <ReceiptModal 
                 receiptData={selectedReceiptData} 
                 onClose={() => setIsReceiptOpen(false)} 
+                isOpen={isReceiptOpen}
               />
             </div>
           ) : (

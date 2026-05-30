@@ -9,8 +9,8 @@ import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export default function ProductReport() {
   const [dateRange, setDateRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
+    startDate: startOfMonth(new Date()),
+    endDate: endOfMonth(new Date())
   });
   
   const [sortMode, setSortMode] = useState<Set<string>>(new Set(['top_selling']));
@@ -21,8 +21,8 @@ export default function ProductReport() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
-      const startStr = dateRange.from?.toISOString();
-      const endStr = dateRange.to?.toISOString();
+      const startStr = dateRange.startDate?.toISOString();
+      const endStr = dateRange.endDate?.toISOString();
       const sortStr = Array.from(sortMode)[0];
       
       const response = await apiClient.get(
@@ -39,7 +39,7 @@ export default function ProductReport() {
   };
 
   useEffect(() => {
-    if (dateRange.from && dateRange.to) {
+    if (dateRange.startDate && dateRange.endDate) {
       fetchReport();
     }
   }, [dateRange, sortMode]);
@@ -100,8 +100,8 @@ export default function ProductReport() {
           <div className="w-full md:w-auto">
             <label className="block text-xs font-medium text-gray-500 mb-1">Date Range</label>
             <DateRangePicker 
-              date={dateRange} 
-              setDate={(range: any) => setDateRange(range)} 
+              value={dateRange} 
+              onChange={(range: any) => setDateRange(range)} 
             />
           </div>
           

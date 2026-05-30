@@ -153,14 +153,14 @@ export default function Products() {
           { uid: 'draft', name: 'Draft' }
         ]}
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(keys: any) => setStatusFilter(keys)}
         
         // Category Filter
         additionalFilters={[
           {
             label: 'Category',
             value: categoryFilter,
-            onChange: setCategoryFilter,
+            onChange: (keys: any) => setCategoryFilter(keys),
             options: [
               { uid: 'all', name: 'All Categories' },
               ...categories.map(c => ({ uid: c, name: c }))

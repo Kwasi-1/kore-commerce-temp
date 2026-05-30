@@ -1,4 +1,4 @@
-﻿import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react";
 import { Spinner } from "@nextui-org/react";
 import { Select, SelectItem } from "@nextui-org/select";
@@ -535,6 +535,7 @@ export const CustomDateInputField = (props: CustomDateInputFieldProps) => {
 };
 
 interface CustomTextareaFieldProps {
+  name?: string;
   onChange?: (e: any) => unknown;
   required?: boolean;
   value?: string;

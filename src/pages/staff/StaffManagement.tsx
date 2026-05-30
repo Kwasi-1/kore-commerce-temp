@@ -104,7 +104,8 @@ export default function StaffManagement() {
     }
     
     if (!isOwner) { // Owners usually can't be deactivated easily via standard UI
-      rowActions.push({ key: 'delete', label: 'Deactivate', icon: 'mdi:account-off-outline', className: 'text-danger' });
+      rowActions.push({ key: 'edit', label: 'Edit Role', icon: 'mdi:pencil-outline' });
+      rowActions.push({ key: 'delete', label: 'Deactivate', icon: 'mdi:account-off-outline' });
     }
 
     return {

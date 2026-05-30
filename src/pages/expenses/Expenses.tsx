@@ -5,7 +5,7 @@ import CustomModal from '@/components/modals/modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
-import useAuthStore from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 
@@ -170,7 +170,7 @@ export default function Expenses() {
           { uid: 'other', name: 'Other' },
         ]}
         filterValue={categoryFilter}
-        onFilterChange={setCategoryFilter}
+        onFilterChange={(keys: any) => setCategoryFilter(keys)}
         
         showAddButton={true}
         addButtonText="Log Expense"

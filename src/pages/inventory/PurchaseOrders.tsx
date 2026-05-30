@@ -125,7 +125,7 @@ export default function PurchaseOrders() {
           { uid: 'cancelled', name: 'Cancelled' }
         ]}
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(keys: any) => setStatusFilter(keys)}
         
         showAddButton={true}
         addButtonText="New PO"

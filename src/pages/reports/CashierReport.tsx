@@ -10,8 +10,8 @@ import { UserSquare2 } from 'lucide-react';
 
 export default function CashierReport() {
   const [dateRange, setDateRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
+    startDate: startOfMonth(new Date()),
+    endDate: endOfMonth(new Date())
   });
   
   const [reportData, setReportData] = useState<any[]>([]);
@@ -20,8 +20,8 @@ export default function CashierReport() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
-      const startStr = dateRange.from?.toISOString();
-      const endStr = dateRange.to?.toISOString();
+      const startStr = dateRange.startDate?.toISOString();
+      const endStr = dateRange.endDate?.toISOString();
       
       const response = await apiClient.get(
         `/tenant/reports/cashiers?start_date=${startStr}&end_date=${endStr}`
@@ -37,7 +37,7 @@ export default function CashierReport() {
   };
 
   useEffect(() => {
-    if (dateRange.from && dateRange.to) {
+    if (dateRange.startDate && dateRange.endDate) {
       fetchReport();
     }
   }, [dateRange]);
@@ -83,8 +83,8 @@ export default function CashierReport() {
           <div className="w-full md:w-auto">
             <label className="block text-xs font-medium text-gray-500 mb-1">Date Range</label>
             <DateRangePicker 
-              date={dateRange} 
-              setDate={(range: any) => setDateRange(range)} 
+              value={dateRange} 
+              onChange={(range: any) => setDateRange(range)} 
             />
           </div>
         </div>

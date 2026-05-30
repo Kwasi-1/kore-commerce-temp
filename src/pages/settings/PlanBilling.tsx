@@ -1,6 +1,6 @@
 import React from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import useAuthStore from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { getModules } from '@/utils/permissions';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@nextui-org/react';
