@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState, useTransition } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { getModules } from '@/utils/permissions';
 import {
@@ -34,6 +34,9 @@ export default function Sidebar() {
   const modules = getModules(plan);
   const isDark = useThemeStore((state) => state.isDark);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isPending, startTransition] = useTransition();
 
   const navSections = [
     {
@@ -97,6 +100,14 @@ export default function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
+      {/* Slim top loading bar during transitions */}
+      <div
+        className={clsx(
+          "absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-opacity duration-300 z-50",
+          isPending ? "opacity-100" : "opacity-0"
+        )}
+        style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}
+      />
       <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0 mx-auto")}>
         {!isCollapsed && (
           <h2 className="text-2xl font-bold tracking-tight text-primary truncate">
@@ -121,26 +132,27 @@ export default function Sidebar() {
                   </h3>
                 )}
                 <ul className="space-y-2 w-full">
-                  {section.items.map((item) => (
-                    <li key={item.name} className={clsx(isCollapsed && "flex justify-center w-full")}>
-                      <NavLink
-                        to={item.to}
-                        title={item.name}
-                        className={({ isActive }) =>
-                          clsx(
+                  {section.items.map((item) => {
+                    const isActive = location.pathname === item.to;
+                    return (
+                      <li key={item.name} className={clsx(isCollapsed && "flex justify-center w-full")}>
+                        <button
+                          onClick={() => startTransition(() => navigate(item.to))}
+                          title={item.name}
+                          className={clsx(
                             'flex items-center rounded-xl transition-colors group',
-                            isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5',
+                            isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5 w-full',
                             isActive
                               ? 'bg-primary text-[#1a1a1a] dark:text-[#1a1a1a]'
-                              : 'text-gray-300 hover:bg-white/10 hover:text-white  dark:hover:bg-white/5 dark:hover:text-white'
-                          )
-                        }
-                      >
-                        <item.icon className="h-[22px] w-[22px] shrink-0" />
-                        {!isCollapsed && <span className="font-medium text-sm truncate">{item.name}</span>}
-                      </NavLink>
-                    </li>
-                  ))}
+                              : 'text-gray-300 hover:bg-white/10 hover:text-white dark:hover:bg-white/5 dark:hover:text-white'
+                          )}
+                        >
+                          <item.icon className="h-[22px] w-[22px] shrink-0" />
+                          {!isCollapsed && <span className="font-medium text-sm truncate">{item.name}</span>}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )

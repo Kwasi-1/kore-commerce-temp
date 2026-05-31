@@ -113,3 +113,19 @@
     min-height: 100vh;
   }
 }
+
+/* Navigation transition loading bar animation */
+@keyframes shimmer {
+  0%   { transform: scaleX(0.1); transform-origin: left; opacity: 1; }
+  50%  { transform: scaleX(0.7); transform-origin: left; opacity: 1; }
+  100% { transform: scaleX(1);   transform-origin: left; opacity: 0; }
+}
+
+/* Hide scrollbar while keeping scroll behaviour */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
