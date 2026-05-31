@@ -1,67 +1,82 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ProductSearchBar from '@/components/pos/ProductSearchBar';
 import CartPanel from '@/components/pos/CartPanel';
-import { useAuthStore } from '@/store/authStore';
-import { Bell, Settings, UserPlus } from 'lucide-react';
+import RegisterHeader from '@/components/pos/RegisterHeader';
+import ShiftModal from '@/components/pos/ShiftModal';
+import { useShift } from '@/hooks/useShift';
 import { Button } from '@/components/ui/button';
+import { PlayCircle } from 'lucide-react';
 
 export default function Register() {
-  const staffUser = useAuthStore((state) => state.staffUser);
+  const { currentShift, openShift, isLoading } = useShift();
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [isOpeningShift, setIsOpeningShift] = useState(false);
+
+  const handleOpenShift = async (float: number) => {
+    setIsOpeningShift(true);
+    const success = await openShift(float);
+    setIsOpeningShift(false);
+    if (success) {
+      setIsShiftModalOpen(false);
+    }
+    return success;
+  };
 
   return (
-    <div className="flex flex-col h-full bg-background p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-background p-6 overflow-hidden relative">
       
-      {/* Top Header */}
-      <header className="flex items-center justify-between pb-6 shrink-0">
-        <h1 className="text-[26px] font-bold text-foreground tracking-tight">Create Transaction</h1>
-        
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
-          </Button>
-          
-          <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground transition-colors">
-            <Settings className="h-5 w-5" />
-          </Button>
-          
-          <div className="flex -space-x-2 mr-2">
-            <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
-               <img src="https://i.pravatar.cc/150?img=1" alt="staff" className="h-full w-full object-cover" />
-            </div>
-            <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
-               <img src="https://i.pravatar.cc/150?img=2" alt="staff" className="h-full w-full object-cover" />
-            </div>
-            <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
-               <img src="https://i.pravatar.cc/150?img=3" alt="staff" className="h-full w-full object-cover" />
-            </div>
-          </div>
-          
-          <Button variant="outline" className="flex items-center gap-2 rounded-full shadow-sm font-medium">
-            <UserPlus className="h-4 w-4" />
-            New Access
-          </Button>
-          
-          <div className="h-10 w-10 rounded-full border-2 border-background bg-gray-200 overflow-hidden ml-2">
-            <img src="https://i.pravatar.cc/150?img=11" alt="profile" className="h-full w-full object-cover" />
-          </div>
-        </div>
-      </header>
+      {/* Extracted Header Component */}
+      <RegisterHeader />
 
       {/* Main Content: Split View */}
-      <div className="flex flex-1 gap-6 min-h-0">
+      <div className="flex flex-1 gap-6 min-h-0 relative">
         
         {/* Left Panel: Products */}
-        <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden relative">
           <ProductSearchBar />
+          
+          {/* Products Block Overlay */}
+          {!isLoading && !currentShift && (
+            <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center rounded-[24px]">
+              {/* Optional: subtle lock icon or text here, but the main CTA is on the cart */}
+            </div>
+          )}
         </div>
 
         {/* Right Panel: Cart */}
-        <div className="w-[420px] shrink-0 flex flex-col">
+        <div className="w-[420px] shrink-0 flex flex-col relative">
           <CartPanel />
+          
+          {/* Cart Block Overlay */}
+          {!isLoading && !currentShift && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
+              <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
+                <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <PlayCircle className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  You must open a new shift before processing any transactions.
+                </p>
+                <Button 
+                  onClick={() => setIsShiftModalOpen(true)}
+                  className="w-full rounded-xl font-bold"
+                >
+                  Start Shift
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
+
+      <ShiftModal 
+        isOpen={isShiftModalOpen} 
+        onOpenChange={setIsShiftModalOpen} 
+        onOpenShift={handleOpenShift}
+        isOpening={isOpeningShift}
+      />
     </div>
   );
 }
