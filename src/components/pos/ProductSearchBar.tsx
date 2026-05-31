@@ -96,14 +96,14 @@ export default function ProductSearchBar() {
                 setActiveCategory(cat.name);
                 setIsSearchActive(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
+              className={`flex items-center gap-2 pl-3.5 pr-1 py-1 rounded-full text-sm font-semibold transition-colors border ${
                 activeCategory === cat.name
                   ? 'text-foreground'
                   : 'border-border text-muted-foreground hover:border-gray-300'
               }`}
             >
               <span className="whitespace-nowrap">{cat.name}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              <span className={`px-3 py-[5px] rounded-full text-xs font-bold ${
                 activeCategory === cat.name ? 'bg-primary text-[#1a1a1a]' : 'bg-muted text-muted-foreground'
               }`}>
                 {cat.count}

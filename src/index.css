@@ -18,6 +18,39 @@
     url("./assets/fonts/AdventPro-Regular.woff") format("woff");
 }
 
+@font-face {
+  font-family: "Zain";
+  src:
+    url("./assets/fonts/Zain-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Zain-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Zain";
+  src:
+    url("./assets/fonts/Zain-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Zain-Regular.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Zain";
+  src:
+    url("./assets/fonts/Zain-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Zain-Regular.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Zain";
+  src:
+    url("./assets/fonts/Zain-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Zain-Regular.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -76,7 +109,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: AdventPro, sans-serif;
+    font-family: Zain, sans-serif;
     min-height: 100vh;
   }
 }
