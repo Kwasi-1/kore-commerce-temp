@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
+import { useShift } from '@/hooks/useShift';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import ProductCard, { Product } from './ProductCard';
@@ -15,6 +16,7 @@ export default function ProductSearchBar() {
   const [isLoading, setIsLoading] = useState(false);
   
   const addItem = useCartStore((state) => state.addItem);
+  const { currentShift } = useShift();
 
   useEffect(() => {
     fetchProducts();
@@ -67,6 +69,11 @@ export default function ProductSearchBar() {
   };
 
   const handleAddToCart = (product: Product) => {
+    if (!currentShift) {
+      toast.error('You must start a shift first before adding items to the cart!');
+      return;
+    }
+    
     if (product.quantity <= 0) {
       toast.error(`${product.name} is out of stock!`);
     }

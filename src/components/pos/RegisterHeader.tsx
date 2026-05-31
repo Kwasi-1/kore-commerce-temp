@@ -9,7 +9,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { Icon } from '@iconify/react';
 import CashierSwitcher from './CashierSwitcher';
 import NewCashierModal from './NewCashierModal';
 
@@ -48,11 +51,19 @@ export default function RegisterHeader() {
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-10 w-10 rounded-full border-2 border-background bg-gray-200 overflow-hidden ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background transition-all">
-              <img src="https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff" alt="profile" className="h-full w-full object-cover" />
+            <button className="flex items-center gap-2 ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all">
+              <div className="h-10 w-10 rounded-full border-2 border-background bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-sm">
+                {staffUser ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
+              </div>
+              <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 rounded-[16px] shadow-md border-border/60">
+          <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">
+            <DropdownMenuLabel className="flex flex-col py-2 px-3">
+              <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
+              <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}

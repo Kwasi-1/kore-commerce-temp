@@ -1,34 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import apiClient from '@/api/client';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import CustomModal from '@/components/modals/modal';
+import { CustomInputTextField } from '@/components/shared/text-field';
 import toast from 'react-hot-toast';
-
-// Mock cashiers list
-const MOCK_CASHIERS = [
-  { id: '1', name: 'Kwame Mensah', role: 'cashier', avatar: 'https://i.pravatar.cc/150?img=1' },
-  { id: '2', name: 'Ama Osei', role: 'cashier', avatar: 'https://i.pravatar.cc/150?img=2' },
-  { id: '3', name: 'Kofi Yeboah', role: 'cashier', avatar: 'https://i.pravatar.cc/150?img=3' },
-  { id: '4', name: 'Abena Agyei', role: 'cashier', avatar: 'https://i.pravatar.cc/150?img=4' },
-];
 
 export default function CashierSwitcher() {
   const { login, tenant } = useAuthStore();
+  const [cashiers, setCashiers] = useState<any[]>([]);
   const [selectedCashier, setSelectedCashier] = useState<any>(null);
   const [pin, setPin] = useState('');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchCashiers = async () => {
+      try {
+        const response = await apiClient.get('/tenant/staff');
+        // Filter to only show active staff who could potentially be cashiers
+        // The mock returns a list of staff, some might be owners/managers
+        setCashiers(response.data.success?.data?.staff || []);
+      } catch (error) {
+        console.error('Failed to fetch cashiers:', error);
+      }
+    };
+    fetchCashiers();
+  }, []);
 
   const handleCashierClick = (cashier: any) => {
     setSelectedCashier(cashier);
@@ -37,8 +40,8 @@ export default function CashierSwitcher() {
     setIsPinModalOpen(true);
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePinSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     // Mock PIN validation (any 4 digits works for now)
     if (pin.length >= 4) {
       toast.success(`Logged in as ${selectedCashier.name}`);
@@ -50,16 +53,55 @@ export default function CashierSwitcher() {
     }
   };
 
+  const getAvatarUrl = (cashier: any) => {
+    return cashier.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cashier.name)}&background=random`;
+  };
+
+  const pinModalBody = (
+    <div className="flex flex-col items-center justify-center space-y-6 pt-2 pb-4">
+      {selectedCashier && (
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden border-2 border-border shadow-sm">
+            <img src={getAvatarUrl(selectedCashier)} alt={selectedCashier.name} className="h-full w-full object-cover" />
+          </div>
+          <p className="font-bold text-lg">{selectedCashier.name}</p>
+        </div>
+      )}
+      
+      <form onSubmit={handlePinSubmit} className="w-full space-y-6">
+        <CustomInputTextField
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          placeholder="****"
+          className="text-center text-2xl tracking-[0.5em] font-bold"
+          autoFocus
+        />
+        <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm">
+          Unlock Register
+        </Button>
+      </form>
+    </div>
+  );
+
   return (
     <>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <button className="flex -space-x-2 mr-2 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full">
-            {MOCK_CASHIERS.slice(0, 3).map((cashier, idx) => (
+            {cashiers.slice(0, 3).map((cashier, idx) => (
               <div key={cashier.id} className={`h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden z-[${3-idx}]`}>
-                <img src={cashier.avatar} alt={cashier.name} className="h-full w-full object-cover" />
+                <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
               </div>
             ))}
+            {cashiers.length === 0 && (
+              <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
+                 <img src="https://ui-avatars.com/api/?name=Staff" alt="staff" className="h-full w-full object-cover" />
+              </div>
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-2 rounded-xl border-border/60 shadow-lg">
@@ -67,14 +109,14 @@ export default function CashierSwitcher() {
             <h4 className="font-semibold text-sm text-foreground">Select Cashier</h4>
           </div>
           <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto scrollbar-hide">
-            {MOCK_CASHIERS.map(cashier => (
+            {cashiers.map(cashier => (
               <button
                 key={cashier.id}
                 onClick={() => handleCashierClick(cashier)}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden shrink-0 border border-border/50">
-                  <img src={cashier.avatar} alt={cashier.name} className="h-full w-full object-cover" />
+                  <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[14px] font-bold text-foreground leading-tight">{cashier.name}</span>
@@ -86,40 +128,17 @@ export default function CashierSwitcher() {
         </PopoverContent>
       </Popover>
 
-      <Dialog open={isPinModalOpen} onOpenChange={setIsPinModalOpen}>
-        <DialogContent className="sm:max-w-sm rounded-[24px]">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl">Enter PIN</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center space-y-6 py-4">
-            {selectedCashier && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden border-2 border-border shadow-sm">
-                  <img src={selectedCashier.avatar} alt={selectedCashier.name} className="h-full w-full object-cover" />
-                </div>
-                <p className="font-bold text-lg">{selectedCashier.name}</p>
-              </div>
-            )}
-            
-            <form onSubmit={handlePinSubmit} className="w-full space-y-4">
-              <Input
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="****"
-                className="text-center text-2xl tracking-[0.5em] h-14 font-bold rounded-xl"
-                autoFocus
-              />
-              <Button type="submit" className="w-full h-12 rounded-xl font-bold text-[15px]">
-                Unlock Register
-              </Button>
-            </form>
+      <CustomModal
+        isOpen={isPinModalOpen}
+        onOpenChange={() => setIsPinModalOpen(!isPinModalOpen)}
+        size="sm"
+        header={
+          <div className="flex items-center justify-center w-full text-xl font-bold pt-2">
+            Enter PIN
           </div>
-        </DialogContent>
-      </Dialog>
+        }
+        body={pinModalBody}
+      />
     </>
   );
 }

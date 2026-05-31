@@ -107,6 +107,22 @@ export function setupMockApi() {
     }
   });
 
+  mock.onPost('/pos/shifts/open').reply((config) => {
+    const data = JSON.parse(config.data);
+    return [200, {
+      success: {
+        data: {
+          shift: {
+            id: `sh${Math.floor(Math.random() * 1000)}`,
+            status: 'open',
+            opened_at: new Date().toISOString(),
+            starting_cash: data.opening_float || 0
+          }
+        }
+      }
+    }];
+  });
+
   // -----------------------------------------------------
   // EXPENSES
   // -----------------------------------------------------

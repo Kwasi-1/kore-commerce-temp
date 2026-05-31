@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductSearchBar from '@/components/pos/ProductSearchBar';
 import CartPanel from '@/components/pos/CartPanel';
 import RegisterHeader from '@/components/pos/RegisterHeader';
 import ShiftModal from '@/components/pos/ShiftModal';
 import { useShift } from '@/hooks/useShift';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { PlayCircle } from 'lucide-react';
 
 export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
+  const { staffUser } = useAuthStore();
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isOpeningShift, setIsOpeningShift] = useState(false);
+
+  useEffect(() => {
+    // If the user is logged in, finished loading shift data, and there's no open shift
+    if (staffUser && !isLoading && !currentShift) {
+      setIsShiftModalOpen(true);
+    }
+  }, [staffUser, isLoading, currentShift]);
 
   const handleOpenShift = async (float: number) => {
     setIsOpeningShift(true);
@@ -34,13 +43,6 @@ export default function Register() {
         {/* Left Panel: Products */}
         <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden relative">
           <ProductSearchBar />
-          
-          {/* Products Block Overlay */}
-          {!isLoading && !currentShift && (
-            <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center rounded-[24px]">
-              {/* Optional: subtle lock icon or text here, but the main CTA is on the cart */}
-            </div>
-          )}
         </div>
 
         {/* Right Panel: Cart */}
