@@ -9,42 +9,45 @@ interface Product {
   name: string;
   sku: string;
   price: number;
-  quantity: number; // stock
+  quantity: number;
   imageUrl?: string;
   category: string;
+  description?: string;
 }
 
 export default function ProductSearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>(['All']);
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [categories, setCategories] = useState<{name: string, count: number}[]>([{name: 'All Product', count: 0}]);
+  const [activeCategory, setActiveCategory] = useState('All Product');
   const [isLoading, setIsLoading] = useState(false);
   
   const addItem = useCartStore((state) => state.addItem);
 
-  // Fetch initial products and categories
   useEffect(() => {
     fetchProducts();
-  }, [activeCategory]);
+  }, []);
 
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      // Use tenant/products to get the full list for browsing
-      const url = activeCategory === 'All' 
-        ? '/tenant/products' 
-        : `/tenant/products?category=${encodeURIComponent(activeCategory)}`;
-        
-      const response = await apiClient.get(url);
+      const response = await apiClient.get('/tenant/products');
       const fetchedProducts = response.data.data.products || [];
       setProducts(fetchedProducts);
 
-      // Extract unique categories if we are on 'All'
-      if (activeCategory === 'All') {
-        const uniqueCategories = Array.from(new Set(fetchedProducts.map((p: Product) => p.category).filter(Boolean))) as string[];
-        setCategories(['All', ...uniqueCategories]);
-      }
+      // Compute categories and counts
+      const counts: Record<string, number> = { 'All Product': fetchedProducts.length };
+      fetchedProducts.forEach((p: Product) => {
+        const catName = p.category || 'Others Product';
+        counts[catName] = (counts[catName] || 0) + 1;
+      });
+
+      const catsArray = Object.keys(counts).map(key => ({ name: key, count: counts[key] }));
+      // Sort so 'All Product' is first
+      catsArray.sort((a, b) => a.name === 'All Product' ? -1 : b.name === 'All Product' ? 1 : 0);
+      setCategories(catsArray);
+
     } catch (error) {
       console.error('Failed to fetch products:', error);
       toast.error('Failed to load products');
@@ -57,28 +60,10 @@ export default function ProductSearchBar() {
     if (e.key === 'Enter' && searchTerm.trim() !== '') {
       setIsLoading(true);
       try {
-        // First try SKU lookup (exact match)
-        const response = await apiClient.get(`/pos/products/lookup?sku=${encodeURIComponent(searchTerm.trim())}`);
-        
-        if (response.data?.success?.data?.product) {
-          const product = response.data.success.data.product;
-          handleAddToCart(product);
-          setSearchTerm('');
-          return;
-        }
-      } catch (error: any) {
-        // If 404, it wasn't an exact SKU, fall through to name search
-        if (error.response?.status !== 404) {
-          console.error('SKU lookup error:', error);
-        }
-      }
-
-      // Fallback: search by name
-      try {
         const searchResponse = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(searchTerm.trim())}`);
         const foundProducts = searchResponse.data?.success?.data?.products || [];
         setProducts(foundProducts);
-        setActiveCategory('All');
+        setActiveCategory('All Product');
       } catch (error) {
         console.error('Search error:', error);
         toast.error('Search failed');
@@ -86,7 +71,6 @@ export default function ProductSearchBar() {
         setIsLoading(false);
       }
     } else if (e.key === 'Enter' && searchTerm.trim() === '') {
-      // Empty search resets to all products
       fetchProducts();
     }
   };
@@ -94,103 +78,121 @@ export default function ProductSearchBar() {
   const handleAddToCart = (product: Product) => {
     if (product.quantity <= 0) {
       toast.error(`${product.name} is out of stock!`);
-      // We still allow adding to cart depending on settings, but let's assume strict stock checking for now or let the backend reject it later.
-      // We'll proceed to add it anyway but show a warning.
     }
-    
     addItem({
       productId: product.id,
       name: product.name,
       sku: product.sku,
       price: product.price,
     });
-    
-    // Optional feedback
-    // toast.success(`Added ${product.name}`);
   };
 
-  return (
-    <div className="flex flex-col h-full overflow-hidden bg-pos-surface-panel dark:bg-pos-dark-panel rounded-xl border border-gray-100 dark:border-pos-dark-border shadow-sm transition-colors">
-      
-      {/* Header / Search */}
-      <div className="p-4 border-b border-gray-100 dark:border-pos-dark-border space-y-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-pos-dark-border rounded-lg leading-5 bg-white dark:bg-pos-dark-app text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-pos-accent focus:border-pos-accent sm:text-sm transition-colors"
-            placeholder="Search by name or scan SKU and press Enter..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleSearch}
-          />
-        </div>
+  const filteredProducts = activeCategory === 'All Product' 
+    ? products 
+    : products.filter(p => (p.category || 'Others Product') === activeCategory);
 
-        {/* Categories */}
-        <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-hide">
-          {categories.map((category) => (
+  return (
+    <div className="flex flex-col h-full bg-background">
+      
+      {/* Top Controls: Categories and Search */}
+      <div className="flex items-center justify-between p-6 pb-2 shrink-0">
+        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pr-4">
+          {categories.map((cat) => (
             <button
-              key={category}
+              key={cat.name}
               onClick={() => {
-                setActiveCategory(category);
-                setSearchTerm('');
+                setActiveCategory(cat.name);
+                setIsSearchActive(false);
               }}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                activeCategory === category
-                  ? 'bg-pos-accent text-pos-accent-text'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-pos-dark-card dark:text-gray-300 dark:hover:bg-gray-800'
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
+                activeCategory === cat.name
+                  ? 'border-[#b6ff56] text-foreground'
+                  : 'border-border text-muted-foreground hover:border-gray-300'
               }`}
             >
-              {category}
+              <span className="whitespace-nowrap">{cat.name}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                activeCategory === cat.name ? 'bg-[#b6ff56] text-[#1a1a1a]' : 'bg-muted text-muted-foreground'
+              }`}>
+                {cat.count}
+              </span>
             </button>
           ))}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {isSearchActive && (
+            <input
+              autoFocus
+              type="text"
+              className="px-4 py-2 border border-border rounded-full text-sm bg-transparent outline-none w-48 transition-all"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearch}
+              onBlur={() => { if(!searchTerm) setIsSearchActive(false) }}
+            />
+          )}
+          <button 
+            onClick={() => setIsSearchActive(true)}
+            className="h-10 w-10 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/50 transition-colors shrink-0"
+          >
+            <Search className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
       {/* Product Grid */}
-      <div className="flex-1 overflow-y-auto p-4 bg-pos-surface-app dark:bg-pos-dark-app">
+      <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pos-accent"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#b6ff56]"></div>
           </div>
-        ) : products.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+        ) : filteredProducts.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
             No products found.
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                onClick={() => handleAddToCart(product)}
-                className="bg-white dark:bg-pos-dark-card rounded-xl border border-gray-100 dark:border-pos-dark-border p-4 cursor-pointer hover:shadow-md hover:border-pos-accent dark:hover:border-pos-accent transition-all group flex flex-col h-full"
+                className="bg-card rounded-[20px] border border-border p-3 flex flex-col hover:shadow-md transition-shadow group h-[320px]"
               >
-                <div className="mb-2 flex justify-between items-start">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                    {product.quantity} in stock
-                  </span>
+                {/* 1:1 Image Container */}
+                <div className="relative w-full pt-[100%] bg-[#F5F5F5] rounded-xl overflow-hidden mb-3">
+                  {/* Stock Badge */}
+                  <div className="absolute top-2 left-2 z-10 bg-[#1A1A1A] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                    {product.quantity} Stock
+                  </div>
+                  
+                  {/* Image */}
+                  <img 
+                    src={product.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=random`} 
+                    alt={product.name} 
+                    className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-90 group-hover:scale-105 transition-transform duration-500" 
+                  />
                 </div>
                 
-                {product.imageUrl && (
-                  <div className="h-32 mb-3 bg-gray-50 dark:bg-pos-dark-panel rounded-lg overflow-hidden flex items-center justify-center">
-                    <img src={product.imageUrl} alt={product.name} className="max-h-full object-contain" />
+                {/* Product Info */}
+                <div className="flex-1 flex flex-col">
+                  <h3 className="text-[15px] font-bold text-foreground line-clamp-1 mb-1">
+                    {product.name}
+                  </h3>
+                  <p className="text-[12px] text-muted-foreground line-clamp-2 leading-tight mb-2 flex-1">
+                    {product.description || product.sku}
+                  </p>
+                  
+                  <div className="font-bold text-[16px] text-foreground mb-3">
+                    ${product.price?.toFixed(2) || '0.00'}
                   </div>
-                )}
-                
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 group-hover:text-pos-accent transition-colors">
-                  {product.name}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{product.sku}</p>
-                
-                <div className="mt-auto pt-2 flex items-center justify-between border-t border-gray-50 dark:border-pos-dark-border">
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    GHS {product.price?.toFixed(2) || '0.00'}
-                  </span>
-                  <span className="text-xs text-pos-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    Add +
-                  </span>
+                  
+                  <button 
+                    onClick={() => handleAddToCart(product)}
+                    className="w-full py-2.5 rounded-full border border-border text-[13px] font-semibold text-foreground hover:bg-[#b6ff56] hover:border-[#b6ff56] hover:text-[#1a1a1a] transition-colors mt-auto"
+                  >
+                    + Add to Cart
+                  </button>
                 </div>
               </div>
             ))}

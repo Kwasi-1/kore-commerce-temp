@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { getModules } from '@/utils/permissions';
@@ -18,15 +19,21 @@ import {
   UserSquare2,
   CalendarCheck,
   Settings,
+  Menu,
+  ChevronRight,
+  ChevronLeft,
+  LogOut
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useThemeStore } from '@/store/themeStore';
 
 export default function Sidebar() {
   const tenant = useAuthStore((state) => state.tenant);
+  const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'pos_only';
   const modules = getModules(plan);
   const isDark = useThemeStore((state) => state.isDark);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const navSections = [
     {
@@ -85,37 +92,53 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 min-h-screen border-r bg-pos-sidebar-light text-white dark:bg-pos-sidebar-dark dark:text-pos-sidebar-light dark:border-pos-dark-border flex flex-col transition-colors duration-200">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold tracking-tight text-pos-accent">
-          {tenant?.name || 'HeadlessPOS'}
-        </h2>
+    <aside
+      className={clsx(
+        "min-h-screen border-r bg-pos-sidebar-light text-white dark:bg-pos-sidebar-dark dark:text-pos-sidebar-light dark:border-pos-dark-border flex flex-col transition-all duration-300 relative",
+        isCollapsed ? "w-20" : "w-64"
+      )}
+    >
+      <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0")}>
+        {!isCollapsed && (
+          <h2 className="text-2xl font-bold tracking-tight text-pos-accent truncate">
+            {tenant?.name || 'HeadlessPOS'}
+          </h2>
+        )}
+        {isCollapsed && (
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pos-accent text-pos-accent-text font-bold text-xl leading-none shadow-sm cursor-pointer" onClick={() => setIsCollapsed(false)}>
+            {tenant?.name ? tenant.name.charAt(0).toUpperCase() : 'H'}
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 pb-4 space-y-6 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-6 scrollbar-hide flex flex-col">
         {navSections.map(
           (section) =>
             section.show && (
-              <div key={section.title}>
-                <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  {section.title}
-                </h3>
-                <ul className="space-y-1">
+              <div key={section.title} className={clsx(isCollapsed && "flex flex-col items-center")}>
+                {!isCollapsed && (
+                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    {section.title}
+                  </h3>
+                )}
+                <ul className="space-y-2 w-full">
                   {section.items.map((item) => (
-                    <li key={item.name}>
+                    <li key={item.name} className={clsx(isCollapsed && "flex justify-center w-full")}>
                       <NavLink
                         to={item.to}
+                        title={item.name}
                         className={({ isActive }) =>
                           clsx(
-                            'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                            'flex items-center rounded-xl transition-colors group',
+                            isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5',
                             isActive
-                              ? 'bg-pos-accent text-pos-accent-text dark:bg-pos-accent dark:text-pos-accent-text'
-                              : 'text-gray-300 hover:bg-white/10 hover:text-white dark:text-gray-600 dark:hover:bg-black/5 dark:hover:text-black'
+                              ? 'bg-[#b6ff56] text-[#1a1a1a] shadow-md dark:bg-[#b6ff56] dark:text-[#1a1a1a]'
+                              : 'text-gray-300 hover:bg-white/10 hover:text-white dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
                           )
                         }
                       >
-                        <item.icon className="h-5 w-5" />
-                        {item.name}
+                        <item.icon className="h-[22px] w-[22px] shrink-0" />
+                        {!isCollapsed && <span className="font-medium text-sm truncate">{item.name}</span>}
                       </NavLink>
                     </li>
                   ))}
@@ -124,6 +147,35 @@ export default function Sidebar() {
             )
         )}
       </nav>
+
+      <div className="mt-auto p-4 border-t border-white/10 dark:border-pos-dark-border flex flex-col gap-2">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={clsx(
+            "flex items-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 transition-colors",
+            isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+          )}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <ChevronRight className="h-[22px] w-[22px]" /> : <ChevronLeft className="h-[22px] w-[22px]" />}
+          {!isCollapsed && <span className="font-medium text-sm">Collapse</span>}
+        </button>
+
+        <button
+          onClick={() => {
+            logout();
+            window.location.href = '/login';
+          }}
+          className={clsx(
+            "flex items-center rounded-xl text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors",
+            isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+          )}
+          title="Logout"
+        >
+          <LogOut className="h-[22px] w-[22px]" />
+          {!isCollapsed && <span className="font-medium text-sm">Logout</span>}
+        </button>
+      </div>
     </aside>
   );
 }

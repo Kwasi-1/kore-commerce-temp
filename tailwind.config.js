@@ -109,7 +109,7 @@ export default {
           }
         },
         pos: {
-          accent: "#CCFF00",           // lime green — buttons, active nav, stock badges
+          accent: "#c3f277",           // lime green — buttons, active nav, stock badges
           "accent-text": "#111111",    // text on lime backgrounds
           "sidebar-light": "#111111",  // sidebar bg in light mode
           "sidebar-dark": "#f0f0f0",   // sidebar bg in dark mode

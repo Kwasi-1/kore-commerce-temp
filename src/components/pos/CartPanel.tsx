@@ -1,93 +1,85 @@
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { Trash2, Plus, Minus, CreditCard, Banknote, Smartphone, PauseCircle } from 'lucide-react';
+import { Trash2, Plus, Minus, CreditCard, ChevronRight, Ticket } from 'lucide-react';
 import PaymentModal from './PaymentModal';
+import { Button } from '../ui/button';
 
 export default function CartPanel() {
-  const { items, subtotal, discount, total, removeItem, updateQuantity, setDiscount, clearCart } = useCartStore();
-  const [discountInput, setDiscountInput] = useState(discount.toString() || '');
+  const { items, subtotal, discount, total, removeItem, updateQuantity, clearCart } = useCartStore();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<'cash' | 'mobile_money' | 'card'>('cash');
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<'cash' | 'mobile_money' | 'card'>('card');
 
-  const handleDiscountApply = () => {
-    const val = parseFloat(discountInput);
-    if (!isNaN(val) && val >= 0) {
-      setDiscount(val);
-    } else {
-      setDiscount(0);
-      setDiscountInput('0');
-    }
-  };
+  // Hardcoded for UI demo
+  const taxRate = 0.12;
+  const taxAmount = subtotal * taxRate;
+  const calculatedTotal = subtotal + taxAmount - discount;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-pos-dark-card rounded-xl border border-gray-100 dark:border-pos-dark-border shadow-sm overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-background rounded-[24px] shadow-sm border border-border overflow-hidden">
       
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-pos-dark-border bg-gray-50 dark:bg-pos-dark-panel">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Current Order</h2>
+      <div className="flex items-center justify-between p-6 pb-4">
+        <h2 className="text-[20px] font-bold text-foreground">Detail Transaction</h2>
         <button
           onClick={clearCart}
           disabled={items.length === 0}
-          className="flex items-center text-sm font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors text-sm font-semibold disabled:opacity-50"
         >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Clear
+          <Trash2 className="h-4 w-4" />
+          Reset Order
         </button>
       </div>
 
       {/* Cart Items List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 space-y-4 scrollbar-hide pb-4">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 space-y-2">
-            <div className="p-4 rounded-full bg-gray-50 dark:bg-pos-dark-panel">
-              <Banknote className="h-8 w-8" />
-            </div>
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
             <p className="text-sm font-medium">Cart is empty</p>
           </div>
         ) : (
           items.map((item) => (
-            <div key={item.productId} className="flex flex-col p-3 rounded-lg border border-gray-100 dark:border-pos-dark-border bg-gray-50/50 dark:bg-pos-dark-panel">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{item.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.sku}</p>
+            <div key={item.productId} className="flex flex-col p-4 rounded-[20px] border border-border bg-card shadow-sm gap-3">
+              <div className="flex gap-4">
+                {/* Item Image */}
+                <div className="w-[72px] h-[72px] rounded-xl bg-[#F5F5F5] flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random`} alt={item.name} className="w-full h-full object-cover mix-blend-multiply opacity-90" />
                 </div>
-                <button
-                  onClick={() => removeItem(item.productId)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div className="flex items-center justify-between mt-auto">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  GHS {(item.price * item.quantity).toFixed(2)}
-                </span>
                 
-                <div className="flex items-center bg-white dark:bg-pos-dark-card border border-gray-200 dark:border-pos-dark-border rounded-md shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="p-1 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (!isNaN(val)) updateQuantity(item.productId, val);
-                    }}
-                    className="w-10 text-center text-sm font-semibold bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white"
-                    min="1"
-                  />
-                  <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="p-1 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                {/* Item Info */}
+                <div className="flex-1 flex flex-col justify-between py-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-[15px] text-foreground line-clamp-1">{item.name}</h3>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">Size 42 • Green</p> {/* Mock variant */}
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.productId)}
+                      className="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-gray-200 transition-colors"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="font-semibold text-[14px] w-4 text-center">{item.quantity.toString().padStart(2, '0')}</span>
+                      <button
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        className="h-7 w-7 rounded-full bg-[#b6ff56] flex items-center justify-center text-[#1a1a1a] hover:brightness-95 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <span className="font-bold text-[15px] text-foreground">
+                      Total ${(item.price * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -95,90 +87,74 @@ export default function CartPanel() {
         )}
       </div>
 
-      {/* Summary & Checkout */}
-      <div className="p-4 border-t border-gray-100 dark:border-pos-dark-border bg-gray-50 dark:bg-pos-dark-panel space-y-4">
+      {/* Summary & Checkout Section */}
+      <div className="p-6 bg-card border-t border-border mt-auto flex flex-col gap-5">
         
-        {/* Discount Input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            placeholder="Discount Amt"
-            value={discountInput}
-            onChange={(e) => setDiscountInput(e.target.value)}
-            onBlur={handleDiscountApply}
-            className="block w-full rounded-md border-gray-300 dark:border-pos-dark-border bg-white dark:bg-pos-dark-app text-gray-900 dark:text-white shadow-sm focus:border-pos-accent focus:ring-pos-accent sm:text-sm transition-colors py-2 px-3"
-            min="0"
-          />
-          <button
-            onClick={handleDiscountApply}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            Apply
+        {/* Promo Section */}
+        <div className="flex items-center justify-between p-3 rounded-[16px] border border-border bg-background">
+          <div className="flex items-center gap-3 pl-1">
+            <div className="text-foreground">
+              <Ticket className="h-5 w-5" />
+            </div>
+            <span className="text-[14px] font-semibold text-foreground">Promo New User (10%)</span>
+          </div>
+          <button className="px-4 py-1.5 bg-[#b6ff56] text-[#1a1a1a] text-[13px] font-bold rounded-full hover:brightness-95 transition-colors">
+            Change Promo
           </button>
         </div>
 
         {/* Totals */}
-        <div className="space-y-1.5 text-sm">
-          <div className="flex justify-between text-gray-500 dark:text-gray-400">
-            <span>Subtotal</span>
-            <span>GHS {subtotal.toFixed(2)}</span>
+        <div className="space-y-3 px-1">
+          <div className="flex justify-between text-[15px] text-muted-foreground font-medium">
+            <span>Sub-Total</span>
+            <span className="text-foreground font-semibold">${subtotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-red-500 dark:text-red-400">
+          <div className="flex justify-between text-[15px] text-muted-foreground font-medium">
+            <span>Tax (12%)</span>
+            <span className="text-foreground font-semibold">${taxAmount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-[15px] text-muted-foreground font-medium">
             <span>Discount</span>
-            <span>- GHS {discount.toFixed(2)}</span>
+            <span className="text-foreground font-semibold">-${discount.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-pos-dark-border">
+          <div className="flex justify-between text-[18px] font-bold text-foreground pt-1">
             <span>Total Payment</span>
-            <span>GHS {total.toFixed(2)}</span>
+            <span>${calculatedTotal.toFixed(2)}</span>
           </div>
         </div>
 
-        {/* Payment Buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <button
-            onClick={() => {
-              setDefaultPaymentMethod('cash');
-              setIsPaymentModalOpen(true);
-            }}
-            disabled={items.length === 0}
-            className="flex items-center justify-center gap-2 py-3 px-4 bg-pos-accent text-pos-accent-text font-bold rounded-lg shadow-sm hover:brightness-95 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all col-span-2 text-lg"
-          >
-            <Banknote className="h-5 w-5" />
-            Cash Payment
-          </button>
-          
-          <button
-            onClick={() => {
-              setDefaultPaymentMethod('mobile_money');
-              setIsPaymentModalOpen(true);
-            }}
-            disabled={items.length === 0}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-[#FFCC00] text-black font-semibold rounded-lg shadow-sm hover:brightness-95 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all"
-          >
-            <Smartphone className="h-4 w-4" />
-            MoMo
-          </button>
-          
-          <button
+        {/* Payment Method */}
+        <div className="flex items-center justify-between py-2 px-1">
+          <div className="flex items-center gap-3">
+            <div className="h-8 flex items-center">
+              {/* Fake Mastercard logo circles */}
+              <div className="flex -space-x-2">
+                <div className="h-6 w-6 rounded-full bg-red-500 mix-blend-multiply opacity-90"></div>
+                <div className="h-6 w-6 rounded-full bg-yellow-400 mix-blend-multiply opacity-90"></div>
+              </div>
+            </div>
+            <span className="font-semibold text-[15px]">Credit Card</span>
+          </div>
+          <button 
             onClick={() => {
               setDefaultPaymentMethod('card');
               setIsPaymentModalOpen(true);
             }}
-            disabled={items.length === 0}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all"
+            className="flex items-center gap-1 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
-            <CreditCard className="h-4 w-4" />
-            Card
-          </button>
-
-          <button
-            disabled={items.length === 0}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all col-span-2"
-          >
-            <PauseCircle className="h-4 w-4" />
-            Hold Order
+            Change Method <ChevronRight className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Continue Button */}
+        <button
+          onClick={() => setIsPaymentModalOpen(true)}
+          disabled={items.length === 0}
+          className="w-full py-4 bg-accent text-[#1a1a1a] text-[18px] font-bold rounded-[16px] shadow-sm hover:brightness-95 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all mt-2"
+        >
+          Continue
+        </button>
+        <Button></Button>
 
       </div>
 
