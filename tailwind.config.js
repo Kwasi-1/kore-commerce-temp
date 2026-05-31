@@ -74,7 +74,7 @@ export default {
         black: "900",
       },
       letterSpacing: {
-        tight: "-0.6px",
+        tight: "-0.1px",
       },
       keyframes: {
         "accordion-down": {

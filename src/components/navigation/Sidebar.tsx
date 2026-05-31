@@ -98,7 +98,7 @@ export default function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0")}>
+      <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0 mx-auto")}>
         {!isCollapsed && (
           <h2 className="text-2xl font-bold tracking-tight text-primary truncate">
             {tenant?.name || 'HeadlessPOS'}
@@ -132,7 +132,7 @@ export default function Sidebar() {
                             'flex items-center rounded-xl transition-colors group',
                             isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5',
                             isActive
-                              ? 'bg-[#b6ff56] text-[#1a1a1a] shadow-md dark:bg-[#b6ff56] dark:text-[#1a1a1a]'
+                              ? 'bg-primary text-[#1a1a1a] dark:text-[#1a1a1a]'
                               : 'text-gray-300 hover:bg-white/10 hover:text-white  dark:hover:bg-white/5 dark:hover:text-white'
                           )
                         }

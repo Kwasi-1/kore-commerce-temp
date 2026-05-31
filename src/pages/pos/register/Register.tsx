@@ -52,7 +52,7 @@ export default function Register() {
       <div className="flex flex-1 gap-6 min-h-0">
         
         {/* Left Panel: Products */}
-        <div className="flex-1 min-w-0 flex flex-col bg-background rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col bg-background shadow-sm overflow-hidden">
           <ProductSearchBar />
         </div>
 

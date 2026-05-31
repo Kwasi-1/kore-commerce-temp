@@ -86,7 +86,7 @@ export default function ProductSearchBar() {
     <div className="flex flex-col h-full bg-background">
       
       {/* Top Controls: Categories and Search */}
-      <div className="flex items-center justify-between p-6 pb-2 shrink-0">
+      <div className="flex items-center justify-between pb-2 shrink-0">
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pr-4">
           {categories.map((cat) => (
             <button
@@ -97,13 +97,13 @@ export default function ProductSearchBar() {
               }}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
                 activeCategory === cat.name
-                  ? 'border-[#b6ff56] text-foreground'
+                  ? 'text-foreground'
                   : 'border-border text-muted-foreground hover:border-gray-300'
               }`}
             >
               <span className="whitespace-nowrap">{cat.name}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                activeCategory === cat.name ? 'bg-[#b6ff56] text-[#1a1a1a]' : 'bg-muted text-muted-foreground'
+                activeCategory === cat.name ? 'bg-primary text-[#1a1a1a]' : 'bg-muted text-muted-foreground'
               }`}>
                 {cat.count}
               </span>
@@ -136,7 +136,7 @@ export default function ProductSearchBar() {
       </div>
 
       {/* Product Grid */}
-      <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto pt-6 scrollbar-hide">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#b6ff56]"></div>
