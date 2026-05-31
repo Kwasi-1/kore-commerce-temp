@@ -103,7 +103,7 @@ export default function Sidebar() {
       {/* Slim top loading bar during transitions */}
       <div
         className={clsx(
-          "absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-opacity duration-300 z-50",
+          "absolute top-0 left-0 right-0 h-[2px] bg-foreground/60 rounded-full transition-opacity duration-300 z-50",
           isPending ? "opacity-100" : "opacity-0"
         )}
         style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}

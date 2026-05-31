@@ -410,7 +410,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 classNames={{
                   base: "w-full lg:w-[20rem] h-[2.5rem] text-xs placeholder-xs",
                   inputWrapper:
-                    "border-1 h-full bg-white ",
+                    "border-1 border-border h-full",
                 }}
                 placeholder={searchPlaceholder}
                 size="sm"
@@ -437,7 +437,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md hover:bg-gray-200/30 transition-colors text-nowrap border-gray-300 dark:border-gray-600"
+                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border"
                   >
                     {filterLabel}
                   </Button>
@@ -469,7 +469,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md hover:bg-gray-200/30 transition-colors text-nowrap border-gray-300 dark:border-gray-600"
+                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border"
                   >
                     {filter.label}
                   </Button>

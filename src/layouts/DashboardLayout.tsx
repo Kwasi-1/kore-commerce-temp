@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
-import TopBar from '@/components/navigation/TopBar';
 
 export default function DashboardLayout() {
   return (
@@ -14,7 +13,6 @@ export default function DashboardLayout() {
         {/* Main Content Area Container */}
         <div className="flex flex-col flex-1 overflow-hidden p-2 pl-0">
           <div className="flex flex-col flex-1 overflow-hidden bg-background rounded-[1.5rem] shadow-inner border border-black/5 relative">
-            <TopBar />
             <main className="flex-1 overflow-y-auto p-6">
               <Outlet />
             </main>
