@@ -136,7 +136,13 @@ export default function ProductSearchBar() {
       </div>
 
       {/* Product Grid */}
-      <div className="flex-1 overflow-y-auto pt-6 scrollbar-hide">
+      <div 
+        className="flex-1 overflow-y-auto p-6 scrollbar-hide"
+        style={{
+          maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)'
+        }}
+      >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#b6ff56]"></div>
@@ -146,7 +152,7 @@ export default function ProductSearchBar() {
             No products found.
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
             ))}
