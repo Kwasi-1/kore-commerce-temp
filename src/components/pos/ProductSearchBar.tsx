@@ -75,6 +75,7 @@ export default function ProductSearchBar() {
       name: product.name,
       sku: product.sku,
       price: product.price,
+      imageUrl: product.imageUrl
     });
   };
 
@@ -137,7 +138,7 @@ export default function ProductSearchBar() {
 
       {/* Product Grid */}
       <div 
-        className="flex-1 overflow-y-auto p-6 scrollbar-hide"
+        className="flex-1 overflow-y-auto pt-6 scrollbar-hide"
         style={{
           maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)'

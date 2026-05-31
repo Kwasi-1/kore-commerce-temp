@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { Trash2, Plus, Minus, CreditCard, ChevronRight, Ticket, ShoppingCart } from 'lucide-react';
+import { Trash2, Plus, Minus, CreditCard, ChevronRight, Ticket, ShoppingCart, Box } from 'lucide-react';
 import PaymentModal from './PaymentModal';
 import { Button } from '../ui/button';
 
@@ -76,11 +76,11 @@ export default function CartPanel() {
             return (
               <div key={item.productId} className="flex gap-4 p-3 rounded-[24px] border border-border bg-card shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {/* Item Image / Fallback */}
-                <div className="w-[84px] h-[84px] rounded-[16px] flex-shrink-0 overflow-hidden flex items-center justify-center relative" style={{ backgroundColor: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}40` }}>
+                <div className="w-[84px] h-[84px] rounded-[16px] flex-shrink-0 overflow-hidden flex items-center justify-center relative bg-muted">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover mix-blend-multiply opacity-90" />
                   ) : (
-                    <span className="font-bold text-[22px] tracking-widest text-foreground/70 mix-blend-multiply">{initials}</span>
+                    <Box className="h-10 w-10 text-muted-foreground/30 stroke-[1.5]" />
                   )}
                 </div>
                 
@@ -110,7 +110,7 @@ export default function CartPanel() {
                   
                   {/* Bottom Row: Controls & Total */}
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center justify-between w-[90px] h-9 px-1 bg-[#f1f1f1] rounded-full">
+                    <div className="flex items-center justify-between w-[90px] h-9 px-1 bg-secondary rounded-full">
                       <Button
                         variant="ghost"
                         size="icon"
