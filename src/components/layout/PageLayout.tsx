@@ -15,7 +15,7 @@ export default function PageLayout({
 }: PageLayoutProps) {
   return (
     <div
-      className={`w-full h-full bg-primary-gray/20 overflow-x-hidden flex flex-col p-4 ${className}`}
+      className={`w-full h-full bg-background text-foreground overflow-x-hidden flex flex-col p-4 ${className}`}
     >
       {title && (
         <div className="flex items-center justify-between mb-4">

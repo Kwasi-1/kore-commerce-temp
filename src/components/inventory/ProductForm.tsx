@@ -87,7 +87,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white dark:bg-[#161616] p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent p-6 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         <CustomInputTextField
           label="Product Name"

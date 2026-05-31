@@ -1,4 +1,4 @@
-﻿import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import {
   getKeyValue,
@@ -300,7 +300,13 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
       isStriped={isStriped}
       isHeaderSticky={isHeaderSticky}
       selectionMode={selectionMode as "none"}
-      classNames={{ ...classNames, td: cn("py-3 text-sm", classNames?.td) }}
+      classNames={{
+        wrapper: "bg-transparent shadow-none p-0",
+        th: "bg-transparent text-muted-foreground border-b border-border",
+        tr: "hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0",
+        td: cn("py-3 text-sm text-foreground", classNames?.td),
+        ...classNames,
+      }}
       onRowAction={onclick ? (key) => onclick(key) : undefined}
       onSelectionChange={onSelectionChange}
       selectedKeys={selected}
@@ -322,7 +328,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
           <TableColumn
             key={column.key}
             className={cn(
-              "uppercase font-medium !border-b text-xs rounded-none",
+              "uppercase font-medium !border-b border-border text-xs rounded-none bg-transparent text-muted-foreground",
               column.key == "paid_amount" && "text-right"
             )}
           >

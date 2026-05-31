@@ -127,7 +127,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             }
             classNames={{
               trigger: cn(
-  `data-[hover=true]:shadow-none shadow-none border dark:border-[#F5F5F580] border-[1px] bg-primary-gray/20 dark:bg-secondary-black rounded-md text-[12px] min-h-[56px] h-[56px]`,
+  `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-md text-[12px] min-h-[56px] h-[56px]`,
   shouldFloat ? "pt-7 pb-1" : "py-3",  // ← pt-7 pushes value down further
   "px-3",
   className,
@@ -197,7 +197,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
         }
         classNames={{
           trigger: cn(
-            `data-[hover=true]:shadow-none shadow-none border dark:border-[#F5F5F580] border-[1px] bg-primary-gray/20 dark:bg-secondary-black rounded-md text-[12px] py-1`,
+            `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-md text-[12px] py-1`,
             className,
           ),
           label: `dark:text-gray-300 text-xs capitalize mt-1`,
@@ -340,7 +340,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
             placeholder={shouldFloat ? placeholder : ""}
             {...(inputProps ?? {})}
             className={cn(
-              "w-full bg-primary-gray/20 dark:bg-secondary-black border border-gray-200 dark:border-[#F5F5F580] rounded-md",
+              "w-full bg-background border border-input rounded-md",
               startContent ? "pl-9" : "pl-3",
               endContent || isClearabe || error ? "pr-10" : "pr-3",
               shouldFloat ? "pt-6 pb-2" : "py-3",
@@ -430,7 +430,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
           placeholder={placeholder}
           {...(inputProps ?? {})}
           className={cn(
-            "w-full bg-primary-gray/20 dark:bg-secondary-black border border-gray-200 dark:border-[#F5F5F580] rounded-md",
+            "w-full bg-background border border-input rounded-md",
             startContent ? "pl-9" : "pl-3",
             endContent || isClearabe || error ? "pr-10" : "pr-3",
             "py-3",
@@ -503,7 +503,7 @@ export const CustomDateInputField = (props: CustomDateInputFieldProps) => {
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className={`pl-3 text-left font-normal w-full justify-start border dark:border-[#F5F5F580] bg-primary-gray/20 dark:bg-secondary-black h-[3.5rem] ${
+            className={`pl-3 text-left font-normal w-full justify-start border border-input bg-background rounded-md h-[3.5rem] ${
               !value && "text-muted-foreground"
             }`}
           >
@@ -638,7 +638,7 @@ export const CustomTextareaField = ({
             placeholder={shouldFloat ? placeholder : ""}
             {...(inputProps ?? {})}
             className={cn(
-              "w-full bg-primary-gray/20 dark:bg-secondary-black border border-gray-200 dark:border-[#F5F5F580] rounded-md resize-none",
+              "w-full bg-background border border-input rounded-md resize-none",
               startContent ? "pl-9 pr-3" : "px-3",
               shouldFloat ? "pt-6 pb-2" : "py-4",
               "focus:border-primary-green focus:ring-1 focus:ring-primary-green focus:outline-none",
@@ -706,7 +706,7 @@ export const CustomTextareaField = ({
           placeholder={placeholder}
           {...(inputProps ?? {})}
           className={cn(
-            "w-full bg-primary-gray/20 dark:bg-secondary-black border border-gray-200 dark:border-[#F5F5F580] rounded-md resize-none px-3 py-3",
+            "w-full bg-background border border-input rounded-md resize-none px-3 py-3",
             "focus:border-primary-green focus:ring-1 focus:ring-primary-green focus:outline-none",
             "disabled:cursor-not-allowed disabled:opacity-50",
             height,

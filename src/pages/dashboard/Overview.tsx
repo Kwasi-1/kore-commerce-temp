@@ -98,17 +98,17 @@ export default function Overview() {
       {/* Header & Quick Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-foreground">
             {getGreeting()}, {userName}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Here's what's happening with your store today.
           </p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={() => navigate('/inventory/products')}
-            className="flex items-center px-4 py-2 bg-white dark:bg-pos-dark-card border border-gray-200 dark:border-pos-dark-border rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
+            className="flex items-center px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium text-card-foreground hover:bg-muted/50 transition-colors shadow-sm"
           >
             <PackagePlus className="w-4 h-4 mr-2" />
             Add Product
@@ -128,18 +128,15 @@ export default function Overview() {
         <DashboardCard
           title="Today's Revenue"
           value={isLoading ? '...' : `GHS ${todaySales.revenue.toFixed(2)}`}
-          className="border border-gray-100 dark:border-pos-dark-border shadow-sm"
         />
         <DashboardCard
           title="Today's Orders"
           value={isLoading ? '...' : todaySales.orders.toString()}
-          className="border border-gray-100 dark:border-pos-dark-border shadow-sm"
         />
         <DashboardCard
           title="Active Shifts"
           value={isLoading ? '...' : activeShiftsCount.toString()}
           subvalue={activeShiftsCount > 0 ? "Registers are open" : "All registers closed"}
-          className="border border-gray-100 dark:border-pos-dark-border shadow-sm"
         />
         <DashboardCard
           title="Low Stock Items"
@@ -152,9 +149,9 @@ export default function Overview() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* 7-Day Revenue Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-pos-dark-card p-6 rounded-xl border border-gray-100 dark:border-pos-dark-border shadow-sm">
+        <div className="lg:col-span-2 bg-card p-6 rounded-xl border border-border shadow-sm text-card-foreground">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Revenue (Last 7 Days)</h3>
+            <h3 className="text-lg font-bold">Revenue (Last 7 Days)</h3>
           </div>
           <div className="h-[300px] w-full">
             {isLoading ? (
@@ -188,10 +185,10 @@ export default function Overview() {
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="bg-white dark:bg-pos-dark-card p-6 rounded-xl border border-gray-100 dark:border-pos-dark-border shadow-sm flex flex-col">
+        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
           <div className="flex items-center gap-2 mb-6">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Critical Alerts</h3>
+            <h3 className="text-lg font-bold">Critical Alerts</h3>
           </div>
           
           <div className="flex-1 overflow-auto">
@@ -209,7 +206,7 @@ export default function Overview() {
                 {lowStockProducts.map(product => (
                   <div key={product.id} className="flex justify-between items-center p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
                     <div>
-                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{product.name}</p>
+                      <p className="font-semibold text-foreground text-sm">{product.name}</p>
                       <p className="text-xs text-gray-500">{product.sku}</p>
                     </div>
                     <div className="text-right">

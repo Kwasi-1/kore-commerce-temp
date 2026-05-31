@@ -1,4 +1,4 @@
-﻿import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -29,13 +29,13 @@ const CustomContainerComponent: FC<CustomContainerComponentProps> = ({
   return (
     <div
       className={cn(
-        `w-full h-full flex flex-col bg-white/60 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4`,
+        `w-full h-full flex flex-col bg-card/60 backdrop-blur-md border border-border shadow-sm p-4 text-card-foreground`,
         styles,
       )}
     >
       {(title || titleElement || button) && (
         <div className="flex justify-between items-start mb-4">
-          <h1 className={cn("capitalize text-gray-600", headerStyles)}>
+          <h1 className={cn("capitalize text-foreground font-semibold", headerStyles)}>
             <span>{title}</span>
             {titleElement}
           </h1>
