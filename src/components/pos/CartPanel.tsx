@@ -20,14 +20,15 @@ export default function CartPanel() {
       {/* Header */}
       <div className="flex items-center justify-between p-6 pb-4">
         <h2 className="text-[20px] font-bold text-foreground">Detail Transaction</h2>
-        <button
+        <Button
+          variant="ghost"
           onClick={clearCart}
           disabled={items.length === 0}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors text-sm font-semibold disabled:opacity-50"
+          className="flex items-center gap-2 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive h-auto py-1.5 px-3 text-sm font-semibold"
         >
           <Trash2 className="h-4 w-4" />
           Reset Order
-        </button>
+        </Button>
       </div>
 
       {/* Cart Items List */}
@@ -52,29 +53,34 @@ export default function CartPanel() {
                       <h3 className="font-bold text-[15px] text-foreground line-clamp-1">{item.name}</h3>
                       <p className="text-[12px] text-muted-foreground mt-0.5">Size 42 • Green</p> {/* Mock variant */}
                     </div>
-                    <button
+                    <Button
+                      variant="destructive"
+                      size="icon"
                       onClick={() => removeItem(item.productId)}
-                      className="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
+                      className="h-8 w-8 rounded-full shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                   
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="icon"
                         onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-gray-200 transition-colors"
+                        className="h-7 w-7 rounded-full bg-muted hover:bg-gray-200 dark:hover:bg-gray-800"
                       >
                         <Minus className="h-3 w-3" />
-                      </button>
+                      </Button>
                       <span className="font-semibold text-[14px] w-4 text-center">{item.quantity.toString().padStart(2, '0')}</span>
-                      <button
+                      <Button
+                        size="icon"
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        className="h-7 w-7 rounded-full bg-[#b6ff56] flex items-center justify-center text-[#1a1a1a] hover:brightness-95 transition-colors"
+                        className="h-7 w-7 rounded-full bg-primary hover:brightness-95 text-primary-foreground"
                       >
                         <Plus className="h-3 w-3" />
-                      </button>
+                      </Button>
                     </div>
                     <span className="font-bold text-[15px] text-foreground">
                       Total ${(item.price * item.quantity).toFixed(2)}
@@ -98,9 +104,9 @@ export default function CartPanel() {
             </div>
             <span className="text-[14px] font-semibold text-foreground">Promo New User (10%)</span>
           </div>
-          <button className="px-4 py-1.5 bg-[#b6ff56] text-[#1a1a1a] text-[13px] font-bold rounded-full hover:brightness-95 transition-colors">
+          <Button size="sm" className="rounded-full px-4 text-[13px] font-bold">
             Change Promo
-          </button>
+          </Button>
         </div>
 
         {/* Totals */}
@@ -135,25 +141,26 @@ export default function CartPanel() {
             </div>
             <span className="font-semibold text-[15px]">Credit Card</span>
           </div>
-          <button 
+          <Button 
+            variant="ghost"
             onClick={() => {
               setDefaultPaymentMethod('card');
               setIsPaymentModalOpen(true);
             }}
-            className="flex items-center gap-1 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-transparent px-2 h-auto py-1"
           >
             Change Method <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Continue Button */}
-        <button
+        <Button
           onClick={() => setIsPaymentModalOpen(true)}
           disabled={items.length === 0}
-          className="w-full py-4 bg-accent text-[#1a1a1a] text-[18px] font-bold rounded-[16px] shadow-sm hover:brightness-95 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all mt-2"
+          className="w-full py-4 font-bold rounded-full h-auto"
         >
           Continue
-        </button>
+        </Button>
       </div>
 
       <PaymentModal

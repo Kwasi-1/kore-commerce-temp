@@ -53,19 +53,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        pos: {
-          accent: "#c3f277",           // lime green — buttons, active nav, stock badges
-          "accent-text": "#111111",    // text on lime backgrounds
-          "sidebar-light": "#1d1d1d",  // sidebar bg in light mode and product count
-          "secondary": "#f8f8f8",  //gray colors detail transcraction panel background
-          danger: "#d80028",
-          "product-image-background": "efefef",
-          card : "#ffffff",
-        }
+        sidebar: "hsl(var(--sidebar-background))",
       },
       borderRadius: {},
       fontFamily: {
-        sans: ["AtypDisplay", "system-ui", "sans-serif"],
+        sans: ["'DM Sans'", "system-ui", "sans-serif"],
       },
       fontSize: {
         xs: "11px",

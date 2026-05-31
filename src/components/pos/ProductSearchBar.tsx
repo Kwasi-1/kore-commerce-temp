@@ -3,17 +3,8 @@ import { Search } from 'lucide-react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
-
-interface Product {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string;
-  category: string;
-  description?: string;
-}
+import { Button } from '@/components/ui/button';
+import ProductCard, { Product } from './ProductCard';
 
 export default function ProductSearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,12 +124,14 @@ export default function ProductSearchBar() {
               onBlur={() => { if(!searchTerm) setIsSearchActive(false) }}
             />
           )}
-          <button 
+          <Button 
+            variant="outline"
+            size="icon"
             onClick={() => setIsSearchActive(true)}
-            className="h-10 w-10 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/50 transition-colors shrink-0"
+            className="rounded-full shrink-0"
           >
             <Search className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -155,46 +148,7 @@ export default function ProductSearchBar() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-card rounded-[20px] border border-border p-3 flex flex-col hover:shadow-md transition-shadow group h-[320px]"
-              >
-                {/* 1:1 Image Container */}
-                <div className="relative w-full pt-[100%] bg-[#F5F5F5] rounded-xl overflow-hidden mb-3">
-                  {/* Stock Badge */}
-                  <div className="absolute top-2 left-2 z-10 bg-[#1A1A1A] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                    {product.quantity} Stock
-                  </div>
-                  
-                  {/* Image */}
-                  <img 
-                    src={product.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=random`} 
-                    alt={product.name} 
-                    className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-90 group-hover:scale-105 transition-transform duration-500" 
-                  />
-                </div>
-                
-                {/* Product Info */}
-                <div className="flex-1 flex flex-col">
-                  <h3 className="text-[15px] font-bold text-foreground line-clamp-1 mb-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-[12px] text-muted-foreground line-clamp-2 leading-tight mb-2 flex-1">
-                    {product.description || product.sku}
-                  </p>
-                  
-                  <div className="font-bold text-[16px] text-foreground mb-3">
-                    ${product.price?.toFixed(2) || '0.00'}
-                  </div>
-                  
-                  <button 
-                    onClick={() => handleAddToCart(product)}
-                    className="w-full py-2.5 rounded-full border border-border text-[13px] font-semibold text-foreground hover:bg-[#b6ff56] hover:border-[#b6ff56] hover:text-[#1a1a1a] transition-colors mt-auto"
-                  >
-                    + Add to Cart
-                  </button>
-                </div>
-              </div>
+              <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
             ))}
           </div>
         )}
