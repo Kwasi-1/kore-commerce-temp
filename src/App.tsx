@@ -11,7 +11,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 // Pages
 const Login = lazy(() => import('@/pages/Login'));
 
-const Register = lazy(() => import('@/pages/pos/Register'));
+const Register = lazy(() => import('@/pages/pos/register/Register'));
 const Overview = lazy(() => import('@/pages/dashboard/Overview'));
 const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
 const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
