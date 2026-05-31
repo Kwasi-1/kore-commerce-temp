@@ -17,7 +17,6 @@ const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
 const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
 // POS
-const Shifts = lazy(() => import('@/pages/pos/Shifts'));
 const Transactions = lazy(() => import('@/pages/pos/Transactions'));
 
 // Inventory
@@ -78,7 +77,6 @@ export default function App() {
           <Route path="/settings/plan" element={<PlanBilling />} />
           
           {/* POS Dashboard Views */}
-          <Route path="/pos/shifts" element={<Shifts />} />
           <Route path="/pos/transactions" element={<Transactions />} />
           
           {/* Inventory */}

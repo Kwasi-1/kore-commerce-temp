@@ -47,7 +47,6 @@ export default function Sidebar() {
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'Transactions', to: '/pos/transactions', icon: History },
-        { name: 'Shifts', to: '/pos/shifts', icon: Clock },
       ],
     },
     {
