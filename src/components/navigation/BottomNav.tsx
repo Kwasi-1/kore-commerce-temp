@@ -100,7 +100,7 @@ export default function BottomNav() {
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar border-t border-white/10 flex items-center justify-around px-2 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card dark:bg-sidebar border-t border-border dark:border-white/10 flex items-center justify-around px-2 z-50">
         
         {/* Slim top loading bar during transitions */}
         <div
@@ -119,7 +119,7 @@ export default function BottomNav() {
               onClick={() => handleNavigation(item.to)}
               className={clsx(
                 "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-                isActive ? "text-primary" : "text-gray-400 hover:text-white"
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <item.icon className={clsx("h-5 w-5", isActive && "text-primary")} />
@@ -133,7 +133,7 @@ export default function BottomNav() {
           onClick={() => setIsDrawerOpen(true)}
           className={clsx(
             "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-            isDrawerOpen ? "text-primary" : "text-gray-400 hover:text-white"
+            isDrawerOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Menu className="h-5 w-5" />
@@ -142,18 +142,18 @@ export default function BottomNav() {
       </nav>
 
       {/* Mobile Menu Drawer */}
-      <Drawer isOpen={isDrawerOpen} onOpenChange={setIsDrawerOpen} placement="bottom" className="bg-sidebar text-white">
+      <Drawer isOpen={isDrawerOpen} onOpenChange={setIsDrawerOpen} placement="bottom" classNames={{ base: 'bg-card dark:bg-sidebar text-foreground dark:text-white' }}>
         <DrawerContent>
           {() => (
             <>
-              <DrawerHeader className="flex justify-between items-center border-b border-white/10 pb-3">
-                <span className="font-bold text-lg">Menu</span>
+              <DrawerHeader className="flex justify-between items-center border-b border-border dark:border-white/10 pb-3">
+                <span className="font-bold text-lg text-foreground">Menu</span>
               </DrawerHeader>
               <DrawerBody className="py-4 overflow-y-auto scrollbar-hide max-h-[75vh]">
                 <div className="flex flex-col gap-6">
                   {drawerSections.map((section) => (
                     <div key={section.title}>
-                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-2 block">
                         {section.title}
                       </span>
                       <div className="flex flex-col gap-1">
@@ -167,7 +167,7 @@ export default function BottomNav() {
                                 "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
                                 isActive
                                   ? "bg-primary/10 text-primary"
-                                  : "text-gray-300 hover:bg-white/5 hover:text-white"
+                                  : "text-foreground/70 hover:bg-muted hover:text-foreground"
                               )}
                             >
                               <div className="flex items-center gap-3">
