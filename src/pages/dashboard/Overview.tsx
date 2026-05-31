@@ -115,7 +115,7 @@ export default function Overview() {
           </button>
           <button 
             onClick={() => navigate('/pos/register')}
-            className="flex items-center px-4 py-2 bg-pos-accent text-white rounded-lg text-sm font-bold hover:brightness-105 transition-all shadow-sm"
+            className="flex items-center px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:brightness-105 transition-all shadow-sm"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
             Open Register
@@ -195,7 +195,7 @@ export default function Overview() {
             {isLoading ? (
               <div className="text-center text-gray-400 py-8">Checking stock levels...</div>
             ) : lowStockProducts.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8 flex flex-col items-center">
+              <div className="text-center text-muted-foreground py-8 flex flex-col items-center">
                 <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-3 text-green-500">
                   <PackagePlus className="w-6 h-6" />
                 </div>
@@ -207,11 +207,11 @@ export default function Overview() {
                   <div key={product.id} className="flex justify-between items-center p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
                     <div>
                       <p className="font-semibold text-foreground text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.sku}</p>
+                      <p className="text-xs text-muted-foreground">{product.sku}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-red-600 dark:text-red-400 font-bold text-sm">{product.stock_quantity} left</p>
-                      <p className="text-xs text-gray-500">Reorder at {product.reorder_point || 5}</p>
+                      <p className="text-xs text-muted-foreground">Reorder at {product.reorder_point || 5}</p>
                     </div>
                   </div>
                 ))}
@@ -222,7 +222,7 @@ export default function Overview() {
           {lowStockProducts.length > 0 && (
             <button 
               onClick={() => navigate('/inventory/stock')}
-              className="mt-6 w-full py-2 text-sm font-medium text-pos-accent hover:bg-pos-accent/5 rounded-lg transition-colors"
+              className="mt-6 w-full py-2 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
             >
               Manage Stock Levels &rarr;
             </button>

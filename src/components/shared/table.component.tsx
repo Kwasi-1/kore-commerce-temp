@@ -215,7 +215,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
 
   if (screenSize != "desktop" && mobileFriendly) {
     return (
-      <div className="p-2 relative ">
+      <div className="p-2 relative">
         <div
           className={cn(
             " mt-4 mb-2   p-3 cursor-pointer uppercase font-medium  text-xs rounded-none",
@@ -229,7 +229,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
           ))}
         </div>
 
-        <div className="grid grid-cols-1  gap-6 mt-4 mb-10">
+        <div className="grid grid-cols-1 gap-6 mt-4 mb-10">
           {isLoading || isFetching ? (
             <LogoComponent />
           ) : isEmpty(rows) ? (
@@ -277,7 +277,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                     {/* bottom Contente */}
 
                     {isExpanded && (
-                      <div className="bg-ash  mt-4 p-2 rounded-lg">
+                      <div className="bg-ash mt-4 p-2 rounded-lg">
                         {bottomContentOnMoblile && bottomContentOnMoblile(row)}
                       </div>
                     )}
@@ -366,7 +366,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                 "transition-all duration-200 ease-in-out hover:bg-secondary-gray/30 group hover:cursor-pointer",
                 onclick && "hover:cursor-pointer",
                 selectedRowId === rowId &&
-                  "bg-primary-gray/50 relative z-10"
+                  "bg-muted/50 relative z-10"
               )}
             >
               {(columnKey) => {

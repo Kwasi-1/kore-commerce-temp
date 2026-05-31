@@ -42,7 +42,7 @@ interface ActivityTimelineProps {
 }
 
 const toneStyles: Record<Tone, { indicator: string; pill: string }> = {
-  default: { indicator: "bg-gray-900 text-white", pill: "text-gray-500" },
+  default: { indicator: "bg-gray-900 text-white", pill: "text-muted-foreground" },
   success: { indicator: "bg-emerald-600 text-white", pill: "text-emerald-700" },
   warning: { indicator: "bg-amber-500 text-white", pill: "text-amber-700" },
   danger: { indicator: "bg-rose-500 text-white", pill: "text-rose-700" },
@@ -119,14 +119,14 @@ export function ActivityTimeline({
                 )}
               </div>
 
-              <div className="space-y-3 border border-gray-200 bg-white p-3">
+              <div className="space-y-3 border border-border bg-white p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {item.actor?.name && (
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-foreground">
                       {item.actor?.name}
                     </span>
                   )}
-                  <p className="text-sm text-gray-600">{item.title}</p>
+                  <p className="text-sm text-muted-foreground">{item.title}</p>
                   {item.badge && (
                     <Badge variant="outline" className="px-2 py-0 text-xs">
                       {item.badge}
@@ -138,7 +138,7 @@ export function ActivityTimeline({
                 </div>
 
                 {item.description && (
-                  <p className="text-sm text-gray-600">{item.description}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 )}
 
                 {item.meta && item.meta.length > 0 && (
@@ -146,7 +146,7 @@ export function ActivityTimeline({
                     {item.meta.map((meta) => (
                       <span
                         key={meta}
-                        className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-600"
+                        className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-muted-foreground"
                       >
                         {meta}
                       </span>
@@ -155,7 +155,7 @@ export function ActivityTimeline({
                 )}
 
                 {item.comment && (
-                  <div className="rounded-lg border border-gray-100 bg-white p-4 text-sm text-gray-700">
+                  <div className="rounded-lg border border-border bg-white p-4 text-sm text-gray-700">
                     {item.comment}
                   </div>
                 )}
@@ -166,7 +166,7 @@ export function ActivityTimeline({
                       <a
                         key={file.id}
                         href={file.href ?? "#"}
-                        className="inline-flex items-center gap-1 border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-900"
+                        className="inline-flex items-center gap-1 border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-gray-300 hover:text-foreground"
                       >
                         <Paperclip className="h-3.5 w-3.5" aria-hidden="true" />
                         {file.label}
@@ -176,7 +176,7 @@ export function ActivityTimeline({
                 )}
 
                 {item.footer && (
-                  <div className="flex flex-wrap gap-2 border-t border-dashed pt-3 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-2 border-t border-dashed pt-3 text-xs text-muted-foreground">
                     {item.footer}
                   </div>
                 )}
@@ -186,7 +186,7 @@ export function ActivityTimeline({
         })}
       </ol>
       {pageSize && totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             Page {page + 1} of {totalPages}
           </span>

@@ -8,10 +8,10 @@ export function Toaster() {
       toastOptions={{
         classNames: {
           toast: "border-0 bg-white shadow-lg",
-          title: "text-sm font-semibold text-gray-900",
-          description: "text-sm text-gray-600",
+          title: "text-sm font-semibold text-foreground",
+          description: "text-sm text-muted-foreground",
           actionButton: "bg-primary text-primary-foreground",
-          cancelButton: "bg-gray-100 text-gray-900",
+          cancelButton: "bg-gray-100 text-foreground",
           error: "",
           success: "",
           warning: "",

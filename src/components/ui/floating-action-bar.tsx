@@ -35,12 +35,12 @@ export function FloatingActionBar({
       )}
       style={{ pointerEvents: "auto" }}
     >
-      <div className="flex items-center gap-3  bg-white px-6 py-4 shadow-2xl">
+      <div className="flex items-center gap-3 bg-white px-6 py-4 shadow-2xl">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center bg-primary text-primary-foreground text-sm font-bold">
             {selectedCount}
           </div>
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-foreground">
             {selectedCount === 1 ? "item selected" : "items selected"}
           </span>
         </div>

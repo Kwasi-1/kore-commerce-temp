@@ -75,7 +75,7 @@ const CustomModal: FC<CustomModalProps> = ({
       classNames={{
         body: cn("py-0 dark:text-[#F5F5F5]", classNames.body),
         base: cn(
-          "border-[#161616] dark:bg-[#161616] dark:text-[#a8b0d3]",
+          "border-[#161616]  dark:text-[#a8b0d3]",
           classNames.base,
         ),
         header: cn("dark:text-[#F5F5F5]", classNames.header),
@@ -107,7 +107,7 @@ const CustomModal: FC<CustomModalProps> = ({
     >
       <ModalContent className="">
         <>
-          <ModalHeader className="flex flex-col gap-1 ">{header}</ModalHeader>
+          <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>
           <ModalBody className="">{body}</ModalBody>
           {footer && <ModalFooter>{footer}</ModalFooter>}
         </>

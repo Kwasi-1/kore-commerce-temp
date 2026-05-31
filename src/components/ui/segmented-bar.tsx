@@ -67,7 +67,7 @@ const SegmentedBar: React.FC<SegmentedBarProps> = ({
       </div>
 
       {showLabels && (
-        <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-600">
+        <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
           {segments.map((segment, index) => {
             const color = segment.color || fallbackColors[index % fallbackColors.length]
 

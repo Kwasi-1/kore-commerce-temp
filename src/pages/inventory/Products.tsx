@@ -95,10 +95,10 @@ export default function Products() {
             P
           </div>
         )}
-        <span className="font-medium text-gray-900 dark:text-gray-100">{p.name}</span>
+        <span className="font-medium text-foreground">{p.name}</span>
       </div>
     ),
-    sku: <span className="text-gray-500 text-sm font-mono">{p.sku}</span>,
+    sku: <span className="text-muted-foreground text-sm font-mono">{p.sku}</span>,
     category: <span className="capitalize">{p.category || '—'}</span>,
     price: <span className="font-medium">{(p.price || 0).toFixed(2)}</span>,
     quantity: (
@@ -112,7 +112,7 @@ export default function Products() {
     ),
     status: (
       <span className={`capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-        p.status === 'active' ? 'text-green-600 bg-green-50' : 'text-gray-600 bg-gray-50'
+        p.status === 'active' ? 'text-green-600 bg-green-50' : 'text-muted-foreground bg-gray-50'
       }`}>
         {p.status}
       </span>
@@ -189,7 +189,7 @@ export default function Products() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-            <p className="text-sm text-gray-500 font-normal">Fill in the details below.</p>
+            <p className="text-sm text-muted-foreground font-normal">Fill in the details below.</p>
           </div>
         }
         body={

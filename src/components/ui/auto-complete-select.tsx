@@ -90,7 +90,7 @@ export function AutoCompleteSelect({
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <div className={cn("flex w-full flex-col", className)}>
         {labelPlacement === "outside" && label && (
-          <p className="mb-2 text-sm font-medium text-gray-900" style={{ letterSpacing: '-0.8px' }}>{label}</p>
+          <p className="mb-2 text-sm font-medium text-foreground" style={{ letterSpacing: '-0.8px' }}>{label}</p>
         )}
         <Popover.Trigger asChild>
           <button
@@ -110,7 +110,7 @@ export function AutoCompleteSelect({
                 </p>
                 <p
                   className={cn(
-                    "mt-1 text-sm text-gray-900",
+                    "mt-1 text-sm text-foreground",
                     !selectedOption && "text-muted-foreground",
                   )}
                 >
@@ -120,7 +120,7 @@ export function AutoCompleteSelect({
             ) : (
               <span
                 className={cn(
-                  "text-sm text-gray-900",
+                  "text-sm text-foreground",
                   !selectedOption && "text-muted-foreground",
                 )}
               >

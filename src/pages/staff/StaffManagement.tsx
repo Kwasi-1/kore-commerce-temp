@@ -112,15 +112,15 @@ export default function StaffManagement() {
       id: s.id,
       name: (
         <div className="flex flex-col">
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{s.first_name} {s.last_name}</span>
+          <span className="font-semibold text-foreground">{s.first_name} {s.last_name}</span>
         </div>
       ),
-      email: <span className="text-gray-500">{s.email}</span>,
+      email: <span className="text-muted-foreground">{s.email}</span>,
       role: (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
           s.role === 'owner' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' 
           : s.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 '
         }`}>
           {s.role}
         </span>
@@ -174,7 +174,7 @@ export default function StaffManagement() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold">{editingStaff ? 'Edit Staff Role' : 'Add New Staff'}</h2>
-            <p className="text-sm text-gray-500 font-normal">Manage team access and permissions.</p>
+            <p className="text-sm text-muted-foreground font-normal">Manage team access and permissions.</p>
           </div>
         }
         body={
@@ -195,18 +195,18 @@ export default function StaffManagement() {
         classNames={{ base: "max-w-[400px]" }}
         header={
           <div className="flex items-center gap-2 pt-2">
-            <div className="p-2 bg-pos-accent/10 rounded-lg text-pos-accent">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
               <KeyRound className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold">Set POS PIN</h2>
-              <p className="text-sm text-gray-500 font-normal">For {selectedCashier?.first_name} {selectedCashier?.last_name}</p>
+              <p className="text-sm text-muted-foreground font-normal">For {selectedCashier?.first_name} {selectedCashier?.last_name}</p>
             </div>
           </div>
         }
         body={
           <div className="p-6 pt-0">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
+            <p className="text-sm text-muted-foreground mb-6 text-center">
               Enter a secure 4-digit PIN. Cashiers use this to quickly unlock the register.
             </p>
             <NumPad 

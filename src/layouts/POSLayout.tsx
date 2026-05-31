@@ -3,7 +3,7 @@ import Sidebar from '@/components/navigation/Sidebar';
 
 export default function POSLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-pos-surface-app dark:bg-pos-dark-app text-foreground transition-colors duration-200">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground transition-colors duration-200">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <main className="flex-1 overflow-y-auto bg-background">

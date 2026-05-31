@@ -51,7 +51,7 @@ export default function EndOfDay() {
     return (
       <PageLayout title="End of Day Report">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pos-accent"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </PageLayout>
     );
@@ -81,13 +81,13 @@ export default function EndOfDay() {
           title="Total Gross Sales"
           value={`GHS ${totalSales.toFixed(2)}`}
           subvalue={`${(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Total Transactions`}
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="Net Revenue"
           value={`GHS ${netRevenue.toFixed(2)}`}
           subvalue="Gross Sales minus Expenses"
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="Shift Variance"
@@ -97,21 +97,21 @@ export default function EndOfDay() {
             </span>
           }
           subvalue="Expected vs Actual Cash"
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="POS vs E-Commerce"
           value={`${eodData?.pos?.transactions || 0} / ${eodData?.ecommerce?.transactions || 0}`}
           subvalue="Transaction volume split"
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Pie Chart */}
-        <div className="lg:col-span-1 bg-white dark:bg-pos-dark-card p-6 rounded-xl border border-gray-100 dark:border-pos-dark-border h-[350px] flex flex-col">
-          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Payment Methods</h3>
+        <div className="lg:col-span-1 bg-card text-card-foreground p-6 rounded-xl border border-border h-[350px] flex flex-col">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Payment Methods</h3>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -139,16 +139,16 @@ export default function EndOfDay() {
         </div>
 
         {/* Expenses Table */}
-        <div className="lg:col-span-2 bg-white dark:bg-pos-dark-card rounded-xl border border-gray-100 dark:border-pos-dark-border overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-gray-100 dark:border-pos-dark-border flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Today's Expenses</h3>
+        <div className="lg:col-span-2 bg-card text-card-foreground rounded-xl border border-border overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-border flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-foreground">Today's Expenses</h3>
             <span className="bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full dark:bg-red-900/30 dark:text-red-400">
               Total: GHS {totalExpenses.toFixed(2)}
             </span>
           </div>
           <div className="flex-1 overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">
+              <thead className="bg-gray-50 dark:bg-[#1f1f1f] text-gray-700">
                 <tr>
                   <th className="px-6 py-3 font-medium">Category</th>
                   <th className="px-6 py-3 font-medium">Description</th>
@@ -160,13 +160,13 @@ export default function EndOfDay() {
                   expenses.map(exp => (
                     <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-[#1f1f1f] transition-colors">
                       <td className="px-6 py-4 font-medium">{exp.category}</td>
-                      <td className="px-6 py-4 text-gray-500">{exp.description}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{exp.description}</td>
                       <td className="px-6 py-4 text-right font-medium">GHS {exp.amount.toFixed(2)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">No expenses recorded today.</td>
+                    <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">No expenses recorded today.</td>
                   </tr>
                 )}
               </tbody>

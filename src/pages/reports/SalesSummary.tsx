@@ -92,7 +92,7 @@ export default function SalesSummary() {
     <PageLayout title="Sales Summary">
       
       {/* Top Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white dark:bg-pos-dark-card p-4 rounded-xl border border-gray-100 dark:border-pos-dark-border items-center">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-card text-card-foreground p-4 rounded-xl border border-border items-center">
         <div className="w-full md:w-80">
           <DateRangePicker
             label="Date Range"
@@ -122,29 +122,29 @@ export default function SalesSummary() {
         <DashboardCard
           title="Total Revenue"
           value={isLoading ? '...' : `GHS ${displayRevenue.toFixed(2)}`}
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="Total Orders"
           value={isLoading ? '...' : displayOrders.toString()}
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="Avg Order Value"
           value={isLoading ? '...' : `GHS ${avgOrderValue.toFixed(2)}`}
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
         <DashboardCard
           title="Top Payment Method"
           value={isLoading ? '...' : 'Cash'}
           subvalue="Derived from recent POS sales"
-          className="border border-gray-100 dark:border-pos-dark-border"
+          className="border border-border"
         />
       </div>
 
       {/* Chart */}
-      <div className="bg-white dark:bg-pos-dark-card p-6 rounded-xl border border-gray-100 dark:border-pos-dark-border h-[400px]">
-        <h3 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">Revenue by Day</h3>
+      <div className="bg-card text-card-foreground p-6 rounded-xl border border-border h-[400px]">
+        <h3 className="text-lg font-semibold mb-6 text-foreground">Revenue by Day</h3>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />

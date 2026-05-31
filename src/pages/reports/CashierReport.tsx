@@ -60,15 +60,15 @@ export default function CashierReport() {
       id: c.staff_id,
       cashier: (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-pos-accent/10 flex items-center justify-center text-pos-accent">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
             <UserSquare2 className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{c.name}</span>
+          <span className="font-semibold text-foreground">{c.name}</span>
         </div>
       ),
       transaction_count: <span className="font-medium">{c.transaction_count}</span>,
       total_sales: <span className="font-semibold text-green-600">GHS {parseFloat(c.total_sales || 0).toFixed(2)}</span>,
-      avg_transaction: <span className="text-gray-600 dark:text-gray-400">GHS {parseFloat(c.avg_transaction || 0).toFixed(2)}</span>,
+      avg_transaction: <span className="text-muted-foreground">GHS {parseFloat(c.avg_transaction || 0).toFixed(2)}</span>,
     };
   });
 
@@ -79,9 +79,9 @@ export default function CashierReport() {
       <div className="flex flex-col gap-6">
         
         {/* Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-pos-dark-card p-4 rounded-xl border border-gray-100 dark:border-pos-dark-border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card text-card-foreground p-4 rounded-xl border border-border">
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date Range</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Date Range</label>
             <DateRangePicker 
               value={dateRange} 
               onChange={(range: any) => setDateRange(range)} 
@@ -94,17 +94,17 @@ export default function CashierReport() {
           <DashboardCard
             title="Total Handled Revenue"
             value={isLoading ? '...' : `GHS ${totalRevenueAll.toFixed(2)}`}
-            className="border border-gray-100 dark:border-pos-dark-border bg-pos-accent/5"
+            className="border border-border bg-primary/5"
           />
           <DashboardCard
             title="Total Processed Transactions"
             value={isLoading ? '...' : totalTransactionsAll.toString()}
-            className="border border-gray-100 dark:border-pos-dark-border"
+            className="border border-border"
           />
           <DashboardCard
             title="Overall Avg. Ticket Size"
             value={isLoading ? '...' : `GHS ${overallAvgValue.toFixed(2)}`}
-            className="border border-gray-100 dark:border-pos-dark-border"
+            className="border border-border"
           />
         </div>
 

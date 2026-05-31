@@ -89,18 +89,18 @@ export default function StockReconciliation() {
 
     return {
       id: p.id,
-      product: <span className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>,
-      sku: <span className="font-mono text-sm text-gray-500">{p.sku || 'N/A'}</span>,
-      system_stock: <span className="text-gray-600 dark:text-gray-400">{p.quantity}</span>,
+      product: <span className="font-semibold text-foreground">{p.name}</span>,
+      sku: <span className="font-mono text-sm text-muted-foreground">{p.sku || 'N/A'}</span>,
+      system_stock: <span className="text-muted-foreground">{p.quantity}</span>,
       physical_stock: (
         <input 
           type="number"
           min="0"
           placeholder="Enter count..."
-          className={`w-32 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-pos-accent ${
+          className={`w-32 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
             isCounted 
-              ? 'border-pos-accent bg-pos-accent/5 dark:bg-pos-accent/10 dark:text-white' 
-              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161616] dark:text-white'
+              ? 'border-primary bg-primary/5 dark:bg-primary/10 ' 
+              : 'border-border dark:border-gray-700 bg-white  '
           }`}
           value={actualVal}
           onChange={(e) => handleCountChange(p.id, e.target.value)}
@@ -110,7 +110,7 @@ export default function StockReconciliation() {
         <span className={`font-bold ${
           !isCounted ? 'text-gray-300 dark:text-gray-700' :
           variance > 0 ? 'text-green-600' : 
-          variance < 0 ? 'text-red-600' : 'text-gray-500'
+          variance < 0 ? 'text-red-600' : 'text-muted-foreground'
         }`}>
           {!isCounted ? '-' : variance > 0 ? `+${variance}` : variance}
         </span>
@@ -127,10 +127,10 @@ export default function StockReconciliation() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-5 h-5 text-pos-accent" />
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Audit & Reconcile</h2>
+              <Calculator className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">Audit & Reconcile</h2>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Conduct a physical inventory count. Enter the actual counted quantities below, and the system will automatically calculate the variance and adjust the database to match reality.
             </p>
           </div>
@@ -140,8 +140,8 @@ export default function StockReconciliation() {
             isDisabled={countedItems === 0}
             className={`font-bold px-6 h-12 ${
               countedItems > 0 
-                ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' 
-                : 'bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500'
+                ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-foreground' 
+                : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
             }`}
             startContent={!isSaving && <CheckSquare className="w-4 h-4" />}
           >

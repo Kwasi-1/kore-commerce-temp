@@ -239,7 +239,7 @@ export function DateRangePicker({
       <div className={cn("flex w-full flex-col", className)}>
         {labelPlacement === "outside" && inputLabel && (
           <p
-            className="mb-2 text-sm font-medium text-gray-900"
+            className="mb-2 text-sm font-medium text-foreground"
             style={{ letterSpacing: "-0.8px" }}
           >
             {inputLabel}
@@ -260,7 +260,7 @@ export function DateRangePicker({
                 </p>
                 <p
                   className={cn(
-                    "mt-1 text-sm text-gray-900",
+                    "mt-1 text-sm text-foreground",
                     !hasValue && "text-muted-foreground",
                   )}
                 >
@@ -270,7 +270,7 @@ export function DateRangePicker({
             ) : (
               <span
                 className={cn(
-                  "text-sm text-gray-900",
+                  "text-sm text-foreground",
                   !hasValue && "text-muted-foreground",
                 )}
               >
@@ -288,7 +288,7 @@ export function DateRangePicker({
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-foreground">
                   Select dates
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -338,7 +338,7 @@ export function DateRangePicker({
                 </div>
               )}
               <div className="bg-muted/20 p-3 text-sm">
-                <p className="font-medium text-gray-900">{displayValue}</p>
+                <p className="font-medium text-foreground">{displayValue}</p>
                 {!hasValue && (
                   <p className="text-xs text-muted-foreground">
                     Pick a {currentMode === "single" ? "date" : "start date"} to
@@ -428,7 +428,7 @@ function CalendarGrid({
           <ChevronLeft className="h-4 w-4" />
           <span className="sr-only">Previous month</span>
         </Button>
-        <div className="text-sm font-semibold text-gray-900">
+        <div className="text-sm font-semibold text-foreground">
           {format(visibleMonth, "MMMM yyyy")}
         </div>
         <Button variant="ghost" size="icon" onClick={onNextMonth}>

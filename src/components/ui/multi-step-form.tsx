@@ -119,8 +119,8 @@ export function MultiStepForm({
                 const titleColorClass = isCurrent
                   ? "text-teal-900"
                   : isComplete
-                    ? "text-gray-900"
-                    : "text-gray-500";
+                    ? "text-foreground"
+                    : "text-muted-foreground";
                 const connectorColor = isComplete
                   ? "bg-teal-800"
                   : isCurrent
@@ -200,7 +200,7 @@ export function MultiStepForm({
                           {step.title}
                         </p>
                         {subtitle && (
-                          <p className="mt-1 text-sm leading-snug text-gray-500">
+                          <p className="mt-1 text-sm leading-snug text-muted-foreground">
                             {subtitle}
                           </p>
                         )}
@@ -285,15 +285,15 @@ export function MultiStepForm({
                         <p
                           className={cn(
                             "text-sm font-semibold",
-                            isCurrent && "text-gray-900 font-bold",
-                            isComplete && "text-gray-900",
-                            isIncomplete && "text-gray-500",
+                            isCurrent && "text-foreground font-bold",
+                            isComplete && "text-foreground",
+                            isIncomplete && "text-muted-foreground",
                           )}
                         >
                           {step.title}
                         </p>
                         {subtitle && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {subtitle}
                           </p>
                         )}

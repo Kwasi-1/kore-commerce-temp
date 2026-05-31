@@ -60,7 +60,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white dark:bg-[#161616] p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         
         {!isEditing && (
@@ -130,18 +130,18 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
 
       </div>
 
-      <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 mt-auto">
+      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button 
           variant="flat" 
           onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium px-6"
+          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
           isLoading={isLoading}
-          className="bg-pos-accent text-pos-accent-text font-bold px-6"
+          className="bg-primary text-primary-foreground font-bold px-6"
         >
           {isEditing ? 'Update Role' : 'Create Staff'}
         </Button>

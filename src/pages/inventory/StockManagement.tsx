@@ -91,14 +91,14 @@ export default function StockManagement() {
             )}
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</p>
-            <p className="text-xs text-gray-500 capitalize">{p.category}</p>
+            <p className="font-semibold text-foreground">{p.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{p.category}</p>
           </div>
         </div>
       ),
-      sku: <span className="font-mono text-sm text-gray-600 dark:text-gray-400">{p.sku || 'N/A'}</span>,
+      sku: <span className="font-mono text-sm text-muted-foreground">{p.sku || 'N/A'}</span>,
       current_stock: (
-        <span className={`font-semibold ${p.quantity <= 5 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+        <span className={`font-semibold ${p.quantity <= 5 ? 'text-red-500' : 'text-gray-700 '}`}>
           {p.quantity} units
         </span>
       ),
@@ -107,15 +107,15 @@ export default function StockManagement() {
           <input 
             type="number"
             min="0"
-            className={`w-24 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-pos-accent ${
+            className={`w-24 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
               isChanged 
-                ? 'border-pos-accent bg-pos-accent/5 dark:bg-pos-accent/10 dark:text-white' 
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161616] dark:text-white'
+                ? 'border-primary bg-primary/5 dark:bg-primary/10 ' 
+                : 'border-border dark:border-gray-700 bg-white  '
             }`}
             value={displayVal}
             onChange={(e) => handleQuantityChange(p.id, e.target.value)}
           />
-          {isChanged && <span className="text-xs text-pos-accent font-medium">Modified</span>}
+          {isChanged && <span className="text-xs text-primary font-medium">Modified</span>}
         </div>
       )
     };
@@ -129,8 +129,8 @@ export default function StockManagement() {
         
         <div className="flex justify-between items-end mb-2">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bulk Stock Updates</h2>
-            <p className="text-sm text-gray-500">Quickly adjust physical stock levels across all your inventory.</p>
+            <h2 className="text-lg font-semibold text-foreground">Bulk Stock Updates</h2>
+            <p className="text-sm text-muted-foreground">Quickly adjust physical stock levels across all your inventory.</p>
           </div>
           <Button 
             onPress={handleSaveChanges}
@@ -138,8 +138,8 @@ export default function StockManagement() {
             isDisabled={!hasChanges}
             className={`font-bold px-6 ${
               hasChanges 
-                ? 'bg-pos-accent text-pos-accent-text' 
-                : 'bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500'
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
             }`}
             startContent={!isSaving && <Save className="w-4 h-4" />}
           >

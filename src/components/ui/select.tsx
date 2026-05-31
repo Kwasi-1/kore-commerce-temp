@@ -139,7 +139,7 @@ const SelectItem = React.forwardRef<
     <div className="flex flex-1 items-start gap-3">
       <div className="flex flex-col gap-1.5">
         <SelectPrimitive.ItemText>
-          <span className="flex items-center gap-2 font-medium leading-none text-gray-900">
+          <span className="flex items-center gap-2 font-medium leading-none text-foreground">
             {leading && (
               <span
                 data-select-trigger-leading

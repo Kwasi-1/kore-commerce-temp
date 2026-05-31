@@ -79,7 +79,7 @@ export default function ExpenseForm({ onSuccess, onCancel }: ExpenseFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white dark:bg-[#161616] p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         
         <CustomSelectField
@@ -124,30 +124,30 @@ export default function ExpenseForm({ onSuccess, onCancel }: ExpenseFormProps) {
         />
 
         {/* Placeholder for receipt upload */}
-        <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-          <div className="text-gray-500 mb-2">
+        <div className="border-2 border-dashed border-border dark:border-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center">
+          <div className="text-muted-foreground mb-2">
             <svg className="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
           </div>
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Upload Receipt (Optional)</span>
-          <span className="text-xs text-gray-500 mt-1">Cloudinary integration pending</span>
+          <span className="text-sm font-medium text-foreground">Upload Receipt (Optional)</span>
+          <span className="text-xs text-muted-foreground mt-1">Cloudinary integration pending</span>
         </div>
 
       </div>
 
-      <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 mt-auto">
+      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button 
           variant="flat" 
           onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium px-6"
+          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
           isLoading={isLoading}
-          className="bg-pos-accent text-pos-accent-text font-bold px-6"
+          className="bg-primary text-primary-foreground font-bold px-6"
         >
           Log Expense
         </Button>

@@ -27,7 +27,7 @@ const StatusText = ({ text, textClassName = "" }: IStatusText) => {
     ].includes(status.toLowerCase())
       ? {
           icon: "ic:round-check-circle",
-          color: "text-primary-green bg-primary-gray border-green-500",
+          color: "text-primary-green bg-muted border-green-500",
         }
       : [
           "cancelled",

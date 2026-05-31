@@ -201,12 +201,12 @@ export function FileUpload({
             <Upload
               className={cn(
                 "h-6 w-6",
-                isDragging ? "text-primary" : "text-gray-600",
+                isDragging ? "text-primary" : "text-muted-foreground",
               )}
             />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-foreground">
               {isDragging
                 ? "Drop files here"
                 : "Click to upload or drag and drop"}
@@ -226,7 +226,7 @@ export function FileUpload({
       {/* Uploaded Files List */}
       {value.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             Uploaded Files ({value.length})
           </p>
           <div className="space-y-2">
@@ -246,13 +246,13 @@ export function FileUpload({
                     />
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100">
-                      <Icon className="h-5 w-5 text-gray-600" />
+                      <Icon className="h-5 w-5 text-muted-foreground" />
                     </div>
                   )}
 
                   {/* File Info */}
                   <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-sm font-medium text-gray-900">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {uploadedFile.file.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -281,7 +281,7 @@ export function FileUpload({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-gray-500 hover:text-destructive"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeFile(uploadedFile.id);

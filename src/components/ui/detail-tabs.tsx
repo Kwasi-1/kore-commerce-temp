@@ -61,12 +61,12 @@ export function DetailTabs({
 
               return (
                 <div key={field.title} className="space-y-1">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {field.title}
                   </dt>
                   <dd
                     className={cn(
-                      "text-sm text-gray-900",
+                      "text-sm text-foreground",
                       isPlain && "font-semibold",
                     )}
                   >

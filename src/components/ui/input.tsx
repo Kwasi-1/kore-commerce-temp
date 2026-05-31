@@ -28,7 +28,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </p>
             <input
               type={type}
-              className="rounded-xl mt-1 w-full border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-muted-foreground focus-visible:outline-none"
+              className="rounded-xl mt-1 w-full border-0 bg-transparent p-0 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
               placeholder={placeholder}
               ref={ref}
               {...props}
@@ -49,7 +49,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className={cn("flex w-full flex-col", className)}>
         {label && (
           <p
-            className="mb-2 text-sm font-medium text-gray-900"
+            className="mb-2 text-sm font-medium text-foreground"
             style={{ letterSpacing: "-0.8px" }}
           >
             {label}

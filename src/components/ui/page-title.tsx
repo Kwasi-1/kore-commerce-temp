@@ -32,7 +32,7 @@ const pageTitleVariants = cva(
 )
 
 const titleVariants = cva(
-  "font-semibold text-gray-900",
+  "font-semibold text-foreground",
   {
     variants: {
       size: {

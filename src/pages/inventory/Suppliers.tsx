@@ -77,7 +77,7 @@ export default function Suppliers() {
 
   const rows = suppliers.map((s: any) => ({
     id: s.id,
-    name: <span className="font-semibold text-gray-900 dark:text-gray-100">{s.name}</span>,
+    name: <span className="font-semibold text-foreground">{s.name}</span>,
     contact_person: s.contact_person || '—',
     email: s.email ? <a href={`mailto:${s.email}`} className="text-blue-500 hover:underline">{s.email}</a> : '—',
     phone: s.phone || '—',
@@ -133,7 +133,7 @@ export default function Suppliers() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold">{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</h2>
-            <p className="text-sm text-gray-500 font-normal">Manage supplier contact details.</p>
+            <p className="text-sm text-muted-foreground font-normal">Manage supplier contact details.</p>
           </div>
         }
         body={

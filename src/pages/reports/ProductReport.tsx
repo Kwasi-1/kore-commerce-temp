@@ -70,13 +70,13 @@ export default function ProductReport() {
       id: p.id,
       name: (
         <div>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>
-          {p.sku && <span className="text-xs text-gray-500 block">SKU: {p.sku}</span>}
+          <span className="font-semibold text-foreground">{p.name}</span>
+          {p.sku && <span className="text-xs text-muted-foreground block">SKU: {p.sku}</span>}
         </div>
       ),
       units_sold: <span className="font-medium">{p.units_sold}</span>,
       revenue: <span className="font-semibold text-green-600">GHS {parseFloat(p.revenue || 0).toFixed(2)}</span>,
-      cogs: <span className="text-gray-600 dark:text-gray-400">{p.cost_of_goods !== null ? `GHS ${parseFloat(p.cost_of_goods).toFixed(2)}` : 'N/A'}</span>,
+      cogs: <span className="text-muted-foreground">{p.cost_of_goods !== null ? `GHS ${parseFloat(p.cost_of_goods).toFixed(2)}` : 'N/A'}</span>,
       margin: (
         <span className={`font-semibold ${
           p.gross_margin === null ? 'text-gray-400' :
@@ -96,9 +96,9 @@ export default function ProductReport() {
       <div className="flex flex-col gap-6">
         
         {/* Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-pos-dark-card p-4 rounded-xl border border-gray-100 dark:border-pos-dark-border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card text-card-foreground p-4 rounded-xl border border-border">
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date Range</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Date Range</label>
             <DateRangePicker 
               value={dateRange} 
               onChange={(range: any) => setDateRange(range)} 
@@ -106,9 +106,9 @@ export default function ProductReport() {
           </div>
           
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500">Sorted by:</span>
+            <span className="text-muted-foreground">Sorted by:</span>
             <select 
-              className="bg-transparent font-medium text-pos-accent focus:outline-none border-b border-pos-accent/30 pb-0.5 cursor-pointer"
+              className="bg-transparent font-medium text-primary focus:outline-none border-b border-primary/30 pb-0.5 cursor-pointer"
               value={Array.from(sortMode)[0]}
               onChange={(e) => setSortMode(new Set([e.target.value]))}
             >
@@ -124,17 +124,17 @@ export default function ProductReport() {
           <DashboardCard
             title="Report Total Revenue"
             value={isLoading ? '...' : `GHS ${totalRevenue.toFixed(2)}`}
-            className="border border-gray-100 dark:border-pos-dark-border bg-pos-accent/5"
+            className="border border-border bg-primary/5"
           />
           <DashboardCard
             title="Total Units Moved"
             value={isLoading ? '...' : totalUnits.toString()}
-            className="border border-gray-100 dark:border-pos-dark-border"
+            className="border border-border"
           />
           <DashboardCard
             title="Avg. Gross Margin"
             value={isLoading ? '...' : `${avgMarginFinal.toFixed(1)}%`}
-            className="border border-gray-100 dark:border-pos-dark-border"
+            className="border border-border"
           />
         </div>
 

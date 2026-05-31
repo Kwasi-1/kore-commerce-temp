@@ -92,8 +92,8 @@ export default function Expenses() {
       id: exp.id,
       date: format(new Date(exp.dateIncurred), 'MMM dd, yyyy'),
       category: <span className="capitalize font-medium">{exp.category}</span>,
-      description: <span className="text-gray-600 dark:text-gray-400 max-w-xs truncate block">{exp.description}</span>,
-      amount: <span className="font-semibold text-gray-900 dark:text-gray-100">GHS {exp.amount.toFixed(2)}</span>,
+      description: <span className="text-muted-foreground max-w-xs truncate block">{exp.description}</span>,
+      amount: <span className="font-semibold text-foreground">GHS {exp.amount.toFixed(2)}</span>,
       recorded_by: exp.recordedByName || 'Unknown',
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
@@ -122,26 +122,26 @@ export default function Expenses() {
       
       {/* Summary Cards */}
       <div className="mb-8">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">This Month's Summary</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">This Month's Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Expenses"
             value={isLoading ? '...' : `GHS ${(summary.total || 0).toFixed(2)}`}
-            className="border border-gray-100 dark:border-pos-dark-border bg-pos-accent/5 dark:bg-pos-accent/10"
+            className="border border-border bg-primary/5 dark:bg-primary/10"
           />
           {topCategories.map(([cat, amount]: any) => (
             <DashboardCard
               key={cat}
               title={`${cat} Expenses`}
               value={`GHS ${amount.toFixed(2)}`}
-              className="border border-gray-100 dark:border-pos-dark-border capitalize"
+              className="border border-border capitalize"
             />
           ))}
           {topCategories.length === 0 && !isLoading && (
              <DashboardCard
              title="No category data"
              value="GHS 0.00"
-             className="border border-gray-100 dark:border-pos-dark-border"
+             className="border border-border"
            />
           )}
         </div>
@@ -189,7 +189,7 @@ export default function Expenses() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold">Log New Expense</h2>
-            <p className="text-sm text-gray-500 font-normal">Record a business expense or petty cash transaction.</p>
+            <p className="text-sm text-muted-foreground font-normal">Record a business expense or petty cash transaction.</p>
           </div>
         }
         body={

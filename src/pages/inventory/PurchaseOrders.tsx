@@ -80,14 +80,14 @@ export default function PurchaseOrders() {
 
     return {
       id: po.id,
-      reference: <span className="font-semibold text-gray-900 dark:text-gray-100">{po.reference_number}</span>,
+      reference: <span className="font-semibold text-foreground">{po.reference_number}</span>,
       supplier: po.supplier ? po.supplier.name : 'Unknown Supplier',
       date: new Date(po.date_created).toLocaleDateString(),
       total: <span className="font-medium">GHS {(po.total_amount || 0).toFixed(2)}</span>,
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
           po.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
-          : po.status === 'draft' ? 'text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400'
+          : po.status === 'draft' ? 'text-muted-foreground bg-gray-50 dark:bg-gray-800 '
           : po.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400'
           : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
         }`}>
@@ -144,10 +144,10 @@ export default function PurchaseOrders() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <PackageCheck className="h-6 w-6 text-pos-accent" />
+              <PackageCheck className="h-6 w-6 text-primary" />
               Draft Purchase Order
             </h2>
-            <p className="text-sm text-gray-500 font-normal">Add line items to order from your suppliers.</p>
+            <p className="text-sm text-muted-foreground font-normal">Add line items to order from your suppliers.</p>
           </div>
         }
         body={

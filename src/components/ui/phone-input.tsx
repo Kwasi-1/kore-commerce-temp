@@ -188,7 +188,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       <div className={cn("flex w-full flex-col", className)}>
         {labelPlacement === "outside" && label && (
           <p
-            className="mb-2 text-sm font-medium text-gray-900"
+            className="mb-2 text-sm font-medium text-foreground"
             style={{ letterSpacing: "-0.8px" }}
           >
             {label}

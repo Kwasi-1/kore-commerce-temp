@@ -145,29 +145,29 @@ export default function Login() {
       className="space-y-6"
     >
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Who's working?</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Select your profile to continue</p>
+        <h1 className="text-2xl font-bold text-foreground">Who's working?</h1>
+        <p className="text-muted-foreground mt-1">Select your profile to continue</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto px-2 pb-4 scrollbar-hide">
         {isLoadingStaff ? (
-          <div className="col-span-2 py-8 text-center text-gray-500">Loading staff...</div>
+          <div className="col-span-2 py-8 text-center text-muted-foreground">Loading staff...</div>
         ) : (
           staffList.map((staff) => (
             <button
               key={staff.id}
               onClick={() => selectUser(staff)}
-              className="flex flex-col items-center p-6 bg-gray-50 dark:bg-pos-dark-panel hover:bg-pos-accent/10 dark:hover:bg-pos-accent/20 border border-gray-100 dark:border-pos-dark-border rounded-2xl transition-all hover:scale-105 hover:border-pos-accent/30 hover:shadow-sm group"
+              className="flex flex-col items-center p-6 bg-muted hover:bg-primary/10 dark:hover:bg-primary/20 border border-border rounded-2xl transition-all hover:scale-105 hover:border-primary/30 hover:shadow-sm group"
             >
-              <div className="h-16 w-16 rounded-full bg-white dark:bg-pos-dark-card flex items-center justify-center text-pos-accent shadow-sm mb-3 group-hover:bg-pos-accent group-hover:text-white transition-colors">
+              <div className="h-16 w-16 rounded-full bg-card text-card-foreground flex items-center justify-center text-primary shadow-sm mb-3 group-hover:bg-primary group-hover:text-white transition-colors">
                 <span className="text-xl font-bold uppercase">
                   {staff.first_name?.[0] || staff.name[0]}
                 </span>
               </div>
-              <span className="font-semibold text-gray-900 dark:text-white mb-1">
+              <span className="font-semibold text-foreground mb-1">
                 {staff.first_name || staff.name.split(' ')[0]}
               </span>
-              <span className="text-xs text-gray-500 capitalize tracking-wide">
+              <span className="text-xs text-muted-foreground capitalize tracking-wide">
                 {staff.role}
               </span>
             </button>
@@ -175,10 +175,10 @@ export default function Login() {
         )}
       </div>
 
-      <div className="pt-4 border-t border-gray-100 dark:border-pos-dark-border text-center">
+      <div className="pt-4 border-t border-border text-center">
         <button
           onClick={() => setCurrentView('manual_login')}
-          className="text-sm font-medium text-gray-500 hover:text-pos-accent transition-colors"
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
         >
           Login Manually
         </button>
@@ -195,19 +195,19 @@ export default function Login() {
     >
       <button 
         onClick={goBack}
-        className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
+        className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground dark:hover:text-white mb-6 transition-colors"
       >
         <ChevronLeft className="h-4 w-4 mr-1" /> Back to users
       </button>
 
       <div className="text-center mb-8">
-        <div className="mx-auto h-16 w-16 rounded-full bg-pos-accent/10 flex items-center justify-center text-pos-accent mb-4">
+        <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
           <span className="text-2xl font-bold uppercase">
             {selectedStaff?.first_name?.[0] || selectedStaff?.name[0]}
           </span>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Hi, {selectedStaff?.first_name || selectedStaff?.name.split(' ')[0]}</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Enter your POS PIN</p>
+        <h2 className="text-xl font-bold text-foreground">Hi, {selectedStaff?.first_name || selectedStaff?.name.split(' ')[0]}</h2>
+        <p className="text-muted-foreground mt-1">Enter your POS PIN</p>
       </div>
 
       <NumPad onComplete={handlePinSubmit} maxLength={4} mask={true} />
@@ -223,22 +223,22 @@ export default function Login() {
     >
       <button 
         onClick={goBack}
-        className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
+        className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground dark:hover:text-white mb-6 transition-colors"
       >
         <ChevronLeft className="h-4 w-4 mr-1" /> Back to users
       </button>
 
       <div className="text-center mb-8">
-        <div className="mx-auto h-16 w-16 rounded-full bg-pos-accent/10 flex items-center justify-center text-pos-accent mb-4">
+        <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
           <UserSquare2 className="h-8 w-8" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Admin Access</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Enter password for {selectedStaff?.email}</p>
+        <h2 className="text-xl font-bold text-foreground">Admin Access</h2>
+        <p className="text-muted-foreground mt-1">Enter password for {selectedStaff?.email}</p>
       </div>
 
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
@@ -247,7 +247,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-pos-dark-border rounded-xl bg-white dark:bg-pos-dark-panel text-gray-900 dark:text-white focus:ring-pos-accent focus:border-pos-accent transition-colors"
+              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
               placeholder="••••••••"
               required
             />
@@ -256,7 +256,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={isAuthenticating}
-          className="w-full py-3 px-4 bg-pos-accent text-white font-bold rounded-xl shadow-sm hover:brightness-105 active:scale-95 disabled:opacity-50 transition-all flex justify-center items-center"
+          className="w-full py-3 px-4 bg-primary text-white font-bold rounded-xl shadow-sm hover:brightness-105 active:scale-95 disabled:opacity-50 transition-all flex justify-center items-center"
         >
           {isAuthenticating ? 'Authenticating...' : 'Sign In'}
         </button>
@@ -272,16 +272,16 @@ export default function Login() {
       exit={{ opacity: 0, scale: 0.95 }}
     >
       <div className="text-center mb-8">
-        <div className="mx-auto h-16 w-16 rounded-2xl bg-pos-accent flex items-center justify-center text-white mb-6 shadow-lg shadow-pos-accent/30">
+        <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center text-white mb-6 shadow-lg shadow-pos-accent/30">
           <Store className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">HeadlessPOS</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Sign in to your workspace</p>
+        <h2 className="text-2xl font-bold text-foreground">HeadlessPOS</h2>
+        <p className="text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 
       <form onSubmit={handlePasswordSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
@@ -290,7 +290,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-pos-dark-border rounded-xl bg-white dark:bg-pos-dark-panel text-gray-900 dark:text-white focus:ring-pos-accent focus:border-pos-accent transition-colors"
+              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
               placeholder="admin@store.com"
               required
             />
@@ -298,7 +298,7 @@ export default function Login() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
@@ -307,7 +307,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-pos-dark-border rounded-xl bg-white dark:bg-pos-dark-panel text-gray-900 dark:text-white focus:ring-pos-accent focus:border-pos-accent transition-colors"
+              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
               placeholder="••••••••"
               required
             />
@@ -317,21 +317,21 @@ export default function Login() {
         <button
           type="submit"
           disabled={isAuthenticating}
-          className="w-full py-3 px-4 bg-pos-accent text-white font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
+          className="w-full py-3 px-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
         >
           {isAuthenticating ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
 
       {staffList.length > 0 && (
-        <div className="mt-8 text-center border-t border-gray-100 dark:border-pos-dark-border pt-6">
+        <div className="mt-8 text-center border-t border-border pt-6">
           <button
             onClick={() => {
               setEmail('');
               setPassword('');
               setCurrentView('staff_grid');
             }}
-            className="text-sm font-medium text-gray-500 hover:text-pos-accent transition-colors"
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
           >
             Show Staff Quick Login
           </button>
@@ -341,9 +341,9 @@ export default function Login() {
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-pos-dark-app">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-background">
       {/* Left side - Dynamic Auth Panel */}
-      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-white dark:bg-pos-dark-card shadow-2xl">
+      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card text-card-foreground shadow-2xl">
         <AnimatePresence mode="wait">
           {currentView === 'staff_grid' && renderStaffGrid()}
           {currentView === 'pin_entry' && renderPinEntry()}
@@ -353,21 +353,21 @@ export default function Login() {
       </div>
 
       {/* Right side - Hero / Branding (Hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-pos-accent/5 dark:bg-pos-dark-app relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-primary/5 dark:bg-background relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pos-accent/10 blur-[100px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[100px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
         </div>
         
         <div className="max-w-md text-center relative z-10">
-          <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
-             <Store className="h-16 w-16 text-pos-accent" />
+          <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/50 /5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
+             <Store className="h-16 w-16 text-primary" />
           </div>
-          <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
             Next-Gen Retail
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+          <p className="text-lg text-muted-foreground leading-relaxed">
             Manage your sales, inventory, and staff all from one intelligent terminal. Let's make today a great day.
           </p>
         </div>

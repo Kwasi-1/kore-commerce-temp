@@ -4,7 +4,7 @@ import TopBar from '@/components/navigation/TopBar';
 
 export default function DashboardLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-pos-surface-app dark:bg-pos-dark-app text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground transition-colors duration-200">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />

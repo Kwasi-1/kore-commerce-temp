@@ -37,7 +37,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             </p>
             <textarea
               className={cn(
-                "mt-1 min-h-[80px] w-full border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-muted-foreground focus-visible:outline-none resize-none",
+                "mt-1 min-h-[80px] w-full border-0 bg-transparent p-0 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none resize-none",
                 textareaClassName,
               )}
               placeholder={placeholder}
@@ -59,7 +59,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className={cn("flex w-full flex-col", className)}>
         {label && (
-          <p className="mb-2 text-sm font-medium text-gray-900" style={{ letterSpacing: '-0.8px' }}>
+          <p className="mb-2 text-sm font-medium text-foreground" style={{ letterSpacing: '-0.8px' }}>
             {label}
           </p>
         )}

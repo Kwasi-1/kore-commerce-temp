@@ -25,30 +25,9 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        white: "#FFFFFF",
-        alabaster: "#fafafa",
-        silk: "#E0E0E0",
-        stone: "#757575",
-        graphite: "#5A5A5A",
-        ruby: "#C8102E",
-        crimson: "#B00020",
-        carbon: "#1A1A1A",
         primary: {
-          DEFAULT: "#075056",
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          green: "#075056",
-          gray: "#e4eef0",
-          dark: "#1a1a1a",
-          50: "#e6f4f5",
-          100: "#cce9eb",
-          200: "#99d3d7",
-          300: "#66bdc3",
-          400: "#33a7af",
-          500: "#075056",
-          600: "#064045",
-          700: "#043034",
-          800: "#032023",
-          900: "#011011",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -74,62 +53,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        warning: {
-          DEFAULT: "rgba(249, 180, 0, 1)",
-          foreground: "#000000",
-        },
-        gold: {
-          DEFAULT: "rgb(244, 178, 51)",
-          foreground: "#000000",
-        },
-        a89: {
-          canvas: "#F8F7F4",
-          surface: "#FFFFFF",
-          dark: "#1A1A1A",
-          "dark-elevated": "#242424",
-          ink: "#1A1A1A",
-          ruby: {
-            DEFAULT: "#C8102E",
-            deep: "#A00020",
-            tint: "rgba(200, 16, 46, 0.06)",
-            glow: "rgba(200, 16, 46, 0.07)",
-            border: "rgba(200, 16, 46, 0.18)",
-            "border-sm": "rgba(200, 16, 46, 0.12)",
-            "badge-bg": "rgba(200, 16, 46, 0.04)",
-            "badge-bd": "rgba(200, 16, 46, 0.20)",
-          },
-          cornershop: "#C4622D",
-          "foundry-biz": "#2A5FC4",
-          "foundry-fin": "#2A7A4B",
-          nexus: "#5C2D8A",
-          border: {
-            subtle: "rgba(0, 0, 0, 0.06)",
-            default: "rgba(0, 0, 0, 0.10)",
-            strong: "rgba(0, 0, 0, 0.18)",
-          }
-        },
-        pos: {
-          accent: "#c3f277",           // lime green — buttons, active nav, stock badges
-          "accent-text": "#111111",    // text on lime backgrounds
-          "sidebar-light": "#111111",  // sidebar bg in light mode
-          "sidebar-dark": "#f0f0f0",   // sidebar bg in dark mode
-          "surface-app": "#f0f0f0",    // page bg light
-          "surface-card": "#f7f7f7",   // card bg light
-          "surface-panel": "#ffffff",  // content panels light
-          "dark-app": "#0a0a0a",       // page bg dark
-          "dark-card": "#1e1e1e",      // card bg dark
-          "dark-panel": "#141414",     // content panels dark
-          "dark-border": "#2a2a2a",    // borders dark
-          danger: "#ff4444",
-        }
-      },
-      boxShadow: {
-        "a89-card": "0 2px 8px rgba(0, 0, 0, 0.06)",
-        "a89-hover": "0 8px 24px rgba(0, 0, 0, 0.09)",
-        "a89-mockup": "0 24px 64px rgba(0, 0, 0, 0.10)",
-        "a89-nav": "0 1px 0 rgba(0, 0, 0, 0.06)",
-        "a89-btn-ruby": "0 4px 12px rgba(200, 16, 46, 0.20)",
-        "a89-dark-card": "0 2px 8px rgba(0, 0, 0, 0.30)",
       },
       borderRadius: {},
       fontFamily: {

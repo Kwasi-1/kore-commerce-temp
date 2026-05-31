@@ -12,7 +12,7 @@ const linkVariants = cva(
         muted: "text-muted-foreground hover:text-foreground",
         destructive: "text-destructive hover:text-destructive/80",
         success: "text-green-600 hover:text-green-700",
-        subtle: "text-gray-600 hover:text-gray-900",
+        subtle: "text-muted-foreground hover:text-foreground",
       },
       underline: {
         none: "no-underline",

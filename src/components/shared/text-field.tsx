@@ -87,7 +87,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
     "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
     shouldFloat
       ? "top-1.5 text-[10px] font-normal max-w-[85%] leading-tight"
-      : "top-1/2 -translate-y-1/2 text-sm ml-2 text-gray-600 dark:text-gray-400",
+      : "top-1/2 -translate-y-1/2 text-sm ml-2 text-muted-foreground",
   )}
 >
             {required ? (
@@ -200,7 +200,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-md text-[12px] py-1`,
             className,
           ),
-          label: `dark:text-gray-300 text-xs capitalize mt-1`,
+          label: ` text-xs capitalize mt-1`,
           popoverContent: "rounded-md",
         }}
       >
@@ -316,7 +316,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
               "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
               shouldFloat
                 ? "top-2 text-sm scale-75 font-normal"
-                : "top-1/2 -translate-y-1/2 text-sm ml-2 text-gray-600 dark:text-gray-400",
+                : "top-1/2 -translate-y-1/2 text-sm ml-2 text-muted-foreground",
             )}
           >
             {required ? (
@@ -368,7 +368,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
               <button
                 type="button"
                 onClick={onClear}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-muted-foreground transition-colors"
                 title="Clear input"
                 aria-label="Clear input"
               >
@@ -395,7 +395,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
   return (
     <div className="flex flex-col w-full">
       {label && (
-        <label className="text-xs text-gray-500 dark:text-gray-300 capitalize mb-1 font-medium">
+        <label className="text-xs text-muted-foreground capitalize mb-1 font-medium">
           {required ? (
             <span>
               {label} <span className="text-red-500">*</span>
@@ -449,7 +449,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
             <button
               type="button"
               onClick={onClear}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-muted-foreground transition-colors"
               title="Clear input"
               aria-label="Clear input"
             >
@@ -607,8 +607,8 @@ export const CustomTextareaField = ({
             className={cn(
               "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
               shouldFloat
-                ? "top-2 text-sm scale-75 font-normal text-gray-500"
-                : "top-4 text-sm ml-2 text-gray-600 dark:text-gray-400",
+                ? "top-2 text-sm scale-75 font-normal text-muted-foreground"
+                : "top-4 text-sm ml-2 text-muted-foreground",
             )}
           >
             {required ? (
@@ -680,7 +680,7 @@ export const CustomTextareaField = ({
   return (
     <div className="flex flex-col w-full">
       {label && (
-        <label className="dark:text-gray-300 text-sm capitalize mb-2">
+        <label className="text-sm capitalize mb-2">
           {required ? (
             <span>
               {label} <span className="text-red-500">*</span>
@@ -898,7 +898,7 @@ export const AutoCompleteSelectComponent: React.FunctionComponent<
               `${
                 (menuItems.length > 0 || isLoading) &&
                 "p-1 pt-2 rounded-t-none border border-collapse"
-              } w-full dark:bg-secondary-black bg-white shadow-lg border-t-0 rounded-b-md border-collapse absolute left-0 top-[calc(100%-6px)] z-50 max-h-[15rem] overflow-y-auto transition-all`,
+              } w-full  bg-white shadow-lg border-t-0 rounded-b-md border-collapse absolute left-0 top-[calc(100%-6px)] z-50 max-h-[15rem] overflow-y-auto transition-all`,
               classNames?.menu,
             )}
           >
@@ -1091,11 +1091,11 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
         items={filteredOptions}
         classNames={{
           base: cn(
-            "rounded-md bg-primary-gray/30 border-gray-300/20",
+            "rounded-md bg-muted/30 border-gray-300/20",
             className,
           ),
           // inputWrapper: cn(
-          //   "border dark:border-[#F5F5F580] bg-primary-gray/20 dark:bg-secondary-black rounded-md",
+          //   "border dark:border-[#F5F5F580] bg-muted  rounded-md",
           //   className
           // ),
           selectorButton: cn(
@@ -1131,14 +1131,14 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
             >
               <Icon
                 icon="iconamoon:close-fill"
-                className="text-lg text-gray-500"
+                className="text-lg text-muted-foreground"
               />
             </button>
           ) : error ? (
             <Icon
               onClick={() => setShowMsg(true)}
               icon="material-symbols:error-outline"
-              className=" "
+              className=""
               color="orange"
             />
           ) : null
@@ -1166,7 +1166,7 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
               <div className="flex flex-col">
                 <span>{optionLabel}</span>
                 {optionDescription && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {optionDescription}
                   </span>
                 )}

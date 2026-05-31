@@ -82,9 +82,9 @@ export function ChartTooltipContent({
   const resolvedLabel = labelFormatter ? labelFormatter(label) : label;
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs">
+    <div className="rounded-md border border-border bg-white px-3 py-2 text-xs">
       {!hideLabel && resolvedLabel && (
-        <p className="text-gray-500">{resolvedLabel}</p>
+        <p className="text-muted-foreground">{resolvedLabel}</p>
       )}
       <div className="mt-2 space-y-1">
         {payload.map((item, index) => {
@@ -101,7 +101,7 @@ export function ChartTooltipContent({
 
           return (
             <div key={key} className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <span
                   className={cn(
                     "inline-block",
@@ -111,7 +111,7 @@ export function ChartTooltipContent({
                 />
                 <span>{nameText}</span>
               </div>
-              <span className="font-semibold text-gray-900">{valueText}</span>
+              <span className="font-semibold text-foreground">{valueText}</span>
             </div>
           );
         })}
@@ -140,7 +140,7 @@ export function ChartLegendContent({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600">
+    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
       {payload.map((entry, index) => {
         const key = String(entry.dataKey ?? entry.value ?? index);
         const itemConfig = config?.[String(entry.dataKey ?? "")];

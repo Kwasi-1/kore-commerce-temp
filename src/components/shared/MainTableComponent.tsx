@@ -187,7 +187,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
   // Styling
   classNames = {
-    th: "bg-transparent font-semibold border-b dark:border-gray-100",
+    th: "bg-transparent font-semibold border-b dark:border-border",
     tbody: "divide-y",
   },
 
@@ -396,7 +396,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     return (
       <div className="flex flex-col gap-3">
         {title && (
-          <h4 className="capitalize text-gray-600 dark:text-gray-300 font-semibold">
+          <h4 className="capitalize text-muted-foreground font-semibold">
             {title}
           </h4>
         )}
@@ -410,7 +410,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 classNames={{
                   base: "w-full lg:w-[20rem] h-[2.5rem] text-xs placeholder-xs",
                   inputWrapper:
-                    "border-1 h-full bg-white dark:bg-secondary-black",
+                    "border-1 h-full bg-white ",
                 }}
                 placeholder={searchPlaceholder}
                 size="sm"
@@ -437,7 +437,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-primary-gray/20 dark:bg-secondary-black border rounded-md hover:bg-gray-200/30  transition-colors text-nowrap border-gray-300 dark:border-gray-600"
+                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md hover:bg-gray-200/30 transition-colors text-nowrap border-gray-300 dark:border-gray-600"
                   >
                     {filterLabel}
                   </Button>
@@ -469,7 +469,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-primary-gray/20 dark:bg-secondary-black border rounded-md hover:bg-gray-200/30  transition-colors text-nowrap border-gray-300 dark:border-gray-600"
+                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md hover:bg-gray-200/30 transition-colors text-nowrap border-gray-300 dark:border-gray-600"
                   >
                     {filter.label}
                   </Button>
@@ -523,7 +523,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
           {/* Add Button */}
           {showAddButton && (
-            <div className="flex gap-3 ">
+            <div className="flex gap-3">
               <Button
                 variant="light"
                 radius="none"
@@ -558,14 +558,14 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white dark:bg-secondary-black border border-gray-200 dark:border-gray-700 shadow-xl rounded px-6 py-3 flex items-center gap-6 min-w-[300px] justify-between"
+                className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-border dark:border-gray-700 shadow-xl rounded px-6 py-3 flex items-center gap-6 min-w-[300px] justify-between"
               >
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-foreground">
                       {selectedKeys === "all" ? rows.length : selectedKeys.size}
                     </span>
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">
+                    <span className="text-muted-foreground text-sm">
                       selected
                     </span>
                   </div>
@@ -573,7 +573,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   <Button
                     size="sm"
                     variant="light"
-                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 rounded-none dark:hover:text-gray-200 min-w-0 px-2"
+                    className="text-muted-foreground hover:text-gray-700 rounded-none dark:hover:text-gray-200 min-w-0 px-2"
                     onPress={() =>
                       onSelectionChange && onSelectionChange(new Set([]))
                     }
@@ -707,7 +707,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
-              className="absolute top-0 right-0 w-[44%] h-full bg-white  rounded-xl  overflow-hidden flex-shrink-0 z-10"
+              className="absolute top-0 right-0 w-[44%] h-full bg-white rounded-xl overflow-hidden flex-shrink-0 z-10"
             >
               {/* Close Button */}
               <Button
@@ -717,7 +717,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 onPress={() => setSelectedRow(null)}
                 size="sm"
               >
-                <Icon icon="mdi:close" className="text-lg text-gray-500" />
+                <Icon icon="mdi:close" className="text-lg text-muted-foreground" />
               </Button>
 
               {/* Detail Content */}

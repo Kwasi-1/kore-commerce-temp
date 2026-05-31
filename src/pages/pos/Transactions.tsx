@@ -53,15 +53,15 @@ export default function Transactions() {
 
   const rows = transactions.map((t: any) => ({
     id: t.id,
-    receipt_number: <span className="font-mono text-pos-accent font-semibold">{t.receiptNumber}</span>,
+    receipt_number: <span className="font-mono text-primary font-semibold">{t.receiptNumber}</span>,
     date: t.dateCreated ? format(new Date(t.dateCreated), 'MMM dd, yyyy h:mm a') : 'N/A',
     cashier: t.cashierName || 'Unknown',
     payment_method: (
-      <span className="capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+      <span className="capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800">
         {t.paymentMethod?.replace('_', ' ')}
       </span>
     ),
-    amount: <span className="font-semibold text-gray-900 dark:text-gray-100">GHS {t.totalAmount?.toFixed(2) || '0.00'}</span>,
+    amount: <span className="font-semibold text-foreground">GHS {t.totalAmount?.toFixed(2) || '0.00'}</span>,
     rowActions: [
       { key: 'view_receipt', label: 'View Receipt', icon: 'mdi:receipt-text-outline' }
     ],
@@ -115,7 +115,7 @@ export default function Transactions() {
               />
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">Loading receipt...</div>
+            <div className="p-8 text-center text-muted-foreground">Loading receipt...</div>
           )
         }
       />

@@ -177,24 +177,24 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         />
         
         {/* Placeholder for Image Upload */}
-        <div className="p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg text-center mt-2">
-          <p className="text-sm text-gray-500">Image upload (Cloudinary) to be implemented</p>
+        <div className="p-4 border-2 border-dashed border-border dark:border-gray-700 rounded-lg text-center mt-2">
+          <p className="text-sm text-muted-foreground">Image upload (Cloudinary) to be implemented</p>
         </div>
 
       </div>
 
-      <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 mt-auto">
+      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button 
           variant="flat" 
           onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium px-6"
+          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
           isLoading={isLoading}
-          className="bg-pos-accent text-pos-accent-text font-bold px-6"
+          className="bg-primary text-primary-foreground font-bold px-6"
         >
           {isEditing ? 'Update Product' : 'Create Product'}
         </Button>

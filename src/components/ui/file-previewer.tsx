@@ -73,7 +73,7 @@ export function FilePreviewer({
         return (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gray-50">
             {getFileIcon()}
-            <p className="mt-4 text-sm font-medium text-gray-900">
+            <p className="mt-4 text-sm font-medium text-foreground">
               {file.name}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">PDF Document</p>
@@ -83,7 +83,7 @@ export function FilePreviewer({
         return (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gray-50">
             {getFileIcon()}
-            <p className="mt-4 text-sm font-medium text-gray-900">
+            <p className="mt-4 text-sm font-medium text-foreground">
               {file.name}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Document</p>
@@ -93,7 +93,7 @@ export function FilePreviewer({
         return (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gray-50">
             {getFileIcon()}
-            <p className="mt-4 text-sm font-medium text-gray-900">
+            <p className="mt-4 text-sm font-medium text-foreground">
               {file.name}
             </p>
           </div>
@@ -191,7 +191,7 @@ export function FilePreviewer({
 
       {/* File Info Footer */}
       <div className="border-t bg-gray-50 px-4 py-3">
-        <p className="truncate text-sm font-medium text-gray-900">
+        <p className="truncate text-sm font-medium text-foreground">
           {file.name}
         </p>
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">

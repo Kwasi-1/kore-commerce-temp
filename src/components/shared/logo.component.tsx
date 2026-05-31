@@ -24,7 +24,7 @@ const LogoComponent: React.FC<LogoComponentProps> = ({
         alt="Foundry Logo"
         className={cn("h-12 w-auto animate-pulse", logoClassName)}
       />
-      {text && <p className="text-sm font-medium text-gray-500">{text}</p>}
+      {text && <p className="text-sm font-medium text-muted-foreground">{text}</p>}
     </div>
   );
 };

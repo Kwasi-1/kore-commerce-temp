@@ -250,7 +250,7 @@ export function DateFilter({
                     : "hover:bg-muted/60 border border-transparent",
                 )}
               >
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-foreground">
                   {preset.label}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -264,7 +264,7 @@ export function DateFilter({
 
       <div className="mt-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-900">{label}</p>
+          <p className="text-sm font-medium text-foreground">{label}</p>
           <p className="text-xs text-muted-foreground">
             {mode === "relative"
               ? relativeRanges[relativeKey]?.description

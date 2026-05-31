@@ -94,18 +94,18 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        "min-h-screen border-r bg-pos-sidebar-light text-white dark:bg-pos-sidebar-dark dark:text-pos-sidebar-light dark:border-pos-dark-border flex flex-col transition-all duration-300 relative",
+        "min-h-screen border-r bg-card text-white dark:bg-card dark:text-pos-sidebar-light dark:border-border flex flex-col transition-all duration-300 relative",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
       <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0")}>
         {!isCollapsed && (
-          <h2 className="text-2xl font-bold tracking-tight text-pos-accent truncate">
+          <h2 className="text-2xl font-bold tracking-tight text-primary truncate">
             {tenant?.name || 'HeadlessPOS'}
           </h2>
         )}
         {isCollapsed && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pos-accent text-pos-accent-text font-bold text-xl leading-none shadow-sm cursor-pointer" onClick={() => setIsCollapsed(false)}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl leading-none shadow-sm cursor-pointer" onClick={() => setIsCollapsed(false)}>
             {tenant?.name ? tenant.name.charAt(0).toUpperCase() : 'H'}
           </div>
         )}
@@ -117,7 +117,7 @@ export default function Sidebar() {
             section.show && (
               <div key={section.title} className={clsx(isCollapsed && "flex flex-col items-center")}>
                 {!isCollapsed && (
-                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {section.title}
                   </h3>
                 )}
@@ -133,7 +133,7 @@ export default function Sidebar() {
                             isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5',
                             isActive
                               ? 'bg-[#b6ff56] text-[#1a1a1a] shadow-md dark:bg-[#b6ff56] dark:text-[#1a1a1a]'
-                              : 'text-gray-300 hover:bg-white/10 hover:text-white dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
+                              : 'text-gray-300 hover:bg-white/10 hover:text-white  dark:hover:bg-white/5 dark:hover:text-white'
                           )
                         }
                       >
@@ -148,7 +148,7 @@ export default function Sidebar() {
         )}
       </nav>
 
-      <div className="mt-auto p-4 border-t border-white/10 dark:border-pos-dark-border flex flex-col gap-2">
+      <div className="mt-auto p-4 border-t border-white/10 dark:border-border flex flex-col gap-2">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={clsx(

@@ -33,11 +33,11 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
         {/* Left: Input & Shortcuts */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Amount Tendered
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">GHS</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">GHS</span>
               <input
                 type="text"
                 value={tenderedStr}
@@ -46,7 +46,7 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
                   const val = e.target.value.replace(/[^0-9.]/g, '');
                   setTenderedStr(val);
                 }}
-                className="w-full pl-12 pr-4 py-3 text-2xl font-bold bg-white dark:bg-pos-dark-panel border border-gray-300 dark:border-pos-dark-border rounded-lg focus:ring-pos-accent focus:border-pos-accent transition-colors text-gray-900 dark:text-white"
+                className="w-full pl-12 pr-4 py-3 text-2xl font-bold bg-muted border border-border rounded-lg focus:ring-primary focus:border-primary transition-colors text-foreground"
                 placeholder="0.00"
               />
             </div>
@@ -55,25 +55,25 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleExactAmount}
-              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 transition-colors"
             >
               Exact ({totalDue.toFixed(2)})
             </button>
             <button
               onClick={() => handleAddBill(50)}
-              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 transition-colors"
             >
               50
             </button>
             <button
               onClick={() => handleAddBill(100)}
-              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 transition-colors"
             >
               100
             </button>
             <button
               onClick={() => handleAddBill(200)}
-              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+              className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 transition-colors"
             >
               200
             </button>
@@ -81,8 +81,8 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
         </div>
 
         {/* Right: Change Display */}
-        <div className="flex flex-col justify-center items-center bg-gray-50 dark:bg-pos-dark-panel rounded-xl border border-gray-100 dark:border-pos-dark-border p-4">
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Change Due</span>
+        <div className="flex flex-col justify-center items-center bg-muted rounded-xl border border-border p-4">
+          <span className="text-sm font-medium text-muted-foreground mb-1">Change Due</span>
           <span className={`text-4xl font-bold tracking-tight ${isValid ? 'text-green-500' : 'text-gray-400'}`}>
             {change.toFixed(2)}
           </span>

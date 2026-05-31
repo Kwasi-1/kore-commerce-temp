@@ -78,7 +78,7 @@ export default function BusinessProfile() {
     return (
       <PageLayout title="Business Profile">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pos-accent"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </PageLayout>
     );
@@ -89,9 +89,9 @@ export default function BusinessProfile() {
       <div className="max-w-4xl space-y-8">
         
         {/* Profile Section */}
-        <section className="bg-white dark:bg-pos-dark-card rounded-xl p-6 border border-gray-100 dark:border-pos-dark-border">
-          <h2 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">General Information</h2>
-          <p className="text-sm text-gray-500 mb-6">Update your store's public-facing name and description.</p>
+        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
+          <h2 className="text-xl font-bold mb-1 text-foreground">General Information</h2>
+          <p className="text-sm text-muted-foreground mb-6">Update your store's public-facing name and description.</p>
           
           <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-2xl">
             <CustomInputTextField
@@ -111,7 +111,7 @@ export default function BusinessProfile() {
               <Button 
                 type="submit" 
                 isLoading={isSavingProfile}
-                className="bg-pos-accent text-pos-accent-text font-bold"
+                className="bg-primary text-primary-foreground font-bold"
               >
                 Save Changes
               </Button>
@@ -120,9 +120,9 @@ export default function BusinessProfile() {
         </section>
 
         {/* Contact Section */}
-        <section className="bg-white dark:bg-pos-dark-card rounded-xl p-6 border border-gray-100 dark:border-pos-dark-border">
-          <h2 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">Contact Details</h2>
-          <p className="text-sm text-gray-500 mb-6">How customers and the platform can reach you.</p>
+        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
+          <h2 className="text-xl font-bold mb-1 text-foreground">Contact Details</h2>
+          <p className="text-sm text-muted-foreground mb-6">How customers and the platform can reach you.</p>
           
           <form onSubmit={handleContactSubmit} className="space-y-4 max-w-2xl">
             <CustomInputTextField
@@ -151,7 +151,7 @@ export default function BusinessProfile() {
               <Button 
                 type="submit" 
                 isLoading={isSavingContact}
-                className="bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 font-bold"
+                className="bg-gray-900 text-white dark:bg-gray-100 dark:text-foreground font-bold"
               >
                 Update Contact
               </Button>

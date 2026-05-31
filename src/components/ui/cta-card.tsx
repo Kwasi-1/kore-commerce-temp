@@ -63,7 +63,7 @@ export function CTACard({
             <h3
               className={cn(
                 "text-lg font-semibold",
-                isPrimaryVariant ? "text-primary-foreground" : "text-gray-900",
+                isPrimaryVariant ? "text-primary-foreground" : "text-foreground",
               )}
             >
               {title}

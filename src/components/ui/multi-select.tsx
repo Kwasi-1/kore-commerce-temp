@@ -92,7 +92,7 @@ export function MultiSelect({
       <div className={cn("flex w-full flex-col", className)}>
         {labelPlacement === "outside" && label && (
           <p
-            className="mb-2 text-sm font-medium text-gray-900"
+            className="mb-2 text-sm font-medium text-foreground"
             style={{ letterSpacing: "-0.8px" }}
           >
             {label}
@@ -113,7 +113,7 @@ export function MultiSelect({
                 </p>
                 <p
                   className={cn(
-                    "mt-1 text-sm text-gray-900",
+                    "mt-1 text-sm text-foreground",
                     selected.length === 0 && "text-muted-foreground",
                   )}
                 >
@@ -123,7 +123,7 @@ export function MultiSelect({
             ) : (
               <span
                 className={cn(
-                  "text-sm text-gray-900",
+                  "text-sm text-foreground",
                   selected.length === 0 && "text-muted-foreground",
                 )}
               >
@@ -190,7 +190,7 @@ export function MultiSelect({
                         className="pointer-events-none mt-0.5"
                       />
                       <div className="flex flex-1 flex-col gap-1.5 text-sm">
-                        <span className="font-semibold leading-none text-gray-900">
+                        <span className="font-semibold leading-none text-foreground">
                           {option.leading && (
                             <span className="mr-2 inline-flex items-center text-muted-foreground">
                               {option.leading}
