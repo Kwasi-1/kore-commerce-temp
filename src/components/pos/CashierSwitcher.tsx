@@ -25,7 +25,7 @@ export default function CashierSwitcher() {
         const response = await apiClient.get('/tenant/staff');
         // Filter to only show active staff who could potentially be cashiers
         // The mock returns a list of staff, some might be owners/managers
-        setCashiers(response.data.success?.data?.staff || []);
+        setCashiers(response.data.data?.staff || []);
       } catch (error) {
         console.error('Failed to fetch cashiers:', error);
       }
@@ -87,24 +87,33 @@ export default function CashierSwitcher() {
     </div>
   );
 
+  const hasMultipleCashiers = cashiers.length > 1;
+
+  const triggerButton = (
+    <button 
+      className={`flex -space-x-2 mr-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full ${hasMultipleCashiers ? 'hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+    >
+      {cashiers.slice(0, 3).map((cashier, idx) => (
+        <div key={cashier.id} className={`h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden z-[${3-idx}]`}>
+          <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
+        </div>
+      ))}
+      {cashiers.length === 0 && (
+        <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
+            <img src="https://ui-avatars.com/api/?name=Staff" alt="staff" className="h-full w-full object-cover" />
+        </div>
+      )}
+    </button>
+  );
+
   return (
     <>
-      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-        <PopoverTrigger asChild>
-          <button className="flex -space-x-2 mr-2 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full">
-            {cashiers.slice(0, 3).map((cashier, idx) => (
-              <div key={cashier.id} className={`h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden z-[${3-idx}]`}>
-                <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
-              </div>
-            ))}
-            {cashiers.length === 0 && (
-              <div className="h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden">
-                 <img src="https://ui-avatars.com/api/?name=Staff" alt="staff" className="h-full w-full object-cover" />
-              </div>
-            )}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-2 rounded-xl border-border/60 shadow-lg">
+      {hasMultipleCashiers ? (
+        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+          <PopoverTrigger asChild>
+            {triggerButton}
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2 rounded-xl border-border/60 shadow-lg">
           <div className="mb-2 px-2 pt-1 pb-2 border-b border-border/40">
             <h4 className="font-semibold text-sm text-foreground">Select Cashier</h4>
           </div>
@@ -127,6 +136,9 @@ export default function CashierSwitcher() {
           </div>
         </PopoverContent>
       </Popover>
+      ) : (
+        triggerButton
+      )}
 
       <CustomModal
         isOpen={isPinModalOpen}

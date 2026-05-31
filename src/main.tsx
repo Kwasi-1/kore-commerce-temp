@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as HotToaster } from "react-hot-toast";
 import App from "./App";
 import { NextUIProvider } from "@nextui-org/react";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -20,6 +21,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         {/* <SmoothScroll> */}
           <App />
           <Toaster />
+          <HotToaster position="top-right" />
         {/* </SmoothScroll> */}
       </NextUIProvider>
     </BrowserRouter>
