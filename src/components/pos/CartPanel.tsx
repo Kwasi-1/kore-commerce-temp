@@ -154,8 +154,6 @@ export default function CartPanel() {
         >
           Continue
         </button>
-        <Button></Button>
-
       </div>
 
       <PaymentModal
