@@ -97,10 +97,10 @@ export default function StockReconciliation() {
           type="number"
           min="0"
           placeholder="Enter count..."
-          className={`w-32 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+          className={`w-32 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-0 focus:ring-primary ${
             isCounted 
-              ? 'border-primary bg-primary/5 dark:bg-primary/10 ' 
-              : 'border-border dark:border-gray-700 bg-white  '
+              ? 'border-border bg-inherit' 
+              : 'border-secondary bg-muted/60'
           }`}
           value={actualVal}
           onChange={(e) => handleCountChange(p.id, e.target.value)}
@@ -138,12 +138,13 @@ export default function StockReconciliation() {
             onPress={handleReconcile}
             isLoading={isSaving}
             isDisabled={countedItems === 0}
+            variant={countedItems > 0 ? 'default' : 'bordered'}
+            color={countedItems > 0 ? 'primary' : 'default'}
             className={`font-bold px-6 h-12 ${
               countedItems > 0 
-                ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-foreground' 
-                : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
-            }`}
-            startContent={!isSaving && <CheckSquare className="w-4 h-4" />}
+                ? 'border-1' 
+                : 'border-1'
+            }`}            startContent={!isSaving && <CheckSquare className="w-4 h-4" />}
           >
             Apply Reconciliation ({countedItems})
           </Button>

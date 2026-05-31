@@ -79,7 +79,7 @@ export default function ExpenseForm({ onSuccess, onCancel }: ExpenseFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full py-6 px-4 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         
         <CustomSelectField

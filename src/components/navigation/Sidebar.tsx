@@ -1,5 +1,6 @@
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { getModules } from '@/utils/permissions';
 import {
@@ -33,7 +34,7 @@ export default function Sidebar() {
   const plan = tenant?.plan || 'pos_only';
   const modules = getModules(plan);
   const isDark = useThemeStore((state) => state.isDark);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isPending, startTransition] = useTransition();

@@ -30,7 +30,7 @@ export default function Expenses() {
       const startOfCurrMonth = startOfMonth(new Date()).toISOString();
       const endOfCurrMonth = endOfMonth(new Date()).toISOString();
       const summaryRes = await apiClient.get(`/tenant/expenses/summary?start_date=${startOfCurrMonth}&end_date=${endOfCurrMonth}`);
-      setSummary(summaryRes.data.success.data);
+      setSummary(summaryRes.data.data || {});
 
       // 2. Fetch Expenses List
       const catArr = Array.from(categoryFilter);
@@ -39,7 +39,7 @@ export default function Expenses() {
         listUrl += `&category=${catArr[0]}`;
       }
       const listRes = await apiClient.get(listUrl);
-      setExpenses(listRes.data.success.data.expenses || []);
+      setExpenses(listRes.data.data?.expenses || []);
 
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
@@ -90,7 +90,7 @@ export default function Expenses() {
 
     return {
       id: exp.id,
-      date: format(new Date(exp.dateIncurred), 'MMM dd, yyyy'),
+      date: format(new Date(exp.dateIncurred || exp.date || new Date()), 'MMM dd, yyyy'),
       category: <span className="capitalize font-medium">{exp.category}</span>,
       description: <span className="text-muted-foreground max-w-xs truncate block">{exp.description}</span>,
       amount: <span className="font-semibold text-foreground">GHS {exp.amount.toFixed(2)}</span>,
@@ -113,9 +113,13 @@ export default function Expenses() {
   };
 
   // Build dynamic summary cards for top categories
-  const topCategories = Object.entries(summary.summary || {})
-    .sort((a: any, b: any) => b[1] - a[1])
-    .slice(0, 3); // top 3 categories
+  const summaryList = Array.isArray(summary?.summary) ? summary.summary : [];
+  const topCategories = summaryList
+    .sort((a: any, b: any) => b.total_amount - a.total_amount)
+    .slice(0, 3)
+    .map((item: any) => [item.category, item.total_amount]);
+  
+  const totalExpenses = summary?.total || summaryList.reduce((acc: number, curr: any) => acc + (curr.total_amount || 0), 0);
 
   return (
     <PageLayout title="Expenses">
@@ -126,7 +130,7 @@ export default function Expenses() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Expenses"
-            value={isLoading ? '...' : `GHS ${(summary.total || 0).toFixed(2)}`}
+            value={isLoading ? '...' : `GHS ${totalExpenses.toFixed(2)}`}
             className="border border-border bg-primary/5 dark:bg-primary/10"
           />
           {topCategories.map(([cat, amount]: any) => (

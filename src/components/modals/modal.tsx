@@ -75,7 +75,7 @@ const CustomModal: FC<CustomModalProps> = ({
       classNames={{
         body: cn("py-0 dark:text-[#F5F5F5]", classNames.body),
         base: cn(
-          "border-[#161616]  dark:text-[#a8b0d3]",
+          "border-[#161616] dark:bg-sidebar dark:text-[#a8b0d3]",
           classNames.base,
         ),
         header: cn("dark:text-[#F5F5F5]", classNames.header),

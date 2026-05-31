@@ -4,9 +4,10 @@ import {
   CustomSelectField, 
   CustomTextareaField 
 } from '@/components/shared/text-field';
-import { Button } from '@nextui-org/react';
+
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface ProductFormProps {
   initialData?: any;
@@ -87,7 +88,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-6 px-4 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         <CustomInputTextField
           label="Product Name"
@@ -185,18 +186,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
       <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button 
-          variant="flat" 
-          onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
+          variant="outline" 
+          onClick={onCancel}
+          className="font-medium px-6 rounded-full"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
-          isLoading={isLoading}
-          className="bg-primary text-primary-foreground font-bold px-6"
+          disabled={isLoading}
+          className="bg-primary text-primary-foreground font-bold px-6 rounded-full"
         >
-          {isEditing ? 'Update Product' : 'Create Product'}
+          {isLoading ? 'Saving...' : isEditing ? 'Update Product' : 'Create Product'}
         </Button>
       </div>
     </form>
