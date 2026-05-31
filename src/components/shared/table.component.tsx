@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+﻿import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import {
   getKeyValue,
@@ -229,7 +229,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 mt-4 mb-10">
+        <div className="grid grid-cols-1 gap-3 mt-4 mb-10">
           {isLoading || isFetching ? (
             <LogoComponent />
           ) : isEmpty(rows) ? (
@@ -249,7 +249,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                   <div
                     key={rowId}
                     className={cn(
-                      "px-3 py-4 rounded-xl relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200"
+                      "px-2 py-4 rounded-sm relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200"
                     )}
                     onClick={() => {
                       toggleExpanded(rowId);

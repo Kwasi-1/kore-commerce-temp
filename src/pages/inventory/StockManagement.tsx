@@ -81,25 +81,23 @@ export default function StockManagement() {
       id: p.id,
       product: (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-gray-100 dark:bg-gray-800 shrink-0 overflow-hidden">
+          <div className="hidden w-10 h-10 rounded-lg bg-muted shrink-0 overflow-hidden md:flex items-center justify-center">
             {p.images && p.images[0] ? (
               <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <span className="text-xs">No img</span>
-              </div>
+              <span className="text-xs text-muted-foreground">No img</span>
             )}
           </div>
           <div>
             <p className="font-semibold text-foreground">{p.name}</p>
-            <p className="text-xs text-muted-foreground capitalize">{p.category}</p>
+            <p className="hidden lg:block text-xs text-muted-foreground capitalize">{p.category}</p>
           </div>
         </div>
       ),
       sku: <span className="font-mono text-sm text-muted-foreground">{p.sku || 'N/A'}</span>,
       current_stock: (
-        <span className={`font-semibold ${p.quantity <= 5 ? 'text-red-500' : 'text-gray-700 '}`}>
-          {p.quantity} units
+        <span className={`font-semibold ${p.quantity <= 5 ? 'text-red-500' : 'text-foreground'}`}>
+          {p.quantity} <span className="text-muted-foreground font-normal">units</span>
         </span>
       ),
       new_stock: (
@@ -107,15 +105,15 @@ export default function StockManagement() {
           <input 
             type="number"
             min="0"
-            className={`w-24 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+            className={`w-24 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-0 focus:ring-primary transition-colors ${
               isChanged 
-                ? 'border-primary bg-primary/5 dark:bg-primary/10 ' 
-                : 'border-border dark:border-gray-700 bg-white  '
+                ? 'border-border  bg-inherit' 
+                : 'border-border bg-muted/60'
             }`}
             value={displayVal}
             onChange={(e) => handleQuantityChange(p.id, e.target.value)}
           />
-          {isChanged && <span className="text-xs text-primary font-medium">Modified</span>}
+          {isChanged && <span className="text-xs text-accent font-medium">Modified</span>}
         </div>
       )
     };

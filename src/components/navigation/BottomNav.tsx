@@ -7,8 +7,17 @@ import {
   MonitorSmartphone,
   Package,
   History,
+  Receipt,
+  Users,
+  TrendingUp,
+  CalendarCheck,
+  Tag,
+  Truck,
+  FileBadge,
+  Layers,
+  Settings,
   Menu,
-  X
+  ChevronRight,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
@@ -22,20 +31,71 @@ export default function BottomNav() {
   const [isPending, startTransition] = useTransition();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const mainLinks = [
-    { name: 'Overview', to: '/dashboard', icon: LayoutDashboard, show: true },
-    { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, show: modules.pos },
-    { name: 'Products', to: '/inventory/products', icon: Package, show: modules.inventory },
-    { name: 'History', to: '/pos/transactions', icon: History, show: modules.pos },
-  ].filter(link => link.show);
-
-  // Take up to 4 main links to fit the bottom nav, leave 1 spot for "Menu"
-  const visibleLinks = mainLinks.slice(0, 4);
-
   const handleNavigation = (to: string) => {
     setIsDrawerOpen(false);
     startTransition(() => navigate(to));
   };
+
+  // Primary bottom nav links — pick the most important 4 based on plan
+  const primaryLinks = [
+    { name: 'Overview', to: '/dashboard', icon: LayoutDashboard, show: true },
+    { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, show: modules.pos },
+    { name: 'Products', to: '/inventory/products', icon: Package, show: modules.inventory },
+    { name: 'History', to: '/pos/transactions', icon: History, show: modules.pos },
+    { name: 'Expenses', to: '/expenses', icon: Receipt, show: modules.expenses && !modules.pos },
+  ].filter(link => link.show).slice(0, 4);
+
+  // Routes already pinned in the bottom nav — exclude these from the drawer
+  const pinnedRoutes = new Set(primaryLinks.map(l => l.to));
+
+  // All sections for the drawer — fully dynamic, excluding already-pinned routes
+  const drawerSections = [
+    {
+      title: 'POS',
+      show: modules.pos,
+      items: [
+        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
+        { name: 'Transactions', to: '/pos/transactions', icon: History },
+      ].filter(item => !pinnedRoutes.has(item.to)),
+    },
+    {
+      title: 'Inventory',
+      show: modules.inventory,
+      items: [
+        { name: 'Products', to: '/inventory/products', icon: Package },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
+        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
+        { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
+        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge },
+      ].filter(item => !pinnedRoutes.has(item.to)),
+    },
+    {
+      title: 'Business',
+      show: modules.expenses || modules.staff,
+      items: [
+        { name: 'Expenses', to: '/expenses', icon: Receipt, show: modules.expenses },
+        { name: 'Staff', to: '/staff', icon: Users, show: modules.staff },
+      ].filter(i => i.show !== false && !pinnedRoutes.has(i.to)),
+    },
+    {
+      title: 'Reports',
+      show: modules.reports,
+      items: [
+        { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
+        { name: 'Products', to: '/reports/products', icon: Tag },
+        { name: 'Cashiers', to: '/reports/cashiers', icon: Users },
+        { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck },
+      ].filter(item => !pinnedRoutes.has(item.to)),
+    },
+    {
+      title: 'Settings',
+      show: modules.settings,
+      items: [
+        { name: 'Business Profile', to: '/settings/profile', icon: Settings },
+        { name: 'Plan & Billing', to: '/settings/plan', icon: Receipt },
+      ].filter(item => !pinnedRoutes.has(item.to)),
+    },
+  ].filter(section => section.show && section.items.length > 0);
 
   return (
     <>
@@ -51,8 +111,8 @@ export default function BottomNav() {
           style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}
         />
 
-        {visibleLinks.map((item) => {
-          const isActive = location.pathname.startsWith(item.to);
+        {primaryLinks.map((item) => {
+          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
           return (
             <button
               key={item.name}
@@ -71,7 +131,10 @@ export default function BottomNav() {
         {/* Menu Button to open Drawer */}
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className="flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-400 hover:text-white transition-colors"
+          className={clsx(
+            "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+            isDrawerOpen ? "text-primary" : "text-gray-400 hover:text-white"
+          )}
         >
           <Menu className="h-5 w-5" />
           <span className="text-[10px] font-medium">Menu</span>
@@ -81,31 +144,43 @@ export default function BottomNav() {
       {/* Mobile Menu Drawer */}
       <Drawer isOpen={isDrawerOpen} onOpenChange={setIsDrawerOpen} placement="bottom" className="bg-sidebar text-white">
         <DrawerContent>
-          {(onClose) => (
+          {() => (
             <>
-              <DrawerHeader className="flex justify-between items-center border-b border-white/10">
+              <DrawerHeader className="flex justify-between items-center border-b border-white/10 pb-3">
                 <span className="font-bold text-lg">Menu</span>
               </DrawerHeader>
-              <DrawerBody className="py-4 gap-4 overflow-y-auto scrollbar-hide max-h-[70vh]">
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Additional links can be populated here or simply duplicate the Sidebar sections */}
-                  <div className="flex flex-col space-y-2">
-                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Inventory</span>
-                    <button onClick={() => handleNavigation('/inventory/stock')} className="text-left text-sm text-gray-300 py-2">Stock Levels</button>
-                    <button onClick={() => handleNavigation('/inventory/suppliers')} className="text-left text-sm text-gray-300 py-2">Suppliers</button>
-                  </div>
-                  <div className="flex flex-col space-y-2">
-                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Business</span>
-                    <button onClick={() => handleNavigation('/expenses')} className="text-left text-sm text-gray-300 py-2">Expenses</button>
-                    <button onClick={() => handleNavigation('/staff')} className="text-left text-sm text-gray-300 py-2">Staff</button>
-                  </div>
-                  <div className="flex flex-col space-y-2 col-span-2 mt-2">
-                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Reports</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => handleNavigation('/reports/sales')} className="text-left text-sm text-gray-300 py-2">Sales</button>
-                      <button onClick={() => handleNavigation('/reports/end-of-day')} className="text-left text-sm text-gray-300 py-2">End of Day</button>
+              <DrawerBody className="py-4 overflow-y-auto scrollbar-hide max-h-[75vh]">
+                <div className="flex flex-col gap-6">
+                  {drawerSections.map((section) => (
+                    <div key={section.title}>
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">
+                        {section.title}
+                      </span>
+                      <div className="flex flex-col gap-1">
+                        {section.items.map((item) => {
+                          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+                          return (
+                            <button
+                              key={item.name}
+                              onClick={() => handleNavigation(item.to)}
+                              className={clsx(
+                                "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
+                                isActive
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-gray-300 hover:bg-white/5 hover:text-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.name}</span>
+                              </div>
+                              <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </DrawerBody>
             </>
