@@ -249,7 +249,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                   <div
                     key={rowId}
                     className={cn(
-                      "px-3 py-4 rounded-lg relative bg-white transition-all duration-200"
+                      "px-3 py-4 rounded-xl relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200"
                     )}
                     onClick={() => {
                       toggleExpanded(rowId);
@@ -277,7 +277,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                     {/* bottom Contente */}
 
                     {isExpanded && (
-                      <div className="bg-ash mt-4 p-2 rounded-lg">
+                      <div className="bg-muted mt-4 p-3 rounded-lg border border-border/50">
                         {bottomContentOnMoblile && bottomContentOnMoblile(row)}
                       </div>
                     )}

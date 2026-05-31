@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
+import BottomNav from '@/components/navigation/BottomNav';
 import { useLayoutStore } from '@/store/layoutStore';
 
 export default function DashboardLayout() {
@@ -14,13 +15,16 @@ export default function DashboardLayout() {
         <Sidebar />
 
         {/* Main Content Area Container */}
-        <div className={`flex flex-col flex-1 overflow-hidden ${isSidebarCollapsed ? 'p-2 pl-0' : 'p-0'}`}>
-          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 ${isSidebarCollapsed ? 'rounded-[1.5rem]' : 'rounded-none'}`}>
-            <main className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+        <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 p-0 md:py-2 md:pr-2 ${isSidebarCollapsed ? 'md:pl-0' : 'md:pl-0'}`}>
+          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 rounded-none md:${isSidebarCollapsed ? 'rounded-[1.5rem]' : 'rounded-none'}`}>
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide">
               <Outlet />
             </main>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <BottomNav />
 
       </div>
     </div>

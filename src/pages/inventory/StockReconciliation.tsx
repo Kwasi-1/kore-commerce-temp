@@ -138,7 +138,7 @@ export default function StockReconciliation() {
             onPress={handleReconcile}
             isLoading={isSaving}
             isDisabled={countedItems === 0}
-            variant={countedItems > 0 ? 'default' : 'bordered'}
+            variant={countedItems > 0 ? 'solid' : 'bordered'}
             color={countedItems > 0 ? 'primary' : 'default'}
             className={`font-bold px-6 h-12 ${
               countedItems > 0 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import {
   Button,
@@ -192,8 +192,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   },
 
   // Mobile
-  mobileFriendly = false,
-  mobileHeaders = [],
+  mobileFriendly = true,
+  mobileHeaders = columns,
   mobileHeadersClassname = "grid grid-cols-[1fr,auto] items-center",
   bottomContentOnMobile,
 
@@ -430,7 +430,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             {/* Filter Dropdown */}
             {showFilter && filterOptions.length > 0 && (
               <Dropdown>
-                <DropdownTrigger className="hidden sm:flex">
+                <DropdownTrigger className="flex">
                   <Button
                     endContent={
                       <Icon icon="stash:chevron-down" className="text-[20px]" />
@@ -462,7 +462,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             {/* Additional Filters */}
             {additionalFilters.map((filter, index) => (
               <Dropdown key={index}>
-                <DropdownTrigger className="hidden sm:flex">
+                <DropdownTrigger className="flex">
                   <Button
                     endContent={
                       <Icon icon="stash:chevron-down" className="text-[20px]" />

@@ -97,7 +97,7 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        "h-full bg-sidebar text-white flex flex-col transition-all duration-300 relative",
+        "h-full bg-sidebar text-white flex-col transition-all duration-300 relative hidden md:flex",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
