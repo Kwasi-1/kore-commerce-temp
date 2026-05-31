@@ -94,7 +94,7 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        "min-h-screen border-r bg-card text-white dark:bg-card dark:text-pos-sidebar-light dark:border-border flex flex-col transition-all duration-300 relative",
+        "min-h-screen border-r bg-pos-sidebar-light text-white dark:bg-card dark:text-pos-sidebar-light dark:border-border flex flex-col transition-all duration-300 relative",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
