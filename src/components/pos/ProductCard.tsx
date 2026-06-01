@@ -38,7 +38,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   return (
     <div 
-      className={`bg-card rounded-[20px] border p-3 flex flex-col transition-all group min-h-[320px] cursor-pointer ${isInCart ? 'borderprimary shadow-sm' : 'border-border hover:shadow-md'}`}
+      className={`bg-card rounded-xl md:rounded-[20px] border p-3 flex flex-col transition-all group min-h-[320px] cursor-pointer ${isInCart ? 'borderprimary shadow-sm' : 'border-border hover:shadow-md'}`}
       onClick={() => {
         if (!isInCart) onAddToCart(product);
       }}

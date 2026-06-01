@@ -32,30 +32,34 @@ export default function RegisterHeader() {
     <header className="flex items-center justify-between pb-6 shrink-0">
       <h1 className="text-[26px] font-bold text-foreground tracking-tight">Create Transaction</h1>
       
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
+      <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1  rounded-full">
+        <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
+          <Bell className="h-4 w-4 md:h-5 md:w-5" />
+          <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2  rounded-full bg-red-500"></span>
         </Button>
         
-        <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground transition-colors">
-          <Settings className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="hidden lg:flex rounded-full text-muted-foreground hover:text-foreground transition-colors">
+          <Settings className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
         
         {/* Cashier Switcher */}
-        <CashierSwitcher />
+        <div className='hidden md:flex'>
+          <CashierSwitcher />
+        </div>
         
         {/* New Access Button */}
-        {isAdminOrManager && <NewCashierModal />}
+        {isAdminOrManager && <div className='hidden md:flex'> <NewCashierModal /></div>}
+
+        
         
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all">
+            <button className="flex items-center gap-1 lg:pr-1 ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
               <div className="h-10 w-10 rounded-full border-2 border-background bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-sm">
                 {staffUser ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
               </div>
-              <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground" />
+              <Icon icon="mdi:chevron-down" className="hidden lg:flex h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">

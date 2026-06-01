@@ -53,7 +53,7 @@ export default function CartPanel() {
   const calculatedTotal = subtotal + taxAmount - discount;
 
   return (
-    <div className="flex flex-col h-full bg-secondary border rounded-[24px] overflow-hidden">
+    <div className="flex flex-col h-full bg-secondary overflow-hidden lg:border lg:rounded-[24px]">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <h2 className="text-[18px] font-bold text-foreground">
