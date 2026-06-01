@@ -5,6 +5,7 @@ import CustomModal from '@/components/modals/modal';
 import ProductForm from '@/components/inventory/ProductForm';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Package, AlertTriangle, XCircle, DollarSign } from 'lucide-react';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -73,57 +74,68 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
+  // Calculate metrics
+  const totalProducts = products.length;
+  const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
+  const lowStockCount = products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= (p.reorder_point || 5)).length;
+  const totalValue = products.reduce((sum, p) => sum + ((p.price || 0) * (p.stock_quantity || 0)), 0);
+
   // Table Configuration
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'sku', label: 'SKU' },
     { key: 'category', label: 'Category' },
     { key: 'price', label: 'Price (GHS)' },
-    { key: 'quantity', label: 'Stock' },
+    { key: 'stock_quantity', label: 'Stock' },
     { key: 'status', label: 'Status' }
   ];
 
   // Map rows for the table
-  const rows = products.map((p: any) => ({
-    id: p.id,
-    name: (
-      <div className="flex items-center gap-3">
-        {p.imageUrl ? (
-          <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-md object-cover bg-muted" />
-        ) : (
-          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-gray-400">
-            P
-          </div>
-        )}
-        <span className="font-medium text-foreground">{p.name}</span>
-      </div>
-    ),
-    sku: <span className="text-muted-foreground text-sm font-mono">{p.sku}</span>,
-    category: <span className="capitalize">{p.category || '—'}</span>,
-    price: <span className="font-medium">{(p.price || 0).toFixed(2)}</span>,
-    quantity: (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        p.quantity > 10 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-        : p.quantity > 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      }`}>
-        {p.quantity}
-      </span>
-    ),
-    status: (
-      <span className={`capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-        p.status === 'active' ? 'text-green-600 bg-green-50' : 'text-muted-foreground bg-gray-50'
-      }`}>
-        {p.status}
-      </span>
-    ),
-    rowActions: [
-      { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
-      // { key: 'delete', label: 'Delete', icon: 'mdi:trash', className: 'text-danger' }
-    ],
-    // keep original record attached for handlers
-    __record: p 
-  }));
+  const rows = products.map((p: any) => {
+    const stock = p.stock_quantity || 0;
+    const isOutOfStock = stock === 0;
+    const isLowStock = stock > 0 && stock <= (p.reorder_point || 5);
+
+    return {
+      id: p.id,
+      name: (
+        <div className="flex items-center gap-3 py-1">
+          {p.imageUrl ? (
+            <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-xl object-cover bg-muted border" />
+          ) : (
+            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground border">
+              <Package className="h-5 w-5" />
+            </div>
+          )}
+          <span className="font-bold text-foreground text-sm">{p.name}</span>
+        </div>
+      ),
+      sku: <span className="text-muted-foreground text-sm font-mono">{p.sku}</span>,
+      category: <span className="capitalize font-medium text-sm">{p.category || '—'}</span>,
+      price: <span className="font-bold text-sm">{(p.price || 0).toFixed(2)}</span>,
+      stock_quantity: (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          isOutOfStock ? 'bg-destructive/10 text-destructive border border-destructive/20' 
+          : isLowStock ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20'
+          : 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+        }`}>
+          {stock} in stock
+        </span>
+      ),
+      status: (
+        <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          p.status === 'active' ? 'text-primary bg-primary/10 border border-primary/20' : 'text-muted-foreground bg-muted border border-border'
+        }`}>
+          {p.status || 'Active'}
+        </span>
+      ),
+      rowActions: [
+        { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
+      ],
+      // keep original record attached for handlers
+      __record: p 
+    };
+  });
 
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'edit') {
@@ -133,6 +145,56 @@ export default function Products() {
 
   return (
     <PageLayout title="Inventory Products">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Products */}
+        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-muted-foreground mb-1">Total Products</p>
+            <h3 className="text-2xl font-bold tracking-tight">{totalProducts}</h3>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Package className="h-6 w-6" />
+          </div>
+        </div>
+
+        {/* Low Stock */}
+        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-muted-foreground mb-1">Low Stock</p>
+            <h3 className="text-2xl font-bold tracking-tight">{lowStockCount}</h3>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
+            <AlertTriangle className="h-6 w-6" />
+          </div>
+        </div>
+
+        {/* Out of Stock */}
+        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-muted-foreground mb-1">Out of Stock</p>
+            <h3 className="text-2xl font-bold tracking-tight text-destructive">{outOfStockCount}</h3>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+            <XCircle className="h-6 w-6" />
+          </div>
+        </div>
+
+        {/* Total Value */}
+        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-muted-foreground mb-1">Inventory Value</p>
+            <h3 className="text-2xl font-bold tracking-tight">
+              <span className="text-sm font-normal text-muted-foreground mr-1">GHS</span>
+              {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </h3>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 dark:text-green-400">
+            <DollarSign className="h-6 w-6" />
+          </div>
+        </div>
+      </div>
+
       <EnhancedTableComponent
         columns={columns}
         rows={rows}
@@ -171,6 +233,7 @@ export default function Products() {
         // Actions
         showAddButton={true}
         addButtonText="New Product"
+        addButtonIcon="lucide:plus"
         onAddButtonClick={openNewProduct}
         onRowActionClick={handleRowActionClick}
         
