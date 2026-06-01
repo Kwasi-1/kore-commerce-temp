@@ -117,13 +117,27 @@ export default function BottomNav() {
             <button
               key={item.name}
               onClick={() => handleNavigation(item.to)}
-              className={clsx(
-                "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
+              className="flex flex-col items-center justify-center w-full h-full relative transition-colors"
             >
-              <item.icon className={clsx("h-5 w-5", isActive && "text-primary")} />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              {/* Active top indicator bar */}
+              <span
+                className={clsx(
+                  "absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-full transition-all duration-300",
+                  isActive ? "w-8 bg-primary" : "w-0 bg-transparent"
+                )}
+              />
+              {/* Icon + label wrapper with optional bg */}
+              <span
+                className={clsx(
+                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200",
+                  isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground/80 hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="text-[10px] font-semibold">{item.name}</span>
+              </span>
             </button>
           );
         })}
@@ -131,13 +145,19 @@ export default function BottomNav() {
         {/* Menu Button to open Drawer */}
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className={clsx(
-            "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-            isDrawerOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-          )}
+          className="flex flex-col items-center justify-center w-full h-full relative transition-colors"
         >
-          <Menu className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Menu</span>
+          <span
+            className={clsx(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200",
+              isDrawerOpen
+                ? "text-"
+                : "text-muted-foreground/80 hover:text-foreground hover:bg-muted"
+            )}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="text-[10px] font-semibold">Menu</span>
+          </span>
         </button>
       </nav>
 
@@ -153,7 +173,7 @@ export default function BottomNav() {
                 <div className="flex flex-col gap-6">
                   {drawerSections.map((section) => (
                     <div key={section.title}>
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-2 block">
+                      <span className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest mb-2 block">
                         {section.title}
                       </span>
                       <div className="flex flex-col gap-1">

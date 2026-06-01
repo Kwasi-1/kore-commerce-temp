@@ -89,9 +89,9 @@ export default function Products() {
     name: (
       <div className="flex items-center gap-3">
         {p.imageUrl ? (
-          <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-md object-cover bg-gray-100" />
+          <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-md object-cover bg-muted" />
         ) : (
-          <div className="h-10 w-10 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-gray-400">
             P
           </div>
         )}
