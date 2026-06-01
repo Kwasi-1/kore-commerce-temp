@@ -63,12 +63,12 @@ export default function RegisterHeader() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">
-            <DropdownMenuLabel className="flex flex-col py-2 px-3">
+            <DropdownMenuLabel className="flex flex-col py-2 px-3 border-b border-border/80 rounded-lg">
               <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
+            {/* <DropdownMenuSeparator /> */}
+            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium mt-1" onClick={toggleTheme}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}
             </DropdownMenuItem>

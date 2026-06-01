@@ -262,11 +262,11 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
             <>
               <div className="flex flex-col gap-2.5 bg-card border rounded-[1.55rem] px-2 py-2">
                 {/* Promo Logic */}
-                {activePromo ? (
+                {activePromo && (
                   <div className="flex items-center justify-between p-2 rounded-full bg-secondary">
-                    <div className="flex items-center gap-3 pl-1">
-                      <div className="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-                        <Ticket className="h-4 w-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-card text-muted-foreground flex items-center justify-center">
+                      <Ticket className="h-4 w-4" />
                       </div>
                       <p className="text-[14px] font-bold text-foreground">
                         {activePromo.type === 'percentage' ? `Promo (${activePromo.value}%)` : `Discount ($${activePromo.value})`}
@@ -286,13 +286,13 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                           <h4 className="font-bold text-sm">Edit Discount</h4>
                           <div className="flex bg-secondary p-0.5 rounded-full">
                             <button 
-                              className={`flex-1 text-xs font-bold py-2 rounded-full transition-all ${promoMode === 'percentage' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === 'percentage' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                               onClick={() => { setPromoMode('percentage'); setPromoInput(defaultDiscountPercent.toString()); }}
                             >
                               Percentage (%)
                             </button>
                             <button 
-                              className={`flex-1 text-xs font-bold py-2 rounded-full transition-all ${promoMode === 'fixed' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === 'fixed' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                               onClick={() => { setPromoMode('fixed'); setPromoInput('0'); }}
                             >
                               Fixed Amount ($)
@@ -311,25 +311,15 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                             />
                           </div>
                           
-                          <div className="flex flex-col gap-2 pt-2 border-t">
-                            <Button onClick={handleApplyPromo} className="w-full font-bold">Apply Changes</Button>
-                            <Button variant="ghost" onClick={handleRemovePromo} className="w-full font-bold text-destructive hover:bg-destructive/10 hover:text-destructive">Remove Discount</Button>
+                          <div className="flex flex-col gap-2">
+                            <Button radius="full" size="sm" onClick={handleApplyPromo} className="w-full font-bold text-[12px]">Apply Changes</Button>
+                            <Button variant="outline" radius="full" size="sm" onClick={handleRemovePromo} className="w-full font-bold text-destructive bg-inherit text-destructive text-[12px]">Remove Discount</Button>
                           </div>
                         </div>
                       </PopoverContent>
                     </Popover>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-end px-2 pt-1">
-                    <Button 
-                      variant="link" 
-                      onClick={handleAddDiscountClick}
-                      className="text-primary font-bold h-auto py-1 px-2"
-                    >
-                      + Add Discount
-                    </Button>
-                  </div>
-                )}
+                ) }
 
                 {/* Totals */}
                 <div className="space-y-2.5 p-3 border rounded-[1.25rem]">
@@ -353,7 +343,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                     <span className="text-muted-foreground font-medium">
                       Discount
                     </span>
-                    <span className="text-foreground font-semibold text-primary">
+                    <span className="text-muted-foreground font-semibold dark:text-primary">
                       -${discount.toFixed(2)}
                     </span>
                   </div>
@@ -364,8 +354,19 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                 </div>
               </div>
 
+              {!activePromo && (
+              <div className="flex items-center justify-end px-2 -my-2">
+                <Button 
+                  variant="link" 
+                  onClick={handleAddDiscountClick}
+                  className="dark:text-primary text-xs h-fit px-2"
+                >
+                  + Add Discount
+                </Button>
+              </div>)}
+
               {/* Payment Method */}
-              <div className="flex items-center justify-between bg-card py-2.5 px-4 rounded-full border shadow-sm">
+              <div className="flex items-center justify-between bg-card py-2.5 px-4 rounded-full border">
                 <div className="flex items-center gap-2.5">
                   <div className="flex -space-x-2">
                     <div className="h-6 w-6 rounded-full bg-red-500 border border-card"></div>
@@ -389,7 +390,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
               <Button
                 onClick={() => setIsPaymentModalOpen(true)}
                 disabled={items.length === 0}
-                className="w-full py-4 font-bold text-[16px] rounded-full h-auto shadow-lg"
+                className="w-full py-4 font-bold text-[16px] rounded-full h-auto"
               >
                 {isMobileView ? "Complete Transaction" : "Continue"}
               </Button>
