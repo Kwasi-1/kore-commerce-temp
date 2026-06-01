@@ -13,6 +13,7 @@ import {
 import PaymentModal from "./PaymentModal";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import toast from "react-hot-toast";
 
 interface CartPanelProps {
   isMobileView?: boolean;
@@ -87,13 +88,25 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
 
   const handleApplyPromo = () => {
     const val = parseFloat(promoInput);
-    if (!isNaN(val) && val >= 0) {
-      setActivePromo({ type: promoMode, value: val });
-      if (promoMode === 'percentage') {
-        setDefaultDiscountPercent(val); // Save new percentage default
-      }
-      setIsPromoPopoverOpen(false);
+    if (isNaN(val) || val < 0) {
+      toast.error("Please enter a valid discount amount.");
+      return;
     }
+    if (promoMode === 'percentage' && val > 100) {
+      toast.error("Percentage discount cannot exceed 100%.");
+      return;
+    }
+    if (promoMode === 'fixed' && val > subtotal) {
+      toast.error("Fixed discount cannot exceed the subtotal.");
+      return;
+    }
+
+    setActivePromo({ type: promoMode, value: val });
+    if (promoMode === 'percentage') {
+      setDefaultDiscountPercent(val); // Save new percentage default
+    }
+    setIsPromoPopoverOpen(false);
+    toast.success("Discount applied successfully!");
   };
 
   const handleRemovePromo = () => {
@@ -142,7 +155,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
       {showItemsList && (
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-5 space-y-3 scrollbar-hide pb-4"
+          className={`flex-1 overflow-y-auto px-5 space-y-3 scrollbar-hide ${isMobileView ?"pb-12 [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]" : "pb-4" } `}
         >
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-10">

@@ -144,6 +144,7 @@
     @apply bg-background text-foreground antialiased;
     font-family: NeueHaasDisplay, sans-serif;
     min-height: 100vh;
+    scroll-behavior: smooth;
   }
 }
 

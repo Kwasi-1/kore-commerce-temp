@@ -22,6 +22,7 @@ export default function Register() {
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isOpeningShift, setIsOpeningShift] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  const [snapPoint, setSnapPoint] = useState<number | string | null>(0.85);
 
   useEffect(() => {
     // If the user is logged in, finished loading shift data, and there's no open shift
@@ -110,11 +111,12 @@ export default function Register() {
         open={isMobileCartOpen} 
         onOpenChange={setIsMobileCartOpen}
         snapPoints={[0.85, 1]}
-        activeSnapPoint={0.85}
+        activeSnapPoint={snapPoint}
+        setActiveSnapPoint={setSnapPoint}
         fadeFromIndex={0}
       >
         <DrawerContent className="bg-background h-full max-h-[100vh] outline-none">
-          <div className="flex-1 h-full flex flex-col relative pb-6 overflow-hidden">
+          <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
             <CartPanel isMobileView={true} />
 
             {/* Cart Block Overlay (Mobile) */}
