@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useCartStore } from '@/store/cartStore';
 import { Minus, Plus, Box } from 'lucide-react';
 import React, { useRef, useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 export interface Product {
   id: string;
@@ -12,6 +13,7 @@ export interface Product {
   imageUrl?: string;
   category: string;
   description?: string;
+  stock_quantity?: number;
 }
 
 interface ProductCardProps {
@@ -34,14 +36,19 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   }, [cartQuantity]);
 
   const handleIncrement = () => {
+    const stock = product.stock_quantity ?? Infinity;
+    if (cartQuantity >= stock) {
+      toast.error(`Only ${stock} in stock!`);
+      return;
+    }
     updateQuantity(product.id, cartQuantity + 1);
   };
 
   const handleDecrement = () => {
-    if (cartQuantity <= 1) {
-      removeItem(product.id);
-    } else {
+    if (cartQuantity > 1) {
       updateQuantity(product.id, cartQuantity - 1);
+    } else {
+      removeItem(product.id);
     }
   };
 
@@ -50,22 +57,31 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   };
 
   const handleQtyBlur = () => {
-    setIsEditingQty(false);
-    const val = parseInt(inputValue, 10);
-    if (isNaN(val) || val <= 0) {
-      removeItem(product.id);
-    } else {
-      updateQuantity(product.id, val);
+    let newQty = parseInt(inputValue, 10);
+    const stock = product.stock_quantity ?? Infinity;
+    
+    if (isNaN(newQty) || newQty < 1) {
+      newQty = 1;
+    } else if (newQty > stock) {
+      newQty = stock;
+      toast.error(`Only ${stock} in stock!`);
     }
+    
+    setInputValue(newQty.toString());
+    updateQuantity(product.id, newQty);
+    setIsEditingQty(false);
   };
 
   const handleQtyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      inputRef.current?.blur();
+      handleQtyBlur();
     }
   };
 
+  const isOutOfStock = product.stock_quantity === 0;
+
   const handleCardClick = () => {
+    if (isOutOfStock) return;
     if (!isInCart) {
       onAddToCart(product);
     } else if (!isEditingQty) {
@@ -78,14 +94,23 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   return (
     <div 
-      className={`bg-card rounded-xl md:rounded-[18px] border p-2.5 flex flex-col transition-all group cursor-pointer select-none ${isInCart ? 'ring-1 ring-foreground/10 dark:ring-foreground/15 shadow-sm' : 'border-border hover:shadow-md'}`}
+      className={`relative bg-card rounded-xl md:rounded-[18px] border p-2.5 flex flex-col transition-all group select-none ${isInCart ? 'ring-1 ring-foreground/10 dark:ring-foreground/15 shadow-sm' : 'border-border hover:shadow-md'} ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
       onClick={handleCardClick}
     >
+      {/* Out of Stock Overlay */}
+      {isOutOfStock && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/20 rounded-xl md:rounded-[18px]">
+          <div className="bg-destructive/90 text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold shadow-lg transform -rotate-12">
+            Out of Stock
+          </div>
+        </div>
+      )}
+
       {/* Image Container */}
       <div className="relative w-full pt-[85%] lg:pt-[75%] bg-muted/50 rounded-lg md:rounded-xl overflow-hidden mb-2.5 shrink-0">
         {/* Stock Badge */}
         <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-          {product.quantity} Stock
+          {product.quantity || product.stock_quantity} Stock
         </div>
         
         {/* Image or Fallback */}

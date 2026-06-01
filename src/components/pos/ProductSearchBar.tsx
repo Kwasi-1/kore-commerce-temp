@@ -6,6 +6,7 @@ import { useShift } from '@/hooks/useShift';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import ProductCard, { Product } from './ProductCard';
+import { Spinner } from '@/components/ui/spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,15 +105,27 @@ export default function ProductSearchBar() {
       return;
     }
     
-    if (product.quantity <= 0) {
+    if (product.stock_quantity !== undefined && product.stock_quantity <= 0) {
       toast.error(`${product.name} is out of stock!`);
+      return;
     }
+
+    const currentQuantityInCart = useCartStore.getState().items.find(i => i.productId === product.id)?.quantity || 0;
+    const stock = product.stock_quantity ?? Infinity;
+    
+    if (currentQuantityInCart >= stock) {
+      toast.error(`Only ${stock} in stock!`);
+      return;
+    }
+
     addItem({
       productId: product.id,
       name: product.name,
       sku: product.sku,
       price: product.price,
-      imageUrl: product.imageUrl
+      imageUrl: product.imageUrl,
+      category: product.category,
+      stock_quantity: product.stock_quantity
     });
   };
 
@@ -313,17 +326,30 @@ export default function ProductSearchBar() {
         }}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#b6ff56]"></div>
+          <div className="flex items-center justify-center h-full pt-10">
+            <Spinner />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <p>No products found.</p>
-            {activeCategories.length > 0 && (
-              <Button variant="link" onClick={() => setActiveCategories([])} className="mt-2 text-primary">
-                Clear Filters
-              </Button>
-            )}
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground pt-10">
+            <div className="bg-secondary p-6 rounded-full mb-4">
+               <Search className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <p className="font-bold text-foreground text-lg mb-1">No products found</p>
+            <p className="text-sm text-center max-w-[250px] mb-6">
+              We couldn't find anything matching your criteria. Try adjusting your search or filters.
+            </p>
+            <div className="flex gap-3">
+              {searchTerm && (
+                <Button variant="outline" className="rounded-full font-bold" onClick={() => setSearchTerm('')}>
+                  Clear Search
+                </Button>
+              )}
+              {activeCategories.length > 0 && (
+                <Button variant="secondary" className="rounded-full font-bold" onClick={() => setActiveCategories([])}>
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 pb-28">

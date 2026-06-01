@@ -234,9 +234,14 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                       </span>
                       <Button
                         size="icon"
-                        onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1)
-                        }
+                        onClick={() => {
+                          const stock = item.stock_quantity ?? Infinity;
+                          if (item.quantity >= stock) {
+                            toast.error(`Only ${stock} in stock!`);
+                            return;
+                          }
+                          updateQuantity(item.productId, item.quantity + 1);
+                        }}
                         className="h-7 w-7 rounded-full bg-primary hover:brightness-95 text-primary-foreground shadow-sm"
                       >
                         <Plus className="h-3 w-3" />
