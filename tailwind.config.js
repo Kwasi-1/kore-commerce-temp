@@ -73,9 +73,9 @@ export default {
         bold: "700",
         black: "900",
       },
-      letterSpacing: {
-        tight: "-0.05rem",
-      },
+      // letterSpacing: {
+      //   tight: "-0.01rem",
+      // },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

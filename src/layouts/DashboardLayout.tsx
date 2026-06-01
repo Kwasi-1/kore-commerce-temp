@@ -16,7 +16,7 @@ export default function DashboardLayout() {
 
         {/* Main Content Area Container */}
         <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 p-0 md:py-2 md:pr-2 ${isSidebarCollapsed ? 'md:pl-0' : 'md:pl-0'}`}>
-          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 rounded-none md:${isSidebarCollapsed ? 'rounded-[1.5rem]' : 'rounded-none'}`}>
+          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 ${isSidebarCollapsed ? 'rounded-none md:rounded-[1.5rem]' : 'rounded-none md:rounded-[1.25rem]'}`}>
             <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-hide">
               <Outlet />
             </main>

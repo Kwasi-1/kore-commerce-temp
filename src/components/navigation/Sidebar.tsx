@@ -98,7 +98,7 @@ export default function Sidebar() {
     <aside
       className={clsx(
         "h-full bg-sidebar text-white flex-col transition-all duration-300 relative hidden md:flex",
-        isCollapsed ? "w-20" : "w-64"
+        isCollapsed ? "w-20" : "w-60"
       )}
     >
       {/* Slim top loading bar during transitions */}

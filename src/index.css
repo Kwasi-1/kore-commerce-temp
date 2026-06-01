@@ -51,6 +51,39 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "NeueHaasDisplay";
+  src:
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff2") format("woff2"),
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NeueHaasDisplay";
+  src:
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff2") format("woff2"),
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NeueHaasDisplay";
+  src:
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff2") format("woff2"),
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NeueHaasDisplay";
+  src:
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff2") format("woff2"),
+    url("./assets/fonts/NeueHaasDisplay-Roman.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -104,16 +137,23 @@
   }
 
   * {
-    @apply border-border;
+    @apply border-border tracking-wide;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: AdventPro, sans-serif;
+    font-family: NeueHaasDisplay, sans-serif;
     min-height: 100vh;
   }
 }
 
+/* * {
+    letter-spacing: 0.9px;
+  }
+
+  body {
+    letter-spacing: 0.9px;
+  } */
 /* Navigation transition loading bar animation */
 @keyframes shimmer {
   0%   { transform: scaleX(0.1); transform-origin: left; opacity: 1; }
@@ -128,4 +168,14 @@
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Hide number input arrows */
+.no-spin-buttons::-webkit-inner-spin-button,
+.no-spin-buttons::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin-buttons {
+  -moz-appearance: textfield;
 }
