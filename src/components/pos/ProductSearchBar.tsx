@@ -98,7 +98,8 @@ export default function ProductSearchBar() {
   };
 
   const handleAddToCart = (product: Product) => {
-    if (!currentShift) {
+    // TEMPORARILY DISABLED SHIFT CHECK FOR TESTING
+    if (false && !currentShift) {
       toast.error('You must start a shift first before adding items to the cart!');
       return;
     }

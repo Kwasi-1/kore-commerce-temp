@@ -59,7 +59,7 @@ export default function Register() {
           <CartPanel />
           
           {/* Cart Block Overlay */}
-          {!isLoading && !currentShift && (
+          {false && !isLoading && !currentShift && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
               <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -124,7 +124,7 @@ export default function Register() {
                   <CartPanel />
 
                   {/* Cart Block Overlay (Mobile) */}
-                  {!isLoading && !currentShift && (
+                  {false && !isLoading && !currentShift && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center border-t border-border/50">
                       <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                         <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
