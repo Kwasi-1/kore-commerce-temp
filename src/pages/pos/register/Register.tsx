@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/button';
 import { PlayCircle, ShoppingCart } from 'lucide-react';
-import { Drawer, DrawerContent, DrawerBody } from '@nextui-org/react';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
 export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
@@ -107,49 +107,40 @@ export default function Register() {
 
       {/* Mobile Cart Drawer */}
       <Drawer 
-        isOpen={isMobileCartOpen} 
-        onOpenChange={setIsMobileCartOpen} 
-        placement="bottom" 
-        classNames={{ base: "bg-background h-[85vh] rounded-t-[32px]" }}
+        open={isMobileCartOpen} 
+        onOpenChange={setIsMobileCartOpen}
+        snapPoints={[0.85, 1]}
+        activeSnapPoint={0.85}
+        fadeFromIndex={0}
       >
-        <DrawerContent>
-          {() => (
-            <>
-              {/* Add a subtle drag handle indicator */}
-              <div className="w-full flex justify-center pt-3 pb-1 shrink-0 bg-background rounded-t-[32px]">
-                <div className="w-12 h-1.5 rounded-full bg-border"></div>
-              </div>
-              <DrawerBody className="p-0 overflow-hidden bg-background">
-                <div className="flex-1 h-full flex flex-col relative pb-6">
-                  <CartPanel />
+        <DrawerContent className="bg-background h-full max-h-[100vh] outline-none">
+          <div className="flex-1 h-full flex flex-col relative pb-6 overflow-hidden">
+            <CartPanel isMobileView={true} />
 
-                  {/* Cart Block Overlay (Mobile) */}
-                  {false && !isLoading && !currentShift && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center border-t border-border/50">
-                      <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
-                        <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <PlayCircle className="h-8 w-8 text-primary" />
-                        </div>
-                        <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          You must open a new shift before processing any transactions.
-                        </p>
-                        <Button 
-                          onClick={() => {
-                            setIsMobileCartOpen(false);
-                            setIsShiftModalOpen(true);
-                          }}
-                          className="w-full rounded-xl font-bold"
-                        >
-                          Start Shift
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+            {/* Cart Block Overlay (Mobile) */}
+            {false && !isLoading && !currentShift && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center border-t border-border/50">
+                <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
+                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <PlayCircle className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    You must open a new shift before processing any transactions.
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      setIsMobileCartOpen(false);
+                      setIsShiftModalOpen(true);
+                    }}
+                    className="w-full rounded-xl font-bold"
+                  >
+                    Start Shift
+                  </Button>
                 </div>
-              </DrawerBody>
-            </>
-          )}
+              </div>
+            )}
+          </div>
         </DrawerContent>
       </Drawer>
 

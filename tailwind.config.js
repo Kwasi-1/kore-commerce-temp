@@ -58,6 +58,7 @@ export default {
       borderRadius: {},
       fontFamily: {
         sans: ["'DM Sans'", "system-ui", "sans-serif"],
+        header: ["AtypDisplay", "sans-serif"],
       },
       fontSize: {
         xs: "11px",
