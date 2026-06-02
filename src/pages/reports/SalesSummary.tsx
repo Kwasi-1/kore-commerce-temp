@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-picker';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CustomSelectField } from '@/components/shared/text-field';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -121,7 +122,7 @@ export default function SalesSummary() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <DashboardCard
           title="Total Revenue"
-          value={isLoading ? '...' : `GHS ${displayRevenue.toFixed(2)}`}
+          value={isLoading ? '...' : <CurrencyDisplay amount={displayRevenue} />}
           className="border border-border"
         />
         <DashboardCard
@@ -131,7 +132,7 @@ export default function SalesSummary() {
         />
         <DashboardCard
           title="Avg Order Value"
-          value={isLoading ? '...' : `GHS ${avgOrderValue.toFixed(2)}`}
+          value={isLoading ? '...' : <CurrencyDisplay amount={avgOrderValue} />}
           className="border border-border"
         />
         <DashboardCard

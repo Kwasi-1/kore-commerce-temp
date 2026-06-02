@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useCurrency } from '@/hooks';
 import NumPad from './NumPad';
 
 interface CashCalculatorProps {
@@ -7,6 +8,7 @@ interface CashCalculatorProps {
 }
 
 export default function CashCalculator({ totalDue, onAmountTenderedChange }: CashCalculatorProps) {
+  const { formatAmount } = useCurrency();
   const [tenderedStr, setTenderedStr] = useState('');
   
   const tendered = parseFloat(tenderedStr) || 0;
@@ -57,7 +59,7 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
               onClick={handleExactAmount}
               className="py-2 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-sm font-medium text-gray-700 transition-colors"
             >
-              Exact ({totalDue.toFixed(2)})
+              Exact ({formatAmount(totalDue)})
             </button>
             <button
               onClick={() => handleAddBill(50)}
@@ -84,7 +86,7 @@ export default function CashCalculator({ totalDue, onAmountTenderedChange }: Cas
         <div className="flex flex-col justify-center items-center bg-muted rounded-xl border border-border p-4">
           <span className="text-sm font-medium text-muted-foreground mb-1">Change Due</span>
           <span className={`text-4xl font-bold tracking-tight ${isValid ? 'text-green-500' : 'text-gray-400'}`}>
-            {change.toFixed(2)}
+            {formatAmount(change)}
           </span>
           {!isValid && tendered > 0 && (
             <span className="text-xs text-red-500 mt-2 font-medium">Insufficient amount</span>

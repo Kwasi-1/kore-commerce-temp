@@ -88,7 +88,7 @@ export function setupMockApi() {
     { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics' },
     { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel' },
     { id: 'p6', name: 'Nike Socks (Out of Stock)', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 0, reorder_point: 10, category: 'Apparel' },
-  ];
+  ] as any[];
 
   mock.onGet(/\/tenant\/products/).reply(200, {
     success: true,

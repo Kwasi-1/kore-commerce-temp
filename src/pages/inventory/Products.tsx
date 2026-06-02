@@ -6,6 +6,7 @@ import ProductForm from '@/components/inventory/ProductForm';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Package, AlertTriangle, XCircle, DollarSign, Plus, Upload, ChevronDown } from 'lucide-react';
+import { CurrencyDisplay } from '@/hooks';
 import { BulkProductUploadModal } from './components/BulkProductUploadModal';
 import { ProductDetailPanel } from './components/ProductDetailPanel';
 import {
@@ -162,7 +163,7 @@ export default function Products() {
       ),
       sku: <span className="text-muted-foreground text-sm font-mono">{p.sku}</span>,
       category: <span className="capitalize font-medium text-sm">{p.category || '—'}</span>,
-      price: <span className="font-bold text-sm">{(p.price || 0).toFixed(2)}</span>,
+      price: <span className="font-bold text-sm"><CurrencyDisplay amount={p.price || 0} /></span>,
       stock_quantity: (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
           isOutOfStock ? 'bg-destructive/10 text-destructive border border-destructive/20' 
@@ -310,7 +311,6 @@ export default function Products() {
         onRowActionClick={handleRowActionClick}
         topActions={[
           {
-            key: "add-options",
             customComponent: (
               <DropdownMenu>
                 <div className="flex rounded-md overflow-hidden border shadow-sm h-[38px] bg-muted">
@@ -401,7 +401,9 @@ export default function Products() {
         footer={
           <div className="flex gap-2 w-full justify-end px-2 pb-2">
             <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteProduct} isLoading={isDeleting}>Delete Product</Button>
+            <Button variant="destructive" onClick={handleDeleteProduct} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete Product'}
+            </Button>
           </div>
         }
       />

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useCartStore } from '@/store/cartStore';
+import { CurrencyDisplay } from '@/hooks';
 import { Minus, Plus, Box } from 'lucide-react';
 import React, { useRef, useState, useEffect } from "react";
 import toast from "react-hot-toast";
@@ -151,7 +152,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         </p>
         
         <div className="font-bold text-[15px] text-foreground tracking-tight">
-          ${product.price?.toFixed(2) || '0.00'}
+          <CurrencyDisplay amount={product.price || 0} />
         </div>
       </div>
 

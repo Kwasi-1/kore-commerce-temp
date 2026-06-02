@@ -1,5 +1,6 @@
 import React from 'react';
 import { Printer, X } from 'lucide-react';
+import { useCurrency } from '@/hooks';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface ReceiptModalProps {
 }
 
 export default function ReceiptModal({ isOpen, onClose, receiptData }: ReceiptModalProps) {
+  const { formatAmount } = useCurrency();
+
   if (!isOpen || !receiptData) return null;
 
   const handlePrint = () => {
@@ -67,7 +70,7 @@ export default function ReceiptModal({ isOpen, onClose, receiptData }: ReceiptMo
                   <tr key={i}>
                     <td className="py-1 line-clamp-1 break-all">{item.productName || item.name}</td>
                     <td className="py-1 text-center">{item.quantity}</td>
-                    <td className="py-1 text-right">{(item.subtotal || (item.price * item.quantity)).toFixed(2)}</td>
+                    <td className="py-1 text-right">{formatAmount(item.subtotal || (item.price * item.quantity))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -77,17 +80,17 @@ export default function ReceiptModal({ isOpen, onClose, receiptData }: ReceiptMo
           <div className="space-y-1 text-xs">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>{receiptData.subtotal?.toFixed(2)}</span>
+              <span>{formatAmount(receiptData.subtotal)}</span>
             </div>
             {receiptData.discount > 0 && (
               <div className="flex justify-between">
                 <span>Discount:</span>
-                <span>-{receiptData.discount?.toFixed(2)}</span>
+                <span>-{formatAmount(receiptData.discount)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-sm mt-2">
               <span>TOTAL:</span>
-              <span>GHS {receiptData.totalAmount?.toFixed(2)}</span>
+              <span>GHS {formatAmount(receiptData.totalAmount)}</span>
             </div>
           </div>
 
@@ -95,11 +98,11 @@ export default function ReceiptModal({ isOpen, onClose, receiptData }: ReceiptMo
             <div className="mt-4 pt-2 border-t border-border space-y-1 text-xs">
               <div className="flex justify-between">
                 <span>Tendered:</span>
-                <span>{receiptData.amountTendered?.toFixed(2)}</span>
+                <span>{formatAmount(receiptData.amountTendered)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Change:</span>
-                <span>{receiptData.changeGiven?.toFixed(2)}</span>
+                <span>{formatAmount(receiptData.changeGiven)}</span>
               </div>
             </div>
           )}

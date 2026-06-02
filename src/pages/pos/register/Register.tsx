@@ -3,12 +3,13 @@ import ProductSearchBar from '@/components/pos/ProductSearchBar';
 import CartPanel from '@/components/pos/CartPanel';
 import RegisterHeader from '@/components/pos/RegisterHeader';
 import ShiftModal from '@/components/pos/ShiftModal';
-import { useShift } from '@/hooks/useShift';
+import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/button';
 import { PlayCircle, ShoppingCart } from 'lucide-react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { useShift } from '@/hooks/useShift';
 
 export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
@@ -101,7 +102,7 @@ export default function Register() {
             <span className="font-semibold text-sm">View Cart</span>
           </div>
           <span className="font-bold text-lg tracking-tight">
-            GHS {calculatedTotal.toFixed(2)}
+            <CurrencyDisplay amount={calculatedTotal} />
           </span>
         </Button>
       </div>

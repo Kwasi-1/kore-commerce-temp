@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
@@ -67,8 +68,8 @@ export default function CashierReport() {
         </div>
       ),
       transaction_count: <span className="font-medium">{c.transaction_count}</span>,
-      total_sales: <span className="font-semibold text-green-600">GHS {parseFloat(c.total_sales || 0).toFixed(2)}</span>,
-      avg_transaction: <span className="text-muted-foreground">GHS {parseFloat(c.avg_transaction || 0).toFixed(2)}</span>,
+      total_sales: <span className="font-semibold text-green-600"><CurrencyDisplay amount={parseFloat(c.total_sales || 0)} /></span>,
+      avg_transaction: <span className="text-muted-foreground"><CurrencyDisplay amount={parseFloat(c.avg_transaction || 0)} /></span>,
     };
   });
 
@@ -93,7 +94,7 @@ export default function CashierReport() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DashboardCard
             title="Total Handled Revenue"
-            value={isLoading ? '...' : `GHS ${totalRevenueAll.toFixed(2)}`}
+            value={isLoading ? '...' : <CurrencyDisplay amount={totalRevenueAll} />}
             className="border border-border bg-primary/5"
           />
           <DashboardCard
@@ -103,7 +104,7 @@ export default function CashierReport() {
           />
           <DashboardCard
             title="Overall Avg. Ticket Size"
-            value={isLoading ? '...' : `GHS ${overallAvgValue.toFixed(2)}`}
+            value={isLoading ? '...' : <CurrencyDisplay amount={overallAvgValue} />}
             className="border border-border"
           />
         </div>

@@ -3,6 +3,7 @@ import { useCartStore } from '@/store/cartStore';
 import apiClient from '@/api/client';
 import CashCalculator from './CashCalculator';
 import ReceiptModal from './ReceiptModal';
+import { CurrencyDisplay } from '@/hooks';
 import { X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -127,7 +128,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <div className="mb-6 flex justify-between items-end border-b border-border pb-4">
             <span className="text-muted-foreground font-medium">Total Due</span>
             <span className="text-3xl font-bold text-foreground tracking-tight">
-              GHS {total.toFixed(2)}
+              <CurrencyDisplay amount={total} />
             </span>
           </div>
 

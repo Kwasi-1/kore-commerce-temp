@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Button } from '@nextui-org/react';
 import { Plus, Trash2 } from 'lucide-react';
+import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,7 @@ interface POItem {
 }
 
 export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) {
+  const { formatAmount } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<{label: string, value: string}[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -239,8 +241,8 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
                       <div className="text-xs text-muted-foreground">{item.sku}</div>
                     </td>
                     <td className="px-3 py-2">{item.quantity}</td>
-                    <td className="px-3 py-2">{item.cost_price.toFixed(2)}</td>
-                    <td className="px-3 py-2 font-medium">{(item.quantity * item.cost_price).toFixed(2)}</td>
+                    <td className="px-3 py-2">{formatAmount(item.cost_price)}</td>
+                    <td className="px-3 py-2 font-medium">{formatAmount(item.quantity * item.cost_price)}</td>
                     <td className="px-3 py-2 text-right">
                       <button 
                         type="button" 
@@ -254,7 +256,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
                 ))}
                 <tr className="bg-gray-50 dark:bg-[#1f1f1f] font-bold">
                   <td colSpan={3} className="px-3 py-3 text-right">Grand Total:</td>
-                  <td colSpan={2} className="px-3 py-3 text-primary">GHS {totalPoValue.toFixed(2)}</td>
+                  <td colSpan={2} className="px-3 py-3 text-primary"><CurrencyDisplay amount={totalPoValue} /></td>
                 </tr>
               </tbody>
             </table>

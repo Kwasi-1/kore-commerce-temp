@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import DashboardCard from '@/components/ui/dashboard-card';
+import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format } from 'date-fns';
@@ -18,6 +19,7 @@ import {
 
 export default function Overview() {
   const navigate = useNavigate();
+  const { formatAmount } = useCurrency();
   const { staffUser } = useAuthStore();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +129,7 @@ export default function Overview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <DashboardCard
           title="Today's Revenue"
-          value={isLoading ? '...' : `GHS ${todaySales.revenue.toFixed(2)}`}
+          value={isLoading ? '...' : <CurrencyDisplay amount={todaySales.revenue} />}
         />
         <DashboardCard
           title="Today's Orders"
@@ -171,7 +173,7 @@ export default function Overview() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6B7280', fontSize: 12 }}
-                    tickFormatter={(val) => `₵${val}`}
+                    tickFormatter={(val) => formatAmount(val)}
                   />
                   <Tooltip
                     cursor={{ fill: '#F3F4F6', opacity: 0.4 }}

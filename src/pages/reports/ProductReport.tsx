@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
@@ -75,8 +76,8 @@ export default function ProductReport() {
         </div>
       ),
       units_sold: <span className="font-medium">{p.units_sold}</span>,
-      revenue: <span className="font-semibold text-green-600">GHS {parseFloat(p.revenue || 0).toFixed(2)}</span>,
-      cogs: <span className="text-muted-foreground">{p.cost_of_goods !== null ? `GHS ${parseFloat(p.cost_of_goods).toFixed(2)}` : 'N/A'}</span>,
+      revenue: <span className="font-semibold text-green-600"><CurrencyDisplay amount={parseFloat(p.revenue || 0)} /></span>,
+      cogs: <span className="text-muted-foreground">{p.cost_of_goods !== null ? <CurrencyDisplay amount={parseFloat(p.cost_of_goods)} /> : 'N/A'}</span>,
       margin: (
         <span className={`font-semibold ${
           p.gross_margin === null ? 'text-gray-400' :
@@ -123,7 +124,7 @@ export default function ProductReport() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DashboardCard
             title="Report Total Revenue"
-            value={isLoading ? '...' : `GHS ${totalRevenue.toFixed(2)}`}
+            value={isLoading ? '...' : <CurrencyDisplay amount={totalRevenue} />}
             className="border border-border bg-primary/5"
           />
           <DashboardCard

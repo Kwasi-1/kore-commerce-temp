@@ -4,6 +4,7 @@ import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import DashboardCard from '@/components/ui/dashboard-card';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -93,7 +94,7 @@ export default function Expenses() {
       date: format(new Date(exp.dateIncurred || exp.date || new Date()), 'MMM dd, yyyy'),
       category: <span className="capitalize font-medium">{exp.category}</span>,
       description: <span className="text-muted-foreground max-w-xs truncate block">{exp.description}</span>,
-      amount: <span className="font-semibold text-foreground">GHS {exp.amount.toFixed(2)}</span>,
+      amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={exp.amount} /></span>,
       recorded_by: exp.recordedByName || 'Unknown',
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
@@ -130,21 +131,21 @@ export default function Expenses() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Expenses"
-            value={isLoading ? '...' : `GHS ${totalExpenses.toFixed(2)}`}
+            value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
             className="border border-border bg-primary/5 dark:bg-primary/10"
           />
           {topCategories.map(([cat, amount]: any) => (
             <DashboardCard
               key={cat}
               title={`${cat} Expenses`}
-              value={`GHS ${amount.toFixed(2)}`}
+              value={<CurrencyDisplay amount={amount} />}
               className="border border-border capitalize"
             />
           ))}
           {topCategories.length === 0 && !isLoading && (
              <DashboardCard
              title="No category data"
-             value="GHS 0.00"
+             value={<CurrencyDisplay amount={0} />}
              className="border border-border"
            />
           )}

@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import ReceiptModal from '@/components/pos/ReceiptModal';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -61,7 +62,7 @@ export default function Transactions() {
         {t.paymentMethod?.replace('_', ' ')}
       </span>
     ),
-    amount: <span className="font-semibold text-foreground">GHS {t.totalAmount?.toFixed(2) || '0.00'}</span>,
+    amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={t.totalAmount || 0} /></span>,
     rowActions: [
       { key: 'view_receipt', label: 'View Receipt', icon: 'mdi:receipt-text-outline' }
     ],

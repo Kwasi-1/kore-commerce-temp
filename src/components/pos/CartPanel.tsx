@@ -13,6 +13,7 @@ import {
 import PaymentModal from "./PaymentModal";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 
 interface CartPanelProps {
@@ -251,7 +252,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
                         Total
                       </span>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      <CurrencyDisplay amount={item.price * item.quantity} />
                     </div>
                   </div>
                 </div>
@@ -346,7 +347,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                       Sub-Total
                     </span>
                     <span className="text-foreground font-semibold">
-                      ${subtotal.toFixed(2)}
+                      <CurrencyDisplay amount={subtotal} />
                     </span>
                   </div>
                   <div className="flex justify-between text-[14px]">
@@ -354,20 +355,20 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                       Tax (12%)
                     </span>
                     <span className="text-foreground font-semibold">
-                      ${taxAmount.toFixed(2)}
+                      <CurrencyDisplay amount={taxAmount} />
                     </span>
                   </div>
                   <div className="flex justify-between text-[14px]">
                     <span className="text-muted-foreground font-medium">
                       Discount
                     </span>
-                    <span className="text-muted-foreground font-semibold dark:text-primary">
-                      -${discount.toFixed(2)}
+                    <span className="text-muted-foreground font-semibold dark:text-primary flex items-center gap-1">
+                      -<CurrencyDisplay amount={discount} />
                     </span>
                   </div>
                   <div className="flex justify-between text-[16px] font-bold text-foreground pt-1">
                     <span>Total Payment</span>
-                    <span>${calculatedTotal.toFixed(2)}</span>
+                    <span><CurrencyDisplay amount={calculatedTotal} /></span>
                   </div>
                 </div>
               </div>

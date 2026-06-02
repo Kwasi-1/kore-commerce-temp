@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
+import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { PackageCheck } from 'lucide-react';
@@ -83,7 +84,7 @@ export default function PurchaseOrders() {
       reference: <span className="font-semibold text-foreground">{po.reference_number}</span>,
       supplier: po.supplier ? po.supplier.name : 'Unknown Supplier',
       date: new Date(po.date_created).toLocaleDateString(),
-      total: <span className="font-medium">GHS {(po.total_amount || 0).toFixed(2)}</span>,
+      total: <span className="font-medium"><CurrencyDisplay amount={po.total_amount || 0} /></span>,
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
           po.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
