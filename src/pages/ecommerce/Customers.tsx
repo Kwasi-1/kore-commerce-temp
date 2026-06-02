@@ -123,6 +123,7 @@ export default function Customers() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         showAddButton={false}
+        onRefresh={fetchCustomers}
       />
     </PageLayout>
   );

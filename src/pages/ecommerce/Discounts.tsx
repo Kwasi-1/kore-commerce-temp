@@ -139,6 +139,7 @@ export default function Discounts() {
         
         showSearch={true}
         searchPlaceholder="Search by code..."
+        onRefresh={fetchDiscounts}
       />
 
       <CustomModal

@@ -308,6 +308,7 @@ export default function Products() {
         
         // Actions
         showAddButton={false}
+        onRefresh={fetchProducts}
         onRowActionClick={handleRowActionClick}
         topActions={[
           {

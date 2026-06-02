@@ -210,19 +210,74 @@ export function setupMockApi() {
     }
   });
 
-  mock.onGet(/\/tenant\/expenses/).reply(200, {
-    success: true,
-    data: {
-      expenses: [
-        { id: 'e1', description: 'Electricity Bill', amount: 1500, category: 'utilities', date: new Date().toISOString(), logged_by_name: 'Kwame Mensah' },
-        { id: 'e2', description: 'Printer Ink', amount: 450, category: 'supplies', date: new Date().toISOString(), logged_by_name: 'Ama Serwaa' }
-      ]
+  let mockExpenses = [
+    { id: 'e1', description: 'Electricity Bill', amount: 1500, category: 'utilities', date: new Date().toISOString(), dateIncurred: new Date().toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e2', description: 'Printer Ink', amount: 450, category: 'supplies', date: new Date(Date.now() - 2*86400000).toISOString(), dateIncurred: new Date(Date.now() - 2*86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e3', description: 'Office Rent - June', amount: 5500, category: 'rent', date: new Date(Date.now() - 5*86400000).toISOString(), dateIncurred: new Date(Date.now() - 5*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e4', description: 'Cashier Salaries', amount: 12000, category: 'salaries', date: new Date(Date.now() - 7*86400000).toISOString(), dateIncurred: new Date(Date.now() - 7*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e5', description: 'Google Ads Campaign', amount: 800, category: 'marketing', date: new Date(Date.now() - 10*86400000).toISOString(), dateIncurred: new Date(Date.now() - 10*86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e6', description: 'AC Repair', amount: 650, category: 'maintenance', date: new Date(Date.now() - 12*86400000).toISOString(), dateIncurred: new Date(Date.now() - 12*86400000).toISOString(), recordedByName: 'Kofi Annan', isVoided: true },
+    { id: 'e7', description: 'QuickBooks Subscription', amount: 320, category: 'software', date: new Date(Date.now() - 15*86400000).toISOString(), dateIncurred: new Date(Date.now() - 15*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+  ] as any[];
+
+  mock.onGet(/\/tenant\/expenses/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const category = searchParams.get('category') || '';
+
+    let filtered = [...mockExpenses];
+    if (category) {
+      filtered = filtered.filter(e => e.category === category);
     }
+
+    return [200, { success: true, data: { expenses: filtered } }];
+  });
+
+  mock.onPut(/\/tenant\/expenses\/[^/]+\/void/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const idx = mockExpenses.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      mockExpenses[idx].isVoided = true;
+      return [200, { success: true, message: 'Expense voided' }];
+    }
+    return [404, { success: false }];
   });
   
-  // -----------------------------------------------------
-  // SUPPLIERS & POs
-  // -----------------------------------------------------
+  // POS Transactions
+  const mockTransactions = [
+    { id: 'tx1', receiptNumber: 'RCP-0001', dateCreated: new Date().toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'cash', totalAmount: 850.00 },
+    { id: 'tx2', receiptNumber: 'RCP-0002', dateCreated: new Date(Date.now() - 2*3600000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'mobile_money', totalAmount: 1200.00 },
+    { id: 'tx3', receiptNumber: 'RCP-0003', dateCreated: new Date(Date.now() - 5*3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'card', totalAmount: 4200.00 },
+    { id: 'tx4', receiptNumber: 'RCP-0004', dateCreated: new Date(Date.now() - 86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 380.00 },
+    { id: 'tx5', receiptNumber: 'RCP-0005', dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 920.00 },
+    { id: 'tx6', receiptNumber: 'RCP-0006', dateCreated: new Date(Date.now() - 2*86400000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'card', totalAmount: 3500.00 },
+    { id: 'tx7', receiptNumber: 'RCP-0007', dateCreated: new Date(Date.now() - 2*86400000 - 1800000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 120.00 },
+    { id: 'tx8', receiptNumber: 'RCP-0008', dateCreated: new Date(Date.now() - 3*86400000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 650.00 },
+    { id: 'tx9', receiptNumber: 'RCP-0009', dateCreated: new Date(Date.now() - 3*86400000 - 7200000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'cash', totalAmount: 250.00 },
+    { id: 'tx10', receiptNumber: 'RCP-0010', dateCreated: new Date(Date.now() - 4*86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'card', totalAmount: 5500.00 },
+  ];
+
+  mock.onGet(/\/pos\/transactions/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const method = searchParams.get('payment_method') || '';
+
+    let filtered = [...mockTransactions];
+    if (method) {
+      filtered = filtered.filter(t => t.paymentMethod === method);
+    }
+
+    return [200, { success: true, data: { transactions: filtered, total: filtered.length } }];
+  });
+
+  mock.onGet(/\/pos\/transactions\/[^/]+\/receipt/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const tx = mockTransactions.find(t => t.id === id);
+    if (tx) {
+      return [200, { success: true, data: { receipt: { ...tx, items: [{ name: 'Sample Product', qty: 1, price: tx.totalAmount }], tenant_name: 'HeadlessPOS Demo Store' } } }];
+    }
+    return [404, { success: false }];
+  });
   
   mock.onGet(/\/tenant\/inventory\/suppliers/).reply(200, {
     success: true,

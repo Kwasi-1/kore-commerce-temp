@@ -15,6 +15,8 @@ import CustomContainerComponent from "@/components/shared/custom.container.compo
 import CustomTableComponent from "@/components/shared/table.component";
 import { Key } from "react";
 import { DateFilter } from "@/components/ui/date-filter";
+import { Button as UIbutton } from "../ui/button";
+
 
 // Types for the enhanced table
 export interface TableColumn {
@@ -162,6 +164,12 @@ export interface EnhancedTableProps {
   // Additional modals or components
   additionalModals?: React.ReactNode;
 
+  // Refresh callback
+  onRefresh?: () => void;
+
+  // Client-side pagination
+  pageSize?: number;
+
   // Selection props
   selectionMode?: "none" | "single" | "multiple";
   selectedKeys?: Selection | "all";
@@ -239,10 +247,16 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[890px]",
+  containerStyles = "",
 
   // Additional
   additionalModals,
+
+  // Refresh
+  onRefresh,
+
+  // Client-side pagination
+  pageSize = 8,
 
   // Selection
   selectionMode,
@@ -253,6 +267,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   const [localFilterValue, setLocalFilterValue] =
     useState<Selection>(filterValue);
   const [selectedRow, setSelectedRow] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Handle search change
   const handleSearchChange = useCallback(
@@ -288,7 +303,21 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     additionalFilters.forEach(f => {
       f.onChange(defaultSelection);
     });
+    setCurrentPage(1);
   }, [onSearchChange, onFilterChange, additionalFilters]);
+
+  // Detect if any filter/search is active
+  const hasActiveFilters = useMemo(() => {
+    if (localSearchValue && localSearchValue.trim() !== "") return true;
+    const filterArr = localFilterValue instanceof Set
+      ? Array.from(localFilterValue)
+      : [];
+    if (filterArr.length > 0 && filterArr[0] !== "all") return true;
+    return additionalFilters.some(f => {
+      const arr = f.value instanceof Set ? Array.from(f.value) : [];
+      return arr.length > 0 && arr[0] !== "all";
+    });
+  }, [localSearchValue, localFilterValue, additionalFilters]);
 
   // Handle row click for expansion
   const handleRowClick = useCallback(
@@ -535,9 +564,21 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             ))}
           </div>
 
-          {/* Add Button */}
-          {showAddButton && (
-            <div className="flex gap-3">
+          {/* Add Button + Refresh */}
+          <div className="flex gap-2 items-center">
+            {onRefresh && (
+              <Button
+                isIconOnly
+                variant="flat"
+                size="sm"
+                className="border border-border text-muted-foreground hover:text-foreground"
+                onPress={onRefresh}
+                title="Refresh"
+              >
+                <Icon icon="solar:refresh-bold" className="text-[16px]" />
+              </Button>
+            )}
+            {showAddButton && (
               <Button
                 variant="light"
                 radius="none"
@@ -550,8 +591,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               >
                 {addButtonText}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {showDateFilter && (
             <div className="flex justify-items-end">
               <DateFilter />
@@ -657,94 +698,171 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     handleSearchChange,
     handleFilterChange,
     handleClearFilters,
+    onRefresh,
   ]);
+
+  // Client-side pagination
+  const totalPages = Math.ceil(processedRows.length / pageSize);
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return processedRows.slice(start, start + pageSize);
+  }, [processedRows, currentPage, pageSize]);
 
   return (
     <CustomContainerComponent styles={containerStyles}>
       {topContent}
 
-      {/* Main Layout Container - Relative positioning for proper layout */}
-      <div className="relative min-h[600px]">
-        {/* Table Container - Slides left when detail view opens */}
-        <motion.div
-          className="w-full"
-          // layout
-          animate={{
-            width: enableRowExpansion && selectedRow ? "60%" : "100%",
-          }}
-          transition={{
-            duration: 0.4,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          }}
-        >
-          <CustomTableComponent
-            columns={enhancedColumns}
-            rows={processedRows}
-            isLoading={isLoading}
-            classNames={classNames}
-            isFetching={isFetching}
-            isPaginated={isPaginated}
-            params={params}
-            setParams={setParams}
-            refetch={handleClearFilters}
-            onclick={
-              enableRowExpansion
-                ? (key) => {
-                    const rowData = processedRows.find(
-                      (row) => (row.id || row.key) === key,
-                    );
-                    if (rowData) {
-                      handleRowClick(key, rowData, {
-                        target: document.body,
-                      } as any);
-                    }
-                  }
-                : onclick
-            }
-            mobileHeaders={mobileHeaders}
-            mobileFriendly={mobileFriendly}
-            mobileHeadersClassname={mobileHeadersClassname}
-            bottomContentOnMoblile={bottomContentOnMobile}
-            selectionMode={selectionMode as any}
-            selected={selectedKeys}
-            onSelectionChange={onSelectionChange}
-            selectedRowId={selectedRow ? selectedRow.id : undefined}
-          />
-        </motion.div>
-
-        {/* Detail View Panel - Slides in from right */}
-        <AnimatePresence>
-          {enableRowExpansion && selectedRow && renderDetailView && (
-            <motion.div
-              initial={{ x: "-70%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "0%" }}
-              transition={{
-                duration: 0.5,
-                ease: [0.25, 0.46, 0.45, 0.94],
-              }}
-              className="absolute top-0 right-0 w-[39%] h-full bg-background border-l border-border rounded-xl overflow-hidden flex-shrink-0 z-10"
+      {/* Empty state with smart clear-filters */}
+      {!isLoading && processedRows.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Icon icon="ph:tray" className="text-6xl text-muted-foreground/30" />
+          <div className="text-center">
+            <p className="text-muted-foreground font-medium">No results found</p>
+            {hasActiveFilters && (
+              <p className="text-xs text-muted-foreground/70 mt-1">Your filters or search returned no results</p>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <UIbutton
+              size="sm"
+              variant="outline"
+              radius="default"
+              className="border border-border "
+              onClick={handleClearFilters}
             >
-              {/* Close Button */}
-              <Button
-                isIconOnly
-                variant="light"
-                className="absolute top-4 right-4 z-20 hover:bg-gray-100 transition-colors duration-200 rounded-full"
-                onPress={() => setSelectedRow(null)}
-                size="sm"
-              >
-                <Icon icon="mdi:close" className="text-lg text-muted-foreground" />
-              </Button>
-
-              {/* Detail Content */}
-              <div className="h-full w-full">
-                {/* Prefer the original/raw record when available on the row object */}
-                {renderDetailView(selectedRow.__record || selectedRow)}
-              </div>
-            </motion.div>
+              <Icon icon="ph:x-circle" className="mr-1.5 text-base" />
+              Clear filters
+            </UIbutton>
           )}
-        </AnimatePresence>
-      </div>
+        </div>
+      )}
+
+      {/* Main Layout Container */}
+      {(isLoading || processedRows.length > 0) && (
+        <div className="relative">
+          {/* Table Container - Slides left when detail view opens */}
+          <motion.div
+            className="w-full"
+            animate={{
+              width: enableRowExpansion && selectedRow ? "60%" : "100%",
+            }}
+            transition={{
+              duration: 0.4,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
+          >
+            {/* Scrollable table area with max height */}
+            <div className="max-h-[520px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
+              <CustomTableComponent
+                columns={enhancedColumns}
+                rows={paginatedRows}
+                isLoading={isLoading}
+                classNames={classNames}
+                isFetching={isFetching}
+                isPaginated={false}
+                onclick={
+                  enableRowExpansion
+                    ? (key) => {
+                        const rowData = paginatedRows.find(
+                          (row) => (row.id || row.key) === key,
+                        );
+                        if (rowData) {
+                          handleRowClick(key, rowData, {
+                            target: document.body,
+                          } as any);
+                        }
+                      }
+                    : onclick
+                }
+                mobileHeaders={mobileHeaders}
+                mobileFriendly={mobileFriendly}
+                mobileHeadersClassname={mobileHeadersClassname}
+                bottomContentOnMoblile={bottomContentOnMobile}
+                selectionMode={selectionMode as any}
+                selected={selectedKeys}
+                onSelectionChange={onSelectionChange}
+                selectedRowId={selectedRow ? selectedRow.id : undefined}
+              />
+            </div>
+
+            {/* Client-side Pagination bar */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-4 pb-2 border-t border-border mt-2">
+                <p className="text-xs text-muted-foreground">
+                  Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, processedRows.length)} of {processedRows.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    isDisabled={currentPage === 1}
+                    onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="border border-border"
+                  >
+                    <Icon icon="ph:caret-left" className="text-base" />
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      isIconOnly
+                      size="sm"
+                      variant={currentPage === page ? "solid" : "flat"}
+                      color={currentPage === page ? "primary" : "default"}
+                      onPress={() => setCurrentPage(page)}
+                      className={currentPage !== page ? "border border-border" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    isDisabled={currentPage === totalPages}
+                    onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="border border-border"
+                  >
+                    <Icon icon="ph:caret-right" className="text-base" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Detail View Panel - Slides in from right */}
+          <AnimatePresence>
+            {enableRowExpansion && selectedRow && renderDetailView && (
+              <motion.div
+                initial={{ x: "-70%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "0%" }}
+                transition={{
+                  duration: 0.5,
+                  ease: [0.25, 0.46, 0.45, 0.94],
+                }}
+                className="absolute top-0 right-0 w-[39%] h-full bg-background border-l border-border rounded-xl overflow-hidden flex-shrink-0 z-10"
+              >
+                {/* Close Button */}
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className="absolute top-4 right-4 z-20 hover:bg-gray-100 transition-colors duration-200 rounded-full"
+                  onPress={() => setSelectedRow(null)}
+                  size="sm"
+                >
+                  <Icon icon="mdi:close" className="text-lg text-muted-foreground" />
+                </Button>
+
+                {/* Detail Content */}
+                <div className="h-full w-full">
+                  {renderDetailView(selectedRow.__record || selectedRow)}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </CustomContainerComponent>
   );
 };

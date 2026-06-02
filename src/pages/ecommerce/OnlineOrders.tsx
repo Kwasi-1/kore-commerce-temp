@@ -171,6 +171,7 @@ export default function OnlineOrders() {
         onFilterChange={(keys: any) => setStatusFilter(keys)}
         
         showAddButton={false}
+        onRefresh={fetchOrders}
       />
     </PageLayout>
   );

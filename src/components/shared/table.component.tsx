@@ -186,34 +186,15 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
     // For objects/arrays, use lodash isEqual for deep comparison
     return isEqual(currentValue, previousValue);
   };
-  const bottomContent =
-    refetch || display_pagination ? (
-      <div className="w-full flex justify-between items-center py-3 px-2 mt-[20px]">
-        {refetch && (
-          <button
-            disabled={isFetching}
-            onClick={() => refetch()}
-            className="disabled:pointer-events-none gap-x-1 text-[23px]"
-            title="Refresh data"
-            aria-label="Refresh data"
-          >
-            <Icon
-              icon={isFetching ? "eos-icons:loading" : "solar:refresh-bold"}
-            />
-          </button>
-        )}
-
-        {display_pagination && (
-          <Pagination
-            currentPage={params?.page}
-            totalPages={Math.ceil(params?.count / params?.limit)}
-            onPageChange={(page) => setParams({ ...params, page: page })}
-          />
-        )}
-      </div>
-    ) : (
-      <></>
-    );
+  const bottomContent = display_pagination ? (
+    <div className="w-full flex justify-end items-center py-3 px-2 mt-2">
+      <Pagination
+        currentPage={params?.page}
+        totalPages={Math.ceil(params?.count / params?.limit)}
+        onPageChange={(page) => setParams({ ...params, page: page })}
+      />
+    </div>
+  ) : <></>;
 
   if (screenSize != "desktop" && mobileFriendly) {
     return (
@@ -233,22 +214,16 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
 
         <div className="grid grid-cols-1 gap-3 mt-4 mb-10">
           {isLoading || isFetching ? (
-            <LogoComponent />
+            <div className="flex items-center justify-center py-12">
+              <Spinner withBackdrop={true} />
+            </div>
           ) : isEmpty(rows) ? (
             <>
-              <div className="flex flex-col items-center text-xs">
-                <Icon icon="gg:info" className="text-2xl mb-2" />
-                <p className="text-muted-foreground font-medium">Nothing to show here.</p>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="mt-4" 
-                  onClick={() => refetch && refetch()}
-                >
-                  Clear Filters / Refresh
-                </Button>
-              </div>
-            </>
+            <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+              <Icon icon="ph:tray" className="text-4xl text-muted-foreground/50" />
+              <p className="text-muted-foreground font-medium text-sm">Nothing to show here.</p>
+            </div>
+          </>
           ) : (
             <>
               {rows?.map((row) => {
@@ -350,24 +325,16 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
         items={rows}
         emptyContent={
           !isLoading && (
-            <div className="flex flex-col items-center text-xs py-8">
-              <Icon icon="gg:info" className="text-2xl mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground font-medium">Nothing to show here.</p>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="mt-4" 
-                onClick={() => refetch && refetch()}
-              >
-                Clear Filters / Refresh
-              </Button>
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+              <Icon icon="ph:tray" className="text-5xl text-muted-foreground/40" />
+              <p className="text-muted-foreground font-medium text-sm">Nothing to show here.</p>
             </div>
           )
         }
         isLoading={isLoading}
         loadingContent={
-          <div className="flex flex-col items-center justify-center min-h-[200px] w-full bg-background/50 backdrop-blur-sm z-10 absolute inset-0">
-            <Spinner />
+          <div className="flex items-center justify-center py-16">
+            <Spinner withBackdrop={true}/>
           </div>
         }
       >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
@@ -19,12 +19,13 @@ export default function Expenses() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState(new Set(['all']));
+  const [categoryFilter, setCategoryFilter] = useState<any>(new Set(['all']));
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     setIsLoading(true);
     try {
       // 1. Fetch Summary for Current Month
@@ -33,26 +34,37 @@ export default function Expenses() {
       const summaryRes = await apiClient.get(`/tenant/expenses/summary?start_date=${startOfCurrMonth}&end_date=${endOfCurrMonth}`);
       setSummary(summaryRes.data.data || {});
 
-      // 2. Fetch Expenses List
-      const catArr = Array.from(categoryFilter);
+      // 2. Fetch Expenses List with filter
+      const catArr = categoryFilter === 'all' ? ['all'] : Array.from(categoryFilter);
       let listUrl = '/tenant/expenses?limit=50';
       if (catArr[0] !== 'all') {
         listUrl += `&category=${catArr[0]}`;
       }
       const listRes = await apiClient.get(listUrl);
-      setExpenses(listRes.data.data?.expenses || []);
-
+      let data = listRes.data.data?.expenses || [];
+      
+      // Client-side search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        data = data.filter((e: any) =>
+          e.description?.toLowerCase().includes(q) ||
+          e.category?.toLowerCase().includes(q)
+        );
+      }
+      
+      setExpenses(data);
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
       toast.error('Failed to load expenses');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [categoryFilter, searchQuery]);
 
   useEffect(() => {
-    fetchExpenses();
-  }, [categoryFilter]);
+    const timer = setTimeout(() => fetchExpenses(), 300);
+    return () => clearTimeout(timer);
+  }, [fetchExpenses]);
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
@@ -92,10 +104,14 @@ export default function Expenses() {
     return {
       id: exp.id,
       date: format(new Date(exp.dateIncurred || exp.date || new Date()), 'MMM dd, yyyy'),
-      category: <span className="capitalize font-medium">{exp.category}</span>,
+      category: (
+        <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-foreground">
+          {exp.category}
+        </span>
+      ),
       description: <span className="text-muted-foreground max-w-xs truncate block">{exp.description}</span>,
       amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={exp.amount} /></span>,
-      recorded_by: exp.recordedByName || 'Unknown',
+      recorded_by: exp.recordedByName || exp.logged_by_name || 'Unknown',
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
           exp.isVoided ? 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' 
@@ -158,7 +174,10 @@ export default function Expenses() {
         isLoading={isLoading}
         title="Expense Log"
         
-        showSearch={false}
+        showSearch={true}
+        searchPlaceholder="Search by description..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
         
         showFilter={true}
         filterLabel="Category"
@@ -179,7 +198,9 @@ export default function Expenses() {
         
         showAddButton={true}
         addButtonText="Log Expense"
+        addButtonIcon="ph:plus-bold"
         onAddButtonClick={() => setIsModalOpen(true)}
+        onRefresh={fetchExpenses}
         onRowActionClick={handleRowActionClick}
         
         mobileFriendly={true}
