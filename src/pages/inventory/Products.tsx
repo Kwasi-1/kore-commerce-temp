@@ -7,6 +7,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Package, AlertTriangle, XCircle, DollarSign, Plus, Upload, ChevronDown } from 'lucide-react';
 import { BulkProductUploadModal } from './components/BulkProductUploadModal';
+import { ProductDetailPanel } from './components/ProductDetailPanel';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,12 @@ export default function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  
+  // Row Actions state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -88,6 +95,35 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/tenant/products/${productToDelete.id}`);
+      toast.success('Product deleted successfully');
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
+      fetchProducts();
+    } catch (error) {
+      toast.error('Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (product: any, newStatus: string) => {
+    setIsUpdatingStatus(true);
+    try {
+      await apiClient.patch(`/tenant/products/${product.id}/status`, { status: newStatus });
+      toast.success('Product status updated');
+      fetchProducts();
+    } catch (error) {
+      toast.error('Failed to update product status');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   // Calculate metrics
   const totalProducts = products.length;
   const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
@@ -145,6 +181,8 @@ export default function Products() {
       ),
       rowActions: [
         { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
+        { key: 'status', label: p.status === 'active' ? 'Pause Product' : 'Activate Product', icon: p.status === 'active' ? 'mdi:pause' : 'mdi:play' },
+        { key: 'delete', label: 'Delete', icon: 'mdi:trash-can-outline', className: 'text-destructive' },
       ],
       // keep original record attached for handlers
       __record: p 
@@ -154,6 +192,12 @@ export default function Products() {
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'edit') {
       handleEdit(row.__record);
+    } else if (actionKey === 'status') {
+      const newStatus = row.__record.status === 'active' ? 'paused' : 'active';
+      handleUpdateStatus(row.__record, newStatus);
+    } else if (actionKey === 'delete') {
+      setProductToDelete(row.__record);
+      setIsDeleteModalOpen(true);
     }
   };
 
@@ -215,6 +259,22 @@ export default function Products() {
         isLoading={isLoading}
         title="Products List"
         
+        enableRowExpansion={true}
+        renderDetailView={(record) => (
+          <ProductDetailPanel
+            product={record}
+            isMobile={false}
+            onClose={() => {}} // EnhancedTableComponent handles close
+            onEdit={handleEdit}
+            onDeleteRequest={(p) => {
+              setProductToDelete(p);
+              setIsDeleteModalOpen(true);
+            }}
+            onUpdateStatus={handleUpdateStatus}
+            isUpdatingStatus={isUpdatingStatus}
+          />
+        )}
+        
         showSearch={true}
         searchPlaceholder="Search by name or SKU..."
         searchValue={searchQuery}
@@ -255,10 +315,10 @@ export default function Products() {
                 <div className="flex rounded-md overflow-hidden border shadow-sm h-[38px] bg-muted">
                   <Button
                     variant='ghost'
-                    className="gap-2 rounded-none border-r border-muted-foreground/20 h-full"
+                    className="gap-2 rounded-none text-[13px] text-foreground/80 border-r border-muted-foreground/20 h-full"
                     onClick={openNewProduct}
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 text-foreground/80" />
                     <span className="hidden lg:inline">Add Product</span>
                   </Button>
                   <DropdownMenuTrigger asChild>
@@ -287,6 +347,7 @@ export default function Products() {
         mobileFriendly={true}
       />
 
+      {/* Single Product Form Modal */}
       <CustomModal
         isOpen={isModalOpen}
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
@@ -302,11 +363,45 @@ export default function Products() {
           </div>
         }
         body={
-          <ProductForm 
-            initialData={editingProduct} 
-            onSuccess={handleFormSuccess}
-            onCancel={() => setIsModalOpen(false)} 
-          />
+          <div className="p-2 pb-6">
+            <ProductForm 
+              onSuccess={handleFormSuccess} 
+              onCancel={() => setIsModalOpen(false)}
+              initialData={editingProduct} 
+            />
+          </div>
+        }
+        footer={null}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <CustomModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={() => {
+          if (!open) {
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
+          }
+        }}
+        size="md"
+        header={
+          <div className="pt-4 px-2">
+            <h2 className="text-xl font-bold text-destructive">Delete Product</h2>
+            <p className="text-sm text-muted-foreground font-normal">This action cannot be undone.</p>
+          </div>
+        }
+        body={
+          <div className="p-2 py-4">
+            <p className="text-sm">
+              Are you sure you want to delete <strong>{productToDelete?.name}</strong>? This will remove it permanently from your inventory.
+            </p>
+          </div>
+        }
+        footer={
+          <div className="flex gap-2 w-full justify-end px-2 pb-2">
+            <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteProduct} isLoading={isDeleting}>Delete Product</Button>
+          </div>
         }
       />
 

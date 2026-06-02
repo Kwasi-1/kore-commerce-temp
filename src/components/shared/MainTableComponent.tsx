@@ -707,7 +707,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
-              className="absolute top-0 right-0 w-[44%] h-full bg-white rounded-xl overflow-hidden flex-shrink-0 z-10"
+              className="absolute top-0 right-0 w-[44%] h-full bg-background border-l border-border rounded-xl overflow-hidden flex-shrink-0 z-10"
             >
               {/* Close Button */}
               <Button
@@ -721,7 +721,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               </Button>
 
               {/* Detail Content */}
-              <div className="p-6 pr-12 h-full overflow-y-auto scrollbar-hide">
+              <div className="h-full w-full">
                 {/* Prefer the original/raw record when available on the row object */}
                 {renderDetailView(selectedRow.__record || selectedRow)}
               </div>

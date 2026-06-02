@@ -117,6 +117,31 @@ export function setupMockApi() {
     }];
   });
 
+  mock.onPatch(/\/tenant\/products\/[^/]+\/status/).reply((config) => {
+    const urlParts = config.url?.split('/') || [];
+    const id = urlParts[urlParts.length - 2];
+    const { status } = JSON.parse(config.data);
+    
+    const productIndex = mockProducts.findIndex(p => p.id === id);
+    if (productIndex !== -1) {
+      mockProducts[productIndex] = { ...mockProducts[productIndex], status };
+      return [200, { success: true, message: 'Status updated' }];
+    }
+    return [404, { success: false, message: 'Product not found' }];
+  });
+
+  mock.onDelete(/\/tenant\/products\/[^/]+/).reply((config) => {
+    const urlParts = config.url?.split('/') || [];
+    const id = urlParts[urlParts.length - 1];
+    
+    const productIndex = mockProducts.findIndex(p => p.id === id);
+    if (productIndex !== -1) {
+      mockProducts.splice(productIndex, 1);
+      return [200, { success: true, message: 'Product deleted' }];
+    }
+    return [404, { success: false, message: 'Product not found' }];
+  });
+
   // -----------------------------------------------------
   // POS & SHIFTS
   // -----------------------------------------------------
