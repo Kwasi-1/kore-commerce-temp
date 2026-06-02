@@ -12,12 +12,16 @@ import {
   Save,
   CreditCard,
   Banknote,
-  Smartphone
+  Smartphone,
 } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import PaymentMethodVisual from "./PaymentMethodVisual";
 import {
   DropdownMenu,
@@ -45,29 +49,46 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
     setDiscount,
     resumeTransaction,
   } = useCartStore();
-  
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<"cash" | "mobile_money" | "card">("card");
-  
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<
+    "cash" | "mobile_money" | "card"
+  >("card");
+
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const PAYMENT_METHODS = {
-    card: { label: "Credit Card", icon: <PaymentMethodVisual method="card" size="sm" /> },
-    cash: { label: "Cash", icon: <PaymentMethodVisual method="cash" size="sm" /> },
-    mobile_money: { label: "Mobile Money", icon: <PaymentMethodVisual method="mobile_money" size="sm" /> },
+    card: {
+      label: "Credit Card",
+      icon: <PaymentMethodVisual method="card" size="sm" />,
+    },
+    cash: {
+      label: "Cash",
+      icon: <PaymentMethodVisual method="cash" size="sm" />,
+    },
+    mobile_money: {
+      label: "Mobile Money",
+      icon: <PaymentMethodVisual method="mobile_money" size="sm" />,
+    },
   };
 
   const selectedPaymentMethod = PAYMENT_METHODS[defaultPaymentMethod];
 
   // Promo State
-  const [activePromo, setActivePromo] = useState<{type: "percentage" | "fixed", value: number} | null>(null);
-  const [defaultDiscountPercent, setDefaultDiscountPercent] = useState<number>(10);
+  const [activePromo, setActivePromo] = useState<{
+    type: "percentage" | "fixed";
+    value: number;
+  } | null>(null);
+  const [defaultDiscountPercent, setDefaultDiscountPercent] =
+    useState<number>(10);
   const [isPromoPopoverOpen, setIsPromoPopoverOpen] = useState(false);
-  
+
   // Popover Form State
-  const [promoMode, setPromoMode] = useState<"percentage" | "fixed">("percentage");
+  const [promoMode, setPromoMode] = useState<"percentage" | "fixed">(
+    "percentage",
+  );
   const [promoInput, setPromoInput] = useState<string>("10");
 
   const itemsLength = items.length;
@@ -90,7 +111,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
   // Calculate discount based on activePromo
   useEffect(() => {
     if (activePromo) {
-      if (activePromo.type === 'percentage') {
+      if (activePromo.type === "percentage") {
         setDiscount(subtotal * (activePromo.value / 100));
       } else {
         setDiscount(activePromo.value);
@@ -105,8 +126,8 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
   const calculatedTotal = subtotal + taxAmount - discount;
 
   const handleAddDiscountClick = () => {
-    setActivePromo({ type: 'percentage', value: defaultDiscountPercent });
-    setPromoMode('percentage');
+    setActivePromo({ type: "percentage", value: defaultDiscountPercent });
+    setPromoMode("percentage");
     setPromoInput(defaultDiscountPercent.toString());
   };
 
@@ -116,17 +137,17 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
       toast.error("Please enter a valid discount amount.");
       return;
     }
-    if (promoMode === 'percentage' && val > 100) {
+    if (promoMode === "percentage" && val > 100) {
       toast.error("Percentage discount cannot exceed 100%.");
       return;
     }
-    if (promoMode === 'fixed' && val > subtotal) {
+    if (promoMode === "fixed" && val > subtotal) {
       toast.error("Fixed discount cannot exceed the subtotal.");
       return;
     }
 
     setActivePromo({ type: promoMode, value: val });
-    if (promoMode === 'percentage') {
+    if (promoMode === "percentage") {
       setDefaultDiscountPercent(val); // Save new percentage default
     }
     setIsPromoPopoverOpen(false);
@@ -148,20 +169,22 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
       <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
         <div className="flex items-center gap-2">
           {isMobileView && mobileStep === 2 && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-full -ml-2" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full -ml-2"
               onClick={() => setMobileStep(1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
           <h2 className="text-[18px] font-bold text-foreground">
-            {isMobileView && mobileStep === 2 ? 'Checkout' : 'Detail Transaction'}
+            {isMobileView && mobileStep === 2
+              ? "Checkout"
+              : "Detail Transaction"}
           </h2>
         </div>
-        
+
         {(!isMobileView || mobileStep === 1) && (
           <div className="flex items-center gap-2">
             <Button
@@ -190,14 +213,18 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
       {showItemsList && (
         <div
           ref={scrollRef}
-          className={`flex-1 overflow-y-auto px-5 space-y-3 scrollbar-hide ${isMobileView ?"pb-12 [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]" : "pb-4" } `}
+          className={`flex-1 overflow-y-auto px-5 space-y-3 scrollbar-hide ${isMobileView ? "pb-12 [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]" : "pb-4"} `}
         >
           {items.length === 0 ? (
             savedTransactions.length > 0 ? (
               <div className="flex flex-col gap-3 py-2 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-foreground text-[15px]">Saved Transactions</h3>
-                  <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-full">{savedTransactions.length}</span>
+                  <h3 className="font-bold text-foreground text-[15px]">
+                    Saved Transactions
+                  </h3>
+                  <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-full">
+                    {savedTransactions.length}
+                  </span>
                 </div>
                 {savedTransactions.map((t) => (
                   <Button
@@ -214,9 +241,13 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                         <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                           {t.customerInitials}
                         </div>
-                        <span className="font-bold text-foreground text-sm">{t.customerName}</span>
+                        <span className="font-bold text-foreground text-sm">
+                          {t.customerName}
+                        </span>
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground">{t.time}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {t.time}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground mt-1">
                       <div className="flex items-center gap-1.5 ml-1">
@@ -239,7 +270,8 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                   Your cart is empty
                 </p>
                 <p className="text-[13px] text-muted-foreground/80 max-w-[220px] text-center leading-relaxed">
-                  Tap items from the product grid to add them to the transaction.
+                  Tap items from the product grid to add them to the
+                  transaction.
                 </p>
               </div>
             )
@@ -338,7 +370,6 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
       {/* Bottom Actions (Depends on Step) */}
       {items.length > 0 && (
         <div className="px-5 pb-5 pt-2 rounded-t-2xl bg-transparent flex flex-col gap-3 shrink-0">
-          
           {/* Mobile Step 1 Actions */}
           {isMobileView && mobileStep === 1 && (
             <Button
@@ -358,60 +389,89 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                   <div className="flex items-center justify-between p-2 rounded-full bg-secondary">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-card text-muted-foreground flex items-center justify-center">
-                      <Ticket className="h-4 w-4" />
+                        <Ticket className="h-4 w-4" />
                       </div>
                       <p className="text-[14px] font-bold text-foreground">
-                        {activePromo.type === 'percentage' ? `Promo (${activePromo.value}%)` : `Discount ($${activePromo.value})`}
+                        {activePromo.type === "percentage"
+                          ? `Promo (${activePromo.value}%)`
+                          : `Discount ($${activePromo.value})`}
                       </p>
                     </div>
 
-                    <Popover open={isPromoPopoverOpen} onOpenChange={setIsPromoPopoverOpen}>
+                    <Popover
+                      open={isPromoPopoverOpen}
+                      onOpenChange={setIsPromoPopoverOpen}
+                    >
                       <PopoverTrigger asChild>
-                        <Button
-                          className="rounded-full h-9 px-4 text-[13px] font-bold shadow-sm transition-colors"
-                        >
+                        <Button className="rounded-full h-9 px-4 text-[13px] font-bold shadow-sm transition-colors">
                           Change Promo
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-72 p-4 rounded-2xl" align="end">
+                      <PopoverContent
+                        className="w-72 p-4 rounded-2xl"
+                        align="end"
+                      >
                         <div className="space-y-4">
                           <h4 className="font-bold text-sm">Edit Discount</h4>
                           <div className="flex bg-secondary p-0.5 rounded-full">
-                            <button 
-                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === 'percentage' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                              onClick={() => { setPromoMode('percentage'); setPromoInput(defaultDiscountPercent.toString()); }}
+                            <button
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "percentage" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              onClick={() => {
+                                setPromoMode("percentage");
+                                setPromoInput(
+                                  defaultDiscountPercent.toString(),
+                                );
+                              }}
                             >
                               Percentage (%)
                             </button>
-                            <button 
-                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === 'fixed' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                              onClick={() => { setPromoMode('fixed'); setPromoInput('0'); }}
+                            <button
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "fixed" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              onClick={() => {
+                                setPromoMode("fixed");
+                                setPromoInput("0");
+                              }}
                             >
                               Fixed Amount ($)
                             </button>
                           </div>
-                          
+
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
-                              {promoMode === 'percentage' ? '%' : '$'}
+                              {promoMode === "percentage" ? "%" : "$"}
                             </span>
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               className="w-full pl-8 pr-3 py-2 bg-background border rounded-lg text-sm font-bold outline-none no-spin-buttons"
                               value={promoInput}
                               onChange={(e) => setPromoInput(e.target.value)}
                             />
                           </div>
-                          
+
                           <div className="flex flex-col gap-2">
-                            <Button radius="full" size="sm" onClick={handleApplyPromo} className="w-full font-bold text-[12px]">Apply Changes</Button>
-                            <Button variant="outline" radius="full" size="sm" onClick={handleRemovePromo} className="w-full font-bold text-destructive bg-inherit text-destructive text-[12px]">Remove Discount</Button>
+                            <Button
+                              radius="full"
+                              size="sm"
+                              onClick={handleApplyPromo}
+                              className="w-full font-bold text-[12px]"
+                            >
+                              Apply Changes
+                            </Button>
+                            <Button
+                              variant="outline"
+                              radius="full"
+                              size="sm"
+                              onClick={handleRemovePromo}
+                              className="w-full font-bold text-destructive bg-inherit text-destructive text-[12px]"
+                            >
+                              Remove Discount
+                            </Button>
                           </div>
                         </div>
                       </PopoverContent>
                     </Popover>
                   </div>
-                ) }
+                )}
 
                 {/* Totals */}
                 <div className="space-y-2.5 p-3 border rounded-[1.25rem]">
@@ -441,54 +501,65 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                   </div>
                   <div className="flex justify-between text-[16px] font-bold text-foreground pt-1">
                     <span>Total Payment</span>
-                    <span><CurrencyDisplay amount={calculatedTotal} /></span>
+                    <span>
+                      <CurrencyDisplay amount={calculatedTotal} />
+                    </span>
                   </div>
                 </div>
               </div>
 
               {!activePromo && (
-              <div className="flex items-center justify-end px-2 -my-2">
-                <Button 
-                  variant="link" 
-                  onClick={handleAddDiscountClick}
-                  className="dark:text-primary text-xs h-fit px-2"
-                >
-                  + Add Discount
-                </Button>
-              </div>)}
+                <div className="flex items-center justify-end px-2 -my-2">
+                  <Button
+                    variant="link"
+                    onClick={handleAddDiscountClick}
+                    className="dark:text-primary text-xs h-fit px-2"
+                  >
+                    + Add Discount
+                  </Button>
+                </div>
+              )}
 
               {/* Payment Method */}
-              <div className="flex items-center justify-between bg-card py-2.5 px-4 rounded-full border">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center">
-                    <PaymentMethodVisual method={defaultPaymentMethod as any} size="md" />
-                  </div>
-                  <span className="font-bold text-[14px]">{selectedPaymentMethod.label}</span>
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center justify-between bg-card py-2.5 px-4 rounded-full border cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center">
+                        <PaymentMethodVisual
+                          method={defaultPaymentMethod as any}
+                          size="md"
+                        />
+                      </div>
+                      <span className="font-bold text-[14px]">
+                        {selectedPaymentMethod.label}
+                      </span>
+                    </div>
                     <Button
                       variant="ghost"
-                      className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary px-2 h-8 py-1 rounded-full"
+                      className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-transparent px-1 h-auto py-1"
                     >
                       Change Method <ChevronRight className="h-4 w-4" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={12} className="w-48 rounded-xl shadow-lg border-border/60 p-1.5">
-                    {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
-                      <DropdownMenuItem 
-                        key={key}
-                        onClick={() => setDefaultPaymentMethod(key as any)}
-                        className={`flex items-center gap-3 py-2.5 cursor-pointer rounded-lg font-semibold ${defaultPaymentMethod === key ? 'bg-primary/10 text-primary' : ''}`}
-                      >
-                        {method.icon}
-                        {method.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={12}
+                  className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-3xl shadow-lg border-border/60 p-1.5 space-y-1"
+                >
+                  {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
+                    <DropdownMenuItem
+                      key={key}
+                      onClick={() => setDefaultPaymentMethod(key as any)}
+                      className={`flex items-center gap-3 py-2.5 pl-5 cursor-pointer rounded-2xl font-semibold ${defaultPaymentMethod === key ? "bg-primary/10 dark:text-primary" : ""}`}
+                    >
+                      {method.icon}
+                      {method.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Complete Transaction */}
               <Button
@@ -500,7 +571,6 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
               </Button>
             </>
           )}
-
         </div>
       )}
 
@@ -509,9 +579,9 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
         onClose={() => setIsPaymentModalOpen(false)}
         defaultMethod={defaultPaymentMethod}
       />
-      <SaveTransactionModal 
-        isOpen={isSaveModalOpen} 
-        onClose={() => setIsSaveModalOpen(false)} 
+      <SaveTransactionModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
       />
     </div>
   );

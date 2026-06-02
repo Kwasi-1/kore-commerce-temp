@@ -9,6 +9,32 @@
   src:
     url("./assets/fonts/AtypDisplay-Regular.woff2") format("woff2"),
     url("./assets/fonts/AtypDisplay-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "AtypDisplay";
+  src:
+    url("./assets/fonts/AtypDisplay-Regular.woff2") format("woff2"),
+    url("./assets/fonts/AtypDisplay-Regular.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "AtypDisplay";
+  src:
+    url("./assets/fonts/AtypDisplay-Regular.woff2") format("woff2"),
+    url("./assets/fonts/AtypDisplay-Regular.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "AtypDisplay";
+  src:
+    url("./assets/fonts/AtypDisplay-Regular.woff2") format("woff2"),
+    url("./assets/fonts/AtypDisplay-Regular.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
 }
 
 @font-face {
@@ -145,6 +171,7 @@
     font-family: NeueHaasDisplay, sans-serif;
     min-height: 100vh;
     scroll-behavior: smooth;
+    /* letter-spacing: -0.4px; */
   }
 }
 

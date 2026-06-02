@@ -395,7 +395,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
   return (
     <div className="flex flex-col w-full">
       {label && (
-        <label className="text-xs text-muted-foreground capitalize mb-1 font-medium">
+        <label className="text-[12px] text-muted-foreground capitalize mb-1 font-medium">
           {required ? (
             <span>
               {label} <span className="text-red-500">*</span>

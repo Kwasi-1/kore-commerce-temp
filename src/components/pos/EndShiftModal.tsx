@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { LogOut, Clock, Activity, CreditCard, Smartphone, Banknote, ShieldAlert } from 'lucide-react';
@@ -25,9 +26,18 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const actualCash = parseFloat(actualCashStr) || 0;
+  const [debouncedCashStr, setDebouncedCashStr] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedCashStr(actualCashStr);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [actualCashStr]);
+
+  const actualCash = parseFloat(debouncedCashStr) || 0;
   const discrepancy = actualCash - expectedCash;
-  const hasDiscrepancy = discrepancy !== 0;
+  const hasDiscrepancy = discrepancy !== 0 && debouncedCashStr !== '';
 
   const handleEndShift = async () => {
     if (actualCashStr === '') {
@@ -134,7 +144,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
             </div>
 
             {/* Discrepancy Display */}
-            {actualCashStr !== '' && (
+            {debouncedCashStr !== '' && (
               <div className={`p-4 rounded-md border ${
                   discrepancy === 0 ? 'bg-green-500/10 border-green-500/30 text-green-600' :
                   discrepancy > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-600' :
@@ -156,15 +166,14 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
             )}
 
             {/* Notes Field (Required if discrepancy) */}
-            <div className={`transition-all duration-300 ${hasDiscrepancy && actualCashStr !== '' ? 'opacity-100 max-h-32' : 'opacity-50 max-h-32'}`}>
-              <label className="text-xs font-bold mb-1.5 block">
-                Discrepancy Note {hasDiscrepancy && <span className="text-destructive">*</span>}
-              </label>
-              <textarea
+            <div className={`transition-all duration-300 ${hasDiscrepancy && debouncedCashStr !== '' ? 'opacity-100 max-h-32' : 'opacity-50 max-h-32'}`}>
+              <Textarea
+                label={`Discrepancy Note ${hasDiscrepancy ? '*' : ''}`}
+                labelPlacement="outside"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Reason for overage/shortage..."
-                className="w-full h-20 p-3 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                textareaClassName="bg-background focus:ring-primary/50"
               />
             </div>
           </div>
@@ -172,7 +181,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
         </div>
       }
       footer={
-        <div className="flex justify-between border-t border-border/40 w-full pt-4">
+        <div className="flex justify-between w-full pt-4 border-t border-border/50">
           <Button variant="ghost" onClick={onClose} className="rounded-full font-bold px-6">
             Cancel
           </Button>

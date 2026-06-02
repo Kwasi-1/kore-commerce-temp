@@ -16,6 +16,12 @@ export default function PaymentMethodVisual({ method, className, size = 'md' }: 
     lg: 'h-8 w-8',
   }[size];
 
+  const spaceClass = {
+    sm: '-space-x-2',
+    md: '-space-x-2.5',
+    lg: '-space-x-2.5',
+  }[size];
+
   if (method === 'card') {
     const circleClass = {
       sm: 'h-4 w-4 border',
@@ -24,9 +30,9 @@ export default function PaymentMethodVisual({ method, className, size = 'md' }: 
     }[size];
 
     return (
-      <div className={cn("flex -space-x-2 shrink-0 items-center justify-center", className)}>
+      <div className={cn("flex shrink-0 items-center justify-center", spaceClass, className)}>
         <div className={cn("rounded-full bg-red-500 border-card z-10", circleClass)}></div>
-        <div className={cn("rounded-full bg-yellow-400 border-card z-0", circleClass)}></div>
+        <div className={cn("rounded-full bg-yellow-400/90 border-card z-10", circleClass)}></div>
       </div>
     );
   }

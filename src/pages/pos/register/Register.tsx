@@ -88,7 +88,7 @@ export default function Register() {
       <div className="lg:hidden absolute bottom-4 left-4 right-4 z-40">
         <Button
           onClick={() => setIsMobileCartOpen(true)}
-          className="w-full h-14 rounded-2xl bg-primary/90 backdrop-blur-md border border-white/20 shadow-xl flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
+          className="w-full h-14 rounded-2xl bg-primary/90 backdrop-blur-md border border-white/20 shadow-md flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
         >
           <div className="flex items-center gap-3">
             <div className="relative">

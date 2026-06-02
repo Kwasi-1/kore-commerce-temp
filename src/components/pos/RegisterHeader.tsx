@@ -83,11 +83,11 @@ export default function RegisterHeader() {
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
             {/* <DropdownMenuSeparator /> */}
-            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium mt-1" onClick={toggleTheme}>
+            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={toggleTheme}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
+            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
               Logout
             </DropdownMenuItem>
