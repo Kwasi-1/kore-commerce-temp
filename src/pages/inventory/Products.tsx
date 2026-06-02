@@ -5,7 +5,15 @@ import CustomModal from '@/components/modals/modal';
 import ProductForm from '@/components/inventory/ProductForm';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { Package, AlertTriangle, XCircle, DollarSign } from 'lucide-react';
+import { Package, AlertTriangle, XCircle, DollarSign, Plus, Upload, ChevronDown } from 'lucide-react';
+import { BulkProductUploadModal } from './components/BulkProductUploadModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from '@/components/ui/button';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,6 +27,7 @@ export default function Products() {
   
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
   const fetchProducts = async () => {
@@ -64,6 +73,11 @@ export default function Products() {
     fetchProducts();
   };
 
+  const handleBulkSuccess = () => {
+    setIsBulkModalOpen(false);
+    fetchProducts();
+  };
+
   const handleEdit = (product: any) => {
     setEditingProduct(product);
     setIsModalOpen(true);
@@ -101,9 +115,9 @@ export default function Products() {
       name: (
         <div className="flex items-center gap-3 py-1">
           {p.imageUrl ? (
-            <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-xl object-cover bg-muted border" />
+            <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted border" />
           ) : (
-            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground border">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
               <Package className="h-5 w-5" />
             </div>
           )}
@@ -231,11 +245,43 @@ export default function Products() {
         ]}
         
         // Actions
-        showAddButton={true}
-        addButtonText="New Product"
-        addButtonIcon="lucide:plus"
-        onAddButtonClick={openNewProduct}
+        showAddButton={false}
         onRowActionClick={handleRowActionClick}
+        topActions={[
+          {
+            key: "add-options",
+            customComponent: (
+              <DropdownMenu>
+                <div className="flex rounded-md overflow-hidden border shadow-sm h-[38px] bg-muted">
+                  <Button
+                    variant='ghost'
+                    className="gap-2 rounded-none border-r border-muted-foreground/20 h-full"
+                    onClick={openNewProduct}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden lg:inline">Add Product</span>
+                  </Button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      className="rounded-none  text-muted-foreground hover:bg-muted/90 px-2 h-full"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-border">
+                  <DropdownMenuItem onClick={openNewProduct} className="cursor-pointer">
+                    <Package className="h-4 w-4 mr-2" /> Single Product
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsBulkModalOpen(true)} className="cursor-pointer">
+                    <Upload className="h-4 w-4 mr-2" /> Bulk Import (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          }
+        ]}
         
         // Mobile compatibility
         mobileFriendly={true}
@@ -262,6 +308,12 @@ export default function Products() {
             onCancel={() => setIsModalOpen(false)} 
           />
         }
+      />
+
+      <BulkProductUploadModal 
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={handleBulkSuccess}
       />
     </PageLayout>
   );

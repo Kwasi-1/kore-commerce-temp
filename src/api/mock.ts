@@ -81,7 +81,7 @@ export function setupMockApi() {
   // INVENTORY
   // -----------------------------------------------------
   
-  const mockProducts = [
+  let mockProducts = [
     { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes' },
     { id: 'p2', name: 'Adidas Ultraboost', sku: 'AD-UB-02', price: 920, cost_price: 600, stock_quantity: 12, reorder_point: 5, category: 'Shoes' },
     { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics' },
@@ -93,6 +93,28 @@ export function setupMockApi() {
   mock.onGet(/\/tenant\/products/).reply(200, {
     success: true,
     data: { products: mockProducts }
+  });
+
+  mock.onPost('/tenant/products/bulk').reply((config) => {
+    const data = JSON.parse(config.data);
+    if (data.products && Array.isArray(data.products)) {
+      const newProducts = data.products.map((p: any) => ({
+        id: `p${Math.floor(Math.random() * 10000)}`,
+        name: p.name,
+        sku: p.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
+        price: p.price,
+        cost_price: p.cost_price || (p.price * 0.7),
+        stock_quantity: p.stock_quantity || 0,
+        reorder_point: 5,
+        category: p.category || 'General',
+        description: p.description
+      }));
+      mockProducts = [...mockProducts, ...newProducts];
+    }
+    return [200, {
+      success: true,
+      message: 'Products imported successfully'
+    }];
   });
 
   // -----------------------------------------------------
