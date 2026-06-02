@@ -14,6 +14,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerBody, DrawerHeader } from '@nextui-org/react';
+import SavedTransactionsList from './SavedTransactionsList';
 
 export default function ProductSearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -316,6 +317,8 @@ export default function ProductSearchBar() {
         </div>
 
       </div>
+      
+      <SavedTransactionsList />
 
       {/* Product Grid */}
       <div 

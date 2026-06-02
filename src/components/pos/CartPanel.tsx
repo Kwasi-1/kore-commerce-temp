@@ -8,9 +8,11 @@ import {
   Ticket,
   ShoppingCart,
   Box,
-  ArrowLeft
+  ArrowLeft,
+  Save
 } from "lucide-react";
 import PaymentModal from "./PaymentModal";
+import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CurrencyDisplay } from "@/hooks";
@@ -33,6 +35,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
   } = useCartStore();
   
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<"cash" | "mobile_money" | "card">("card");
   
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
@@ -140,15 +143,26 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
         </div>
         
         {(!isMobileView || mobileStep === 1) && (
-          <Button
-            variant="outline"
-            onClick={clearCart}
-            disabled={items.length === 0}
-            className="flex items-center gap-1.5 rounded-full bg-background border border-border text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-3 text-[13px] font-semibold shadow-none"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Reset Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsSaveModalOpen(true)}
+              disabled={items.length === 0}
+              className="flex items-center gap-1.5 rounded-full bg-background border border-border hover:bg-secondary h-9 px-3 text-[13px] font-semibold shadow-none text-muted-foreground hover:text-foreground"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {/* Save */}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={clearCart}
+              disabled={items.length === 0}
+              className="flex items-center gap-1.5 rounded-full bg-background border border-border text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-3 text-[13px] font-semibold shadow-none"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {/* Reset Order */}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -423,6 +437,10 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         defaultMethod={defaultPaymentMethod}
+      />
+      <SaveTransactionModal 
+        isOpen={isSaveModalOpen} 
+        onClose={() => setIsSaveModalOpen(false)} 
       />
     </div>
   );
