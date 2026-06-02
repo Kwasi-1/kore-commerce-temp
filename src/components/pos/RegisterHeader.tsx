@@ -15,6 +15,7 @@ import {
 import { Icon } from '@iconify/react';
 import CashierSwitcher from './CashierSwitcher';
 import NewCashierModal from './NewCashierModal';
+import SavedTransactionsHeader from './SavedTransactionsHeader';
 
 export default function RegisterHeader() {
   const { staffUser, logout } = useAuthStore();
@@ -29,10 +30,11 @@ export default function RegisterHeader() {
   const isAdminOrManager = staffUser?.role === 'admin' || staffUser?.role === 'manager';
 
   return (
-    <header className="flex items-center justify-between pb-6 shrink-0">
+    <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
       <h1 className="text-[26px] font-bold text-foreground tracking-tight">Create Transaction</h1>
       
-      <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1  rounded-full">
+      <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
+        <SavedTransactionsHeader />
         <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
           <Bell className="h-4 w-4 md:h-5 md:w-5" />
           <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2  rounded-full bg-red-500"></span>

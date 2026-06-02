@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import CustomModal from '@/components/modals/modal';
+import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useCartStore } from '@/store/cartStore';
 import { ShoppingCart, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -51,35 +44,25 @@ export default function SaveTransactionModal({ isOpen, onClose }: SaveTransactio
   const formattedTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] rounded-[24px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Save Transaction</DialogTitle>
-          {/* <DialogDescription>
-            Suspend the current cart to resume it later. You can assign a customer name or leave it blank to auto-generate one.
-          </DialogDescription> */}
-        </DialogHeader>
-
-        <div className="grid gap-5 py-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="text-sm font-semibold text-foreground">
-              Customer Name / Reference (Optional)
-            </label>
-            <Input
-              id="name"
-              placeholder="e.g. John Doe, Table 4, Waiting..."
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="col-span-3 rounded-lg"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSave();
-                }
-              }}
-            />
-          </div>
+    <CustomModal
+      isOpen={isOpen}
+      onOpenChange={onClose}
+      header={<h3 className="text-xl font-bold">Save Transaction</h3>}
+      body={
+        <div className="grid gap-5">
+          <CustomInputTextField
+            label="Customer Name / Reference (Optional)"
+            labelPlacement="outside"
+            placeholder="e.g. John Doe, Table 4, Waiting..."
+            value={customerName}
+            onChange={(e: any) => setCustomerName(e.target.value)}
+            onKeyDown={(e: any) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-secondary p-3 rounded-md flex items-center gap-3">
@@ -106,16 +89,17 @@ export default function SaveTransactionModal({ isOpen, onClose }: SaveTransactio
             <span className="text-lg font-bold text-secondary-foreground">{items.length}</span>
           </div>
         </div>
-
-        <DialogFooter>
+      }
+      footer={
+        <div className="flex justify-end gap-2 w-full pt-2">
           <Button variant="outline" onClick={onClose} className="rounded-full font-bold">
             Cancel
           </Button>
           <Button onClick={handleSave} className="rounded-full font-bold">
             Save Transaction
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    />
   );
 }
