@@ -6,7 +6,7 @@ import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
-import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag } from 'lucide-react';
+import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -301,12 +301,12 @@ export default function Overview() {
             <DashboardCard
               title="New Customers Today"
               value={isLoading ? '...' : ecomStats.newCustomers.toString()}
-              icon={<Users className="w-4 h-4" />}
+              action={<Users className="w-4 h-4" />}
             />
             <DashboardCard
               title="Active Discounts"
               value={isLoading ? '...' : ecomStats.activeDiscounts.toString()}
-              icon={<Tag className="w-4 h-4" />}
+              action={<Tag className="w-4 h-4" />}
             />
           </div>
 

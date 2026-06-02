@@ -96,7 +96,7 @@ export default function DiscountForm({ discount, onSuccess, onCancel }: Discount
             </Button>
           </div>
           {formik.touched.code && formik.errors.code && (
-            <p className="text-xs text-red-500">{formik.errors.code}</p>
+            <p className="text-xs text-red-500">{formik.errors.code as string}</p>
           )}
         </div>
 

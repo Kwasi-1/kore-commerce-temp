@@ -82,17 +82,41 @@ export function setupMockApi() {
   // -----------------------------------------------------
   
   let mockProducts = [
-    { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes' },
-    { id: 'p2', name: 'Adidas Ultraboost', sku: 'AD-UB-02', price: 920, cost_price: 600, stock_quantity: 12, reorder_point: 5, category: 'Shoes' },
-    { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics' },
-    { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics' },
-    { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel' },
-    { id: 'p6', name: 'Nike Socks (Out of Stock)', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 0, reorder_point: 10, category: 'Apparel' },
+    { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes', status: 'active' },
+    { id: 'p2', name: 'Adidas Ultraboost', sku: 'AD-UB-02', price: 920, cost_price: 600, stock_quantity: 12, reorder_point: 5, category: 'Shoes', status: 'active' },
+    { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics', status: 'active' },
+    { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics', status: 'active' },
+    { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel', status: 'active' },
+    { id: 'p6', name: 'Nike Socks', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 0, reorder_point: 10, category: 'Apparel', status: 'out_of_stock' },
+    { id: 'p7', name: 'Leather Wallet', sku: 'LW-07', price: 250, cost_price: 100, stock_quantity: 20, reorder_point: 5, category: 'Accessories', status: 'active' },
+    { id: 'p8', name: 'Sunglasses Classic', sku: 'SG-08', price: 380, cost_price: 150, stock_quantity: 0, reorder_point: 5, category: 'Accessories', status: 'out_of_stock' },
+    { id: 'p9', name: 'Samsung Galaxy Tab', sku: 'SG-TAB-09', price: 5500, cost_price: 4200, stock_quantity: 3, reorder_point: 2, category: 'Electronics', status: 'active' },
+    { id: 'p10', name: 'Running Shorts', sku: 'RS-10', price: 95, cost_price: 35, stock_quantity: 0, reorder_point: 15, category: 'Apparel', status: 'draft' },
   ] as any[];
 
-  mock.onGet(/\/tenant\/products/).reply(200, {
-    success: true,
-    data: { products: mockProducts }
+  mock.onGet(/\/tenant\/products/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const search = (searchParams.get('search') || '').toLowerCase();
+    const status = searchParams.get('status') || '';
+    const category = searchParams.get('category') || '';
+
+    let filtered = [...mockProducts];
+    if (search) {
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(search) ||
+        p.sku.toLowerCase().includes(search) ||
+        (p.category || '').toLowerCase().includes(search)
+      );
+    }
+    if (status) {
+      filtered = filtered.filter(p => p.status === status);
+    }
+    if (category) {
+      filtered = filtered.filter(p => p.category === category);
+    }
+
+    return [200, { success: true, data: { products: filtered } }];
   });
 
   mock.onPost('/tenant/products/bulk').reply((config) => {
@@ -257,6 +281,9 @@ export function setupMockApi() {
     { id: 'o1', reference: 'ORD-1001', channel: 'online', customer_name: 'John Doe', customer_email: 'john@example.com', total_amount: 850.00, items_count: 1, status: 'pending', payment_method: 'paystack', created_at: new Date().toISOString() },
     { id: 'o2', reference: 'ORD-1002', channel: 'online', customer_name: 'Jane Smith', customer_email: 'jane@example.com', total_amount: 920.00, items_count: 2, status: 'processing', payment_method: 'paystack', created_at: new Date(Date.now() - 86400000).toISOString() },
     { id: 'o3', reference: 'ORD-1003', channel: 'online', customer_name: 'Kwame Nkrumah', customer_email: 'kwame@ghana.com', total_amount: 4500.00, items_count: 3, status: 'delivered', payment_method: 'cash_on_delivery', created_at: new Date(Date.now() - 3*86400000).toISOString() },
+    { id: 'o4', reference: 'ORD-1004', channel: 'online', customer_name: 'Abena Asante', customer_email: 'abena@gh.com', total_amount: 1250.00, items_count: 1, status: 'shipped', payment_method: 'paystack', created_at: new Date(Date.now() - 2*86400000).toISOString() },
+    { id: 'o5', reference: 'ORD-1005', channel: 'pos', customer_name: 'Kofi Boateng', customer_email: 'kofi@gh.com', total_amount: 380.00, items_count: 2, status: 'cancelled', payment_method: 'cash', created_at: new Date(Date.now() - 5*86400000).toISOString() },
+    { id: 'o6', reference: 'ORD-1006', channel: 'online', customer_name: 'Ama Owusu', customer_email: 'ama@gh.com', total_amount: 2100.00, items_count: 4, status: 'pending', payment_method: 'paystack', created_at: new Date(Date.now() - 1*86400000).toISOString() },
   ];
 
   mock.onGet(/\/tenant\/orders\/[^/]+\/items/).reply(200, {
@@ -286,9 +313,21 @@ export function setupMockApi() {
     return [404, { success: false, error: { message: 'Order not found' } }];
   });
 
-  mock.onGet(/\/tenant\/orders/).reply(200, {
-    success: true,
-    data: { orders: mockOrders, total: mockOrders.length, page: 1, limit: 50 }
+  mock.onGet(/\/tenant\/orders/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const status = searchParams.get('status') || '';
+    const channel = searchParams.get('channel') || '';
+
+    let filtered = [...mockOrders];
+    if (status) {
+      filtered = filtered.filter(o => o.status === status);
+    }
+    if (channel) {
+      filtered = filtered.filter(o => o.channel === channel);
+    }
+
+    return [200, { success: true, data: { orders: filtered, total: filtered.length, page: 1, limit: 50 } }];
   });
 
   // Storefront Settings

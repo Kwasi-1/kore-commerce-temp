@@ -276,6 +276,20 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     [onFilterChange],
   );
 
+  // Handle clearing all filters and search
+  const handleClearFilters = useCallback(() => {
+    setLocalSearchValue("");
+    if (onSearchChange) onSearchChange("");
+
+    const defaultSelection = new Set(["all"]);
+    setLocalFilterValue(defaultSelection);
+    if (onFilterChange) onFilterChange(defaultSelection);
+
+    additionalFilters.forEach(f => {
+      f.onChange(defaultSelection);
+    });
+  }, [onSearchChange, onFilterChange, additionalFilters]);
+
   // Handle row click for expansion
   const handleRowClick = useCallback(
     (rowKey: Key, rowData: any, event: React.MouseEvent) => {
@@ -642,6 +656,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     additionalModals,
     handleSearchChange,
     handleFilterChange,
+    handleClearFilters,
   ]);
 
   return (
@@ -671,6 +686,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             isPaginated={isPaginated}
             params={params}
             setParams={setParams}
+            refetch={handleClearFilters}
             onclick={
               enableRowExpansion
                 ? (key) => {

@@ -12,7 +12,7 @@ import { OrderDetailPanel } from './components/OrderDetailPanel';
 export default function OnlineOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['all']));
+  const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
@@ -27,7 +27,7 @@ export default function OnlineOrders() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const statusArr = Array.from(statusFilter);
+      const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter);
       let url = '/tenant/orders?channel=online&limit=50';
       if (statusArr[0] !== 'all') {
         url += `&status=${statusArr[0]}`;

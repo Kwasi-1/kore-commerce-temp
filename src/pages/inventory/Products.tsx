@@ -23,8 +23,8 @@ export default function Products() {
   
   // Search and filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState(new Set(['all']));
-  const [categoryFilter, setCategoryFilter] = useState(new Set(['all']));
+  const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
+  const [categoryFilter, setCategoryFilter] = useState<any>(new Set(['all']));
   const [categories, setCategories] = useState<string[]>([]);
   
   // Form Modal state
@@ -42,8 +42,8 @@ export default function Products() {
     setIsLoading(true);
     try {
       // Get filters
-      const statusArr = Array.from(statusFilter);
-      const categoryArr = Array.from(categoryFilter);
+      const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter);
+      const categoryArr = categoryFilter === 'all' ? ['all'] : Array.from(categoryFilter);
       
       let url = '/tenant/products?limit=50';
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;

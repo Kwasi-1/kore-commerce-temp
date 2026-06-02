@@ -1,4 +1,4 @@
-﻿import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import {
   getKeyValue,
@@ -14,6 +14,8 @@ import LogoComponent from "@/components/shared/logo.component";
 import Pagination from "@/components/shared/pagination";
 import useScreenSize from "@/hooks/useScreenSize";
 import { isEmpty, isEqual } from "lodash";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "../ui/button";
 
 interface ICustomTableComponent {
   columns: Array<{ key: string; label: any } | string>;
@@ -235,8 +237,16 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
           ) : isEmpty(rows) ? (
             <>
               <div className="flex flex-col items-center text-xs">
-                <Icon icon="gg:info" className="text-2xl" />
-                <p>Nothing to show here.</p>
+                <Icon icon="gg:info" className="text-2xl mb-2" />
+                <p className="text-muted-foreground font-medium">Nothing to show here.</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="mt-4" 
+                  onClick={() => refetch && refetch()}
+                >
+                  Clear Filters / Refresh
+                </Button>
               </div>
             </>
           ) : (
@@ -340,16 +350,24 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
         items={rows}
         emptyContent={
           !isLoading && (
-            <div className="flex flex-col items-center text-xs">
-              <Icon icon="gg:info" className="text-2xl" />
-              <p>Nothing to show here.</p>
+            <div className="flex flex-col items-center text-xs py-8">
+              <Icon icon="gg:info" className="text-2xl mb-2 text-muted-foreground" />
+              <p className="text-muted-foreground font-medium">Nothing to show here.</p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => refetch && refetch()}
+              >
+                Clear Filters / Refresh
+              </Button>
             </div>
           )
         }
         isLoading={isLoading}
         loadingContent={
-          <div className="flex flex-col items-center mt- h-fit my-auto">
-            <LogoComponent text="Foundry" />
+          <div className="flex flex-col items-center justify-center min-h-[200px] w-full bg-background/50 backdrop-blur-sm z-10 absolute inset-0">
+            <Spinner />
           </div>
         }
       >
