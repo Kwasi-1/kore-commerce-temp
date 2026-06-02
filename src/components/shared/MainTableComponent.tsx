@@ -247,7 +247,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "",
+  containerStyles = "min-h-[540px] max-h-fit",
 
   // Additional
   additionalModals,
@@ -752,7 +752,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             }}
           >
             {/* Scrollable table area with max height */}
-            <div className="max-h-[520px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
+            <div className="maxh-[520px] h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
               <CustomTableComponent
                 columns={enhancedColumns}
                 rows={paginatedRows}
