@@ -9,12 +9,22 @@ import {
   ShoppingCart,
   Box,
   ArrowLeft,
-  Save
+  Save,
+  CreditCard,
+  Banknote,
+  Smartphone
 } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import PaymentMethodVisual from "./PaymentMethodVisual";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 
@@ -42,6 +52,14 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
   
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const PAYMENT_METHODS = {
+    card: { label: "Credit Card", icon: <PaymentMethodVisual method="card" size="sm" /> },
+    cash: { label: "Cash", icon: <PaymentMethodVisual method="cash" size="sm" /> },
+    mobile_money: { label: "Mobile Money", icon: <PaymentMethodVisual method="mobile_money" size="sm" /> },
+  };
+
+  const selectedPaymentMethod = PAYMENT_METHODS[defaultPaymentMethod];
 
   // Promo State
   const [activePromo, setActivePromo] = useState<{type: "percentage" | "fixed", value: number} | null>(null);
@@ -441,23 +459,35 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
 
               {/* Payment Method */}
               <div className="flex items-center justify-between bg-card py-2.5 px-4 rounded-full border">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex -space-x-2">
-                    <div className="h-6 w-6 rounded-full bg-red-500 border border-card"></div>
-                    <div className="h-6 w-6 rounded-full bg-yellow-400 border border-card"></div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center">
+                    <PaymentMethodVisual method={defaultPaymentMethod as any} size="md" />
                   </div>
-                  <span className="font-semibold text-[14px]">Credit Card</span>
+                  <span className="font-bold text-[14px]">{selectedPaymentMethod.label}</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setDefaultPaymentMethod("card");
-                    setIsPaymentModalOpen(true);
-                  }}
-                  className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-transparent px-1 h-auto py-1"
-                >
-                  Change Method <ChevronRight className="h-4 w-4" />
-                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary px-2 h-8 py-1 rounded-full"
+                    >
+                      Change Method <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={12} className="w-48 rounded-xl shadow-lg border-border/60 p-1.5">
+                    {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
+                      <DropdownMenuItem 
+                        key={key}
+                        onClick={() => setDefaultPaymentMethod(key as any)}
+                        className={`flex items-center gap-3 py-2.5 cursor-pointer rounded-lg font-semibold ${defaultPaymentMethod === key ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        {method.icon}
+                        {method.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Complete Transaction */}

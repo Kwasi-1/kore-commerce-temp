@@ -36,22 +36,10 @@ export default function SavedTransactionsHeader() {
           <Button
             key={transaction.id}
             variant="outline"
-            className="shrink-0 flex items-center gap-2 h-10 py-1.5 pl-1.5 pr-3 rounded-full border-border bg-card group hover:bg-secondary transition-all duration-300"
+            className="shrink-0 flex items-center h-10 px-4 rounded-full border-foreground/10 bg-card hover:bg-secondary transition-all duration-300 text-sm font-semibold"
             onClick={() => handleResume(transaction.id, transaction.customerName)}
           >
-            <Avatar className="h-7 w-7 rounded-full">
-              <AvatarFallback className="bg-muted rounded-full group-hover:bg-card text-secondary-foreground text-[10px] font-bold border transition-all duration-300">
-                {transaction.customerInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col items-start leading-[1.1]">
-              <span className="text-[13px] font-bold">{transaction.customerName}</span>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                <span className="flex items-center gap-0.5"><ShoppingCart className="h-2.5 w-2.5" />{transaction.itemCount}</span>
-                <span className="w-1 h-1 rounded-full bg-border"></span>
-                <span>{transaction.time}</span>
-              </div>
-            </div>
+            {transaction.customerName} &middot; <span className="text-xs">{transaction.time}</span>
           </Button>
         ))}
       </div>
@@ -61,12 +49,12 @@ export default function SavedTransactionsHeader() {
         <DropdownMenuTrigger asChild>
           <Button 
             variant="secondary" 
-            className="flex items-center gap-2 rounded-full h-10 px-3 md:px-4 text-xs font-bold"
+            className="flex items-center gap-1.5 rounded-full h-10 px-3 md:px-4 text-sm font-bold"
           >
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="hidden lg:inline">{hiddenCount > 0 ? `+${hiddenCount} More` : 'Saved'}</span>
-            <span className="lg:hidden">Saved ({savedTransactions.length})</span>
-            <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+            <span className="hidden lg:inline">{hiddenCount > 0 ? `+${hiddenCount}` : savedTransactions.length}</span>
+            <span className="lg:hidden">{savedTransactions.length}</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-1" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 rounded-[16px] shadow-lg border-border/60 max-h-[300px] overflow-y-auto">
