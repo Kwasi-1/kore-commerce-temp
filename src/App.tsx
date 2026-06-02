@@ -31,6 +31,12 @@ const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconcilia
 const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));
 const Expenses = lazy(() => import('@/pages/expenses/Expenses'));
 
+// Ecommerce
+const OnlineOrders = lazy(() => import('@/pages/ecommerce/OnlineOrders'));
+const Customers = lazy(() => import('@/pages/ecommerce/Customers'));
+const StorefrontSettings = lazy(() => import('@/pages/ecommerce/StorefrontSettings'));
+const Discounts = lazy(() => import('@/pages/ecommerce/Discounts'));
+
 // Reports
 const SalesSummary = lazy(() => import('@/pages/reports/SalesSummary'));
 const ProductReport = lazy(() => import('@/pages/reports/ProductReport'));
@@ -110,6 +116,12 @@ function AppRoutes() {
         <Route path="/reports/products" element={<ProductReport />} />
         <Route path="/reports/cashiers" element={<CashierReport />} />
         <Route path="/reports/end-of-day" element={<EndOfDay />} />
+
+        {/* Ecommerce */}
+        <Route path="/ecommerce/orders" element={<ModuleRoute requiredModule="ecommerce"><OnlineOrders /></ModuleRoute>} />
+        <Route path="/ecommerce/customers" element={<ModuleRoute requiredModule="ecommerce"><Customers /></ModuleRoute>} />
+        <Route path="/ecommerce/storefront" element={<ModuleRoute requiredModule="ecommerce"><StorefrontSettings /></ModuleRoute>} />
+        <Route path="/ecommerce/discounts" element={<ModuleRoute requiredModule="ecommerce"><Discounts /></ModuleRoute>} />
 
         {/* Catch-all for other dashboard routes */}
         <Route path="/dashboard/*" element={<Overview />} />

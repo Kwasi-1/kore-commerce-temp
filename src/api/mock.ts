@@ -220,6 +220,147 @@ export function setupMockApi() {
     }
   });
   
+  // -----------------------------------------------------
+  // ECOMMERCE MODULE
+  // -----------------------------------------------------
+  
+  // Customers
+  let mockCustomers = [
+    { id: 'c1', first_name: 'John', last_name: 'Doe', name: 'John Doe', email: 'john.doe@example.com', phone: '0241112222', total_orders: 5, total_spent: 4250.00, created_at: new Date(Date.now() - 30*24*60*60*1000).toISOString() },
+    { id: 'c2', first_name: 'Jane', last_name: 'Smith', name: 'Jane Smith', email: 'jane.smith@example.com', phone: '0203334444', total_orders: 1, total_spent: 850.00, created_at: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
+    { id: 'c3', first_name: 'Kwame', last_name: 'Nkrumah', name: 'Kwame Nkrumah', email: 'kwame@ghana.com', phone: '0275556666', total_orders: 12, total_spent: 12400.00, created_at: new Date(Date.now() - 100*24*60*60*1000).toISOString() }
+  ];
+
+  mock.onGet(/\/tenant\/customers\/.+\/orders/).reply(200, {
+    success: true,
+    data: {
+      orders: [
+        { id: 'o1', reference: 'ORD-1001', total_amount: 850.00, status: 'delivered', created_at: new Date().toISOString() }
+      ]
+    }
+  });
+
+  mock.onGet(/\/tenant\/customers\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const customer = mockCustomers.find(c => c.id === id);
+    if (customer) return [200, { success: true, data: { customer } }];
+    return [404, { success: false, error: { message: 'Customer not found' } }];
+  });
+
+  mock.onGet(/\/tenant\/customers/).reply(200, {
+    success: true,
+    data: { customers: mockCustomers, total: mockCustomers.length, page: 1, limit: 50 }
+  });
+
+  // Orders
+  let mockOrders = [
+    { id: 'o1', reference: 'ORD-1001', channel: 'online', customer_name: 'John Doe', customer_email: 'john@example.com', total_amount: 850.00, items_count: 1, status: 'pending', payment_method: 'paystack', created_at: new Date().toISOString() },
+    { id: 'o2', reference: 'ORD-1002', channel: 'online', customer_name: 'Jane Smith', customer_email: 'jane@example.com', total_amount: 920.00, items_count: 2, status: 'processing', payment_method: 'paystack', created_at: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'o3', reference: 'ORD-1003', channel: 'online', customer_name: 'Kwame Nkrumah', customer_email: 'kwame@ghana.com', total_amount: 4500.00, items_count: 3, status: 'delivered', payment_method: 'cash_on_delivery', created_at: new Date(Date.now() - 3*86400000).toISOString() },
+  ];
+
+  mock.onGet(/\/tenant\/orders\/[^/]+\/items/).reply(200, {
+    success: true,
+    data: {
+      items: [
+        { id: 'oi1', product_name: 'Nike Air Max', sku: 'NK-AM-01', quantity: 1, unit_price: 850.00, total_price: 850.00, image_url: null }
+      ]
+    }
+  });
+
+  mock.onPut(/\/tenant\/orders\/[^/]+\/status/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const { status } = JSON.parse(config.data);
+    const orderIndex = mockOrders.findIndex(o => o.id === id);
+    if (orderIndex !== -1) {
+      mockOrders[orderIndex].status = status;
+      return [200, { success: true, message: 'Order status updated' }];
+    }
+    return [404, { success: false, error: { message: 'Order not found' } }];
+  });
+
+  mock.onGet(/\/tenant\/orders\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const order = mockOrders.find(o => o.id === id);
+    if (order) return [200, { success: true, data: { order } }];
+    return [404, { success: false, error: { message: 'Order not found' } }];
+  });
+
+  mock.onGet(/\/tenant\/orders/).reply(200, {
+    success: true,
+    data: { orders: mockOrders, total: mockOrders.length, page: 1, limit: 50 }
+  });
+
+  // Storefront Settings
+  let mockStorefrontSettings = {
+    store_name: 'HeadlessPOS Demo Store',
+    tagline: 'The best products in Ghana',
+    logo_url: '',
+    banner_url: '',
+    primary_color: '#4f46e5',
+    announcement_text: 'Free delivery on orders over GHS 1000!',
+    announcement_active: true,
+    featured_product_ids: ['p1', 'p2']
+  };
+
+  mock.onGet(/\/tenant\/storefront\/settings/).reply(200, {
+    success: true,
+    data: { settings: mockStorefrontSettings }
+  });
+
+  mock.onPut(/\/tenant\/storefront\/settings/).reply((config) => {
+    mockStorefrontSettings = { ...mockStorefrontSettings, ...JSON.parse(config.data) };
+    return [200, { success: true, message: 'Settings updated' }];
+  });
+
+  mock.onGet(/\/tenant\/storefront\/deployment/).reply(200, {
+    success: true,
+    data: { deployment: { url: 'https://demo-store.headlesspos.com', deployed_at: new Date().toISOString(), template: 'modern' } }
+  });
+
+  // Discounts
+  let mockDiscounts = [
+    { id: 'd1', code: 'WELCOME10', type: 'percentage', value: 10, min_order_amount: null, max_uses: null, uses_count: 45, is_active: true, expires_at: null },
+    { id: 'd2', code: 'MINUS50', type: 'fixed', value: 50, min_order_amount: 500, max_uses: 100, uses_count: 100, is_active: false, expires_at: new Date(Date.now() + 7*86400000).toISOString() }
+  ];
+
+  mock.onGet(/\/tenant\/discounts/).reply(200, {
+    success: true,
+    data: { discounts: mockDiscounts }
+  });
+
+  mock.onPost(/\/tenant\/discounts\/[^/]+\/toggle/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const dIndex = mockDiscounts.findIndex(d => d.id === id);
+    if (dIndex !== -1) {
+      mockDiscounts[dIndex].is_active = !mockDiscounts[dIndex].is_active;
+      return [200, { success: true, data: { discount: mockDiscounts[dIndex] } }];
+    }
+    return [404, { success: false }];
+  });
+
+  mock.onPost(/\/tenant\/discounts/).reply((config) => {
+    const newD = { id: `d${Date.now()}`, ...JSON.parse(config.data), uses_count: 0 };
+    mockDiscounts.push(newD);
+    return [200, { success: true, data: { discount: newD } }];
+  });
+
+  mock.onPut(/\/tenant\/discounts\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const dIndex = mockDiscounts.findIndex(d => d.id === id);
+    if (dIndex !== -1) {
+      mockDiscounts[dIndex] = { ...mockDiscounts[dIndex], ...JSON.parse(config.data) };
+      return [200, { success: true }];
+    }
+    return [404, { success: false }];
+  });
+
+  mock.onDelete(/\/tenant\/discounts\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    mockDiscounts = mockDiscounts.filter(d => d.id !== id);
+    return [200, { success: true }];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: true, data: {} });
   mock.onPost(/.*/).reply(200, { success: true, data: {} });

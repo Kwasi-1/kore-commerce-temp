@@ -23,7 +23,9 @@ import {
   Menu,
   ChevronRight,
   ChevronLeft,
-  LogOut
+  LogOut,
+  ShoppingBag,
+  Globe
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useThemeStore } from '@/store/themeStore';
@@ -68,6 +70,16 @@ export default function Sidebar() {
       title: 'Expenses',
       show: modules.expenses,
       items: [{ name: 'Expenses', to: '/expenses', icon: Receipt }],
+    },
+    {
+      title: 'Ecommerce',
+      show: modules.ecommerce,
+      items: [
+        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
+        { name: 'Customers', to: '/ecommerce/customers', icon: Users },
+        { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe },
+        { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag },
+      ],
     },
     {
       title: 'Staff',
