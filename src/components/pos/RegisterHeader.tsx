@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,8 +16,10 @@ import { Icon } from '@iconify/react';
 import CashierSwitcher from './CashierSwitcher';
 import NewCashierModal from './NewCashierModal';
 import SavedTransactionsHeader from './SavedTransactionsHeader';
+import EndShiftModal from './EndShiftModal';
 
 export default function RegisterHeader() {
+  const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
@@ -44,6 +46,17 @@ export default function RegisterHeader() {
           <Settings className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
         
+        {/* End Shift Button */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsEndShiftOpen(true)}
+          className="hidden md:flex rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+          title="End Shift"
+        >
+          <Power className="h-4 w-4 md:h-5 md:w-5" />
+        </Button>
+
         {/* Cashier Switcher */}
         <div className='hidden md:flex'>
           <CashierSwitcher />
@@ -81,6 +94,8 @@ export default function RegisterHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
     </header>
   );
 }

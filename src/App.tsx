@@ -19,6 +19,7 @@ const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
 // POS
 const Transactions = lazy(() => import('@/pages/pos/Transactions'));
+const CashierLockScreen = lazy(() => import('@/pages/pos/CashierLockScreen'));
 
 // Inventory
 const Products = lazy(() => import('@/pages/inventory/Products'));
@@ -69,6 +70,16 @@ function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
       </Route>
+
+      {/* Standalone Cashier Lock Screen (Requires Auth) */}
+      <Route
+        path="/pos/locked"
+        element={
+          <ProtectedRoute>
+            <CashierLockScreen />
+          </ProtectedRoute>
+        }
+      />
 
       {/* POS Routes (Requires Auth + POS Module) */}
       <Route
