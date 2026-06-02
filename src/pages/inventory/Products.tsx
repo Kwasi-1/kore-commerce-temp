@@ -260,6 +260,7 @@ export default function Products() {
         title="Products List"
         
         enableRowExpansion={true}
+        columnsToHideOnExpansion={2}
         renderDetailView={(record) => (
           <ProductDetailPanel
             product={record}

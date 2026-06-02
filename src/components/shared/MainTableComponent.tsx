@@ -655,7 +655,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
           className="w-full"
           // layout
           animate={{
-            width: enableRowExpansion && selectedRow ? "55%" : "100%",
+            width: enableRowExpansion && selectedRow ? "60%" : "100%",
           }}
           transition={{
             duration: 0.4,
@@ -707,7 +707,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
-              className="absolute top-0 right-0 w-[44%] h-full bg-background border-l border-border rounded-xl overflow-hidden flex-shrink-0 z-10"
+              className="absolute top-0 right-0 w-[39%] h-full bg-background border-l border-border rounded-xl overflow-hidden flex-shrink-0 z-10"
             >
               {/* Close Button */}
               <Button
