@@ -15,6 +15,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/pos/register/Register'));
 const Overview = lazy(() => import('@/pages/dashboard/Overview'));
 const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
+const POSSettings = lazy(() => import('@/pages/settings/POSSettings'));
 const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 
 // POS
@@ -106,6 +107,7 @@ function AppRoutes() {
 
         {/* Settings */}
         <Route path="/settings/profile" element={<BusinessProfile />} />
+        <Route path="/settings/pos" element={<POSSettings />} />
         <Route path="/settings/plan" element={<PlanBilling />} />
 
         {/* POS Dashboard Views */}

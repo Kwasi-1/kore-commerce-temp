@@ -101,6 +101,7 @@ export default function Sidebar() {
       show: modules.settings,
       items: [
         { name: 'Business Profile', to: '/settings/profile', icon: Settings },
+        { name: 'POS Settings', to: '/settings/pos', icon: Receipt },
         { name: 'Plan & Billing', to: '/settings/plan', icon: Receipt },
       ],
     },

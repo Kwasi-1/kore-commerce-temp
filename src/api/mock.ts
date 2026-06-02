@@ -70,6 +70,44 @@ export function setupMockApi() {
   });
 
   // -----------------------------------------------------
+  // TENANT SETTINGS
+  // -----------------------------------------------------
+  
+  let mockTenantSettings = {
+    store: {
+      name: 'HeadlessPOS Demo Store',
+      description: 'Your one stop shop for everything.',
+      email: 'hello@store.com',
+      phoneNumber: '0241234567',
+      additionalNumber: ''
+    },
+    pos_settings: {
+      auto_print: 'ask', // 'always' | 'never' | 'ask'
+      require_customer_for_credit: true,
+      receipt_footer: 'Thank you for your business!'
+    }
+  };
+
+  mock.onGet('/tenant/settings').reply(200, {
+    success: { data: mockTenantSettings }
+  });
+
+  mock.onPatch('/tenant/settings/profile').reply((config) => {
+    mockTenantSettings.store = { ...mockTenantSettings.store, ...JSON.parse(config.data) };
+    return [200, { success: true }];
+  });
+
+  mock.onPatch('/tenant/settings/contact').reply((config) => {
+    mockTenantSettings.store = { ...mockTenantSettings.store, ...JSON.parse(config.data) };
+    return [200, { success: true }];
+  });
+
+  mock.onPatch('/tenant/settings/pos').reply((config) => {
+    mockTenantSettings.pos_settings = { ...mockTenantSettings.pos_settings, ...JSON.parse(config.data) };
+    return [200, { success: true }];
+  });
+
+  // -----------------------------------------------------
   // REPORTS / DASHBOARD
   // -----------------------------------------------------
   

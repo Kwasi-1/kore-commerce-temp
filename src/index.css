@@ -179,6 +179,37 @@
     letter-spacing: 0.9px;
   }
 
+/* --- Receipt Printing --- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #print-receipt-section, #print-receipt-section * {
+    visibility: visible;
+  }
+  
+  #print-receipt-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Make sure everything expands and doesn't scroll */
+  #print-receipt-section .flex-1.overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+  }
+}
+
   body {
     letter-spacing: 0.9px;
   } */

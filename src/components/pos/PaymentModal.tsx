@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2 } from 'lucide-react';
@@ -34,7 +35,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [receiptData, setReceiptData] = useState<any>(null);
   const [frozenCart, setFrozenCart] = useState<any>(null);
   
-  const [autoPrint, setAutoPrint] = useState<'always' | 'never' | 'ask'>('ask');
+  const { posSettings } = useSettingsStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -64,7 +65,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
     
-    if (isCreditSale && (!customerName || !customerPhone)) {
+    if (isCreditSale && posSettings.require_customer_for_credit && (!customerName || !customerPhone)) {
       toast.error('Customer Name and Phone are required for Credit Sales');
       return;
     }
@@ -99,6 +100,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       clearCart();
       setIsSuccess(true);
       
+      if (posSettings.auto_print === 'always') {
+        setTimeout(() => window.print(), 100);
+      }
+      
     } catch (error: any) {
       console.error('Transaction failed:', error);
       toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
@@ -119,7 +124,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     const displayTotal = frozenCart ? frozenCart.total : total;
 
     return (
-    <div className="bg-white text-black p-8 rounded-xl shadow-sm relative h-full flex flex-col font-mono text-sm border border-border/20">
+    <div id="print-receipt-section" className="bg-white text-black p-8 rounded-xl shadow-sm relative h-full flex flex-col font-mono text-sm border border-border/20">
       
       {/* Header */}
       <div className="text-center mb-6">
@@ -177,9 +182,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         {isCreditSale && <span className="font-bold border border-zinc-800 px-3 py-1 rounded-full mb-2 text-[10px] tracking-wider text-zinc-800">CREDIT SALE</span>}
         {!isCreditSale && <span>Paid via {activeTab.replace('_', ' ')}</span>}
         <span className="mt-3 text-[10px] tracking-widest">Thank you!</span>
-        <div className="mt-3 opacity-60">
+        <div className="mt-3 opacity-60 print:hidden">
            <svg className="w-40 h-8" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 h2 v20 h-2 z M4,0 h1 v20 h-1 z M7,0 h4 v20 h-4 z M13,0 h2 v20 h-2 z M17,0 h1 v20 h-1 z M20,0 h3 v20 h-3 z M25,0 h1 v20 h-1 z M28,0 h2 v20 h-2 z M32,0 h4 v20 h-4 z M38,0 h1 v20 h-1 z M41,0 h2 v20 h-2 z M45,0 h3 v20 h-3 z M50,0 h1 v20 h-1 z M53,0 h2 v20 h-2 z M57,0 h4 v20 h-4 z M63,0 h1 v20 h-1 z M66,0 h2 v20 h-2 z M70,0 h3 v20 h-3 z M75,0 h1 v20 h-1 z M78,0 h2 v20 h-2 z M82,0 h4 v20 h-4 z M88,0 h1 v20 h-1 z M91,0 h2 v20 h-2 z M95,0 h3 v20 h-3 z M99,0 h1 v20 h-1 z" fill="currentColor"/></svg>
         </div>
+        {posSettings.receipt_footer && (
+          <div className="mt-4 pt-3 border-t border-dashed border-zinc-300 w-full text-center text-[10px] leading-relaxed hidden print:block whitespace-pre-wrap">
+            {posSettings.receipt_footer}
+          </div>
+        )}
       </div>
     </div>
   )};
@@ -337,14 +347,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </p>
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
-        <Button className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none" variant="outline">
+        <Button className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none" variant="outline" onClick={() => window.print()}>
           <Printer className="h-4 w-4" />
           Print Receipt
         </Button>
         
         <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-2">
-          <span>Auto-print is {autoPrint === 'ask' ? 'ASK' : autoPrint.toUpperCase()}</span>
-          <button className="text-foreground hover:underline" onClick={() => setAutoPrint(autoPrint === 'ask' ? 'always' : 'ask')}>Change</button>
+          <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
         </div>
 
         <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-4 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
