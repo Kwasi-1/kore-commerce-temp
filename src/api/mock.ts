@@ -448,42 +448,115 @@ export function setupMockApi() {
   });
 
   mock.onGet(/^\/pos\/credit-ledger/).reply((config) => {
-    const purchases = mockCreditHistory.filter(h => h.type === 'credit_purchase');
-    const debtors = purchases.map(p => {
-      const customer = mockCustomers.find(c => c.id === p.customer_id) || { name: 'Unknown Customer', phone: '', email: '' };
+    const debtors = mockCustomers.map(c => {
+      const purchases = mockCreditHistory.filter(h => h.customer_id === c.id && h.type === 'credit_purchase');
+      const totalCredit = purchases.reduce((sum, p) => sum + p.amount, 0);
       
-      const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === p.id);
+      const settlements = mockCreditHistory.filter(h => h.customer_id === c.id && h.type === 'settlement');
       const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
-      const outstanding = p.amount - totalSettled;
       
-      return {
-        id: p.id,
-        customer_id: p.customer_id,
-        name: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-        reference: p.reference,
-        original_amount: p.amount,
-        outstanding_debt: outstanding,
-        date: p.date,
-        items: p.items
-      };
-    }).filter(d => d.outstanding_debt > 0);
-
+      const outstanding = Math.max(0, totalCredit - totalSettled);
+      c.outstanding_debt = outstanding;
+      
+      const lastCreditItem = purchases.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      c.last_credit_date = lastCreditItem ? lastCreditItem.date : null;
+      
+      return c;
+    }).filter(c => c.outstanding_debt > 0);
+    
     return [200, { success: true, data: { debtors, total: debtors.length } }];
   });
 
-  mock.onGet(/\/tenant\/credit-ledger\/[^/]+\/history/).reply((config) => {
+  mock.onGet(/\/tenant\/customers\/[^/]+\/credit-purchases/).reply((config) => {
     const url = config.url || '';
-    const match = url.match(/\/tenant\/credit-ledger\/([^/?#]+)\/history/);
-    const purchaseId = match ? match[1] : '';
+    const match = url.match(/\/tenant\/customers\/([^/?#]+)\/credit-purchases/);
+    const customerId = match ? match[1] : '';
     
-    const purchase = mockCreditHistory.find(h => h.id === purchaseId);
-    if (!purchase) return [200, { success: true, data: { history: [] } }];
+    const purchases = mockCreditHistory.filter(h => h.customer_id === customerId && h.type === 'credit_purchase');
     
-    const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === purchaseId);
-    const history = [...settlements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return [200, { success: true, data: { history } }];
+    const data = purchases.map(p => {
+      const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === p.id);
+      const totalPaid = settlements.reduce((sum, s) => sum + s.amount, 0);
+      const outstanding = p.amount - totalPaid;
+      const status = outstanding <= 0 ? 'settled' : (totalPaid > 0 ? 'partial' : 'unpaid');
+      
+      return {
+        id: p.id,
+        reference: p.reference,
+        date: p.date,
+        original_amount: p.amount,
+        amount_paid: totalPaid,
+        outstanding_debt: outstanding,
+        status,
+        items: p.items,
+        repayments: settlements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      };
+    });
+    
+    return [200, { success: true, data: { purchases: data } }];
+  });
+
+  mock.onPost(/\/tenant\/customers\/[^/]+\/settle-all-debt/).reply((config) => {
+    const url = config.url || '';
+    const match = url.match(/\/tenant\/customers\/([^/?#]+)\/settle-all-debt/);
+    const customerId = match ? match[1] : '';
+    const { amount, payment_method } = JSON.parse(config.data);
+    
+    const customer = mockCustomers.find(c => c.id === customerId);
+    if (!customer) return [404, { success: false, message: 'Customer not found' }];
+    
+    const purchases = mockCreditHistory.filter(h => h.customer_id === customerId && h.type === 'credit_purchase');
+    const settlements = mockCreditHistory.filter(h => h.customer_id === customerId && h.type === 'settlement');
+    const totalCredit = purchases.reduce((sum, p) => sum + p.amount, 0);
+    const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
+    const currentOutstanding = Math.max(0, totalCredit - totalSettled);
+    
+    if (amount <= 0 || amount > currentOutstanding) {
+      return [400, { success: false, message: 'Invalid settlement amount' }];
+    }
+    
+    let remainingPayment = amount;
+    const unpaidPurchases = purchases.map(p => {
+      const pSettlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === p.id);
+      const pPaid = pSettlements.reduce((sum, s) => sum + s.amount, 0);
+      return { ...p, outstanding: p.amount - pPaid };
+    }).filter(p => p.outstanding > 0)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+       
+    const settlementDetails = [];
+    
+    for (const purchase of unpaidPurchases) {
+      if (remainingPayment <= 0) break;
+      
+      const paymentToApply = Math.min(remainingPayment, purchase.outstanding);
+      remainingPayment -= paymentToApply;
+      
+      const newSettlement = {
+        id: `ch${Date.now()}-${Math.random()}`,
+        purchase_id: purchase.id,
+        customer_id: customerId,
+        type: 'settlement',
+        amount: paymentToApply,
+        balance_after: purchase.outstanding - paymentToApply,
+        reference: `SET-${Math.floor(Math.random() * 10000)}`,
+        payment_method,
+        date: new Date().toISOString()
+      };
+      
+      mockCreditHistory.push(newSettlement);
+      settlementDetails.push(newSettlement);
+    }
+    
+    customer.outstanding_debt = Math.max(0, currentOutstanding - amount);
+    
+    return [200, { 
+      success: true, 
+      message: 'Consolidated settlement processed successfully', 
+      data: { 
+        new_balance: customer.outstanding_debt,
+        settlements: settlementDetails
+      } 
+    }];
   });
 
   mock.onPost(/\/tenant\/credit-ledger\/[^/]+\/settle/).reply((config) => {

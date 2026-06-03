@@ -22,11 +22,14 @@ export default function CreditLedger() {
   // Drawer state
   const [selectedDebtor, setSelectedDebtor] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [creditHistory, setCreditHistory] = useState<any[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [creditPurchases, setCreditPurchases] = useState<any[]>([]);
+  const [isPurchasesLoading, setIsPurchasesLoading] = useState(false);
+  const [expandedPurchaseId, setExpandedPurchaseId] = useState<string | null>(null);
 
   // Settlement Modal state
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+  const [settlementMode, setSettlementMode] = useState<'all' | 'specific'>('all');
+  const [activeSettlePurchase, setActiveSettlePurchase] = useState<any>(null);
 
   // Receipt Modal state
   const [selectedCreditPurchase, setSelectedCreditPurchase] = useState<any>(null);
@@ -57,16 +60,16 @@ export default function CreditLedger() {
     fetchDebtors();
   }, [searchQuery]);
 
-  const fetchCreditHistory = async (purchaseId: string) => {
-    setIsHistoryLoading(true);
+  const fetchCreditPurchases = async (customerId: string) => {
+    setIsPurchasesLoading(true);
     try {
-      const response = await apiClient.get(`/tenant/credit-ledger/${purchaseId}/history`);
-      setCreditHistory(response.data.data.history || []);
+      const response = await apiClient.get(`/tenant/customers/${customerId}/credit-purchases`);
+      setCreditPurchases(response.data.data.purchases || []);
     } catch (error) {
-      console.error('Failed to fetch history:', error);
-      toast.error('Could not load credit history');
+      console.error('Failed to fetch credit purchases:', error);
+      toast.error('Could not load credit purchases');
     } finally {
-      setIsHistoryLoading(false);
+      setIsPurchasesLoading(false);
     }
   };
 
@@ -75,30 +78,72 @@ export default function CreditLedger() {
     if (debtor) {
       setSelectedDebtor(debtor);
       setIsDrawerOpen(true);
-      fetchCreditHistory(debtor.id);
+      fetchCreditPurchases(debtor.id);
     }
   };
 
   const handleSettle = async (amount: number, method: string) => {
     try {
-      const response = await apiClient.post(`/tenant/credit-ledger/${selectedDebtor.id}/settle`, {
-        amount,
-        payment_method: method
-      });
-      
-      toast.success(response.data.message || 'Payment recorded successfully');
-      
-      // Update selected debtor's balance
-      setSelectedDebtor((prev: any) => ({
-        ...prev,
-        outstanding_debt: response.data.data.new_balance
-      }));
+      let response;
+      if (settlementMode === 'all') {
+        response = await apiClient.post(`/tenant/customers/${selectedDebtor.id}/settle-all-debt`, {
+          amount,
+          payment_method: method
+        });
+        toast.success('Debt settled successfully');
+
+        const enrichedSettlements = response.data.data.settlements?.map((s: any) => {
+          const matchPurchase = creditPurchases.find(p => p.id === s.purchase_id);
+          return {
+            ...s,
+            purchase_reference: matchPurchase ? matchPurchase.reference : s.purchase_id
+          };
+        }) || [];
+
+        setSelectedCreditPurchase({
+          id: `cons-${Date.now()}`,
+          reference: `CONS-${Math.floor(1000 + Math.random() * 9000)}`,
+          date: new Date().toISOString(),
+          amount: amount,
+          balance_after: response.data.data.new_balance,
+          payment_method: method,
+          type: 'consolidated',
+          settlements: enrichedSettlements
+        });
+        setIsReceiptModalOpen(true);
+      } else {
+        response = await apiClient.post(`/tenant/credit-ledger/${activeSettlePurchase.id}/settle`, {
+          amount,
+          payment_method: method
+        });
+        toast.success('Payment recorded successfully');
+
+        setSelectedCreditPurchase({
+          id: `rep-${Date.now()}`,
+          reference: `SET-${Math.floor(1000 + Math.random() * 9000)}`,
+          date: new Date().toISOString(),
+          amount: amount,
+          balance_after: response.data.data.new_balance,
+          payment_method: method,
+          type: 'settlement',
+          purchase_reference: activeSettlePurchase.reference,
+          purchase_original_amount: activeSettlePurchase.original_amount,
+          items: activeSettlePurchase.items
+        });
+        setIsReceiptModalOpen(true);
+      }
       
       setIsSettleModalOpen(false);
       
-      // Refresh list and history
+      // Refresh list, drawer balance, and purchases list
       fetchDebtors();
-      fetchCreditHistory(selectedDebtor.id);
+      if (selectedDebtor) {
+        setSelectedDebtor((prev: any) => ({
+          ...prev,
+          outstanding_debt: response.data.data.new_balance
+        }));
+        fetchCreditPurchases(selectedDebtor.id);
+      }
       
     } catch (error: any) {
       console.error('Failed to settle debt:', error);
@@ -106,7 +151,67 @@ export default function CreditLedger() {
     }
   };
 
-  const handleDownloadPaymentPDF = async (payment: any) => {
+  const handleViewLatestReceipt = () => {
+    if (!creditPurchases || creditPurchases.length === 0) return;
+    
+    // Collect all purchases and repayments
+    const allEvents: any[] = [];
+    creditPurchases.forEach(p => {
+      // Add purchase itself
+      allEvents.push({
+        ...p,
+        eventDate: new Date(p.date).getTime(),
+        eventType: 'purchase'
+      });
+      // Add repayments
+      if (p.repayments) {
+        p.repayments.forEach((r: any) => {
+          allEvents.push({
+            ...r,
+            eventDate: new Date(r.date).getTime(),
+            eventType: 'repayment',
+            purchaseRef: p.reference,
+            purchaseOriginalAmount: p.original_amount,
+            purchaseItems: p.items
+          });
+        });
+      }
+    });
+    
+    if (allEvents.length === 0) return;
+    
+    // Sort by date descending
+    allEvents.sort((a, b) => b.eventDate - a.eventDate);
+    
+    const latest = allEvents[0];
+    if (latest.eventType === 'purchase') {
+      setSelectedCreditPurchase({
+        id: latest.id,
+        reference: latest.reference,
+        date: latest.date,
+        amount: latest.original_amount,
+        balance_after: latest.outstanding_debt,
+        type: 'credit_purchase',
+        items: latest.items
+      });
+    } else {
+      setSelectedCreditPurchase({
+        id: latest.id,
+        reference: latest.reference,
+        date: latest.date,
+        amount: latest.amount,
+        balance_after: latest.balance_after,
+        payment_method: latest.payment_method,
+        type: 'settlement',
+        purchase_reference: latest.purchaseRef,
+        purchase_original_amount: latest.purchaseOriginalAmount,
+        items: latest.purchaseItems
+      });
+    }
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleDownloadPaymentPDF = async (payment: any, purchaseRef: string) => {
     if (!selectedDebtor) return;
     
     const toastId = toast.loading('Generating payment receipt...');
@@ -145,7 +250,7 @@ export default function CreditLedger() {
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="font-weight: bold;">Purchase Ref:</span>
-            <span>${selectedDebtor.reference}</span>
+            <span>${purchaseRef}</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
             <span style="font-weight: bold;">Payment Method:</span>
@@ -212,9 +317,8 @@ export default function CreditLedger() {
   const columns = [
     { key: 'avatar', label: '' },
     { key: 'name', label: 'Customer Name' },
-    { key: 'reference', label: 'Receipt Ref' },
-    { key: 'date', label: 'Purchase Date' },
-    { key: 'original', label: 'Original Amount' },
+    { key: 'phone', label: 'Phone Number' },
+    { key: 'last_credit', label: 'Last Credit Date' },
     { key: 'debt', label: 'Outstanding Balance' }
   ];
 
@@ -226,9 +330,8 @@ export default function CreditLedger() {
       </div>
     ),
     name: <span className="font-semibold text-foreground">{d.name}</span>,
-    reference: <span className="font-mono text-xs text-muted-foreground">{d.reference}</span>,
-    date: <span className="text-muted-foreground">{d.date ? format(new Date(d.date), 'MMM dd, yyyy') : '—'}</span>,
-    original: <span className="text-muted-foreground"><CurrencyDisplay amount={d.original_amount || 0} /></span>,
+    phone: <span className="text-muted-foreground">{d.phone || '—'}</span>,
+    last_credit: <span className="text-muted-foreground">{d.last_credit_date ? format(new Date(d.last_credit_date), 'MMM dd, yyyy') : '—'}</span>,
     debt: <span className="font-semibold text-foreground"><CurrencyDisplay amount={d.outstanding_debt || 0} /></span>,
     __record: d
   }));
@@ -281,107 +384,180 @@ export default function CreditLedger() {
           header={
             <div className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">Ledger: {selectedDebtor?.reference}</span>
+              <span className="text-lg font-semibold">Ledger Account</span>
             </div>
           }
           body={
             <div className="flex-1 overflow-y-auto px-1 py-4">
               {selectedDebtor ? (
                 <>
-                  <div className="text-center mb-6">
+                  {/* Layer 1: Customer Overview */}
+                  <div className="text-center mb-6 border-b border-border/50 pb-6">
                     <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mb-3">
                       {selectedDebtor.name.charAt(0).toUpperCase()}
                     </div>
                     <h3 className="text-xl font-bold">{selectedDebtor.name}</h3>
                     <p className="text-muted-foreground text-sm">{selectedDebtor.phone || selectedDebtor.email}</p>
                     
-                    <div className="mt-4 flex flex-col items-center gap-1 text-xs text-muted-foreground">
-                      <span>Receipt: <span className="font-mono font-semibold">{selectedDebtor.reference}</span></span>
-                      <span>Date: {format(new Date(selectedDebtor.date), 'MMM dd, yyyy')}</span>
+                    <div className="mt-6 bg-muted/50 p-4 rounded-xl border border-border inline-block w-full max-w-[250px]">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Total Outstanding Balance</p>
+                      <p className="text-2xl font-bold text-foreground tracking-tight">
+                        <CurrencyDisplay amount={selectedDebtor.outstanding_debt} />
+                      </p>
                     </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border border-border">
-                      <div className="text-center">
-                        <p className="text-[11px] font-medium text-muted-foreground mb-1 uppercase tracking-wider">Original Credit</p>
-                        <p className="text-lg font-bold text-foreground">
-                          <CurrencyDisplay amount={selectedDebtor.original_amount} />
-                        </p>
-                      </div>
-                      <div className="text-center border-l border-border">
-                        <p className="text-[11px] font-medium text-muted-foreground mb-1 uppercase tracking-wider">Current Balance</p>
-                        <p className="text-lg font-bold text-foreground">
-                          <CurrencyDisplay amount={selectedDebtor.outstanding_debt} />
-                        </p>
-                      </div>
+                    <div className="mt-4">
+                      <Button 
+                        onClick={() => {
+                          setSettlementMode('all');
+                          setIsSettleModalOpen(true);
+                        }}
+                        disabled={selectedDebtor.outstanding_debt <= 0}
+                        className="w-full max-w-[250px] rounded-full"
+                      >
+                        <Wallet className="h-4 w-4 mr-2" />
+                        Settle Debt
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="mb-6">
-                    <Button 
-                      onClick={() => setIsSettleModalOpen(true)}
-                      disabled={selectedDebtor.outstanding_debt <= 0}
-                      className="w-full"
-                    >
-                      <Wallet className="h-4 w-4 mr-2" />
-                      Settle Debt
-                    </Button>
-                  </div>
-
+                  {/* Layer 2: Credit Purchases List */}
                   <div>
-                    <div className="flex justify-between items-center mb-4 border-b border-border/50 pb-2">
+                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/50">
                       <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                         <History className="h-4 w-4" />
-                        Repayment History
+                        Credit Purchases
                       </h4>
-                      <button
-                        onClick={() => {
-                          setSelectedCreditPurchase(selectedDebtor);
-                          setIsReceiptModalOpen(true);
-                        }}
-                        className="text-xs text-primary hover:underline font-semibold"
-                      >
-                        View Original Receipt
-                      </button>
+                      {creditPurchases.length > 0 && (
+                        <button
+                          onClick={handleViewLatestReceipt}
+                          className="text-xs text-primary hover:underline font-semibold"
+                        >
+                          View Latest Receipt
+                        </button>
+                      )}
                     </div>
-                    
-                    {isHistoryLoading ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">Loading repayments...</div>
-                    ) : creditHistory.length === 0 ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">No payments made yet.</div>
+
+                    {isPurchasesLoading ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">Loading credit purchases...</div>
+                    ) : creditPurchases.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">No credit purchases on record.</div>
                     ) : (
-                      <div className="space-y-3 relative before:absolute before:inset-0 before:ml-[1.15rem] before:w-px before:bg-border">
-                        {creditHistory.map((item) => (
-                          <div 
-                            key={item.id} 
-                            onClick={() => handleDownloadPaymentPDF(item)}
-                            className="relative flex items-start gap-4 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors group"
-                          >
-                            <div className="flex items-center justify-center w-9 h-9 rounded-full border border-background bg-muted shrink-0 z-10">
-                              <Wallet className="h-4 w-4 text-foreground" />
-                            </div>
-                            <div className="flex-1 pb-1">
-                              <div className="flex justify-between items-start mb-0.5">
-                                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                  Repayment
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {format(new Date(item.date), 'MMM dd, yyyy')}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1">
-                                  <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
-                                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                                    <Download className="h-2.5 w-2.5" /> PDF
+                      <div className="space-y-4">
+                        {creditPurchases.map((p) => {
+                          const isExpanded = expandedPurchaseId === p.id;
+                          return (
+                            <div key={p.id} className="border border-border rounded-xl overflow-hidden bg-card text-card-foreground">
+                              {/* Accordion Header */}
+                              <div 
+                                onClick={() => setExpandedPurchaseId(isExpanded ? null : p.id)}
+                                className="p-4 cursor-pointer hover:bg-muted/30 transition-colors flex flex-col gap-2"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-mono text-sm font-bold text-foreground">{p.reference}</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                                    p.status === 'settled' 
+                                      ? 'bg-green-500/10 text-green-600 border-green-500/20' 
+                                      : p.status === 'partial' 
+                                        ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
+                                        : 'bg-red-500/10 text-red-600 border-red-500/20'
+                                  }`}>
+                                    {p.status}
                                   </span>
                                 </div>
-                                <span className="text-sm font-bold text-foreground">
-                                  -<CurrencyDisplay amount={item.amount} />
-                                </span>
+                                
+                                <div className="grid grid-cols-3 text-xs text-muted-foreground mt-1">
+                                  <div>
+                                    <p className="text-[10px] uppercase text-zinc-400">Date</p>
+                                    <p className="font-semibold">{format(new Date(p.date), 'MMM dd, yyyy')}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] uppercase text-zinc-400">Original</p>
+                                    <p className="font-semibold"><CurrencyDisplay amount={p.original_amount} /></p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[10px] uppercase text-zinc-400">Remaining</p>
+                                    <p className="font-bold text-foreground"><CurrencyDisplay amount={p.outstanding_debt} /></p>
+                                  </div>
+                                </div>
                               </div>
+
+                              {/* Accordion Expanded Panel */}
+                              {isExpanded && (
+                                <div className="p-4 border-t border-border bg-muted/20 space-y-4">
+                                  {/* Items Table */}
+                                  <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Items Purchased</p>
+                                    <div className="border border-border/50 rounded-lg overflow-hidden bg-card text-xs">
+                                      <table className="w-full text-left">
+                                        <thead>
+                                          <tr className="bg-muted text-muted-foreground text-[10px] uppercase border-b border-border/50">
+                                            <th className="p-2">Item</th>
+                                            <th className="p-2 text-center">Qty</th>
+                                            <th className="p-2 text-right">Total</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {p.items?.map((item: any, idx: number) => (
+                                            <tr key={idx} className="border-b border-border/50 last:border-none">
+                                              <td className="p-2 font-medium">{item.name}</td>
+                                              <td className="p-2 text-center text-muted-foreground">{item.quantity}</td>
+                                              <td className="p-2 text-right font-semibold"><CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} /></td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+
+                                  {/* Repayments History */}
+                                  <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments Made</p>
+                                    {p.repayments && p.repayments.length > 0 ? (
+                                      <div className="space-y-2 bg-card border border-border/50 rounded-lg p-3">
+                                        {p.repayments.map((r: any) => (
+                                          <div 
+                                            key={r.id}
+                                            onClick={() => handleDownloadPaymentPDF(r, p.reference)}
+                                            className="flex items-center justify-between text-xs cursor-pointer hover:bg-muted/40 p-2 -mx-2 rounded transition-colors group"
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <Download className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                                              <div>
+                                                <p className="font-semibold text-foreground">{r.reference}</p>
+                                                <p className="text-[10px] text-muted-foreground">{format(new Date(r.date), 'MMM dd, yyyy')}</p>
+                                              </div>
+                                            </div>
+                                            <span className="font-bold text-foreground">-<CurrencyDisplay amount={r.amount} /></span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground italic">No payments recorded against this purchase.</p>
+                                    )}
+                                  </div>
+
+                                  {/* Settle Specific Button */}
+                                  {p.outstanding_debt > 0 && (
+                                    <Button
+                                      onClick={() => {
+                                        setSettlementMode('specific');
+                                        setActiveSettlePurchase(p);
+                                        setIsSettleModalOpen(true);
+                                      }}
+                                      size="sm"
+                                      className="w-full mt-2"
+                                      variant="outline"
+                                    >
+                                      <Wallet className="h-3.5 w-3.5 mr-2" />
+                                      Settle This Purchase
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -395,7 +571,10 @@ export default function CreditLedger() {
       <DebtSettlementModal 
         isOpen={isSettleModalOpen}
         onClose={() => setIsSettleModalOpen(false)}
-        debtor={selectedDebtor}
+        debtor={settlementMode === 'all' ? selectedDebtor : {
+          name: `${selectedDebtor?.name} (Purchase ${activeSettlePurchase?.reference})`,
+          outstanding_debt: activeSettlePurchase?.outstanding_debt
+        }}
         onSettle={handleSettle}
       />
 
