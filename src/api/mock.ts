@@ -389,9 +389,15 @@ export function setupMockApi() {
   
   // Customers
   let mockCustomers = [
-    { id: 'c1', first_name: 'John', last_name: 'Doe', name: 'John Doe', email: 'john.doe@example.com', phone: '0241112222', total_orders: 5, total_spent: 4250.00, created_at: new Date(Date.now() - 30*24*60*60*1000).toISOString() },
-    { id: 'c2', first_name: 'Jane', last_name: 'Smith', name: 'Jane Smith', email: 'jane.smith@example.com', phone: '0203334444', total_orders: 1, total_spent: 850.00, created_at: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
-    { id: 'c3', first_name: 'Kwame', last_name: 'Nkrumah', name: 'Kwame Nkrumah', email: 'kwame@ghana.com', phone: '0275556666', total_orders: 12, total_spent: 12400.00, created_at: new Date(Date.now() - 100*24*60*60*1000).toISOString() }
+    { id: 'c1', first_name: 'John', last_name: 'Doe', name: 'John Doe', email: 'john.doe@example.com', phone: '0241112222', total_orders: 5, total_spent: 4250.00, created_at: new Date(Date.now() - 30*24*60*60*1000).toISOString(), outstanding_debt: 850.00, last_credit_date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
+    { id: 'c2', first_name: 'Jane', last_name: 'Smith', name: 'Jane Smith', email: 'jane.smith@example.com', phone: '0203334444', total_orders: 1, total_spent: 850.00, created_at: new Date(Date.now() - 5*24*60*60*1000).toISOString(), outstanding_debt: 0.00, last_credit_date: null },
+    { id: 'c3', first_name: 'Kwame', last_name: 'Nkrumah', name: 'Kwame Nkrumah', email: 'kwame@ghana.com', phone: '0275556666', total_orders: 12, total_spent: 12400.00, created_at: new Date(Date.now() - 100*24*60*60*1000).toISOString(), outstanding_debt: 1200.50, last_credit_date: new Date(Date.now() - 2*24*60*60*1000).toISOString() }
+  ];
+
+  let mockCreditHistory = [
+    { id: 'ch1', customer_id: 'c1', type: 'credit_purchase', amount: 1500.00, balance_after: 1500.00, reference: 'RCP-0021', date: new Date(Date.now() - 15*24*60*60*1000).toISOString() },
+    { id: 'ch2', customer_id: 'c1', type: 'settlement', amount: 650.00, balance_after: 850.00, reference: 'SET-001', payment_method: 'cash', date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
+    { id: 'ch3', customer_id: 'c3', type: 'credit_purchase', amount: 1200.50, balance_after: 1200.50, reference: 'RCP-0044', date: new Date(Date.now() - 2*24*60*60*1000).toISOString() },
   ];
 
   mock.onGet(/\/tenant\/customers\/.+\/orders/).reply(200, {
@@ -413,6 +419,45 @@ export function setupMockApi() {
   mock.onGet(/\/tenant\/customers/).reply(200, {
     success: true,
     data: { customers: mockCustomers, total: mockCustomers.length, page: 1, limit: 50 }
+  });
+
+  mock.onGet(/^\/pos\/credit-ledger/).reply((config) => {
+    const debtors = mockCustomers.filter(c => (c.outstanding_debt || 0) > 0);
+    return [200, { success: true, data: { debtors, total: debtors.length } }];
+  });
+
+  mock.onGet(/\/tenant\/customers\/[^/]+\/credit-history/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const history = mockCreditHistory.filter(h => h.customer_id === id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [200, { success: true, data: { history } }];
+  });
+
+  mock.onPost(/\/tenant\/customers\/[^/]+\/settle-debt/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { amount, payment_method } = JSON.parse(config.data);
+    
+    const customer = mockCustomers.find(c => c.id === id);
+    if (!customer) return [404, { success: false, message: 'Customer not found' }];
+    if (amount <= 0 || amount > customer.outstanding_debt) return [400, { success: false, message: 'Invalid amount' }];
+    
+    customer.outstanding_debt -= amount;
+    
+    mockCreditHistory.push({
+      id: `ch${Date.now()}`,
+      customer_id: id,
+      type: 'settlement',
+      amount,
+      balance_after: customer.outstanding_debt,
+      reference: `SET-${Math.floor(Math.random() * 10000)}`,
+      payment_method,
+      date: new Date().toISOString()
+    });
+    
+    return [200, { success: true, message: 'Debt settled successfully', data: { new_balance: customer.outstanding_debt } }];
   });
 
   // Orders

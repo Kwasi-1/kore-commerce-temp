@@ -25,7 +25,8 @@ import {
   ChevronLeft,
   LogOut,
   ShoppingBag,
-  Globe
+  Globe,
+  BookOpen
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useThemeStore } from '@/store/themeStore';
@@ -53,6 +54,7 @@ export default function Sidebar() {
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'Transactions', to: '/pos/transactions', icon: History },
+        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
       ],
     },
     {
