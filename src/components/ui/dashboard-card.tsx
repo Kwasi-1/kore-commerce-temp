@@ -10,6 +10,8 @@ export interface DashboardCardProps
   subvalue?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
 export function DashboardCard({
@@ -20,12 +22,17 @@ export function DashboardCard({
   subvalue,
   action,
   className,
+  isActive,
+  onClick,
   ...props
 }: DashboardCardProps) {
   return (
     <div
+      onClick={onClick}
       className={cn(
-        "flex h-full min-h-[160px] flex-col justify-between rounded-lg bg-card p-6 border border-border shadow-sm text-card-foreground transition-colors",
+        "flex h-full min-h-[160px] flex-col justify-between rounded-lg bg-card p-6 border shadow-sm text-card-foreground transition-all duration-200",
+        onClick && "cursor-pointer hover:border-foreground/50",
+        isActive ? "border-foreground bg-secondary/30 ring-1 ring-foreground" : "border-border",
         className,
       )}
       {...props}

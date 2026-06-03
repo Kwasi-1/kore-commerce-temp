@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { updateGlobalState } from "@/store/features/global";
-import { RootState } from "@/store/store";
+import React, { useEffect, useRef, useState } from "react";
+import { DateRange, DayPicker } from "react-day-picker";
 import {
   endOfMonth,
   endOfToday,
@@ -16,9 +16,6 @@ import {
   setMonth,
   setYear,
 } from "date-fns";
-import React, { useEffect, useRef, useState } from "react";
-import { DateRange, DayPicker } from "react-day-picker";
-import { useDispatch, useSelector } from "react-redux";
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,47 +24,41 @@ import {
   ChevronUp,
 } from "lucide-react";
 
+export interface DateFilterValue {
+  active: string;
+  start_date: Date | null;
+  end_date: Date | null;
+}
+
 interface IDateFilter {
-  color?:
-    | "success"
-    | "default"
-    | "secondary"
-    | "primary"
-    | "warning"
-    | "danger"
-    | undefined;
-  defaultDate?:
-    | "today"
-    | "this_week"
-    | "this_month"
-    | "last_month"
-    | "this_year"
-    | "last_year"
-    | "all_time";
+  color?: "success" | "default" | "secondary" | "primary" | "warning" | "danger";
+  defaultDate?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
+  value?: DateFilterValue;
+  onChange?: (val: DateFilterValue) => void;
 }
 
 export const CustomOnlyDateFilterComponent = ({
   color = "default",
   defaultDate = "today",
+  value,
+  onChange
 }: IDateFilter) => {
-  const [date, setDate] = useState<DateRange | undefined>(undefined);
+  const [date, setDate] = useState<DateRange | undefined>(
+    value?.active === "custom" && value.start_date 
+      ? { from: value.start_date, to: value.end_date || undefined } 
+      : undefined
+  );
   const [dismissDatePopup, setDismissDatePopup] = useState(true);
-  const [activeShortcut, setActiveShortcut] = useState<string>("");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeShortcut, setActiveShortcut] = useState<string>(value?.active || defaultDate);
+  const [currentMonth, setCurrentMonth] = useState(value?.start_date || new Date());
   const [view, setView] = useState<"days" | "months" | "years">("days");
-  const [yearNavigator, setYearNavigator] = useState(new Date().getFullYear());
+  const [yearNavigator, setYearNavigator] = useState((value?.start_date || new Date()).getFullYear());
   const [popupPosition, setPopupPosition] = useState<{
-    top?: number;
-    bottom?: number;
-    left?: number;
-    right?: number;
+    top?: number; bottom?: number; left?: number; right?: number;
   }>({});
 
-  const dispatch = useDispatch();
-  const { dateFilter } = useSelector((state: RootState) => state.global);
-
-  const divRef: any = useRef();
-  const buttonRef: any = useRef();
+  const divRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const dateMap: any = {
     today: {
@@ -103,8 +94,8 @@ export const CustomOnlyDateFilterComponent = ({
       end_date: endOfYear(subYears(new Date(), 1)),
     },
     custom: {
-      start_date: date?.from || dateFilter?.start_date,
-      end_date: date?.to || dateFilter?.end_date,
+      start_date: date?.from || value?.start_date,
+      end_date: date?.to || value?.end_date,
     },
     all_time: {
       start_date: null,
@@ -158,9 +149,8 @@ export const CustomOnlyDateFilterComponent = ({
   };
 
   const getButtonLabel = () => {
-    const activeFilter = dateFilter?.active;
+    const activeFilter = value?.active || activeShortcut;
 
-    // For custom, show the date range if dates are selected
     if (activeFilter === "custom") {
       if (date?.from) {
         if (date.to) {
@@ -171,7 +161,6 @@ export const CustomOnlyDateFilterComponent = ({
       return "Custom Date";
     }
 
-    // For shortcuts, show their labels
     const labels: Record<string, string> = {
       today: "Today",
       yesterday: "Yesterday",
@@ -191,60 +180,42 @@ export const CustomOnlyDateFilterComponent = ({
     setActiveShortcut(key);
 
     if (key === "custom") {
-      // For custom, just set the active filter
-      dispatch(
-        updateGlobalState({
-          dateFilter: {
-            active: "custom",
-            start_date: range?.from || date?.from || null,
-            end_date: range?.to || date?.to || null,
-          },
-        })
-      );
+      onChange?.({
+        active: "custom",
+        start_date: range?.from || date?.from || null,
+        end_date: range?.to || date?.to || null,
+      });
     } else {
-      // For shortcuts, use the dateMap values
-      dispatch(
-        updateGlobalState({
-          dateFilter: {
-            active: key,
-            start_date: dateMap[key].start_date,
-            end_date: dateMap[key].end_date,
-          },
-        })
-      );
+      onChange?.({
+        active: key,
+        start_date: dateMap[key].start_date,
+        end_date: dateMap[key].end_date,
+      });
       setDismissDatePopup(true);
     }
   };
 
-  // Initialize with default date on mount
+  // Initialize with default date on mount if no value provided
   useEffect(() => {
-    if (!dateFilter?.active) {
-      dispatch(
-        updateGlobalState({
-          dateFilter: {
-            active: defaultDate,
-            start_date: dateMap[defaultDate]?.start_date,
-            end_date: dateMap[defaultDate]?.end_date,
-          },
-        })
-      );
+    if (!value?.active && onChange) {
+      onChange({
+        active: defaultDate,
+        start_date: dateMap[defaultDate]?.start_date,
+        end_date: dateMap[defaultDate]?.end_date,
+      });
     }
   }, []);
 
   // Update custom date filter when date changes
   useEffect(() => {
-    if (date !== undefined && dateFilter?.active === "custom") {
-      dispatch(
-        updateGlobalState({
-          dateFilter: {
-            active: "custom",
-            start_date: date.from,
-            end_date: date.to,
-          },
-        })
-      );
+    if (date !== undefined && activeShortcut === "custom") {
+      onChange?.({
+        active: "custom",
+        start_date: date.from || null,
+        end_date: date.to || null,
+      });
     }
-  }, [date, dispatch]);
+  }, [date]);
 
   // Calculate position when popup opens
   useEffect(() => {
@@ -264,9 +235,9 @@ export const CustomOnlyDateFilterComponent = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (
         divRef.current &&
-        !divRef.current.contains(event.target) &&
+        !divRef.current.contains(event.target as Node) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target)
+        !buttonRef.current.contains(event.target as Node)
       ) {
         setDismissDatePopup(true);
       }
@@ -329,9 +300,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(new Date().getFullYear());
                   handleFilterChange("today", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "today"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "today"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -349,9 +320,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(yesterday.getFullYear());
                   handleFilterChange("yesterday", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "yesterday"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "yesterday"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -369,9 +340,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(weekStart.getFullYear());
                   handleFilterChange("this_week", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "this_week"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "this_week"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -389,9 +360,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(lastWeekStart.getFullYear());
                   handleFilterChange("last_week", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "last_week"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "last_week"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -409,9 +380,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(monthStart.getFullYear());
                   handleFilterChange("this_month", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "this_month"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "this_month"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -431,9 +402,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(lastMonthStart.getFullYear());
                   handleFilterChange("last_month", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "last_month"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "last_month"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -451,9 +422,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(yearStart.getFullYear());
                   handleFilterChange("this_year", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "this_year"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "this_year"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -471,9 +442,9 @@ export const CustomOnlyDateFilterComponent = ({
                   setYearNavigator(lastYearStart.getFullYear());
                   handleFilterChange("last_year", range);
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "last_year"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "last_year"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -483,9 +454,9 @@ export const CustomOnlyDateFilterComponent = ({
                 onClick={() => {
                   handleFilterChange("custom");
                 }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100/50 dark:hover:bg-white/5 transition-colors ${
-                  dateFilter?.active === "custom"
-                    ? "bg-primary-gray/40 text-primary-green"
+                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  value?.active === "custom"
+                    ? "bg-primary/20 text-primary-foreground font-bold"
                     : ""
                 }`}
               >
@@ -572,9 +543,6 @@ export const CustomOnlyDateFilterComponent = ({
                   modifiersStyles={{
                     disabled: { fontSize: "70%" },
                   }}
-                  components={{
-                    Caption: () => null,
-                  }}
                 />
               </div>
             )}
@@ -653,23 +621,20 @@ export const CustomOnlyDateFilterComponent = ({
 const css = `
   .my-selected:not([disabled]) { 
     font-weight: bold; 
-    border-top: 1px solid #e4eef084;
-    border-bottom: 1px solid #e4eef084;
-    border-left: 0px solid #e4eef084;
-    border-right: 0px solid #e4eef084;
-		background-color: #e4eef084;
-    color: black;
+    border: 1px solid var(--border);
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
     border-radius: 0 !important;
   }
   
   .rdp-day_range_start:not([disabled]) {
     border-radius: 5px 0 0 5px !important;
-    border-left: 1px solid #e4eef084;
+    border-left: 1px solid var(--border);
   }
 
   .rdp-day_range_end:not([disabled]) {
     border-radius: 0 5px 5px 0 !important;
-    border-right: 1px solid #e4eef084;
+    border-right: 1px solid var(--border);
   }
 
   .rdp-day_range_start.rdp-day_range_end:not([disabled]) {

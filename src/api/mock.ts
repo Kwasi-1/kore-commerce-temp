@@ -293,39 +293,74 @@ export function setupMockApi() {
   });
   
   // POS Transactions
-  const mockTransactions = [
-    { id: 'tx1', receiptNumber: 'RCP-0001', dateCreated: new Date().toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'cash', totalAmount: 850.00 },
-    { id: 'tx2', receiptNumber: 'RCP-0002', dateCreated: new Date(Date.now() - 2*3600000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'mobile_money', totalAmount: 1200.00 },
-    { id: 'tx3', receiptNumber: 'RCP-0003', dateCreated: new Date(Date.now() - 5*3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'card', totalAmount: 4200.00 },
-    { id: 'tx4', receiptNumber: 'RCP-0004', dateCreated: new Date(Date.now() - 86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 380.00 },
-    { id: 'tx5', receiptNumber: 'RCP-0005', dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 920.00 },
-    { id: 'tx6', receiptNumber: 'RCP-0006', dateCreated: new Date(Date.now() - 2*86400000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'card', totalAmount: 3500.00 },
-    { id: 'tx7', receiptNumber: 'RCP-0007', dateCreated: new Date(Date.now() - 2*86400000 - 1800000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 120.00 },
-    { id: 'tx8', receiptNumber: 'RCP-0008', dateCreated: new Date(Date.now() - 3*86400000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 650.00 },
-    { id: 'tx9', receiptNumber: 'RCP-0009', dateCreated: new Date(Date.now() - 3*86400000 - 7200000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'cash', totalAmount: 250.00 },
-    { id: 'tx10', receiptNumber: 'RCP-0010', dateCreated: new Date(Date.now() - 4*86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'card', totalAmount: 5500.00 },
+  let mockTransactions = [
+    { id: 'tx1', receiptNumber: 'RCP-0001', dateCreated: new Date().toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'cash', totalAmount: 850.00, status: 'completed' },
+    { id: 'tx2', receiptNumber: 'RCP-0002', dateCreated: new Date(Date.now() - 2*3600000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'mobile_money', totalAmount: 1200.00, status: 'completed' },
+    { id: 'tx3', receiptNumber: 'RCP-0003', dateCreated: new Date(Date.now() - 5*3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'card', totalAmount: 4200.00, status: 'completed' },
+    { id: 'tx4', receiptNumber: 'RCP-0004', dateCreated: new Date(Date.now() - 86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 380.00, status: 'completed' },
+    { id: 'tx5', receiptNumber: 'RCP-0005', dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 920.00, status: 'completed' },
+    { id: 'tx6', receiptNumber: 'RCP-0006', dateCreated: new Date(Date.now() - 2*86400000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'card', totalAmount: 3500.00, status: 'completed' },
+    { id: 'tx7', receiptNumber: 'RCP-0007', dateCreated: new Date(Date.now() - 2*86400000 - 1800000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 120.00, status: 'completed' },
+    { id: 'tx8', receiptNumber: 'RCP-0008', dateCreated: new Date(Date.now() - 3*86400000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 650.00, status: 'completed' },
+    { id: 'tx9', receiptNumber: 'RCP-0009', dateCreated: new Date(Date.now() - 3*86400000 - 7200000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'cash', totalAmount: 250.00, status: 'completed' },
+    { id: 'tx10', receiptNumber: 'RCP-0010', dateCreated: new Date(Date.now() - 4*86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'card', totalAmount: 5500.00, status: 'completed' },
   ];
 
-  mock.onGet(/\/pos\/transactions/).reply((config) => {
-    const url = config.url || '';
-    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
-    const method = searchParams.get('payment_method') || '';
-
-    let filtered = [...mockTransactions];
-    if (method) {
-      filtered = filtered.filter(t => t.paymentMethod === method);
-    }
-
-    return [200, { success: true, data: { transactions: filtered, total: filtered.length } }];
-  });
-
   mock.onGet(/\/pos\/transactions\/[^/]+\/receipt/).reply((config) => {
-    const id = config.url?.split('/')[3];
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
     const tx = mockTransactions.find(t => t.id === id);
     if (tx) {
       return [200, { success: true, data: { receipt: { ...tx, items: [{ name: 'Sample Product', qty: 1, price: tx.totalAmount }], tenant_name: 'HeadlessPOS Demo Store' } } }];
     }
     return [404, { success: false }];
+  });
+
+  mock.onPost(/\/pos\/transactions\/[^/]+\/refund/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { type, amount } = JSON.parse(config.data);
+    const txIndex = mockTransactions.findIndex(t => t.id === id);
+    
+    if (txIndex !== -1) {
+      const tx = mockTransactions[txIndex];
+      if (type === 'full' || amount >= tx.totalAmount) {
+        mockTransactions[txIndex] = { ...tx, status: 'refunded', totalAmount: 0 };
+      } else {
+        mockTransactions[txIndex] = { ...tx, status: 'partially_refunded', totalAmount: tx.totalAmount - amount };
+      }
+      return [200, { success: true, message: 'Refund processed' }];
+    }
+    return [404, { success: false, message: 'Transaction not found' }];
+  });
+
+  mock.onGet(/^\/pos\/transactions/).reply((config) => {
+    const url = config.url || '';
+    // if url contains receipt or refund, skip it since we already handled it above (just in case)
+    if (url.includes('/receipt') || url.includes('/refund')) return [404, {}];
+    
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const method = searchParams.get('payment_method') || '';
+    const startDate = searchParams.get('start_date');
+    const endDate = searchParams.get('end_date');
+
+    let filtered = [...mockTransactions];
+    if (method) {
+      filtered = filtered.filter(t => t.paymentMethod === method);
+    }
+    
+    if (startDate && endDate) {
+      const start = new Date(startDate).getTime();
+      const end = new Date(endDate).getTime();
+      filtered = filtered.filter(t => {
+        const tTime = new Date(t.dateCreated).getTime();
+        return tTime >= start && tTime <= end;
+      });
+    }
+
+    return [200, { success: true, data: { transactions: filtered, total: filtered.length } }];
   });
   
   mock.onGet(/\/tenant\/inventory\/suppliers/).reply(200, {
