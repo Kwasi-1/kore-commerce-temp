@@ -490,6 +490,23 @@ export function setupMockApi() {
     return [404, { success: false, error: { message: 'Order not found' } }];
   });
 
+  mock.onPost(/\/tenant\/orders\/[^/]+\/refund/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const { type, amount } = JSON.parse(config.data);
+    const orderIndex = mockOrders.findIndex(o => o.id === id);
+    
+    if (orderIndex !== -1) {
+      const order = mockOrders[orderIndex];
+      if (type === 'full' || amount >= order.total_amount) {
+        mockOrders[orderIndex] = { ...order, status: 'refunded', total_amount: 0 };
+      } else {
+        mockOrders[orderIndex] = { ...order, status: 'partially_refunded', total_amount: order.total_amount - amount };
+      }
+      return [200, { success: true, message: 'Refund processed' }];
+    }
+    return [404, { success: false, message: 'Order not found' }];
+  });
+
   mock.onGet(/\/tenant\/orders\/[^/]+$/).reply((config) => {
     const id = config.url?.split('/').pop();
     const order = mockOrders.find(o => o.id === id);

@@ -7,7 +7,9 @@ import toast from 'react-hot-toast';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { CurrencyDisplay } from '@/hooks';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { OrderDetailPanel } from './components/OrderDetailPanel';
+import OrderSidePanel from './components/OrderSidePanel';
+import OrderRefundModal from './components/OrderRefundModal';
+import OrderStatusConfirmModal from './components/OrderStatusConfirmModal';
 
 export default function OnlineOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -15,6 +17,15 @@ export default function OnlineOrders() {
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // New State for Side Panel & Modals
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  
+  // State for Status Confirmation
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ order: any, newStatus: string } | null>(null);
 
   // Stats
   const [stats, setStats] = useState({
@@ -67,17 +78,49 @@ export default function OnlineOrders() {
     fetchOrders();
   }, [statusFilter, searchQuery]);
 
-  const handleUpdateStatus = async (order: any, newStatus: string) => {
+  const handleUpdateStatusClick = (order: any, newStatus: string) => {
+    setPendingStatusUpdate({ order, newStatus });
+    setIsStatusConfirmOpen(true);
+  };
+
+  const confirmUpdateStatus = async () => {
+    if (!pendingStatusUpdate) return;
+    
     setIsUpdatingStatus(true);
     try {
-      await apiClient.put(`/tenant/orders/${order.id}/status`, { status: newStatus });
+      await apiClient.put(`/tenant/orders/${pendingStatusUpdate.order.id}/status`, { status: pendingStatusUpdate.newStatus });
       toast.success('Order status updated');
+      
+      // Update the local selectedOrder so the side panel reflects the change immediately
+      setSelectedOrder((prev: any) => prev && prev.id === pendingStatusUpdate.order.id ? { ...prev, status: pendingStatusUpdate.newStatus } : prev);
+      
       fetchOrders();
     } catch (error) {
       toast.error('Failed to update order status');
     } finally {
       setIsUpdatingStatus(false);
+      setIsStatusConfirmOpen(false);
+      setPendingStatusUpdate(null);
     }
+  };
+
+  const handleRowClick = (key: any) => {
+    const order = orders.find(o => o.id === key);
+    if (order) {
+      setSelectedOrder(order);
+      setIsSidePanelOpen(true);
+    }
+  };
+
+  const handleRefundSuccess = () => {
+    setIsRefundModalOpen(false);
+    setIsSidePanelOpen(false);
+    fetchOrders();
+  };
+
+  const handlePrintInvoice = () => {
+    // In a real app, this would open a printable view or PDF
+    window.print();
   };
 
   const columns = [
@@ -93,7 +136,7 @@ export default function OnlineOrders() {
   const rows = orders.map((o: any) => {
     return {
       id: o.id,
-      reference: <span className="font-semibold font-mono text-foreground">{o.reference}</span>,
+      reference: <span className="font-medium font-mono text-foreground">{o.reference}</span>,
       customer: (
         <div>
           <div className="font-medium">{o.customer_name}</div>
@@ -126,7 +169,7 @@ export default function OnlineOrders() {
         <DashboardCard
           title="Today's Revenue"
           value={isLoading ? '...' : <CurrencyDisplay amount={stats.todayRevenue} />}
-          className="border border-border bg-primary/5 dark:bg-primary/10"
+          className="border border-border"
         />
         <DashboardCard
           title="Avg Order Value"
@@ -140,18 +183,7 @@ export default function OnlineOrders() {
         rows={rows}
         isLoading={isLoading}
         title="Online Orders"
-        
-        enableRowExpansion={true}
-        columnsToHideOnExpansion={3}
-        renderDetailView={(record) => (
-          <OrderDetailPanel
-            order={record}
-            onClose={() => {}} // Handled by EnhancedTableComponent
-            onUpdateStatus={handleUpdateStatus}
-            isUpdatingStatus={isUpdatingStatus}
-          />
-        )}
-        
+        onclick={handleRowClick}
         showSearch={true}
         searchPlaceholder="Search order # or customer..."
         searchValue={searchQuery}
@@ -172,6 +204,34 @@ export default function OnlineOrders() {
         
         showAddButton={false}
         onRefresh={fetchOrders}
+      />
+
+      {/* Side Panel Drawer */}
+      <OrderSidePanel
+        isOpen={isSidePanelOpen}
+        onClose={() => setIsSidePanelOpen(false)}
+        order={selectedOrder}
+        onUpdateStatusClick={handleUpdateStatusClick}
+        onIssueRefundClick={() => setIsRefundModalOpen(true)}
+        onPrintInvoice={handlePrintInvoice}
+      />
+
+      {/* Refund Modal */}
+      <OrderRefundModal
+        isOpen={isRefundModalOpen}
+        onClose={() => setIsRefundModalOpen(false)}
+        orderData={selectedOrder}
+        onSuccess={handleRefundSuccess}
+      />
+
+      {/* Status Confirm Modal */}
+      <OrderStatusConfirmModal
+        isOpen={isStatusConfirmOpen}
+        onClose={() => setIsStatusConfirmOpen(false)}
+        onConfirm={confirmUpdateStatus}
+        orderReference={pendingStatusUpdate?.order?.reference || ''}
+        newStatus={pendingStatusUpdate?.newStatus || ''}
+        isUpdating={isUpdatingStatus}
       />
     </PageLayout>
   );
