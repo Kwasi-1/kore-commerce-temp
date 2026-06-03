@@ -409,7 +409,7 @@ export function setupMockApi() {
         { name: 'Nike Socks', quantity: 3, price: 50, subtotal: 150 }
       ]
     },
-    { id: 'ch2', customer_id: 'c1', type: 'settlement', amount: 650.00, balance_after: 850.00, reference: 'SET-001', payment_method: 'cash', date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
+    { id: 'ch2', customer_id: 'c1', type: 'settlement', purchase_id: 'ch1', amount: 650.00, balance_after: 850.00, reference: 'SET-001', payment_method: 'cash', date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
     { 
       id: 'ch3', 
       customer_id: 'c3', 
@@ -448,42 +448,81 @@ export function setupMockApi() {
   });
 
   mock.onGet(/^\/pos\/credit-ledger/).reply((config) => {
-    const debtors = mockCustomers.filter(c => (c.outstanding_debt || 0) > 0);
+    const purchases = mockCreditHistory.filter(h => h.type === 'credit_purchase');
+    const debtors = purchases.map(p => {
+      const customer = mockCustomers.find(c => c.id === p.customer_id) || { name: 'Unknown Customer', phone: '', email: '' };
+      
+      const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === p.id);
+      const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
+      const outstanding = p.amount - totalSettled;
+      
+      return {
+        id: p.id,
+        customer_id: p.customer_id,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        reference: p.reference,
+        original_amount: p.amount,
+        outstanding_debt: outstanding,
+        date: p.date,
+        items: p.items
+      };
+    }).filter(d => d.outstanding_debt > 0);
+
     return [200, { success: true, data: { debtors, total: debtors.length } }];
   });
 
-  mock.onGet(/\/tenant\/customers\/[^/]+\/credit-history/).reply((config) => {
+  mock.onGet(/\/tenant\/credit-ledger\/[^/]+\/history/).reply((config) => {
     const url = config.url || '';
-    const urlParts = url.split('/');
-    const id = urlParts[urlParts.length - 2];
-    const history = mockCreditHistory.filter(h => h.customer_id === id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const match = url.match(/\/tenant\/credit-ledger\/([^/?#]+)\/history/);
+    const purchaseId = match ? match[1] : '';
+    
+    const purchase = mockCreditHistory.find(h => h.id === purchaseId);
+    if (!purchase) return [200, { success: true, data: { history: [] } }];
+    
+    const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === purchaseId);
+    const history = [...settlements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return [200, { success: true, data: { history } }];
   });
 
-  mock.onPost(/\/tenant\/customers\/[^/]+\/settle-debt/).reply((config) => {
+  mock.onPost(/\/tenant\/credit-ledger\/[^/]+\/settle/).reply((config) => {
     const url = config.url || '';
-    const urlParts = url.split('/');
-    const id = urlParts[urlParts.length - 2];
+    const match = url.match(/\/tenant\/credit-ledger\/([^/?#]+)\/settle/);
+    const purchaseId = match ? match[1] : '';
     const { amount, payment_method } = JSON.parse(config.data);
     
-    const customer = mockCustomers.find(c => c.id === id);
-    if (!customer) return [404, { success: false, message: 'Customer not found' }];
-    if (amount <= 0 || amount > customer.outstanding_debt) return [400, { success: false, message: 'Invalid amount' }];
+    const purchase = mockCreditHistory.find(h => h.id === purchaseId);
+    if (!purchase) return [404, { success: false, message: 'Credit record not found' }];
     
-    customer.outstanding_debt -= amount;
+    const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === purchaseId);
+    const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
+    const remaining = purchase.amount - totalSettled;
     
-    mockCreditHistory.push({
+    if (amount <= 0 || amount > remaining) {
+      return [400, { success: false, message: 'Invalid settlement amount' }];
+    }
+    
+    const newSettlement = {
       id: `ch${Date.now()}`,
-      customer_id: id,
+      purchase_id: purchaseId,
+      customer_id: purchase.customer_id,
       type: 'settlement',
       amount,
-      balance_after: customer.outstanding_debt,
+      balance_after: remaining - amount,
       reference: `SET-${Math.floor(Math.random() * 10000)}`,
       payment_method,
       date: new Date().toISOString()
-    });
+    };
     
-    return [200, { success: true, message: 'Debt settled successfully', data: { new_balance: customer.outstanding_debt } }];
+    mockCreditHistory.push(newSettlement);
+    
+    const customer = mockCustomers.find(c => c.id === purchase.customer_id);
+    if (customer) {
+      customer.outstanding_debt = Math.max(0, customer.outstanding_debt - amount);
+    }
+    
+    return [200, { success: true, message: 'Payment recorded successfully', data: { new_balance: remaining - amount } }];
   });
 
   // Orders

@@ -9,8 +9,10 @@ import DebtSettlementModal from '@/components/pos/DebtSettlementModal';
 import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Wallet, History, AlertCircle } from 'lucide-react';
+import { Wallet, History, AlertCircle, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function CreditLedger() {
   const [debtors, setDebtors] = useState<any[]>([]);
@@ -55,10 +57,10 @@ export default function CreditLedger() {
     fetchDebtors();
   }, [searchQuery]);
 
-  const fetchCreditHistory = async (customerId: string) => {
+  const fetchCreditHistory = async (purchaseId: string) => {
     setIsHistoryLoading(true);
     try {
-      const response = await apiClient.get(`/tenant/customers/${customerId}/credit-history`);
+      const response = await apiClient.get(`/tenant/credit-ledger/${purchaseId}/history`);
       setCreditHistory(response.data.data.history || []);
     } catch (error) {
       console.error('Failed to fetch history:', error);
@@ -79,12 +81,12 @@ export default function CreditLedger() {
 
   const handleSettle = async (amount: number, method: string) => {
     try {
-      const response = await apiClient.post(`/tenant/customers/${selectedDebtor.id}/settle-debt`, {
+      const response = await apiClient.post(`/tenant/credit-ledger/${selectedDebtor.id}/settle`, {
         amount,
         payment_method: method
       });
       
-      toast.success(response.data.message || 'Debt settled successfully');
+      toast.success(response.data.message || 'Payment recorded successfully');
       
       // Update selected debtor's balance
       setSelectedDebtor((prev: any) => ({
@@ -104,6 +106,101 @@ export default function CreditLedger() {
     }
   };
 
+  const handleDownloadPaymentPDF = async (payment: any) => {
+    if (!selectedDebtor) return;
+    
+    const toastId = toast.loading('Generating payment receipt...');
+    try {
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.top = '-9999px';
+      container.style.left = '-9999px';
+      container.style.width = '380px';
+      container.style.backgroundColor = '#ffffff';
+      container.style.color = '#000000';
+      container.style.padding = '24px';
+      container.style.fontFamily = 'monospace';
+      container.style.fontSize = '12px';
+      container.style.borderRadius = '12px';
+      
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 4px; letter-spacing: 1px;">VYSION STORE</h3>
+          <p style="font-size: 10px; color: #666; text-transform: uppercase; margin: 0;">123 Commerce St, Accra, Ghana</p>
+          <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Tel: +233 24 123 4567</p>
+        </div>
+        
+        <div style="border-bottom: 1px dashed #ccc; padding-bottom: 12px; margin-bottom: 12px; font-size: 11px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: bold;">Payment Ref:</span>
+            <span>${payment.reference}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: bold;">Date:</span>
+            <span>${new Date(payment.date).toLocaleString()}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: bold;">Customer:</span>
+            <span>${selectedDebtor.name}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: bold;">Purchase Ref:</span>
+            <span>${selectedDebtor.reference}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: bold;">Payment Method:</span>
+            <span style="text-transform: uppercase;">${payment.payment_method || 'cash'}</span>
+          </div>
+        </div>
+        
+        <div style="border-bottom: 1px dashed #ccc; padding-bottom: 12px; margin-bottom: 12px;">
+          <h4 style="font-weight: bold; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase;">Payment Details</h4>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+            <span>Credit Purchase Balance:</span>
+            <span>GHS ${(payment.balance_after + payment.amount).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 4px;">
+            <span>Amount Paid:</span>
+            <span>-GHS ${payment.amount.toFixed(2)}</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; text-transform: uppercase;">
+          <span>Remaining Balance:</span>
+          <span>GHS ${payment.balance_after.toFixed(2)}</span>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #666; text-transform: uppercase;">
+          <span style="border: 1px solid #000; padding: 4px 8px; border-radius: 99px; font-weight: bold;">Payment Receipt</span>
+          <p style="margin-top: 10px; letter-spacing: 1px;">Thank you for your payment!</p>
+        </div>
+      `;
+      
+      document.body.appendChild(container);
+      
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Receipt_${payment.reference}.pdf`);
+      
+      document.body.removeChild(container);
+      toast.success('Payment receipt downloaded!', { id: toastId });
+    } catch (err) {
+      console.error('PDF generation failed', err);
+      toast.error('Failed to generate PDF', { id: toastId });
+    }
+  };
+
   const stats = useMemo(() => {
     const totalDebt = debtors.reduce((sum, d) => sum + (d.outstanding_debt || 0), 0);
     const count = debtors.length;
@@ -115,8 +212,9 @@ export default function CreditLedger() {
   const columns = [
     { key: 'avatar', label: '' },
     { key: 'name', label: 'Customer Name' },
-    { key: 'phone', label: 'Phone Number' },
-    { key: 'last_credit', label: 'Last Credit Date' },
+    { key: 'reference', label: 'Receipt Ref' },
+    { key: 'date', label: 'Purchase Date' },
+    { key: 'original', label: 'Original Amount' },
     { key: 'debt', label: 'Outstanding Balance' }
   ];
 
@@ -128,8 +226,9 @@ export default function CreditLedger() {
       </div>
     ),
     name: <span className="font-semibold text-foreground">{d.name}</span>,
-    phone: <span className="text-muted-foreground">{d.phone || '—'}</span>,
-    last_credit: <span className="text-muted-foreground">{d.last_credit_date ? format(new Date(d.last_credit_date), 'MMM dd, yyyy') : '—'}</span>,
+    reference: <span className="font-mono text-xs text-muted-foreground">{d.reference}</span>,
+    date: <span className="text-muted-foreground">{d.date ? format(new Date(d.date), 'MMM dd, yyyy') : '—'}</span>,
+    original: <span className="text-muted-foreground"><CurrencyDisplay amount={d.original_amount || 0} /></span>,
     debt: <span className="font-semibold text-foreground"><CurrencyDisplay amount={d.outstanding_debt || 0} /></span>,
     __record: d
   }));
@@ -182,7 +281,7 @@ export default function CreditLedger() {
           header={
             <div className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">Ledger Account</span>
+              <span className="text-lg font-semibold">Ledger: {selectedDebtor?.reference}</span>
             </div>
           }
           body={
@@ -196,11 +295,24 @@ export default function CreditLedger() {
                     <h3 className="text-xl font-bold">{selectedDebtor.name}</h3>
                     <p className="text-muted-foreground text-sm">{selectedDebtor.phone || selectedDebtor.email}</p>
                     
-                    <div className="mt-6 bg-muted/50 p-4 rounded-xl border border-border inline-block w-full max-w-[250px]">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Current Balance</p>
-                      <p className="text-2xl font-bold text-foreground tracking-tight">
-                        <CurrencyDisplay amount={selectedDebtor.outstanding_debt} />
-                      </p>
+                    <div className="mt-4 flex flex-col items-center gap-1 text-xs text-muted-foreground">
+                      <span>Receipt: <span className="font-mono font-semibold">{selectedDebtor.reference}</span></span>
+                      <span>Date: {format(new Date(selectedDebtor.date), 'MMM dd, yyyy')}</span>
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border border-border">
+                      <div className="text-center">
+                        <p className="text-[11px] font-medium text-muted-foreground mb-1 uppercase tracking-wider">Original Credit</p>
+                        <p className="text-lg font-bold text-foreground">
+                          <CurrencyDisplay amount={selectedDebtor.original_amount} />
+                        </p>
+                      </div>
+                      <div className="text-center border-l border-border">
+                        <p className="text-[11px] font-medium text-muted-foreground mb-1 uppercase tracking-wider">Current Balance</p>
+                        <p className="text-lg font-bold text-foreground">
+                          <CurrencyDisplay amount={selectedDebtor.outstanding_debt} />
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -216,52 +328,55 @@ export default function CreditLedger() {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <History className="h-4 w-4" />
-                      Transaction History
-                    </h4>
+                    <div className="flex justify-between items-center mb-4 border-b border-border/50 pb-2">
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        Repayment History
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setSelectedCreditPurchase(selectedDebtor);
+                          setIsReceiptModalOpen(true);
+                        }}
+                        className="text-xs text-primary hover:underline font-semibold"
+                      >
+                        View Original Receipt
+                      </button>
+                    </div>
                     
                     {isHistoryLoading ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">Loading history...</div>
+                      <div className="py-8 text-center text-sm text-muted-foreground">Loading repayments...</div>
                     ) : creditHistory.length === 0 ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">No history found.</div>
+                      <div className="py-8 text-center text-sm text-muted-foreground">No payments made yet.</div>
                     ) : (
                       <div className="space-y-3 relative before:absolute before:inset-0 before:ml-[1.15rem] before:w-px before:bg-border">
-                        {creditHistory.map((item, idx) => (
-                          <div key={item.id} className="relative flex items-start gap-4">
+                        {creditHistory.map((item) => (
+                          <div 
+                            key={item.id} 
+                            onClick={() => handleDownloadPaymentPDF(item)}
+                            className="relative flex items-start gap-4 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors group"
+                          >
                             <div className="flex items-center justify-center w-9 h-9 rounded-full border border-background bg-muted shrink-0 z-10">
-                              {item.type === 'settlement' ? (
-                                <Wallet className="h-4 w-4 text-foreground" />
-                              ) : (
-                                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                              )}
+                              <Wallet className="h-4 w-4 text-foreground" />
                             </div>
                             <div className="flex-1 pb-1">
                               <div className="flex justify-between items-start mb-0.5">
-                                <span className="text-sm font-medium text-foreground">
-                                  {item.type === 'settlement' ? 'Payment' : 'Credit Sale'}
+                                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                  Repayment
                                 </span>
                                 <span className="text-xs text-muted-foreground">
-                                  {format(new Date(item.date), 'MMM dd')}
+                                  {format(new Date(item.date), 'MMM dd, yyyy')}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                   <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
-                                  {item.type === 'credit_purchase' && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedCreditPurchase(item);
-                                        setIsReceiptModalOpen(true);
-                                      }}
-                                      className="text-xs text-primary hover:underline font-semibold"
-                                    >
-                                      View Items
-                                    </button>
-                                  )}
+                                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                                    <Download className="h-2.5 w-2.5" /> PDF
+                                  </span>
                                 </div>
-                                <span className="text-sm font-bold">
-                                  {item.type === 'settlement' ? '-' : '+'}<CurrencyDisplay amount={item.amount} />
+                                <span className="text-sm font-bold text-foreground">
+                                  -<CurrencyDisplay amount={item.amount} />
                                 </span>
                               </div>
                             </div>
