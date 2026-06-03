@@ -125,7 +125,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     const displayTotal = frozenCart ? frozenCart.total : total;
 
     return (
-    <div className="bg-white text-black p-8 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-mono text-sm border border-border/20 print:border-none">
+    <div className="bg-muted/50 dark:bg-foreground text-black p-8 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-mono text-sm border border-border/20 print:border-none">
       
       {/* Header */}
       <div className="text-center mb-6">
@@ -301,14 +301,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   onChange={(e: any) => setMomoNumber(e.target.value)}
                   className="h-14 text-lg font-bold rounded-xl bg-background border-border"
                 />
-                <div className="p-4 bg-secondary rounded-xl text-sm font-medium border border-border/50 text-muted-foreground">
+                <div className="p-4 bg-secondary rounded-lg text-sm font-medium borde border-border/50 text-muted-foreground">
                   The customer will receive a secure payment prompt on their phone.
                 </div>
               </div>
             )}
 
             {activeTab === 'card' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bg-secondary/30 rounded-2xl p-8 border border-border/50 text-center">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
                 <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
                 <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
                 <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
@@ -367,7 +367,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const modalBody = (
     <div className="flex flex-col md:flex-row w-full h-full">
       {/* Left Column: Receipt Preview */}
-      <div className={`w-full md:w-[380px] bg-zinc-100 dark:bg-[#0a0a0a] border-r border-border p-6 flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0' : ''}`}>
+      <div className={`w-full md:w-[380px] lg:w-[400px]  borde border-border rounded-xl flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0' : ''}`}>
          {renderReceiptPreview()}
       </div>
 
@@ -387,7 +387,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         onOpenChange={() => { if (!isProcessing) onClose(); }}
         size="4xl"
         classNames={{
-          body: "p-0 overflow-hidden max-h-[90vh]"
+          body: "p-0 overflow-hidden max-h-[90vh] p-2 ",
+          header: "hidden"
         }}
         body={modalBody}
       />

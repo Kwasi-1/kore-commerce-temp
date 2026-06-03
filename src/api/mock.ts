@@ -395,9 +395,35 @@ export function setupMockApi() {
   ];
 
   let mockCreditHistory = [
-    { id: 'ch1', customer_id: 'c1', type: 'credit_purchase', amount: 1500.00, balance_after: 1500.00, reference: 'RCP-0021', date: new Date(Date.now() - 15*24*60*60*1000).toISOString() },
+    { 
+      id: 'ch1', 
+      customer_id: 'c1', 
+      type: 'credit_purchase', 
+      amount: 1500.00, 
+      balance_after: 1500.00, 
+      reference: 'RCP-0021', 
+      date: new Date(Date.now() - 15*24*60*60*1000).toISOString(),
+      items: [
+        { name: 'Nike Air Max', quantity: 1, price: 850, subtotal: 850 },
+        { name: 'Leather Wallet', quantity: 2, price: 250, subtotal: 500 },
+        { name: 'Nike Socks', quantity: 3, price: 50, subtotal: 150 }
+      ]
+    },
     { id: 'ch2', customer_id: 'c1', type: 'settlement', amount: 650.00, balance_after: 850.00, reference: 'SET-001', payment_method: 'cash', date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
-    { id: 'ch3', customer_id: 'c3', type: 'credit_purchase', amount: 1200.50, balance_after: 1200.50, reference: 'RCP-0044', date: new Date(Date.now() - 2*24*60*60*1000).toISOString() },
+    { 
+      id: 'ch3', 
+      customer_id: 'c3', 
+      type: 'credit_purchase', 
+      amount: 1200.50, 
+      balance_after: 1200.50, 
+      reference: 'RCP-0044', 
+      date: new Date(Date.now() - 2*24*60*60*1000).toISOString(),
+      items: [
+        { name: 'Adidas Ultraboost', quantity: 1, price: 920, subtotal: 920 },
+        { name: 'Leather Wallet', quantity: 1, price: 250, subtotal: 250 },
+        { name: 'Nike Socks', quantity: 1, price: 30.50, subtotal: 30.50 }
+      ]
+    },
   ];
 
   mock.onGet(/\/tenant\/customers\/.+\/orders/).reply(200, {

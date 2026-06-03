@@ -245,3 +245,9 @@
     @apply tracking-tighter
   }
 }
+
+/* .spacing-sm{
+  * {
+    @apply tracking-[-0.0rem]
+  }
+} */

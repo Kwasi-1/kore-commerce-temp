@@ -219,7 +219,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
             savedTransactions.length > 0 ? (
               <div className="flex flex-col gap-3 py-2 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-foreground text-[15px]">
+                  <h3 className="font-bold text-foreground text-[15px] font-header tracking-[-0.01rem]">
                     Saved Transactions
                   </h3>
                   <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-full">
@@ -230,7 +230,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                   <Button
                     key={t.id}
                     variant="outline"
-                    className="flex flex-col items-start gap-2 h-auto py-3 px-4 rounded-[20px] bg-card border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left shadow-sm w-full group"
+                    className="flex flex-col items-start gap-2 h-auto py-3 px-4 rounded-[20px] bg-card border-transparent dark:border-border hover:bg-card hover:dark:border-primary/30 hover:border-foreground/10 transition-all text-left shadow-sm w-full group"
                     onClick={() => {
                       resumeTransaction(t.id);
                       toast.success(`Resumed ${t.customerName}`);
@@ -238,10 +238,10 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground transition-colors">
                           {t.customerInitials}
                         </div>
-                        <span className="font-bold text-foreground text-sm">
+                        <span className="font-bold text-foreground text-sm truncate max-w-[180px] md:max-w-[200px]">
                           {t.customerName}
                         </span>
                       </div>
@@ -254,7 +254,7 @@ export default function CartPanel({ isMobileView = false }: CartPanelProps) {
                         <ShoppingCart className="h-3.5 w-3.5" />
                         {t.itemCount} items
                       </div>
-                      <span className="bg-background group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors px-3 py-1 rounded-full border border-border shadow-sm font-bold text-[10px] uppercase tracking-wide">
+                      <span className="bg-background group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors px-3 py-1 rounded-full border border-border shadow-sm font-bold text-[10px] uppercase tracking-wide duration-300">
                         Resume
                       </span>
                     </div>

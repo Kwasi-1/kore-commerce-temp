@@ -39,7 +39,8 @@ export default function SavedTransactionsHeader() {
             className="shrink-0 flex items-center h-10 px-4 rounded-full border-foreground/10 bg-card hover:bg-secondary transition-all duration-300 text-sm font-semibold"
             onClick={() => handleResume(transaction.id, transaction.customerName)}
           >
-            {transaction.customerName} &middot; <span className="text-xs">{transaction.time}</span>
+            <span className='truncate max-w-[100px]'>
+            {transaction.customerName}</span> &middot; <span className="text-xs">{transaction.time}</span>
           </Button>
         ))}
       </div>
@@ -57,13 +58,13 @@ export default function SavedTransactionsHeader() {
             <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-1" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 rounded-[16px] shadow-lg border-border/60 max-h-[300px] overflow-y-auto">
+        <DropdownMenuContent align="end" className="min-w-64 rounded-3xl shadow-lg border-border/60 max-h-[300px] overflow-y-auto max-w-xs w-full">
           <DropdownMenuLabel className="font-bold text-xs uppercase text-muted-foreground">All Saved Transactions</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {savedTransactions.map((t) => (
             <DropdownMenuItem 
               key={t.id} 
-              className="flex items-center gap-3 py-2 cursor-pointer rounded-lg"
+              className="flex items-center gap-3 py-2 cursor-pointer rounded-xl"
               onClick={() => handleResume(t.id, t.customerName)}
             >
               <Avatar className="h-8 w-8 rounded-full">

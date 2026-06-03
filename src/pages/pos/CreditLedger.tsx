@@ -6,6 +6,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { CurrencyDisplay } from '@/hooks';
 import DebtSettlementModal from '@/components/pos/DebtSettlementModal';
+import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Wallet, History, AlertCircle } from 'lucide-react';
@@ -24,6 +25,10 @@ export default function CreditLedger() {
 
   // Settlement Modal state
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+
+  // Receipt Modal state
+  const [selectedCreditPurchase, setSelectedCreditPurchase] = useState<any>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   const fetchDebtors = async () => {
     setIsLoading(true);
@@ -138,19 +143,19 @@ export default function CreditLedger() {
             title="Total Outstanding Debt"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.totalDebt} />}
             className="border border-border"
-            icon={<AlertCircle className="text-muted-foreground/50 h-5 w-5" />}
+            action={<AlertCircle className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Debtors"
             value={isLoading ? '...' : stats.count.toString()}
             className="border border-border"
-            icon={<UsersIcon className="text-muted-foreground/50 h-5 w-5" />}
+            action={<UsersIcon className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Settled This Month"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.settledThisMonth} />}
             className="border border-border"
-            icon={<Wallet className="text-muted-foreground/50 h-5 w-5" />}
+            action={<Wallet className="text-muted-foreground/50 h-5 w-5" />}
           />
         </div>
 
@@ -241,7 +246,20 @@ export default function CreditLedger() {
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
+                                  {item.type === 'credit_purchase' && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCreditPurchase(item);
+                                        setIsReceiptModalOpen(true);
+                                      }}
+                                      className="text-xs text-primary hover:underline font-semibold"
+                                    >
+                                      View Items
+                                    </button>
+                                  )}
+                                </div>
                                 <span className="text-sm font-bold">
                                   {item.type === 'settlement' ? '-' : '+'}<CurrencyDisplay amount={item.amount} />
                                 </span>
@@ -264,6 +282,16 @@ export default function CreditLedger() {
         onClose={() => setIsSettleModalOpen(false)}
         debtor={selectedDebtor}
         onSettle={handleSettle}
+      />
+
+      <CreditReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => {
+          setIsReceiptModalOpen(false);
+          setSelectedCreditPurchase(null);
+        }}
+        debtor={selectedDebtor}
+        transaction={selectedCreditPurchase}
       />
     </PageLayout>
   );

@@ -352,7 +352,7 @@ export default function ProductSearchBar() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 pb-28">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-4 pb-28">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
             ))}
