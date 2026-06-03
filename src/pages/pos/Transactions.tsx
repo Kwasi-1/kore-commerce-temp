@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
-import ReceiptModal from '@/components/pos/ReceiptModal';
+
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format, startOfToday, endOfToday } from 'date-fns';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
-import { Printer, RefreshCcw, X } from 'lucide-react';
-import CustomModal from '@/components/modals/modal';
-import { Button } from '@/components/ui/button';
-import { CustomInputTextField } from '@/components/shared/text-field';
+import TransactionSidePanel from '@/components/pos/TransactionSidePanel';
+import TransactionRefundModal from '@/components/pos/TransactionRefundModal';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -34,33 +32,10 @@ export default function Transactions() {
     window.print();
   };
 
-  const handleIssueRefund = async () => {
-    if (!selectedReceiptData) return;
-    
-    setIsRefunding(true);
-    try {
-      const amount = refundType === 'full' ? selectedReceiptData.totalAmount : parseFloat(partialRefundAmount);
-      if (isNaN(amount) || amount <= 0 || amount > selectedReceiptData.totalAmount) {
-        toast.error("Invalid refund amount");
-        setIsRefunding(false);
-        return;
-      }
-
-      await apiClient.post(`/pos/transactions/${selectedReceiptData.id}/refund`, {
-        type: refundType,
-        amount
-      });
-      
-      toast.success("Refund processed successfully");
-      setIsRefundModalOpen(false);
-      setIsReceiptOpen(false);
-      fetchTransactions();
-    } catch (error) {
-      console.error("Refund failed:", error);
-      toast.error("Failed to process refund");
-    } finally {
-      setIsRefunding(false);
-    }
+  const handleRefundSuccess = () => {
+    setIsRefundModalOpen(false);
+    setIsReceiptOpen(false);
+    fetchTransactions();
   };
 
   const fetchTransactions = useCallback(async () => {
@@ -238,118 +213,23 @@ export default function Transactions() {
           onclick={handleRowClick}
           mobileFriendly={true}
         />
-
       </div>
 
       {/* Side Panel Drawer */}
-      <CustomModal
+      <TransactionSidePanel
         isOpen={isReceiptOpen}
-        onOpenChange={() => setIsReceiptOpen(false)}
-        placement="right"
-        size="md"
-        header={
-          <div className="flex items-center justify-between w-full">
-            <span className="font-semibold text-lg">Transaction Details</span>
-          </div>
-        }
-        body={
-          <div className="flex-1 overflow-y-auto px-1 py-4">
-            {selectedReceiptData ? (
-              <ReceiptModal 
-                receiptData={selectedReceiptData} 
-                onClose={() => setIsReceiptOpen(false)} 
-                isOpen={true}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                Loading receipt...
-              </div>
-            )}
-          </div>
-        }
-        footer={
-          selectedReceiptData ? (
-            <div className="flex flex-col gap-3 w-full">
-               <Button 
-                  variant="default"
-                  className="w-full"
-                  onClick={handlePrintReceipt}
-                >
-                 <Printer className="w-4 h-4 mr-2" />
-                 Reprint Receipt
-               </Button>
-               <Button 
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => setIsRefundModalOpen(true)}
-                  disabled={selectedReceiptData.status === 'refunded'}
-                >
-                 <RefreshCcw className="w-4 h-4 mr-2" />
-                 {selectedReceiptData.status === 'refunded' ? 'Already Refunded' : 'Issue Refund'}
-               </Button>
-            </div>
-          ) : null
-        }
+        onClose={() => setIsReceiptOpen(false)}
+        receiptData={selectedReceiptData}
+        onReprint={handlePrintReceipt}
+        onIssueRefund={() => setIsRefundModalOpen(true)}
       />
 
       {/* Refund Modal */}
-      <CustomModal 
-        isOpen={isRefundModalOpen} 
-        onOpenChange={() => setIsRefundModalOpen(false)}
-        placement="center"
-        size="md"
-        header={<span className="text-lg font-semibold">Process Refund</span>}
-        body={
-          <div className="flex flex-col gap-6 py-4">
-            <div className="flex gap-4">
-              <Button 
-                className="flex-1"
-                variant={refundType === 'full' ? 'default' : 'outline'}
-                onClick={() => setRefundType('full')}
-              >
-                Full Refund
-              </Button>
-              <Button 
-                className="flex-1"
-                variant={refundType === 'partial' ? 'default' : 'outline'}
-                onClick={() => setRefundType('partial')}
-              >
-                Partial Refund
-              </Button>
-            </div>
-
-            {refundType === 'full' ? (
-              <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm border border-destructive/20">
-                Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong> will be recorded as refunded.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong>.
-                </p>
-                <CustomInputTextField
-                  type="number"
-                  label="Refund Amount"
-                  placeholder="0.00"
-                  value={partialRefundAmount}
-                  onChange={(e) => setPartialRefundAmount(e.target.value)}
-                  startContent={<span className="text-muted-foreground text-sm font-medium">GHS</span>}
-                  labelPlacement="outside"
-                />
-              </div>
-            )}
-          </div>
-        }
-        footer={
-          <div className="flex gap-2 w-full justify-end">
-            <Button variant="ghost" onClick={() => setIsRefundModalOpen(false)} disabled={isRefunding}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleIssueRefund} disabled={isRefunding}>
-              {isRefunding ? 'Processing...' : 'Confirm Refund'}
-            </Button>
-          </div>
-        }
+      <TransactionRefundModal
+        isOpen={isRefundModalOpen}
+        onClose={() => setIsRefundModalOpen(false)}
+        receiptData={selectedReceiptData}
+        onSuccess={handleRefundSuccess}
       />
     </PageLayout>
   );
