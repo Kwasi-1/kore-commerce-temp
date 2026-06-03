@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { User, MapPin, CreditCard, Package, Printer, RefreshCcw } from 'lucide-react';
+import { User, MapPin, CreditCard, Package, Download, RefreshCcw, Phone, MessageCircle } from 'lucide-react';
 import { CurrencyDisplay } from '@/hooks/useCurrency';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { CustomSelectField } from '@/components/shared/text-field';
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@nextui-org/react';
+import { EcommerceInvoice } from './EcommerceInvoice';
 
 interface OrderSidePanelProps {
   isOpen: boolean;
@@ -42,23 +45,34 @@ export default function OrderSidePanel({
         </div>
       }
       body={
-        <div className="flex-1 overflow-y-auto px-4 py-4 bg-muted/10 space-y-6">
+        <>
+          {/* Print Only Invoice */}
+          <div className="hidden print:block w-full">
+            <EcommerceInvoice order={order} />
+          </div>
+
+          {/* Screen Only Panel Content */}
+          <div className="flex-1 overflow-y-auto px-2 py-4 bg-muted/10 space-y-6 print:hidden">
           
           {/* Status Updater */}
           {order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'refunded' && (
-            <div className="bg-card p-4 rounded-xl border border-border flex flex-col gap-2">
-              <span className="text-sm font-semibold text-foreground">Update Status</span>
-              <select
+            <div className="bg-card p-4 rounded-xl border border-border flex flex-col gap-2 shadow-sm">
+              <span className="text-sm font-semibold text-foreground mb-1">Update Status</span>
+              <CustomSelectField
+                options={[
+                  { label: 'Pending', value: 'pending' },
+                  { label: 'Processing', value: 'processing' },
+                  { label: 'Shipped', value: 'shipped' },
+                  { label: 'Delivered', value: 'delivered' },
+                  { label: 'Cancelled', value: 'cancelled' },
+                ]}
                 value={order.status}
-                onChange={(e) => onUpdateStatusClick(order, e.target.value)}
-                className="w-full text-sm border border-border rounded-md px-3 py-2 bg-background text-foreground"
-              >
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                inputProps={{
+                  onChange: (e) => onUpdateStatusClick(order, e.target.value)
+                }}
+                labelPlacement="outside"
+                className="w-full"
+              />
             </div>
           )}
 
@@ -71,6 +85,34 @@ export default function OrderSidePanel({
               </div>
               <div className="text-sm font-medium">{order.customer_name}</div>
               <div className="text-xs text-muted-foreground">{order.customer_email}</div>
+              {order.customer_phone || true ? (
+                <div className="mt-1">
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <button className="text-xs text-primary hover:underline flex items-center gap-1 mt-1 transition-colors">
+                        <Phone className="w-3 h-3" />
+                        {order.customer_phone || '024 123 4567'}
+                      </button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Contact Customer">
+                      <DropdownItem 
+                        key="call" 
+                        startContent={<Phone className="w-4 h-4" />}
+                        onClick={() => window.open(`tel:${order.customer_phone || '0241234567'}`, '_self')}
+                      >
+                        Call
+                      </DropdownItem>
+                      <DropdownItem 
+                        key="whatsapp" 
+                        startContent={<MessageCircle className="w-4 h-4 text-green-500" />}
+                        onClick={() => window.open(`https://wa.me/${(order.customer_phone || '0241234567').replace(/[^0-9]/g, '')}`, '_blank')}
+                      >
+                        WhatsApp
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+              ) : null}
             </div>
 
             <div className="bg-card p-4 rounded-xl border border-border flex flex-col gap-2 shadow-sm">
@@ -132,16 +174,17 @@ export default function OrderSidePanel({
             </div>
           </div>
         </div>
+        </>
       }
       footer={
-        <div className="flex flex-col gap-3 w-full pb-4">
+        <div className="flex flex-col gap-3 w-full pb-4 print:hidden">
           <Button 
-            variant="default"
+            variant="outline"
             className="w-full"
             onClick={onPrintInvoice}
           >
-            <Printer className="w-4 h-4 mr-2" />
-            Print Invoice
+            <Download className="w-4 h-4 mr-2" />
+            Download Invoice
           </Button>
           <Button 
             variant="destructive"
