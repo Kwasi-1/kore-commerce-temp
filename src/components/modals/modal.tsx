@@ -62,32 +62,6 @@ const CustomModal: FC<CustomModalProps> = ({
   isDismissable = true,
   classNames = {},
 }) => {
-  const isCustomPlacement = ["right", "top", "bottom"].includes(placement);
-  const resolvedRadius = isCustomPlacement ? "none" : radius;
-  
-  const getCustomRadiusClass = () => {
-    if (radius === "none") return "rounded-none";
-    if (placement === "right") {
-      if (radius === "sm") return "rounded-l-sm rounded-r-none";
-      if (radius === "md") return "rounded-l-md rounded-r-none";
-      if (radius === "lg") return "rounded-l-lg rounded-r-none";
-      return "rounded-l-[1rem] rounded-r-none";
-    }
-    if (placement === "top") {
-      if (radius === "sm") return "rounded-b-sm rounded-t-none";
-      if (radius === "md") return "rounded-b-md rounded-t-none";
-      if (radius === "lg") return "rounded-b-lg rounded-t-none";
-      return "rounded-b-[1rem] rounded-t-none";
-    }
-    if (placement === "bottom") {
-      if (radius === "sm") return "rounded-t-sm rounded-b-none";
-      if (radius === "md") return "rounded-t-md rounded-b-none";
-      if (radius === "lg") return "rounded-t-lg rounded-b-none";
-      return "rounded-t-[1rem] rounded-b-none";
-    }
-    return "";
-  };
-
   return (
     <NewModal
       size={size ? size : "lg"}
@@ -97,12 +71,11 @@ const CustomModal: FC<CustomModalProps> = ({
       onOpenChange={onOpenChange}
       scrollBehavior={scrollBehavior}
       placement={placement}
-      radius={resolvedRadius}
+      radius={radius}
       classNames={{
         body: cn("py-0 dark:text-[#F5F5F5]", classNames.body),
         base: cn(
           "border-[#161616] dark:bg-sidebar dark:text-[#a8b0d3] font-header spacing-sm",
-          isCustomPlacement && getCustomRadiusClass(),
           classNames.base,
         ),
         header: cn("dark:text-[#F5F5F5]", classNames.header),
@@ -134,7 +107,7 @@ const CustomModal: FC<CustomModalProps> = ({
     >
       <ModalContent className="">
         <>
-          {header && <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>}
+          <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>
           <ModalBody className="">{body}</ModalBody>
           {footer && <ModalFooter>{footer}</ModalFooter>}
         </>
