@@ -239,3 +239,9 @@
 .no-spin-buttons {
   -moz-appearance: textfield;
 }
+
+.spacing{
+  * {
+    @apply tracking-tighter
+  }
+}

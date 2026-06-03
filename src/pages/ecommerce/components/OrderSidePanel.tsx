@@ -32,16 +32,20 @@ export default function OrderSidePanel({
   if (!order) return null;
 
   const handleDownloadPDF = async () => {
+    const wrapperElement = document.getElementById(`invoice-wrapper-${order.id}`);
     const invoiceElement = document.getElementById(`invoice-${order.id}`);
-    if (!invoiceElement) return;
+    if (!wrapperElement || !invoiceElement) return;
 
     setIsDownloading(true);
     
-    // Temporarily remove hidden and set fixed width for consistent rendering
-    invoiceElement.classList.remove('hidden');
-    invoiceElement.style.width = '794px'; // Standard A4 width pixel size
-    invoiceElement.style.position = 'absolute';
-    invoiceElement.style.top = '-9999px';
+    // Temporarily remove hidden from the wrapper
+    wrapperElement.classList.remove('hidden');
+    wrapperElement.style.position = 'absolute';
+    wrapperElement.style.top = '-9999px';
+    wrapperElement.style.left = '-9999px';
+    
+    // Set width on the inner invoice element
+    invoiceElement.style.width = '794px'; 
 
     try {
       const canvas = await html2canvas(invoiceElement, {
@@ -62,9 +66,10 @@ export default function OrderSidePanel({
       console.error("PDF generation failed", err);
     } finally {
       invoiceElement.style.width = '';
-      invoiceElement.style.position = '';
-      invoiceElement.style.top = '';
-      invoiceElement.classList.add('hidden');
+      wrapperElement.style.position = '';
+      wrapperElement.style.top = '';
+      wrapperElement.style.left = '';
+      wrapperElement.classList.add('hidden');
       setIsDownloading(false);
     }
   };
@@ -89,12 +94,12 @@ export default function OrderSidePanel({
       body={
         <>
           {/* Print Only Invoice */}
-          <div className="hidden print:block w-full">
+          <div id={`invoice-wrapper-${order.id}`} className="hidden print:block w-full">
             <EcommerceInvoice order={order} />
           </div>
 
           {/* Screen Only Panel Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 print:hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8 print:hidden">
             
             {/* Status Updater */}
             {order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'refunded' && (
@@ -123,7 +128,7 @@ export default function OrderSidePanel({
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Customer & Delivery Info</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="flex items-center gap-2 font-medium text-foreground mb-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground mb-1 tracking-tight">
                     <User className="h-4 w-4 text-primary" />
                     {order.customer_name}
                   </div>
@@ -131,7 +136,7 @@ export default function OrderSidePanel({
                   {order.customer_phone || true ? (
                     <Dropdown>
                       <DropdownTrigger>
-                        <button className="text-sm text-primary hover:underline flex items-center gap-1 mt-1 transition-colors">
+                        <button className="text-sm text-muted-foreground dark:text-primary hover:underline flex items-center gap-1 mt-1 transition-colors">
                           <Phone className="w-3 h-3" />
                           {order.customer_phone || '024 123 4567'}
                         </button>
@@ -156,7 +161,7 @@ export default function OrderSidePanel({
                   ) : null}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 font-medium text-foreground mb-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground mb-1 tracking-tight">
                     <MapPin className="h-4 w-4 text-primary" />
                     Store Pickup
                   </div>
@@ -201,7 +206,7 @@ export default function OrderSidePanel({
                   </div>
                   <div className="flex justify-between font-bold text-base pt-3 border-t border-border/50 text-foreground">
                     <span>Total</span>
-                    <span className="text-primary"><CurrencyDisplay amount={order.total_amount} /></span>
+                    <span className=""><CurrencyDisplay amount={order.total_amount} /></span>
                   </div>
                 </div>
               </div>
