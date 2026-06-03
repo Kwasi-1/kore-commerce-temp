@@ -125,75 +125,92 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     const displayTotal = frozenCart ? frozenCart.total : total;
 
     return (
-    <div className="bg-muted/50 dark:bg-foreground text-black p-8 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-mono text-sm border border-border/20 print:border-none">
-      
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h3 className="font-bold text-2xl tracking-widest mb-1">VYSION STORE</h3>
-        <p className="text-xs text-zinc-500 uppercase">123 Commerce St, Accra, Ghana</p>
-      </div>
-
-      <div className="border-b border-dashed border-zinc-300 pb-3 mb-3 flex justify-between text-xs uppercase font-semibold">
-        <span>{receiptData ? receiptData.receiptNumber : 'TX-PREVIEW'}</span>
-        <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-      </div>
-
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="flex font-bold text-[10px] border-b border-dashed border-zinc-300 pb-2 mb-2 uppercase tracking-wider text-zinc-800">
-          <span className="flex-1">Description</span>
-          <span className="w-10 text-center">Qty</span>
-          <span className="w-20 text-right">Total</span>
+      <div className="bg-white text-black p-6 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-sans text-sm border border-border/20 print:border-none">
+        
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900">VYSION STORE</h3>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wide">123 Commerce St, Accra, Ghana</p>
+          <p className="text-[10px] text-zinc-500">Tel: +233 24 123 4567</p>
         </div>
-        <div className="space-y-2">
-          {displayItems.map((item: any) => (
-            <div key={item.productId} className="flex text-[13px] font-medium items-start">
-              <span className="flex-1 pr-2 leading-tight">{item.name}</span>
-              <span className="w-10 text-center text-zinc-700">{item.quantity}</span>
-              <span className="w-20 text-right font-bold"><CurrencyDisplay amount={item.price * item.quantity} /></span>
+
+        {/* Info Section */}
+        <div className="border-b border-dashed border-zinc-200 pb-3 mb-3 text-xs space-y-1 text-zinc-700">
+          <div className="flex justify-between">
+            <span className="font-semibold">Receipt #:</span>
+            <span className="font-mono font-bold text-zinc-950">{receiptData ? receiptData.receiptNumber : 'TX-PREVIEW'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">Date:</span>
+            <span>{new Date().toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">Payment:</span>
+            <span className="uppercase font-semibold text-zinc-900">
+              {isCreditSale ? 'CREDIT' : activeTab.replace('_', ' ')}
+            </span>
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide mb-4">
+          <div className="flex font-['AtypDisplay'] font-bold text-[10px] border-b border-zinc-100 pb-2 mb-2 uppercase tracking-wider text-zinc-900">
+            <span className="flex-1 text-left">Description</span>
+            <span className="w-10 text-center">Qty</span>
+            <span className="w-20 text-right">Total</span>
+          </div>
+          <div className="space-y-1.5 text-xs text-zinc-800">
+            {displayItems.map((item: any) => (
+              <div key={item.productId} className="flex items-start">
+                <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
+                <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                <span className="w-20 text-right font-semibold">
+                  <CurrencyDisplay amount={item.price * item.quantity} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Totals */}
+        <div className="space-y-1.5 text-xs text-zinc-800 pt-3 border-t border-dashed border-zinc-200">
+          <div className="flex justify-between font-medium">
+            <span>Subtotal</span>
+            <span><CurrencyDisplay amount={displaySubtotal} /></span>
+          </div>
+          {displayDiscount > 0 && (
+            <div className="flex justify-between font-medium">
+              <span>Discount</span>
+              <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} /></span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Totals */}
-      <div className="mt-6 pt-3 space-y-1.5 border-t border-dashed border-zinc-300">
-        <div className="flex justify-between text-xs text-zinc-700 font-medium uppercase">
-          <span>Subtotal</span>
-          <span><CurrencyDisplay amount={displaySubtotal} /></span>
-        </div>
-        {displayDiscount > 0 && (
-          <div className="flex justify-between text-xs text-zinc-700 font-medium uppercase">
-            <span>Discount</span>
-            <span>-<CurrencyDisplay amount={displayDiscount} /></span>
+          )}
+          <div className="flex justify-between font-medium">
+            <span>Tax (12%)</span>
+            <span><CurrencyDisplay amount={displayTax} /></span>
           </div>
-        )}
-        <div className="flex justify-between text-xs text-zinc-700 font-medium uppercase">
-          <span>Tax (12%)</span>
-          <span><CurrencyDisplay amount={displayTax} /></span>
-        </div>
-        <div className="flex justify-between font-bold text-lg pt-3 border-t border-dashed border-zinc-300 mt-3 uppercase">
-          <span>Total</span>
-          <span><CurrencyDisplay amount={displayTotal} /></span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-8 text-center text-xs font-semibold text-zinc-600 flex flex-col items-center gap-1 uppercase">
-        {isCreditSale && <span className="font-bold border border-zinc-800 px-3 py-1 rounded-full mb-2 text-[10px] tracking-wider text-zinc-800">CREDIT SALE</span>}
-        {!isCreditSale && <span>Paid via {activeTab.replace('_', ' ')}</span>}
-        <span className="mt-3 text-[10px] tracking-widest">Thank you!</span>
-        <div className="mt-3 opacity-60 print:hidden">
-           <svg className="w-40 h-8" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 h2 v20 h-2 z M4,0 h1 v20 h-1 z M7,0 h4 v20 h-4 z M13,0 h2 v20 h-2 z M17,0 h1 v20 h-1 z M20,0 h3 v20 h-3 z M25,0 h1 v20 h-1 z M28,0 h2 v20 h-2 z M32,0 h4 v20 h-4 z M38,0 h1 v20 h-1 z M41,0 h2 v20 h-2 z M45,0 h3 v20 h-3 z M50,0 h1 v20 h-1 z M53,0 h2 v20 h-2 z M57,0 h4 v20 h-4 z M63,0 h1 v20 h-1 z M66,0 h2 v20 h-2 z M70,0 h3 v20 h-3 z M75,0 h1 v20 h-1 z M78,0 h2 v20 h-2 z M82,0 h4 v20 h-4 z M88,0 h1 v20 h-1 z M91,0 h2 v20 h-2 z M95,0 h3 v20 h-3 z M99,0 h1 v20 h-1 z" fill="currentColor"/></svg>
-        </div>
-        {posSettings.receipt_footer && (
-          <div className="mt-4 pt-3 border-t border-dashed border-zinc-300 w-full text-center text-[10px] leading-relaxed hidden print:block whitespace-pre-wrap">
-            {posSettings.receipt_footer}
+          <div className="flex justify-between font-bold text-base pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
+            <span>Total</span>
+            <span><CurrencyDisplay amount={displayTotal} /></span>
           </div>
-        )}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-[9px] font-semibold text-zinc-400 flex flex-col items-center gap-1 uppercase tracking-widest">
+          {isCreditSale && (
+            <span className="font-bold border border-zinc-200 px-3 py-1 rounded-full mb-1 text-[9px] tracking-wider text-zinc-500">
+              CREDIT SALE RECORD
+            </span>
+          )}
+          <span>Powered by HeadlessPOS</span>
+          {posSettings.receipt_footer && (
+            <div className="mt-4 pt-3 border-t border-dashed border-zinc-200 w-full text-center text-[9px] leading-relaxed hidden print:block whitespace-pre-wrap text-zinc-500">
+              {posSettings.receipt_footer}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )};
+    );
+  };
 
   const renderPaymentFlow = () => (
     <div className="flex flex-col h-full">
@@ -367,7 +384,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const modalBody = (
     <div className="flex flex-col md:flex-row w-full h-full">
       {/* Left Column: Receipt Preview */}
-      <div className={`w-full md:w-[380px] lg:w-[400px]  borde border-border rounded-xl flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0' : ''}`}>
+      <div className={`w-full md:w-[380px] lg:w-[400px]  bg-zinc-50 dark:bg-black/40 borde border-border rounded-xl p-6 flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0 ' : ''}`}>
          {renderReceiptPreview()}
       </div>
 

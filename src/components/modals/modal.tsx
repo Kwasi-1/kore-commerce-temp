@@ -107,7 +107,7 @@ const CustomModal: FC<CustomModalProps> = ({
     >
       <ModalContent className="">
         <>
-          <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>
+          {header && <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>}
           <ModalBody className="">{body}</ModalBody>
           {footer && <ModalFooter>{footer}</ModalFooter>}
         </>
