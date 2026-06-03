@@ -8,8 +8,10 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format, startOfToday, endOfToday } from 'date-fns';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
-import { Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Printer, RefreshCcw, X } from 'lucide-react';
+import CustomModal from '@/components/modals/modal';
+import { Button } from '@/components/ui/button';
+import { CustomInputTextField } from '@/components/shared/text-field';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -139,11 +141,7 @@ export default function Transactions() {
     date: t.dateCreated ? format(new Date(t.dateCreated), 'MMM dd, yyyy h:mm a') : 'N/A',
     cashier: t.cashierName || 'Unknown',
     payment_method: (
-      <span className={`capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-        t.paymentMethod === 'cash' ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-        t.paymentMethod === 'mobile_money' ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-        'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-      }`}>
+      <span className="capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-foreground">
         {t.paymentMethod?.replace('_', ' ')}
       </span>
     ),
@@ -243,32 +241,19 @@ export default function Transactions() {
 
       </div>
 
-      {/* Backdrop */}
-      {isReceiptOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-40 transition-opacity"
-          onClick={() => setIsReceiptOpen(false)}
-        />
-      )}
-
       {/* Side Panel Drawer */}
-      <div 
-        className={`fixed inset-y-0 right-0 z-50 w-full max-w-[450px] bg-background shadow-2xl border-l border-border transform transition-transform duration-300 ease-in-out ${isReceiptOpen ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border bg-card">
-            <h3 className="font-semibold text-lg">Transaction Details</h3>
-            <button 
-              onClick={() => setIsReceiptOpen(false)} 
-              className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-            >
-               <X className="w-5 h-5" />
-            </button>
+      <CustomModal
+        isOpen={isReceiptOpen}
+        onOpenChange={() => setIsReceiptOpen(false)}
+        placement="right"
+        size="md"
+        header={
+          <div className="flex items-center justify-between w-full">
+            <span className="font-semibold text-lg">Transaction Details</span>
           </div>
-          
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+        }
+        body={
+          <div className="flex-1 overflow-y-auto px-1 py-4">
             {selectedReceiptData ? (
               <ReceiptModal 
                 receiptData={selectedReceiptData} 
@@ -276,98 +261,96 @@ export default function Transactions() {
                 isOpen={true}
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
+              <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
                 Loading receipt...
               </div>
             )}
           </div>
-          
-          {/* Footer Actions */}
-          {selectedReceiptData && (
-            <div className="p-4 border-t border-border bg-card flex flex-col gap-3">
+        }
+        footer={
+          selectedReceiptData ? (
+            <div className="flex flex-col gap-3 w-full">
                <Button 
-                  color="primary" 
-                  size="lg" 
-                  className="w-full font-semibold rounded-full"
-                  startContent={<Printer className="w-4 h-4" />}
+                  variant="default"
+                  className="w-full"
                   onClick={handlePrintReceipt}
                 >
+                 <Printer className="w-4 h-4 mr-2" />
                  Reprint Receipt
                </Button>
                <Button 
-                  color="danger" 
-                  variant="flat"
-                  size="lg" 
-                  className="w-full font-semibold rounded-full"
-                  startContent={<RefreshCcw className="w-4 h-4" />}
+                  variant="destructive"
+                  className="w-full"
                   onClick={() => setIsRefundModalOpen(true)}
-                  isDisabled={selectedReceiptData.status === 'refunded'}
+                  disabled={selectedReceiptData.status === 'refunded'}
                 >
+                 <RefreshCcw className="w-4 h-4 mr-2" />
                  {selectedReceiptData.status === 'refunded' ? 'Already Refunded' : 'Issue Refund'}
                </Button>
             </div>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       {/* Refund Modal */}
-      <Modal isOpen={isRefundModalOpen} onOpenChange={setIsRefundModalOpen}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">Process Refund</ModalHeader>
-              <ModalBody>
-                <div className="flex gap-4 mb-4">
-                  <Button 
-                    className="flex-1"
-                    color={refundType === 'full' ? 'primary' : 'default'}
-                    variant={refundType === 'full' ? 'solid' : 'flat'}
-                    onClick={() => setRefundType('full')}
-                  >
-                    Full Refund
-                  </Button>
-                  <Button 
-                    className="flex-1"
-                    color={refundType === 'partial' ? 'primary' : 'default'}
-                    variant={refundType === 'partial' ? 'solid' : 'flat'}
-                    onClick={() => setRefundType('partial')}
-                  >
-                    Partial Refund
-                  </Button>
-                </div>
+      <CustomModal 
+        isOpen={isRefundModalOpen} 
+        onOpenChange={() => setIsRefundModalOpen(false)}
+        placement="center"
+        size="md"
+        header={<span className="text-lg font-semibold">Process Refund</span>}
+        body={
+          <div className="flex flex-col gap-6 py-4">
+            <div className="flex gap-4">
+              <Button 
+                className="flex-1"
+                variant={refundType === 'full' ? 'default' : 'outline'}
+                onClick={() => setRefundType('full')}
+              >
+                Full Refund
+              </Button>
+              <Button 
+                className="flex-1"
+                variant={refundType === 'partial' ? 'default' : 'outline'}
+                onClick={() => setRefundType('partial')}
+              >
+                Partial Refund
+              </Button>
+            </div>
 
-                {refundType === 'full' ? (
-                  <div className="bg-danger/10 text-danger p-4 rounded-lg text-sm">
-                    Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong> will be recorded as refunded.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong>.
-                    </p>
-                    <Input
-                      type="number"
-                      label="Refund Amount"
-                      placeholder="0.00"
-                      value={partialRefundAmount}
-                      onValueChange={setPartialRefundAmount}
-                      startContent={<span className="text-default-400 text-small">GHS</span>}
-                    />
-                  </div>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose} isDisabled={isRefunding}>
-                  Cancel
-                </Button>
-                <Button color="danger" onPress={handleIssueRefund} isLoading={isRefunding}>
-                  Confirm Refund
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+            {refundType === 'full' ? (
+              <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm border border-destructive/20">
+                Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong> will be recorded as refunded.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={selectedReceiptData?.totalAmount || 0} /></strong>.
+                </p>
+                <CustomInputTextField
+                  type="number"
+                  label="Refund Amount"
+                  placeholder="0.00"
+                  value={partialRefundAmount}
+                  onChange={(e) => setPartialRefundAmount(e.target.value)}
+                  startContent={<span className="text-muted-foreground text-sm font-medium">GHS</span>}
+                  labelPlacement="outside"
+                />
+              </div>
+            )}
+          </div>
+        }
+        footer={
+          <div className="flex gap-2 w-full justify-end">
+            <Button variant="ghost" onClick={() => setIsRefundModalOpen(false)} disabled={isRefunding}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleIssueRefund} disabled={isRefunding}>
+              {isRefunding ? 'Processing...' : 'Confirm Refund'}
+            </Button>
+          </div>
+        }
+      />
     </PageLayout>
   );
 }
