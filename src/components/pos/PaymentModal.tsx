@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import apiClient from '@/api/client';
@@ -124,7 +125,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     const displayTotal = frozenCart ? frozenCart.total : total;
 
     return (
-    <div id="print-receipt-section" className="bg-white text-black p-8 rounded-xl shadow-sm relative h-full flex flex-col font-mono text-sm border border-border/20">
+    <div className="bg-white text-black p-8 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-mono text-sm border border-border/20 print:border-none">
       
       {/* Header */}
       <div className="text-center mb-6">
@@ -366,7 +367,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const modalBody = (
     <div className="flex flex-col md:flex-row w-full h-full">
       {/* Left Column: Receipt Preview */}
-      <div className={`w-full md:w-[380px] bg-zinc-100 dark:bg-[#0a0a0a] border-r border-border p-6 flex-shrink-0 ${isSuccess ? 'hidden md:block' : ''}`}>
+      <div className={`w-full md:w-[380px] bg-zinc-100 dark:bg-[#0a0a0a] border-r border-border p-6 flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0' : ''}`}>
          {renderReceiptPreview()}
       </div>
 
@@ -380,14 +381,23 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   );
 
   return (
-    <CustomModal
-      isOpen={isOpen}
-      onOpenChange={() => { if (!isProcessing) onClose(); }}
-      size="4xl"
-      classNames={{
-        body: "p-0 overflow-hidden max-h-[90vh]"
-      }}
-      body={modalBody}
-    />
+    <>
+      <CustomModal
+        isOpen={isOpen}
+        onOpenChange={() => { if (!isProcessing) onClose(); }}
+        size="4xl"
+        classNames={{
+          body: "p-0 overflow-hidden max-h-[90vh]"
+        }}
+        body={modalBody}
+      />
+      {/* Print Portal - Rendered at document root, only visible during print */}
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div id="print-portal" className="hidden">
+           {renderReceiptPreview()}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

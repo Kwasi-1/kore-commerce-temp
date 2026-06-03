@@ -85,7 +85,7 @@ export default function Transactions() {
 
   const rows = transactions.map((t: any) => ({
     id: t.id,
-    receipt_number: <span className="font-mono text-primary font-semibold">{t.receiptNumber}</span>,
+    receipt_number: <span className="font-mono font-medium">{t.receiptNumber}</span>,
     date: t.dateCreated ? format(new Date(t.dateCreated), 'MMM dd, yyyy h:mm a') : 'N/A',
     cashier: t.cashierName || 'Unknown',
     payment_method: (

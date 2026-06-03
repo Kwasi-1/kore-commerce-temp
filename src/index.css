@@ -175,21 +175,25 @@
   }
 }
 
-/* * {
-    letter-spacing: 0.9px;
-  }
-
 /* --- Receipt Printing --- */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 0;
+  }
+
+  /* Hide the main application root entirely */
+  #root {
+    display: none !important;
   }
   
-  #print-receipt-section, #print-receipt-section * {
-    visibility: visible;
+  /* Hide all NextUI generated overlays and portals except our print-portal */
+  body > div:not(#print-portal) {
+    display: none !important;
   }
-  
-  #print-receipt-section {
+
+  /* Force the print portal to display */
+  #print-portal {
+    display: block !important;
     position: absolute;
     left: 0;
     top: 0;
@@ -197,22 +201,19 @@
     max-width: 80mm !important;
     margin: 0 !important;
     padding: 10px !important;
-    border: none !important;
-    box-shadow: none !important;
     background: white !important;
     color: black !important;
+    /* Reset Tailwind's hidden class */
+    visibility: visible !important; 
   }
 
-  /* Make sure everything expands and doesn't scroll */
-  #print-receipt-section .flex-1.overflow-y-auto {
+  /* Make sure the receipt inside the portal expands fully */
+  #print-portal .flex-1.overflow-y-auto {
     overflow: visible !important;
     height: auto !important;
   }
 }
 
-  body {
-    letter-spacing: 0.9px;
-  } */
 /* Navigation transition loading bar animation */
 @keyframes shimmer {
   0%   { transform: scaleX(0.1); transform-origin: left; opacity: 1; }
