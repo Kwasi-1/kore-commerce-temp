@@ -4,7 +4,7 @@ import { Button } from '@nextui-org/react';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { Save } from 'lucide-react';
+import { Save, Package } from 'lucide-react';
 
 export default function StockManagement() {
   const [products, setProducts] = useState<any[]>([]);
@@ -81,11 +81,11 @@ export default function StockManagement() {
       id: p.id,
       product: (
         <div className="flex items-center gap-3">
-          <div className="hidden w-10 h-10 rounded-lg bg-muted shrink-0 overflow-hidden md:flex items-center justify-center">
-            {p.images && p.images[0] ? (
-              <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+          <div className="hidden w-10 h-10 rounded-lg bg-muted shrink-0 overflow-hidden md:flex items-center justify-center border">
+            {p.imageUrl || (p.images && p.images[0]) ? (
+              <img src={p.imageUrl || p.images[0]} alt={p.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-xs text-muted-foreground">No img</span>
+              <Package className="h-5 w-5 text-muted-foreground" />
             )}
           </div>
           <div>
