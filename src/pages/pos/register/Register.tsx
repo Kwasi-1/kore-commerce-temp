@@ -62,10 +62,10 @@ export default function Register() {
         };
         setToastQueue(prev => [...prev, newToast]);
 
-        // Reset shaking state after shake animation (300ms)
+        // Reset shaking state after shake animation (450ms)
         setTimeout(() => {
           setIsShaking(false);
-        }, 300);
+        }, 450);
       }
     }
     prevTotalQty.current = totalQty;
