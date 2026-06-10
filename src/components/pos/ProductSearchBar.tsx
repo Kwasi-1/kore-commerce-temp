@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Icon } from '@iconify/react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
 import { useShift } from '@/hooks/useShift';
@@ -192,7 +192,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
         {/* Mobile Layout: Full Search + Filter */}
         <div className="w-full flex md:hidden items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               className="w-full pl-9 pr-10 py-2 border border-border rounded-full text-sm bg-transparent outline-none transition-colors"
@@ -203,9 +203,9 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             {searchTerm && (
               <button 
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
               >
-                <X className="h-4 w-4" />
+                <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -216,7 +216,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             className={`shrink-0 h-10 w-10 border-border ${activeCategories.length > 0 ? 'bg-primary/10 text-primary border-primary/20' : ''}`}
             onClick={() => setIsMobileFilterOpen(true)}
           >
-            <Filter className="h-4 w-4" />
+            <Icon icon="lets-icons:filter" className="h-4 w-4" />
             {activeCategories.length > 0 && (
               <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full border border-background"></span>
             )}
@@ -238,7 +238,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           </button>
           
           {/* Show up to 4 popular or active categories */}
-          {categories.slice(0, 4).map((cat) => {
+          {categories.slice(0, 3).map((cat) => {
             const isActive = activeCategories.includes(cat.name);
             return (
               <button
@@ -251,7 +251,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 }`}
               >
                 {cat.name}
-                {isActive && <X className="h-3.5 w-3.5 ml-0.5 opacity-70 hover:opacity-100" />}
+                {isActive && <Icon icon="solar:close-circle-linear" className="h-3.5 w-3.5 ml-0.5 opacity-70 hover:opacity-100" />}
               </button>
             )
           })}
@@ -260,29 +260,29 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="rounded-full h-8 px-3 border-border bg-background hover:bg-secondary flex items-center gap-1.5">
-                <Filter className="h-3.5 w-3.5" />
+                <Icon icon="lets-icons:filter" className="h-3.5 w-3.5" />
                 <span>Filters</span>
                 {activeCategories.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-primary/20 text-primary text-[10px] rounded-full font-bold">
+                  <span className="ml-1 px-1.5 py-0.5 bg-primary/40 text-primary-foreground text-[10px] rounded-full font-bold">
                     {activeCategories.length}
                   </span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64 p-2 rounded-xl border-border/60 shadow-lg">
+            <DropdownMenuContent align="start" className="w-64 p-2 rounded-2xl border-border/60 shadow-lg">
               <div className="relative mb-2">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Icon icon="solar:magnifer-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input 
                   type="text" 
                   placeholder="Search categories..."
                   value={filterSearchTerm}
                   onChange={(e) => setFilterSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-secondary border-none rounded-lg outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-full outline-none focus:ring-0 focus:ring-primary"
                 />
               </div>
               {renderCategoryCheckboxes()}
               {activeCategories.length > 0 && (
-                <div className="pt-2 mt-2 border-t border-border">
+                <div className="pt-2 mt2 bordert border-border">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -302,7 +302,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                     {isSearchActive ? (
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               className="w-48 xl:w-64 pl-9 pr-10 py-2 border border-border rounded-full text-sm bg-transparent outline-none"
@@ -313,9 +313,9 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             {searchTerm && (
               <button 
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
               >
-                <X className="h-4 w-4" />
+                <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -324,9 +324,9 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             variant="outline"
             size="icon"
             onClick={() => setIsSearchActive(true)}
-            className="rounded-full shrink-0"
+            className="rounded-full shrink-0 animate-in zoom-in-50 duration-150"
           >
-            <Search className="h-4 w-4" />
+            <Icon icon="solar:magnifer-linear" className="h-4 w-4" />
           </Button>)}
         </div>
 
@@ -347,7 +347,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground pt-10">
             <div className="bg-secondary p-6 rounded-full mb-4">
-               <Search className="h-8 w-8 text-muted-foreground/50" />
+               <Icon icon="solar:magnifer-linear" className="h-8 w-8 text-muted-foreground/50" />
             </div>
             <p className="font-bold text-foreground text-lg mb-1">No products found</p>
             <p className="text-sm text-center max-w-[250px] mb-6">
@@ -403,7 +403,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                   )}
                 </div>
                 <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input 
                     type="text" 
                     placeholder="Find categories..."
@@ -431,7 +431,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                             {cat.count}
                           </span>
                           <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-colors ${isChecked ? 'bg-primary border-primary' : 'border-border'}`}>
-                            {isChecked && <X className="h-3.5 w-3.5 text-primary-foreground" />}
+                            {isChecked && <Icon icon="solar:close-circle-linear" className="h-3.5 w-3.5 text-primary-foreground" />}
                           </div>
                         </div>
                       </button>

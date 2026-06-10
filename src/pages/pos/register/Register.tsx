@@ -7,9 +7,9 @@ import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ShoppingCart } from 'lucide-react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useShift } from '@/hooks/useShift';
+import { Icon } from '@iconify/react';
 
 interface CartToast {
   id: string;
@@ -143,14 +143,14 @@ export default function Register() {
         )}
 
         {/* Right Panel: Cart (Desktop only) */}
-        <div className={`hidden lg:flex flex-col transition-all ease-out ${
-          panelState === 'expanded' ? 'duration-250 absolute top-4 bottom-4 right-4 h-auto w-[75%] max-w-[75vw] z-30 shadow-2xl rounded-[24px] border border-border bg-background' : 'relative duration-300'
+        <div className={`hidden lg:flex flex-col transition-all ease-out rounded-3xl ${
+          panelState === 'expanded' ? 'duration-250' : 'duration-300'
         } ${
           panelState === 'collapsed' 
             ? 'w-0 opacity-0 translate-x-full shrink-0 pointer-events-none' 
-            : panelState === 'default'
-              ? 'w-[420px] shrink-0'
-              : ''
+            : panelState === 'expanded'
+              ? 'absolute top-0 right-0 h-full w-[75%] max-w-[75vw] z-30 shadow-[0_0_50px_rgba(0,0,0,0.15)] rounded-l-[24px] border-l border-border bg-background'
+              : 'relative w-[420px] shrink-0'
         }`}>
           <CartPanel 
             panelState={panelState} 
@@ -163,7 +163,7 @@ export default function Register() {
             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
               <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <PlayCircle className="h-8 w-8 text-primary" />
+                  <Icon icon="solar:play-circle-linear" className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
                 <p className="text-sm text-muted-foreground mb-6">
@@ -227,7 +227,7 @@ export default function Register() {
         >
           <div className="flex items-center gap-3">
             <div className="relative">
-              <ShoppingCart className="h-6 w-6" />
+              <Icon icon="solar:cart-large-linear" className="h-6 w-6" />
               {items.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-destructive text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-primary">
                   {items.length}
@@ -260,7 +260,7 @@ export default function Register() {
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center border-t border-border/50">
                 <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                   <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <PlayCircle className="h-8 w-8 text-primary" />
+                    <Icon icon="solar:play-circle-linear" className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
                   <p className="text-sm text-muted-foreground mb-6">

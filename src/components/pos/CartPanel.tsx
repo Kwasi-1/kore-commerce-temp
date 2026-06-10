@@ -1,20 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useCartStore } from "@/store/cartStore";
-import { Icon } from "@iconify/react";
-
-const Trash2 = (props: any) => <Icon icon="solar:trash-bin-trash-bold-duotone" {...props} />;
-const Plus = (props: any) => <Icon icon="lucide:plus" {...props} />;
-const Minus = (props: any) => <Icon icon="lucide:minus" {...props} />;
-const ChevronRight = (props: any) => <Icon icon="lucide:chevron-right" {...props} />;
-const Ticket = (props: any) => <Icon icon="solar:ticket-sale-bold-duotone" {...props} />;
-const ShoppingCart = (props: any) => <Icon icon="solar:cart-large-minimalistic-bold-duotone" {...props} />;
-const Box = (props: any) => <Icon icon="solar:box-bold-duotone" {...props} />;
-const ArrowLeft = (props: any) => <Icon icon="lucide:arrow-left" {...props} />;
-const Save = (props: any) => <Icon icon="solar:diskette-bold-duotone" {...props} />;
-const CreditCard = (props: any) => <Icon icon="solar:card-bold-duotone" {...props} />;
-const Banknote = (props: any) => <Icon icon="solar:wad-of-money-bold-duotone" {...props} />;
-const Smartphone = (props: any) => <Icon icon="solar:smartphone-bold-duotone" {...props} />;
-const X = (props: any) => <Icon icon="lucide:x" {...props} />;
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
@@ -33,7 +18,8 @@ import {
 import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 import apiClient from "@/api/client";
-// Icon already imported
+import { Icon } from "@iconify/react";
+
 interface CartPanelProps {
   isMobileView?: boolean;
   panelState?: "collapsed" | "default" | "expanded";
@@ -69,6 +55,7 @@ export default function CartPanel({
 
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const expandedScrollRef = useRef<HTMLDivElement>(null);
 
   const PAYMENT_METHODS = {
     card: {
@@ -91,6 +78,25 @@ export default function CartPanel({
   const [expandedSearchTerm, setExpandedSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  // Inline editing state for quantities
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingQtyValue, setEditingQtyValue] = useState<string>("");
+
+  const handleBlurQty = (productId: string, stockQuantity?: number) => {
+    let newQty = parseInt(editingQtyValue, 10);
+    const stock = stockQuantity ?? Infinity;
+    
+    if (isNaN(newQty) || newQty < 1) {
+      newQty = 1;
+    } else if (newQty > stock) {
+      newQty = stock;
+      toast.error(`Only ${stock} in stock!`);
+    }
+    
+    updateQuantity(productId, newQty);
+    setEditingProductId(null);
+  };
 
   useEffect(() => {
     if (expandedSearchTerm.trim() === '') {
@@ -142,6 +148,15 @@ export default function CartPanel({
       });
     }
   }, [itemsLength, mobileStep]);
+
+  useEffect(() => {
+    if (expandedScrollRef.current && panelState === 'expanded') {
+      expandedScrollRef.current.scrollTo({
+        top: expandedScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [itemsLength, panelState]);
 
   // If cart is empty, reset mobile step
   useEffect(() => {
@@ -208,7 +223,7 @@ export default function CartPanel({
   // Expanded Two-Column Overlay Layout (Desktop only)
   if (panelState === 'expanded' && !isMobileView) {
     return (
-      <div className="flex flex-col h-full bg-background overflow-hidden relative pt-8 rounded-[24px]">
+      <div className="flex flex-col h-full bg-background overflow-hidden lg:border lg:rounded-[24px] relative pt-8 shadow-sm">
         {/* Centered Drag Handle */}
         <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20">
           <button
@@ -235,7 +250,7 @@ export default function CartPanel({
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border hover:bg-secondary h-9 px-4 text-[13px] font-semibold shadow-none text-muted-foreground hover:text-foreground"
             >
-              <Save className="h-3.5 w-3.5" />
+              <Icon icon="solar:diskette-linear" className="h-4 w-4" />
               Save
             </Button>
             <Button
@@ -244,7 +259,7 @@ export default function CartPanel({
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-4 text-[13px] font-semibold shadow-none"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
               Clear
             </Button>
             <Button
@@ -253,13 +268,13 @@ export default function CartPanel({
               className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 ml-1"
               onClick={() => onStateChange?.('default')}
             >
-              <X className="h-5 w-5" />
+              <Icon icon="solar:close-square-linear" className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Expanded 2-Column Content */}
-        <div className="flex-1 flex min-h-0 overflow-hidden px-4 pb-4">
+        <div className="flex-1 flex min-h-0 overflow-hidden">
           
           {/* LEFT COLUMN: Scrollable Cart Items List */}
           <div className="flex-1 flex flex-col min-w-0 border-r border-border/60 overflow-hidden bg-background">
@@ -269,11 +284,11 @@ export default function CartPanel({
               </h3>
             </div>
             
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
+            <div ref={expandedScrollRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-20">
                   <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-muted-foreground/40" />
+                    <Icon icon="solar:cart-large-linear" className="h-8 w-8 text-muted-foreground/40" />
                   </div>
                   <p className="text-[14px] font-bold text-foreground">
                     Your cart is empty
@@ -295,7 +310,7 @@ export default function CartPanel({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <Box className="h-5 w-5 text-muted-foreground/30 stroke-[1.5]" />
+                          <Icon icon="solar:box-linear" className="h-5 w-5 text-muted-foreground/30" />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -320,40 +335,37 @@ export default function CartPanel({
                         }
                         className="h-6 w-6 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-foreground"
                       >
-                        <Minus className="h-2.5 w-2.5" />
+                        <Icon icon="ic:outline-minus" className="h-2.5 w-2.5" />
                       </Button>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="font-bold text-xs w-6 text-center hover:bg-muted rounded px-0.5 cursor-pointer">
-                            {item.quantity.toString().padStart(2, "0")}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-32 p-2 rounded-2xl" sideOffset={8}>
-                          <div className="flex flex-col gap-2">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-wide">Set Quantity</span>
-                            <input 
-                              type="number"
-                              min="1"
-                              className="w-full text-center py-1.5 bg-secondary border border-border rounded-lg text-sm font-bold outline-none focus:ring-1 focus:ring-primary no-spin-buttons"
-                              defaultValue={item.quantity}
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val > 0) {
-                                  updateQuantity(item.productId, val);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  const val = parseInt(e.currentTarget.value);
-                                  if (!isNaN(val) && val > 0) {
-                                    updateQuantity(item.productId, val);
-                                  }
-                                }
-                              }}
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      {editingProductId === item.productId ? (
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-10 h-6 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
+                          value={editingQtyValue}
+                          onChange={(e) => setEditingQtyValue(e.target.value)}
+                          onBlur={() => handleBlurQty(item.productId, item.stock_quantity)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleBlurQty(item.productId, item.stock_quantity);
+                            } else if (e.key === 'Escape') {
+                              setEditingProductId(null);
+                            }
+                          }}
+                          autoFocus
+                          onFocus={(e) => e.target.select()}
+                        />
+                      ) : (
+                        <span 
+                          className="font-bold text-xs w-5 text-center cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            setEditingProductId(item.productId);
+                            setEditingQtyValue(item.quantity.toString());
+                          }}
+                        >
+                          {item.quantity.toString().padStart(2, "0")}
+                        </span>
+                      )}
                       <Button
                         size="icon"
                         onClick={() => {
@@ -366,7 +378,7 @@ export default function CartPanel({
                         }}
                         className="h-6 w-6 rounded-full bg-primary hover:brightness-95 text-primary-foreground shadow-sm"
                       >
-                        <Plus className="h-2.5 w-2.5" />
+                        <Icon icon="ic:outline-plus" className="h-2.5 w-2.5" />
                       </Button>
                     </div>
 
@@ -381,7 +393,7 @@ export default function CartPanel({
                         onClick={() => removeItem(item.productId)}
                         className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive shadow-none shrink-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -391,7 +403,7 @@ export default function CartPanel({
           </div>
 
           {/* RIGHT COLUMN: Totals, Search and Checkout Controls */}
-          <div className="w-[420px] shrink-0 flex flex-col bg-background p-5 overflow-y-auto scrollbar-hide justify-between pl-6">
+          <div className="w-[420px] shrink-0 flex flex-col bg-secondary p-5 overflow-y-auto scrollbar-hide justify-between">
             <div className="space-y-5">
               {/* Product Search & Add */}
               <div className="space-y-2">
@@ -401,19 +413,20 @@ export default function CartPanel({
                 
                 {/* Search Bar Input */}
                 <div className="relative">
+                  <Icon icon="solar:magnifer-linear" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground h-4.5 w-4.5" />
                   <input
                     type="text"
-                    placeholder="🔍 Search & add product"
+                    placeholder="Search & add product"
                     value={expandedSearchTerm}
                     onChange={(e) => setExpandedSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-9 py-2.5 bg-background border border-border rounded-full text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                    className="w-full pl-10 pr-9 py-2.5 bg-background border border-border rounded-full text-sm font-semibold outline-none focus:ring-0 focus:ring-primary/40 focus:borderprimary transition-all"
                   />
                   {expandedSearchTerm && (
                     <button
                       onClick={() => setExpandedSearchTerm('')}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
                     >
-                      ✕
+                      <Icon icon="solar:close-circle-linear" className="h-4.5 w-4.5" />
                     </button>
                   )}
                   
@@ -490,7 +503,7 @@ export default function CartPanel({
                   <div className="flex items-center justify-between p-2 rounded-full bg-secondary">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-card text-muted-foreground flex items-center justify-center">
-                        <Ticket className="h-4 w-4" />
+                        <Icon icon="solar:ticket-linear" className="h-4 w-4" />
                       </div>
                       <p className="text-[14px] font-bold text-foreground">
                         {activePromo.type === "percentage"
@@ -641,7 +654,7 @@ export default function CartPanel({
                       variant="ghost"
                       className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-transparent px-1 h-auto py-1"
                     >
-                      Change Method <ChevronRight className="h-4 w-4" />
+                      Change Method <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4" />
                     </Button>
                   </div>
                 </DropdownMenuTrigger>
@@ -715,7 +728,7 @@ export default function CartPanel({
               className="h-8 w-8 rounded-full -ml-2"
               onClick={() => setMobileStep(1)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <Icon icon="solar:arrow-left-linear" className="h-4 w-4" />
             </Button>
           )}
           <h2 className="text-[18px] font-bold text-foreground">
@@ -733,7 +746,7 @@ export default function CartPanel({
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border hover:bg-secondary h-9 px-3 text-[13px] font-semibold shadow-none text-muted-foreground hover:text-foreground"
             >
-              <Save className="h-3.5 w-3.5" />
+              <Icon icon="solar:diskette-linear" className="h-3.5 w-3.5" />
               {/* Save */}
             </Button>
             <Button
@@ -742,7 +755,7 @@ export default function CartPanel({
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-3 text-[13px] font-semibold shadow-none"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Icon icon="solar:trash-bin-trash-linear" className="h-3.5 w-3.5" />
               {/* Reset Order */}
             </Button>
           </div>
@@ -791,7 +804,7 @@ export default function CartPanel({
                     </div>
                     <div className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground mt-1">
                       <div className="flex items-center gap-1.5 ml-1">
-                        <ShoppingCart className="h-3.5 w-3.5" />
+                        <Icon icon="solar:cart-large-linear" className="h-3.5 w-3.5" />
                         {t.itemCount} items
                       </div>
                       <span className="bg-background group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors px-3 py-1 rounded-full border border-border shadow-sm font-bold text-[10px] uppercase tracking-wide duration-300">
@@ -804,7 +817,7 @@ export default function CartPanel({
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-10">
                 <div className="h-24 w-24 bg-muted/50 rounded-full flex items-center justify-center mb-2">
-                  <ShoppingCart className="h-10 w-10 text-muted-foreground/40" />
+                  <Icon icon="solar:cart-large-linear" className="h-10 w-10 text-muted-foreground/40" />
                 </div>
                 <p className="text-[15px] font-bold text-foreground">
                   Your cart is empty
@@ -830,7 +843,7 @@ export default function CartPanel({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Box className="h-9 w-9 text-muted-foreground/30 stroke-[1.5]" />
+                    <Icon icon="solar:box-linear" className="h-9 w-9 text-muted-foreground/30" />
                   )}
                 </div>
 
@@ -858,7 +871,7 @@ export default function CartPanel({
                       onClick={() => removeItem(item.productId)}
                       className="h-8 w-8 rounded-full shrink-0 bg-[#e6173a] hover:bg-[#d80028] shadow-sm"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Icon icon="solar:trash-bin-trash-linear" className="h-3.5 w-3.5" />
                     </Button>
                   </div>
 
@@ -873,40 +886,37 @@ export default function CartPanel({
                         }
                         className="h-7 w-7 rounded-full hover:bg-black/5 text-foreground"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Icon icon="ic:outline-minus" className="h-3 w-3" />
                       </Button>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="font-bold text-xs w-6 text-center hover:bg-muted rounded px-0.5 cursor-pointer">
-                            {item.quantity.toString().padStart(2, "0")}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-32 p-2 rounded-2xl" sideOffset={8}>
-                          <div className="flex flex-col gap-2">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-wide">Set Quantity</span>
-                            <input 
-                              type="number"
-                              min="1"
-                              className="w-full text-center py-1.5 bg-secondary border border-border rounded-lg text-sm font-bold outline-none focus:ring-1 focus:ring-primary no-spin-buttons"
-                              defaultValue={item.quantity}
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val > 0) {
-                                  updateQuantity(item.productId, val);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  const val = parseInt(e.currentTarget.value);
-                                  if (!isNaN(val) && val > 0) {
-                                    updateQuantity(item.productId, val);
-                                  }
-                                }
-                              }}
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      {editingProductId === item.productId ? (
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-10 h-7 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
+                          value={editingQtyValue}
+                          onChange={(e) => setEditingQtyValue(e.target.value)}
+                          onBlur={() => handleBlurQty(item.productId, item.stock_quantity)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleBlurQty(item.productId, item.stock_quantity);
+                            } else if (e.key === 'Escape') {
+                              setEditingProductId(null);
+                            }
+                          }}
+                          autoFocus
+                          onFocus={(e) => e.target.select()}
+                        />
+                      ) : (
+                        <span 
+                          className="font-bold text-[13px] w-6 text-center cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            setEditingProductId(item.productId);
+                            setEditingQtyValue(item.quantity.toString());
+                          }}
+                        >
+                          {item.quantity.toString().padStart(2, "0")}
+                        </span>
+                      )}
                       <Button
                         size="icon"
                         onClick={() => {
@@ -919,7 +929,7 @@ export default function CartPanel({
                         }}
                         className="h-7 w-7 rounded-full bg-primary hover:brightness-95 text-primary-foreground shadow-sm"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Icon icon="material-symbols:add-rounded" className="h-3 w-3" />
                       </Button>
                     </div>
                     <div className="font-bold text-[14px] text-foreground tracking-tight">
@@ -958,7 +968,7 @@ export default function CartPanel({
                   <div className="flex items-center justify-between p-2 rounded-full bg-secondary">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-card text-muted-foreground flex items-center justify-center">
-                        <Ticket className="h-4 w-4" />
+                        <Icon icon="solar:ticket-linear" className="h-4 w-4" />
                       </div>
                       <p className="text-[14px] font-bold text-foreground">
                         {activePromo.type === "percentage"
@@ -1108,7 +1118,7 @@ export default function CartPanel({
                       variant="ghost"
                       className="flex items-center gap-0.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-transparent px-1 h-auto py-1"
                     >
-                      Change Method <ChevronRight className="h-4 w-4" />
+                      Change Method <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4" />
                     </Button>
                   </div>
                 </DropdownMenuTrigger>
