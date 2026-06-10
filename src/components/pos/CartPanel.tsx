@@ -678,7 +678,7 @@ export default function CartPanel({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pb-3 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-5 md:pt-0 pb-4 md:pb-3 shrink-0">
         <div className="flex items-center gap-2">
           {isMobileView && mobileStep === 2 && (
             <Button

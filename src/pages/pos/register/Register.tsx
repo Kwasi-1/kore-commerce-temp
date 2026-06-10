@@ -34,7 +34,7 @@ export default function Register() {
 
   // Desktop Collapsible Cart State
   const [panelState, setPanelState] = useState<'collapsed' | 'default' | 'expanded'>('default');
-  const [isBouncing, setIsBouncing] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
   // Custom Toast State (FIFO queue)
   const [activeToast, setActiveToast] = useState<CartToast | null>(null);
@@ -50,8 +50,8 @@ export default function Register() {
         const addedItem = items[items.length - 1];
         const addedName = addedItem ? addedItem.name : 'Product';
 
-        // Trigger bounce
-        setIsBouncing(true);
+        // Trigger shake
+        setIsShaking(true);
 
         // Add to toast queue
         const newToast: CartToast = {
@@ -62,11 +62,10 @@ export default function Register() {
         };
         setToastQueue(prev => [...prev, newToast]);
 
-        // Transition back to default sidebar after bounce animation (200ms)
+        // Reset shaking state after shake animation (300ms)
         setTimeout(() => {
-          setIsBouncing(false);
-          setPanelState('default');
-        }, 200);
+          setIsShaking(false);
+        }, 300);
       }
     }
     prevTotalQty.current = totalQty;
@@ -185,35 +184,39 @@ export default function Register() {
 
       {/* Desktop Floating Pill (State 1) */}
       {panelState === 'collapsed' && (
-        <div className="hidden lg:block absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
-          {/* Active Toast Stack above the Pill */}
+        <>
+          {/* Active Toast Stack at the Top Center */}
           {activeToast && (
-            <div className="mb-3 bg-card/90 backdrop-blur-md border border-border/50 shadow-xl rounded-full px-5 py-2.5 flex items-center gap-2 text-foreground font-semibold text-sm animate-fade-up-pill">
-              <span className="text-emerald-500 font-bold">✓</span>
-              <span>{activeToast.productName} added</span>
-              <span className="text-muted-foreground/60 mx-1">|</span>
-              <span>Cart: {activeToast.itemsCount} {activeToast.itemsCount === 1 ? 'item' : 'items'} · <CurrencyDisplay amount={activeToast.totalPrice} /></span>
+            <div className="hidden lg:block absolute top-6 left-1/2 -translate-x-1/2 z-50 animate-fade-down-toast">
+              <div className="bg-card/95 backdrop-blur-md border border-border/80 shadow-2xl rounded-full px-6 py-3 flex items-center gap-2 text-foreground font-semibold text-sm">
+                <span className="text-emerald-500 font-bold text-base">✓</span>
+                <span>{activeToast.productName} added</span>
+                <span className="text-muted-foreground/60 mx-1">|</span>
+                <span>Cart: {activeToast.itemsCount} {activeToast.itemsCount === 1 ? 'item' : 'items'} · <CurrencyDisplay amount={activeToast.totalPrice} /></span>
+              </div>
             </div>
           )}
 
-          {/* Collapsed Pill */}
-          <button
-            onClick={() => setPanelState('default')}
-            className={`h-14 px-6 rounded-full bg-primary hover:bg-primary/90 hover:brightness-105 border border-white/10 shadow-xl flex items-center gap-3 text-primary-foreground font-bold hover:scale-105 transition-all duration-300 ${
-              isBouncing ? 'animate-bounce-pill' : ''
-            }`}
-            title="Expand panel"
-          >
-            <span className="text-lg">🛒</span>
-            <span className="text-sm font-semibold tracking-tight">
-              {items.length} {items.length === 1 ? 'item' : 'items'}
-            </span>
-            <span className="text-muted-foreground/40 font-normal">·</span>
-            <span className="text-lg tracking-tight">
-              <CurrencyDisplay amount={calculatedTotal} />
-            </span>
-          </button>
-        </div>
+          {/* Collapsed Pill at the Bottom Center */}
+          <div className="hidden lg:block absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
+            <button
+              onClick={() => setPanelState('default')}
+              className={`h-14 px-6 rounded-full bg-primary hover:bg-primary/90 hover:brightness-105 border border-white/10 shadow-xl flex items-center gap-3 text-primary-foreground font-bold hover:scale-105 transition-all duration-300 ${
+                isShaking ? 'animate-shake-pill' : ''
+              }`}
+              title="Expand panel"
+            >
+              <span className="text-lg">🛒</span>
+              <span className="text-sm font-semibold tracking-tight">
+                {items.length} {items.length === 1 ? 'item' : 'items'}
+              </span>
+              <span className="text-muted-foreground/40 font-normal">·</span>
+              <span className="text-lg tracking-tight">
+                <CurrencyDisplay amount={calculatedTotal} />
+              </span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* Mobile Floating Cart Button */}
