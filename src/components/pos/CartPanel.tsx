@@ -56,6 +56,7 @@ export default function CartPanel({
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const expandedScrollRef = useRef<HTMLDivElement>(null);
+  const prevPanelStateRef = useRef(panelState);
 
   const PAYMENT_METHODS = {
     card: {
@@ -150,11 +151,24 @@ export default function CartPanel({
   }, [itemsLength, mobileStep]);
 
   useEffect(() => {
-    if (expandedScrollRef.current && panelState === 'expanded') {
-      expandedScrollRef.current.scrollTo({
-        top: expandedScrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    if (panelState === 'expanded') {
+      const isTransitioning = prevPanelStateRef.current !== 'expanded';
+      // Expand transition takes ~250-300ms, so delay scroll until it completes
+      const delay = isTransitioning ? 350 : 50;
+
+      const timer = setTimeout(() => {
+        if (expandedScrollRef.current) {
+          expandedScrollRef.current.scrollTo({
+            top: expandedScrollRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, delay);
+
+      prevPanelStateRef.current = panelState;
+      return () => clearTimeout(timer);
+    } else {
+      prevPanelStateRef.current = panelState;
     }
   }, [itemsLength, panelState]);
 
