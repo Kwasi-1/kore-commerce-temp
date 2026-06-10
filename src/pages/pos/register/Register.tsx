@@ -33,7 +33,7 @@ export default function Register() {
   const [snapPoint, setSnapPoint] = useState<number | string | null>(0.85);
 
   // Desktop Collapsible Cart State
-  const [panelState, setPanelState] = useState<'collapsed' | 'default' | 'expanded'>('default');
+  const { panelState, setPanelState } = useCartStore();
   const [isShaking, setIsShaking] = useState(false);
 
   // Custom Toast State (FIFO queue)

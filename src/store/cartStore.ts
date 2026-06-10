@@ -28,6 +28,7 @@ interface CartState {
   subtotal: number;
   total: number;
   savedTransactions: SavedTransaction[];
+  panelState: 'collapsed' | 'default' | 'expanded';
   
   // Actions
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
@@ -39,6 +40,9 @@ interface CartState {
   // Saved Transactions Actions
   saveTransaction: (customerName: string) => void;
   resumeTransaction: (transactionId: string) => void;
+  
+  // UI State Actions
+  setPanelState: (state: 'collapsed' | 'default' | 'expanded') => void;
 }
 
 const calculateTotals = (items: CartItem[], discount: number) => {
@@ -53,6 +57,9 @@ export const useCartStore = create<CartState>((set) => ({
   subtotal: 0,
   total: 0,
   savedTransactions: [],
+  panelState: 'default',
+
+  setPanelState: (panelState) => set({ panelState }),
 
   addItem: (newItem) =>
     set((state) => {
