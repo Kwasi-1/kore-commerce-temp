@@ -15,9 +15,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerBody, DrawerHeader } from '@nextui-org/react';
 
-export default function ProductSearchBar() {
+interface ProductSearchBarProps {
+  isCartCollapsed?: boolean;
+}
+
+export default function ProductSearchBar({ isCartCollapsed = false }: ProductSearchBarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [renderedCollapsed, setRenderedCollapsed] = useState(isCartCollapsed);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    setIsTransitioning(true);
+    const timer = setTimeout(() => {
+      setRenderedCollapsed(isCartCollapsed);
+      setIsTransitioning(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isCartCollapsed]);
   const [products, setProducts] = useState<Product[]>([]);
   // Store all category objects to display counts
   const [categories, setCategories] = useState<{name: string, count: number}[]>([]);
@@ -352,7 +367,15 @@ export default function ProductSearchBar() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-4 pb-28">
+          <div 
+            className={`grid gap-3 md:gap-4 pb-28 transition-opacity duration-100 ${
+              isTransitioning ? 'opacity-0' : 'opacity-100'
+            } ${
+              renderedCollapsed
+                ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+            }`}
+          >
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
             ))}
