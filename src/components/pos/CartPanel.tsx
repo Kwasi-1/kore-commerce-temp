@@ -1,20 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useCartStore } from "@/store/cartStore";
-import {
-  Trash2,
-  Plus,
-  Minus,
-  ChevronRight,
-  Ticket,
-  ShoppingCart,
-  Box,
-  ArrowLeft,
-  Save,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  X,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
+
+const Trash2 = (props: any) => <Icon icon="solar:trash-bin-trash-bold-duotone" {...props} />;
+const Plus = (props: any) => <Icon icon="lucide:plus" {...props} />;
+const Minus = (props: any) => <Icon icon="lucide:minus" {...props} />;
+const ChevronRight = (props: any) => <Icon icon="lucide:chevron-right" {...props} />;
+const Ticket = (props: any) => <Icon icon="solar:ticket-sale-bold-duotone" {...props} />;
+const ShoppingCart = (props: any) => <Icon icon="solar:cart-large-minimalistic-bold-duotone" {...props} />;
+const Box = (props: any) => <Icon icon="solar:box-bold-duotone" {...props} />;
+const ArrowLeft = (props: any) => <Icon icon="lucide:arrow-left" {...props} />;
+const Save = (props: any) => <Icon icon="solar:diskette-bold-duotone" {...props} />;
+const CreditCard = (props: any) => <Icon icon="solar:card-bold-duotone" {...props} />;
+const Banknote = (props: any) => <Icon icon="solar:wad-of-money-bold-duotone" {...props} />;
+const Smartphone = (props: any) => <Icon icon="solar:smartphone-bold-duotone" {...props} />;
+const X = (props: any) => <Icon icon="lucide:x" {...props} />;
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
@@ -33,8 +33,7 @@ import {
 import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 import apiClient from "@/api/client";
-import { Icon } from "@iconify/react";
-
+// Icon already imported
 interface CartPanelProps {
   isMobileView?: boolean;
   panelState?: "collapsed" | "default" | "expanded";
@@ -209,7 +208,7 @@ export default function CartPanel({
   // Expanded Two-Column Overlay Layout (Desktop only)
   if (panelState === 'expanded' && !isMobileView) {
     return (
-      <div className="flex flex-col h-full bg-secondary overflow-hidden lg:border lg:rounded-[24px] relative pt-8">
+      <div className="flex flex-col h-full bg-background overflow-hidden relative pt-8 rounded-[24px]">
         {/* Centered Drag Handle */}
         <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20">
           <button
@@ -260,7 +259,7 @@ export default function CartPanel({
         </div>
 
         {/* Expanded 2-Column Content */}
-        <div className="flex-1 flex min-h-0 overflow-hidden">
+        <div className="flex-1 flex min-h-0 overflow-hidden px-4 pb-4">
           
           {/* LEFT COLUMN: Scrollable Cart Items List */}
           <div className="flex-1 flex flex-col min-w-0 border-r border-border/60 overflow-hidden bg-background">
@@ -323,9 +322,38 @@ export default function CartPanel({
                       >
                         <Minus className="h-2.5 w-2.5" />
                       </Button>
-                      <span className="font-bold text-xs w-5 text-center">
-                        {item.quantity.toString().padStart(2, "0")}
-                      </span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="font-bold text-xs w-6 text-center hover:bg-muted rounded px-0.5 cursor-pointer">
+                            {item.quantity.toString().padStart(2, "0")}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 p-2 rounded-2xl" sideOffset={8}>
+                          <div className="flex flex-col gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-wide">Set Quantity</span>
+                            <input 
+                              type="number"
+                              min="1"
+                              className="w-full text-center py-1.5 bg-secondary border border-border rounded-lg text-sm font-bold outline-none focus:ring-1 focus:ring-primary no-spin-buttons"
+                              defaultValue={item.quantity}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val > 0) {
+                                  updateQuantity(item.productId, val);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const val = parseInt(e.currentTarget.value);
+                                  if (!isNaN(val) && val > 0) {
+                                    updateQuantity(item.productId, val);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Button
                         size="icon"
                         onClick={() => {
@@ -363,7 +391,7 @@ export default function CartPanel({
           </div>
 
           {/* RIGHT COLUMN: Totals, Search and Checkout Controls */}
-          <div className="w-[420px] shrink-0 flex flex-col bg-secondary p-5 overflow-y-auto scrollbar-hide justify-between border-l border-border/40">
+          <div className="w-[420px] shrink-0 flex flex-col bg-background p-5 overflow-y-auto scrollbar-hide justify-between pl-6">
             <div className="space-y-5">
               {/* Product Search & Add */}
               <div className="space-y-2">
@@ -847,9 +875,38 @@ export default function CartPanel({
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="font-bold text-[13px] w-6 text-center">
-                        {item.quantity.toString().padStart(2, "0")}
-                      </span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="font-bold text-xs w-6 text-center hover:bg-muted rounded px-0.5 cursor-pointer">
+                            {item.quantity.toString().padStart(2, "0")}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 p-2 rounded-2xl" sideOffset={8}>
+                          <div className="flex flex-col gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-wide">Set Quantity</span>
+                            <input 
+                              type="number"
+                              min="1"
+                              className="w-full text-center py-1.5 bg-secondary border border-border rounded-lg text-sm font-bold outline-none focus:ring-1 focus:ring-primary no-spin-buttons"
+                              defaultValue={item.quantity}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val > 0) {
+                                  updateQuantity(item.productId, val);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const val = parseInt(e.currentTarget.value);
+                                  if (!isNaN(val) && val > 0) {
+                                    updateQuantity(item.productId, val);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Button
                         size="icon"
                         onClick={() => {

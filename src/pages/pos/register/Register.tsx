@@ -143,14 +143,14 @@ export default function Register() {
         )}
 
         {/* Right Panel: Cart (Desktop only) */}
-        <div className={`hidden lg:flex flex-col relative transition-all ease-out ${
-          panelState === 'expanded' ? 'duration-250' : 'duration-300'
+        <div className={`hidden lg:flex flex-col transition-all ease-out ${
+          panelState === 'expanded' ? 'duration-250 absolute top-4 bottom-4 right-4 h-auto w-[75%] max-w-[75vw] z-30 shadow-2xl rounded-[24px] border border-border bg-background' : 'relative duration-300'
         } ${
           panelState === 'collapsed' 
             ? 'w-0 opacity-0 translate-x-full shrink-0 pointer-events-none' 
-            : panelState === 'expanded'
-              ? 'absolute top-0 right-0 h-full w-[75%] max-w-[75vw] z-30 shadow-[0_0_50px_rgba(0,0,0,0.15)] rounded-l-[24px] border-l border-border bg-secondary'
-              : 'w-[420px] shrink-0'
+            : panelState === 'default'
+              ? 'w-[420px] shrink-0'
+              : ''
         }`}>
           <CartPanel 
             panelState={panelState} 
