@@ -292,13 +292,10 @@
 }
 
 @keyframes shakePill {
-  0%, 100% { transform: translateX(0) scale(1); }
-  15% { transform: translateX(-6px) scale(1.02); }
-  30% { transform: translateX(5px) scale(1.02); }
-  45% { transform: translateX(-4px) scale(1.01); }
-  60% { transform: translateX(3px) scale(1.01); }
-  75% { transform: translateX(-1.5px) scale(1); }
-  90% { transform: translateX(0.5px) scale(1); }
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.05); }
+  50% { transform: scale(0.97); }
+  75% { transform: scale(1.02); }
 }
 
 .animate-shake-pill {
