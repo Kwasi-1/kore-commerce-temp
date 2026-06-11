@@ -18,6 +18,465 @@ export function setupMockApi() {
   // Set delay to simulate network latency for better frontend auditing (e.g. loading states)
   const mock = new MockAdapter(apiClient, { delayResponse: 600 });
 
+  const mockSuppliers = [
+    { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true, status: 'active' },
+    { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true, status: 'active' }
+  ];
+
+  let mockProducts = [
+    {
+      id: 'p1',
+      name: 'Nike Air Max',
+      description: 'Classic lifestyle sneakers.',
+      category: 'Shoes',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v1',
+          sku: 'NK-AM-01',
+          variant_attributes: {},
+          base_unit_name: 'pair',
+          cost_price_per_base_unit: 500,
+          stock_quantity: 4,
+          low_stock_threshold: 5,
+          sell_mode: 'unit_only',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p1_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 850 },
+                { price_type: 'wholesale', price: 765 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p2',
+      name: 'Adidas Ultraboost',
+      description: 'High-performance running shoes.',
+      category: 'Shoes',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v2',
+          sku: 'AD-UB-02',
+          variant_attributes: {},
+          base_unit_name: 'pair',
+          cost_price_per_base_unit: 600,
+          stock_quantity: 12,
+          low_stock_threshold: 5,
+          sell_mode: 'pack_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p2_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 920 },
+                { price_type: 'wholesale', price: 850 }
+              ]
+            },
+            {
+              id: 'tier_p2_b',
+              name: 'Box of 2',
+              units_per_tier: 2,
+              is_base_unit: false,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 1800 },
+                { price_type: 'wholesale', price: 1700 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p3',
+      name: 'Apple AirPods Pro',
+      description: 'True wireless noise cancelling earbuds.',
+      category: 'Electronics',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1588449668338-d15168b5a4c5?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v3',
+          sku: 'AP-AP-03',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 2800,
+          stock_quantity: 2,
+          low_stock_threshold: 5,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p3_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 3500 },
+                { price_type: 'wholesale', price: 3200 }
+              ]
+            },
+            {
+              id: 'tier_p3_c',
+              name: 'Case of 10',
+              units_per_tier: 10,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 32000 },
+                { price_type: 'wholesale', price: 30000 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p4',
+      name: 'Sony WH-1000XM4',
+      description: 'Industry-leading noise cancelling headphones.',
+      category: 'Electronics',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v4',
+          sku: 'SN-WH-04',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 3100,
+          stock_quantity: 8,
+          low_stock_threshold: 3,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p4_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 4200 },
+                { price_type: 'wholesale', price: 3780 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p5',
+      name: 'Basic White Tee',
+      description: 'Comfy cotton crewneck white t-shirt.',
+      category: 'Apparel',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v5',
+          sku: 'AP-WT-05',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 40,
+          stock_quantity: 45,
+          low_stock_threshold: 20,
+          sell_mode: 'flexible',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p5_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 120 },
+                { price_type: 'wholesale', price: 100 }
+              ]
+            },
+            {
+              id: 'tier_p5_c',
+              name: 'Carton of 24',
+              units_per_tier: 24,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 2400 },
+                { price_type: 'wholesale', price: 2200 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p6',
+      name: 'Nike Socks',
+      description: 'Athletic cotton crew socks.',
+      category: 'Apparel',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1582966772680-860e372bb558?w=400'],
+      has_variants: true,
+      variants: [
+        {
+          id: 'p6_black',
+          sku: 'NK-SK-06',
+          variant_attributes: { Color: 'Black' },
+          base_unit_name: 'pair',
+          cost_price_per_base_unit: 15,
+          stock_quantity: 15,
+          low_stock_threshold: 10,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p6_black_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 40 },
+                { price_type: 'wholesale', price: 36 }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'p6_white',
+          sku: 'NK-SK-07',
+          variant_attributes: { Color: 'White' },
+          base_unit_name: 'pair',
+          cost_price_per_base_unit: 15,
+          stock_quantity: 10,
+          low_stock_threshold: 10,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p6_white_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 40 },
+                { price_type: 'wholesale', price: 36 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p7',
+      name: 'Leather Wallet',
+      description: 'Genuine leather bi-fold wallet.',
+      category: 'Accessories',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1627124718515-e3d9315b768b?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v7',
+          sku: 'LW-07',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 100,
+          stock_quantity: 20,
+          low_stock_threshold: 5,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p7_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 250 },
+                { price_type: 'wholesale', price: 225 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p8',
+      name: 'Sunglasses Classic',
+      description: 'Retro style black sunglasses.',
+      category: 'Accessories',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v8',
+          sku: 'SG-08',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 150,
+          stock_quantity: 10,
+          low_stock_threshold: 5,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p8_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 380 },
+                { price_type: 'wholesale', price: 340 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p9',
+      name: 'Samsung Galaxy Tab',
+      description: 'Android tablet with premium display.',
+      category: 'Electronics',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v9',
+          sku: 'SG-TAB-09',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 4200,
+          stock_quantity: 3,
+          low_stock_threshold: 2,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p9_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 5500 },
+                { price_type: 'wholesale', price: 4950 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p10',
+      name: 'Running Shorts',
+      description: 'Lightweight breathable running shorts.',
+      category: 'Apparel',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1539185441755-769473a23570?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v10',
+          sku: 'RS-10',
+          variant_attributes: {},
+          base_unit_name: 'piece',
+          cost_price_per_base_unit: 35,
+          stock_quantity: 15,
+          low_stock_threshold: 15,
+          sell_mode: 'unit_only',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p10_u',
+              name: 'Unit',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 95 },
+                { price_type: 'wholesale', price: 85 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ] as any[];
+
+  let mockPurchaseOrders = [
+    {
+      id: 'po1',
+      reference_number: 'PO-2026-001',
+      supplier_id: 'sup1',
+      supplier: { id: 'sup1', name: 'TechWholesale Ghana' },
+      status: 'draft',
+      total_amount: 15000,
+      is_credit_purchase: true,
+      credit_due_date: new Date(Date.now() + 5*86400000).toISOString().split('T')[0],
+      date_created: new Date().toISOString(),
+      items: [
+        { variant_id: 'v3', packaging_tier_id: 'tier_p3_c', quantity: 1, cost_price: 15000 }
+      ]
+    },
+    {
+      id: 'po2',
+      reference_number: 'PO-2026-002',
+      supplier_id: 'sup2',
+      supplier: { id: 'sup2', name: 'Accra Garments' },
+      status: 'ordered',
+      total_amount: 3400,
+      is_credit_purchase: false,
+      date_created: new Date().toISOString(),
+      items: [
+        { variant_id: 'v5', packaging_tier_id: 'tier_p5_c', quantity: 2, cost_price: 1700 }
+      ]
+    }
+  ] as any[];
+
   // -----------------------------------------------------
   // AUTH & STAFF
   // -----------------------------------------------------
@@ -146,20 +605,17 @@ export function setupMockApi() {
   // INVENTORY
   // -----------------------------------------------------
   
-  let mockProducts = [
-    { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes', status: 'active', track_expiry: true },
-    { id: 'p2', name: 'Adidas Ultraboost', sku: 'AD-UB-02', price: 920, cost_price: 600, stock_quantity: 12, reorder_point: 5, category: 'Shoes', status: 'active' },
-    { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics', status: 'active', track_expiry: true },
-    { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics', status: 'active' },
-    { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel', status: 'active' },
-    { id: 'p6', name: 'Nike Socks', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 15, reorder_point: 10, category: 'Apparel', status: 'active' },
-    { id: 'p7', name: 'Leather Wallet', sku: 'LW-07', price: 250, cost_price: 100, stock_quantity: 20, reorder_point: 5, category: 'Accessories', status: 'active' },
-    { id: 'p8', name: 'Sunglasses Classic', sku: 'SG-08', price: 380, cost_price: 150, stock_quantity: 10, reorder_point: 5, category: 'Accessories', status: 'active' },
-    { id: 'p9', name: 'Samsung Galaxy Tab', sku: 'SG-TAB-09', price: 5500, cost_price: 4200, stock_quantity: 3, reorder_point: 2, category: 'Electronics', status: 'active' },
-    { id: 'p10', name: 'Running Shorts', sku: 'RS-10', price: 95, cost_price: 35, stock_quantity: 15, reorder_point: 15, category: 'Apparel', status: 'active' },
-  ] as any[];
+  mock.onGet(/\/tenant\/products\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const id = url.split('/').pop() || '';
+    const product = mockProducts.find(p => p.id === id);
+    if (product) {
+      return [200, { success: true, data: { product } }];
+    }
+    return [404, { success: false, error: { message: 'Product not found' } }];
+  });
 
-  mock.onGet(/\/tenant\/products/).reply((config) => {
+  mock.onGet(/\/tenant\/products(\?.*)?$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
     const search = (searchParams.get('search') || '').toLowerCase();
@@ -170,176 +626,117 @@ export function setupMockApi() {
     if (search) {
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(search) ||
-        p.sku.toLowerCase().includes(search) ||
+        p.variants.some((v: any) => v.sku.toLowerCase().includes(search)) ||
         (p.category || '').toLowerCase().includes(search)
       );
     }
-    if (status) {
+    if (status && status !== 'all') {
       filtered = filtered.filter(p => p.status === status);
     }
-    if (category) {
+    if (category && category !== 'all') {
       filtered = filtered.filter(p => p.category === category);
     }
 
-    // Attach dynamic expiry warning if enabled
-    if (mockTenant.track_expiry_enabled) {
-      filtered = filtered.map(p => {
-        if (p.track_expiry) {
-          if (p.id === 'p3') {
-            return {
-              ...p,
-              expiry_warning: {
-                has_warning: true,
-                earliest_expiry: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-                days_until_expiry: 15
-              }
+    const mapped = filtered.map(p => {
+      const totalStock = p.variants.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0);
+      let expiryWarning = null;
+      if (mockTenant.track_expiry_enabled) {
+        const warningVar = p.variants.find((v: any) => v.track_expiry);
+        if (warningVar) {
+          if (warningVar.id.includes('v3') || warningVar.id.includes('p3')) {
+            expiryWarning = {
+              has_warning: true,
+              earliest_expiry: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+              days_until_expiry: 15
             };
-          }
-          if (p.id === 'p1') {
-            return {
-              ...p,
-              expiry_warning: {
-                has_warning: true,
-                earliest_expiry: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-                days_until_expiry: -2
-              }
+          } else if (warningVar.id.includes('v1') || warningVar.id.includes('p1')) {
+            expiryWarning = {
+              has_warning: true,
+              earliest_expiry: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+              days_until_expiry: -2
             };
           }
         }
-        return p;
-      });
-    }
+      }
 
-    return [200, { success: true, data: { products: filtered } }];
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category || 'General',
+        images: p.images || [],
+        has_variants: !!p.has_variants,
+        variant_count: p.variants?.length || 0,
+        total_stock_base_units: totalStock,
+        status: p.status || 'active',
+        expiry_warning: expiryWarning,
+        // Compatibility properties:
+        quantity: totalStock,
+        sku: p.variants?.[0]?.sku || ''
+      };
+    });
+
+    return [200, { success: true, data: { products: mapped } }];
   });
 
-  const getPosProductsData = (filteredProducts: any[]) => {
+  const getPosProductsData = (products: any[]) => {
     const grouped: Record<string, any> = {};
     
-    filteredProducts.forEach(p => {
-      const parentName = p.name.split(' - ')[0].split(' · ')[0];
-      const attributeParts = p.name.split(' - ');
-      const variant_attributes: Record<string, string> = {};
-      if (attributeParts.length > 1) {
-        variant_attributes['attribute'] = attributeParts[1];
-      }
-      
-      if (!grouped[parentName]) {
-        grouped[parentName] = {
-          id: `parent-${p.id}`,
-          name: parentName,
-          category: p.category,
-          imageUrl: p.imageUrl,
-          description: p.description,
-          variants: []
-        };
-      }
+    products.forEach(p => {
+      const variants = p.variants.map((v: any) => {
+        const mappedTiers = v.packaging_tiers.map((t: any) => {
+          const retailPrice = t.prices?.find((pr: any) => pr.price_type === 'retail')?.price || 0;
+          const wholesalePrice = t.prices?.find((pr: any) => pr.price_type === 'wholesale')?.price || null;
+          return {
+            id: t.id,
+            name: t.name,
+            units_per_tier: t.units_per_tier,
+            is_base_unit: t.is_base_unit,
+            is_default_sale_unit: t.is_default_sale_unit,
+            is_default_purchase_unit: t.is_default_purchase_unit,
+            prices: {
+              retail: retailPrice,
+              wholesale: wholesalePrice
+            }
+          };
+        });
 
-      let sell_mode: 'unit_only' | 'pack_only' | 'flexible' = 'unit_only';
-      let base_unit_name = 'unit';
-      let packaging_tiers = [
-        { 
-          id: `tier_${p.id}_u`, 
-          name: 'Unit', 
-          units_per_tier: 1, 
-          is_base_unit: true,
-          is_default_sale_unit: true,
-          prices: { retail: p.price, wholesale: Math.round(p.price * 0.9) }
+        let stock_display = v.stock_quantity;
+        let stock_display_unit = v.base_unit_name || 'unit';
+        const defaultTier = mappedTiers.find((t: any) => t.is_default_sale_unit) || mappedTiers[0];
+        if (v.sell_mode === 'pack_only' && defaultTier) {
+          stock_display = Math.floor(v.stock_quantity / defaultTier.units_per_tier);
+          stock_display_unit = defaultTier.name;
         }
-      ];
 
-      if (p.id === 'p3') {
-        sell_mode = 'flexible';
-        base_unit_name = 'piece';
-        packaging_tiers = [
-          { 
-            id: `tier_${p.id}_u`, 
-            name: 'Unit', 
-            units_per_tier: 1, 
-            is_base_unit: true,
-            is_default_sale_unit: true,
-            prices: { retail: 3500, wholesale: 3200 }
-          },
-          { 
-            id: `tier_${p.id}_c`, 
-            name: 'Case (10 units)', 
-            units_per_tier: 10, 
-            is_base_unit: false,
-            is_default_sale_unit: false,
-            prices: { retail: 32000, wholesale: 30000 }
-          }
-        ];
-      } else if (p.id === 'p5') {
-        sell_mode = 'flexible';
-        base_unit_name = 'piece';
-        packaging_tiers = [
-          { 
-            id: `tier_${p.id}_u`, 
-            name: 'Unit', 
-            units_per_tier: 1, 
-            is_base_unit: true,
-            is_default_sale_unit: true,
-            prices: { retail: 120, wholesale: 100 }
-          },
-          { 
-            id: `tier_${p.id}_c`, 
-            name: 'Carton (24 units)', 
-            units_per_tier: 24, 
-            is_base_unit: false,
-            is_default_sale_unit: false,
-            prices: { retail: 2400, wholesale: 2200 }
-          }
-        ];
-      } else if (p.id === 'p2') {
-        sell_mode = 'pack_only';
-        base_unit_name = 'pair';
-        packaging_tiers = [
-          { 
-            id: `tier_${p.id}_u`, 
-            name: 'Unit', 
-            units_per_tier: 1, 
-            is_base_unit: true,
-            is_default_sale_unit: false,
-            prices: { retail: 920, wholesale: 850 }
-          },
-          { 
-            id: `tier_${p.id}_b`, 
-            name: 'Box of 2', 
-            units_per_tier: 2, 
-            is_base_unit: false,
-            is_default_sale_unit: true,
-            prices: { retail: 1800, wholesale: 1700 }
-          }
-        ];
-      }
-
-      let stock_display = p.stock_quantity;
-      let stock_display_unit = base_unit_name;
-      const defaultTier = packaging_tiers.find(t => t.is_default_sale_unit) || packaging_tiers[0];
-      if (sell_mode === 'pack_only' && defaultTier) {
-        stock_display = Math.floor(p.stock_quantity / defaultTier.units_per_tier);
-        stock_display_unit = defaultTier.name;
-      }
-
-      grouped[parentName].variants.push({
-        variant_id: p.id,
-        sku: p.sku,
-        variant_attributes,
-        sell_mode,
-        base_unit_name,
-        stock_quantity: p.stock_quantity,
-        stock_display,
-        stock_display_unit,
-        low_stock: p.stock_quantity <= (p.reorder_point || 5),
-        packaging_tiers,
-        expiry_warning: mockTenant.track_expiry_enabled && p.track_expiry ? {
-          has_warning: true,
-          earliest_expiry: p.id === 'p1' 
-            ? new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] 
-            : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-          days_until_expiry: p.id === 'p1' ? -2 : 15
-        } : null
+        return {
+          variant_id: v.id,
+          sku: v.sku,
+          variant_attributes: v.variant_attributes || {},
+          sell_mode: v.sell_mode || 'unit_only',
+          base_unit_name: v.base_unit_name || 'unit',
+          stock_quantity: v.stock_quantity,
+          stock_display,
+          stock_display_unit,
+          low_stock: v.stock_quantity <= (v.low_stock_threshold || 5),
+          packaging_tiers: mappedTiers,
+          expiry_warning: mockTenant.track_expiry_enabled && v.track_expiry ? {
+            has_warning: true,
+            earliest_expiry: v.id.includes('p1') 
+              ? new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] 
+              : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+            days_until_expiry: v.id.includes('p1') ? -2 : 15
+          } : null
+        };
       });
+
+      grouped[p.name] = {
+        id: `parent-${p.id}`,
+        name: p.name,
+        category: p.category,
+        imageUrl: p.images?.[0] || undefined,
+        description: p.description,
+        variants
+      };
     });
 
     return Object.values(grouped);
@@ -354,7 +751,7 @@ export function setupMockApi() {
     if (query) {
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(query) ||
-        p.sku.toLowerCase().includes(query) ||
+        p.variants.some((v: any) => v.sku.toLowerCase().includes(query)) ||
         (p.category || '').toLowerCase().includes(query)
       );
     }
@@ -362,7 +759,6 @@ export function setupMockApi() {
     return [200, { success: { data: { products: getPosProductsData(filtered) } } }];
   });
 
-  // GET /pos/products for register screen
   mock.onGet(/\/pos\/products$/).reply(() => {
     return [200, {
       success: {
@@ -373,21 +769,190 @@ export function setupMockApi() {
     }];
   });
 
+  mock.onPost('/tenant/products').reply((config) => {
+    const payload = JSON.parse(config.data);
+    const newId = `p${Date.now()}`;
+    
+    let variants: any[] = [];
+    if (payload.has_variants) {
+      variants = (payload.variants || []).map((v: any, index: number) => ({
+        id: `v-${newId}-${index}`,
+        sku: v.sku,
+        variant_attributes: v.variant_attributes || {},
+        base_unit_name: v.base_unit_name || 'unit',
+        cost_price_per_base_unit: v.cost_price_per_base_unit != null ? Number(v.cost_price_per_base_unit) : null,
+        stock_quantity: Number(v.stock_quantity) || 0,
+        low_stock_threshold: Number(v.low_stock_threshold) || 5,
+        sell_mode: v.sell_mode || 'unit_only',
+        track_expiry: !!v.track_expiry,
+        packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
+          id: t.id || `tier-${newId}-${index}-${tIdx}`,
+          name: t.name,
+          units_per_tier: Number(t.units_per_tier) || 1,
+          is_base_unit: !!t.is_base_unit,
+          is_default_sale_unit: !!t.is_default_sale_unit,
+          is_default_purchase_unit: !!t.is_default_purchase_unit,
+          prices: t.prices || []
+        }))
+      }));
+    } else if (payload.variant) {
+      const v = payload.variant;
+      variants = [
+        {
+          id: `v-${newId}`,
+          sku: v.sku,
+          variant_attributes: {},
+          base_unit_name: v.base_unit_name || 'unit',
+          cost_price_per_base_unit: v.cost_price_per_base_unit != null ? Number(v.cost_price_per_base_unit) : null,
+          stock_quantity: Number(v.stock_quantity) || 0,
+          low_stock_threshold: Number(v.low_stock_threshold) || 5,
+          sell_mode: v.sell_mode || 'unit_only',
+          track_expiry: !!v.track_expiry,
+          packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
+            id: t.id || `tier-${newId}-${tIdx}`,
+            name: t.name,
+            units_per_tier: Number(t.units_per_tier) || 1,
+            is_base_unit: !!t.is_base_unit,
+            is_default_sale_unit: !!t.is_default_sale_unit,
+            is_default_purchase_unit: !!t.is_default_purchase_unit,
+            prices: t.prices || []
+          }))
+        }
+      ];
+    }
+
+    const newProduct = {
+      id: newId,
+      name: payload.name,
+      description: payload.description || '',
+      category: payload.category || 'General',
+      status: payload.status || 'active',
+      images: payload.images || [],
+      has_variants: !!payload.has_variants,
+      variants
+    };
+
+    mockProducts.push(newProduct);
+
+    return [200, {
+      success: {
+        status: "OK",
+        code: 200,
+        data: {
+          product: newProduct
+        }
+      }
+    }];
+  });
+
+  mock.onPut(/\/tenant\/products\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const id = url.split('/').pop() || '';
+    const payload = JSON.parse(config.data);
+    
+    const pIdx = mockProducts.findIndex(p => p.id === id);
+    if (pIdx !== -1) {
+      const p = mockProducts[pIdx];
+      p.name = payload.name;
+      p.description = payload.description || '';
+      p.category = payload.category;
+      p.status = payload.status || p.status;
+      
+      if (payload.has_variants && payload.variants) {
+        p.variants = payload.variants.map((v: any, index: number) => ({
+          id: v.id || `v-${id}-${index}`,
+          sku: v.sku,
+          variant_attributes: v.variant_attributes || {},
+          base_unit_name: v.base_unit_name || 'unit',
+          cost_price_per_base_unit: v.cost_price_per_base_unit != null ? Number(v.cost_price_per_base_unit) : null,
+          stock_quantity: Number(v.stock_quantity) || 0,
+          low_stock_threshold: Number(v.low_stock_threshold) || 5,
+          sell_mode: v.sell_mode || 'unit_only',
+          track_expiry: !!v.track_expiry,
+          packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
+            id: t.id || `tier-${id}-${index}-${tIdx}`,
+            name: t.name,
+            units_per_tier: Number(t.units_per_tier) || 1,
+            is_base_unit: !!t.is_base_unit,
+            is_default_sale_unit: !!t.is_default_sale_unit,
+            is_default_purchase_unit: !!t.is_default_purchase_unit,
+            prices: t.prices || []
+          }))
+        }));
+      } else if (payload.variant) {
+        const v = payload.variant;
+        p.variants = [
+          {
+            id: v.id || `v-${id}`,
+            sku: v.sku,
+            variant_attributes: {},
+            base_unit_name: v.base_unit_name || 'unit',
+            cost_price_per_base_unit: v.cost_price_per_base_unit != null ? Number(v.cost_price_per_base_unit) : null,
+            stock_quantity: Number(v.stock_quantity) || 0,
+            low_stock_threshold: Number(v.low_stock_threshold) || 5,
+            sell_mode: v.sell_mode || 'unit_only',
+            track_expiry: !!v.track_expiry,
+            packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
+              id: t.id || `tier-${id}-${tIdx}`,
+              name: t.name,
+              units_per_tier: Number(t.units_per_tier) || 1,
+              is_base_unit: !!t.is_base_unit,
+              is_default_sale_unit: !!t.is_default_sale_unit,
+              is_default_purchase_unit: !!t.is_default_purchase_unit,
+              prices: t.prices || []
+            }))
+          }
+        ];
+      }
+      
+      return [200, { success: true, message: 'Product updated successfully', data: { product: p } }];
+    }
+    
+    return [404, { success: false, error: { message: 'Product not found' } }];
+  });
+
   mock.onPost('/tenant/products/bulk').reply((config) => {
     const data = JSON.parse(config.data);
     if (data.products && Array.isArray(data.products)) {
-      const newProducts = data.products.map((p: any) => ({
-        id: `p${Math.floor(Math.random() * 10000)}`,
-        name: p.name,
-        sku: p.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
-        price: p.price,
-        cost_price: p.cost_price || (p.price * 0.7),
-        stock_quantity: p.stock_quantity || 0,
-        reorder_point: 5,
-        category: p.category || 'General',
-        description: p.description
-      }));
-      mockProducts = [...mockProducts, ...newProducts];
+      data.products.forEach((p: any) => {
+        const newId = `p${Math.floor(Math.random() * 10000)}`;
+        const newProduct = {
+          id: newId,
+          name: p.name,
+          description: p.description || '',
+          category: p.category || 'General',
+          status: 'active',
+          images: [],
+          has_variants: false,
+          variants: [
+            {
+              id: `v-${newId}`,
+              sku: p.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
+              variant_attributes: {},
+              base_unit_name: 'unit',
+              cost_price_per_base_unit: p.cost_price || (p.price * 0.7),
+              stock_quantity: p.stock_quantity || 0,
+              low_stock_threshold: 5,
+              sell_mode: 'unit_only',
+              track_expiry: false,
+              packaging_tiers: [
+                {
+                  id: `tier-${newId}-u`,
+                  name: 'Unit',
+                  units_per_tier: 1,
+                  is_base_unit: true,
+                  is_default_sale_unit: true,
+                  is_default_purchase_unit: true,
+                  prices: [
+                    { price_type: 'retail', price: p.price || 0 }
+                  ]
+                }
+              ]
+            }
+          ]
+        };
+        mockProducts.push(newProduct);
+      });
     }
     return [200, {
       success: true,
@@ -418,6 +983,20 @@ export function setupMockApi() {
       return [200, { success: true, message: 'Product deleted' }];
     }
     return [404, { success: false, message: 'Product not found' }];
+  });
+
+  mock.onPatch('/tenant/products/stock-update').reply((config) => {
+    const { updates } = JSON.parse(config.data);
+    (updates || []).forEach((u: any) => {
+      const pIdx = mockProducts.findIndex(p => p.id === u.productId);
+      if (pIdx !== -1) {
+        const p = mockProducts[pIdx];
+        if (p.variants && p.variants.length > 0) {
+          p.variants[0].stock_quantity = u.quantity;
+        }
+      }
+    });
+    return [200, { success: true, message: 'Stock reconciliation updated' }];
   });
 
   // -----------------------------------------------------
@@ -543,7 +1122,6 @@ export function setupMockApi() {
 
   mock.onGet(/^\/pos\/transactions/).reply((config) => {
     const url = config.url || '';
-    // if url contains receipt or refund, skip it since we already handled it above (just in case)
     if (url.includes('/receipt') || url.includes('/refund')) return [404, {}];
     
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
@@ -567,25 +1145,187 @@ export function setupMockApi() {
 
     return [200, { success: true, data: { transactions: filtered, total: filtered.length } }];
   });
+
+  // POST /pos/transactions
+  mock.onPost('/pos/transactions').reply((config) => {
+    const payload = JSON.parse(config.data);
+    const receiptNumber = `RCP-${String(mockTransactions.length + 1).padStart(4, '0')}`;
+    const newTxId = `tx${mockTransactions.length + 1}`;
+    
+    // Deduct stock of variants
+    const items = payload.items || [];
+    items.forEach((item: any) => {
+      for (const p of mockProducts) {
+        const variant = p.variants.find((v: any) => v.id === item.variant_id);
+        if (variant) {
+          const tier = variant.packaging_tiers.find((t: any) => t.id === item.packaging_tier_id);
+          const unitsPerTier = tier ? tier.units_per_tier : 1;
+          const qtyBaseUnits = item.quantity * unitsPerTier;
+          variant.stock_quantity = Math.max(0, variant.stock_quantity - qtyBaseUnits);
+          break;
+        }
+      }
+    });
+
+    const newTx = {
+      id: newTxId,
+      receiptNumber,
+      dateCreated: new Date().toISOString(),
+      cashierName: payload.cashier_name || 'Kofi Annan',
+      paymentMethod: payload.payment_method || 'cash',
+      totalAmount: payload.total_amount || items.reduce((sum: number, i: any) => sum + (i.unit_price * i.quantity), 0),
+      status: 'completed',
+      items: items.map((i: any) => {
+        let name = 'Unknown Item';
+        for (const p of mockProducts) {
+          const v = p.variants.find((v: any) => v.id === i.variant_id);
+          if (v) {
+            const attrStr = Object.values(v.variant_attributes || {}).join(' / ');
+            name = attrStr ? `${p.name} · ${attrStr}` : p.name;
+            break;
+          }
+        }
+        return {
+          name,
+          qty: i.quantity,
+          price: i.unit_price
+        };
+      })
+    };
+
+    mockTransactions = [newTx, ...mockTransactions];
+    
+    return [200, {
+      success: true,
+      data: {
+        transaction: newTx
+      }
+    }];
+  });
   
   mock.onGet(/\/tenant\/inventory\/suppliers/).reply(200, {
     success: true,
     data: {
-      suppliers: [
-        { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', status: 'active' },
-        { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', status: 'active' }
-      ]
+      suppliers: mockSuppliers
     }
   });
 
-  mock.onGet(/\/tenant\/purchase-orders/).reply(200, {
-    success: true,
-    data: {
-      purchaseOrders: [
-        { id: 'po1', reference_number: 'PO-2026-001', supplier_name: 'TechWholesale Ghana', status: 'draft', total_cost: 15000, expected_date: new Date().toISOString() },
-        { id: 'po2', reference_number: 'PO-2026-002', supplier_name: 'Accra Garments', status: 'ordered', total_cost: 3400, expected_date: new Date().toISOString() }
-      ]
+  // GET /tenant/purchase-orders
+  mock.onGet(/\/tenant\/purchase-orders(\?.*)?$/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const status = searchParams.get('status') || '';
+
+    let filtered = [...mockPurchaseOrders];
+    if (status && status !== 'all') {
+      filtered = filtered.filter(po => po.status === status);
     }
+
+    return [200, {
+      success: true,
+      data: {
+        purchaseOrders: filtered
+      }
+    }];
+  });
+
+  // POST /tenant/purchase-orders
+  mock.onPost('/tenant/purchase-orders').reply((config) => {
+    const payload = JSON.parse(config.data);
+    const supplier = mockSuppliers.find(s => s.id === payload.supplier_id) || { id: payload.supplier_id, name: 'Unknown Supplier' };
+    
+    const totalAmount = (payload.items || []).reduce((sum: number, item: any) => sum + (item.quantity * item.cost_price), 0);
+    
+    const newPO = {
+      id: `po-${Date.now()}`,
+      reference_number: payload.reference_number,
+      supplier_id: payload.supplier_id,
+      supplier: { id: supplier.id, name: supplier.name },
+      status: 'ordered',
+      total_amount: totalAmount,
+      is_credit_purchase: !!payload.is_credit_purchase,
+      credit_due_date: payload.credit_due_date || null,
+      notes: payload.notes || '',
+      date_created: new Date().toISOString(),
+      items: payload.items || []
+    };
+
+    mockPurchaseOrders = [newPO, ...mockPurchaseOrders];
+    
+    return [200, {
+      success: true,
+      data: {
+        purchaseOrder: newPO
+      }
+    }];
+  });
+
+  // POST /tenant/purchase-orders/:id/receive
+  mock.onPost(/\/tenant\/purchase-orders\/[^/]+\/receive/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const poId = urlParts[urlParts.length - 2];
+    
+    const poIdx = mockPurchaseOrders.findIndex(po => po.id === poId);
+    if (poIdx === -1) {
+      return [404, { error: { message: 'Purchase order not found' } }];
+    }
+    
+    const po = mockPurchaseOrders[poIdx];
+    if (po.status === 'received') {
+      return [400, { error: { message: 'Purchase order already received' } }];
+    }
+    
+    po.status = 'received';
+    
+    // Add units to stock
+    let unitsReceived = 0;
+    po.items.forEach((item: any) => {
+      for (const p of mockProducts) {
+        const variant = p.variants.find((v: any) => v.id === item.variant_id);
+        if (variant) {
+          const tier = variant.packaging_tiers.find((t: any) => t.id === item.packaging_tier_id);
+          const unitsPerTier = tier ? tier.units_per_tier : 1;
+          const qtyBaseUnits = item.quantity * unitsPerTier;
+          variant.stock_quantity += qtyBaseUnits;
+          unitsReceived += qtyBaseUnits;
+          
+          variant.cost_price_per_base_unit = Number((item.cost_price / unitsPerTier).toFixed(4));
+          break;
+        }
+      }
+    });
+    
+    // Create supplier credit if applicable
+    if (po.is_credit_purchase) {
+      const newCredit = {
+        id: `sc-${Date.now()}`,
+        supplier_id: po.supplier_id,
+        supplier_name: po.supplier.name,
+        purchase_order_id: po.id,
+        purchase_order_ref: po.reference_number,
+        total_amount: po.total_amount,
+        amount_paid: 0.00,
+        balance_remaining: po.total_amount,
+        status: "outstanding" as const,
+        due_date: po.credit_due_date || new Date(Date.now() + 30*86400000).toISOString().split('T')[0],
+        notes: po.notes || `Auto-created from PO ${po.reference_number}`,
+        date_created: new Date().toISOString(),
+        payments: []
+      };
+      mockSupplierCredits = [newCredit, ...mockSupplierCredits];
+    }
+    
+    return [200, {
+      success: {
+        status: "OK",
+        code: 200,
+        data: {
+          purchaseOrder: po,
+          unitsReceived
+        }
+      }
+    }];
   });
   
   // -----------------------------------------------------
@@ -948,11 +1688,8 @@ export function setupMockApi() {
   mock.onGet(/\/tenant\/suppliers/).reply(200, {
     success: true,
     data: {
-      suppliers: [
-        { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true },
-        { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true }
-      ],
-      pagination: { total_items: 2, total_pages: 1, current_page: 1, per_page: 100 }
+      suppliers: mockSuppliers,
+      pagination: { total_items: mockSuppliers.length, total_pages: 1, current_page: 1, per_page: 100 }
     }
   });
 
@@ -972,13 +1709,13 @@ export function setupMockApi() {
                 cost_price: 500.0,
                 packaging_tier_name: "Unit"
               },
-              variant_id: "p1",
+              variant_id: "v1",
               variant_name: "Nike Air Max",
               sku: "NK-AM-01",
               current_stock: 4,
               quantity_to_add: 15,
               cost_price: 500.0,
-              packaging_tier_id: "tier_u1",
+              packaging_tier_id: "tier_p1_u",
               packaging_tier_name: "Unit"
             },
             {
@@ -989,13 +1726,13 @@ export function setupMockApi() {
                 cost_price: 3100.0,
                 packaging_tier_name: "Unit"
               },
-              variant_id: "p4",
+              variant_id: "v4",
               variant_name: "Sony WH-1000XM4",
               sku: "SN-WH-04",
               current_stock: 8,
               quantity_to_add: 5,
               cost_price: 3100.0,
-              packaging_tier_id: "tier_u4",
+              packaging_tier_id: "tier_p4_u",
               packaging_tier_name: "Unit"
             }
           ],
@@ -1022,7 +1759,7 @@ export function setupMockApi() {
               },
               candidates: [
                 {
-                  variant_id: "p6",
+                  variant_id: "p6_black",
                   name: "Nike Socks (Black)",
                   sku: "NK-SK-06"
                 },
@@ -1042,8 +1779,47 @@ export function setupMockApi() {
   // Confirm stock upload mock
   mock.onPost('/tenant/stock/confirm-upload').reply((config) => {
     const payload = JSON.parse(config.data);
-    const matchedCount = (payload.matched || []).length;
+    const matched = payload.matched || [];
+    const matchedCount = matched.length;
     const newProductsCount = (payload.new_products || []).length;
+    
+    // Actually update mock stocks
+    matched.forEach((m: any) => {
+      for (const p of mockProducts) {
+        const v = p.variants.find((v: any) => v.id === m.variant_id);
+        if (v) {
+          const tier = v.packaging_tiers.find((t: any) => t.id === m.packaging_tier_id);
+          const unitsPerTier = tier ? tier.units_per_tier : 1;
+          v.stock_quantity += m.quantity_to_add * unitsPerTier;
+          if (m.cost_price) {
+            v.cost_price_per_base_unit = Number((m.cost_price / unitsPerTier).toFixed(4));
+          }
+          break;
+        }
+      }
+    });
+
+    if (payload.is_credit_purchase && payload.supplier_id) {
+      const supplier = mockSuppliers.find(s => s.id === payload.supplier_id) || { id: payload.supplier_id, name: 'Unknown Supplier' };
+      const totalAmount = matched.reduce((sum: number, m: any) => sum + (m.quantity_to_add * (m.cost_price || 0)), 0);
+      
+      const newCredit = {
+        id: `sc-${Date.now()}`,
+        supplier_id: supplier.id,
+        supplier_name: supplier.name,
+        purchase_order_id: `po-${Date.now()}`,
+        purchase_order_ref: `PO-UPLOAD-${Date.now().toString().slice(-4)}`,
+        total_amount: totalAmount,
+        amount_paid: 0.00,
+        balance_remaining: totalAmount,
+        status: "outstanding" as const,
+        due_date: payload.credit_due_date || new Date(Date.now() + 30*86400000).toISOString().split('T')[0],
+        notes: `Bulk stock upload credit purchase`,
+        date_created: new Date().toISOString(),
+        payments: []
+      };
+      mockSupplierCredits = [newCredit, ...mockSupplierCredits];
+    }
     
     return [200, {
       success: {
@@ -1082,7 +1858,7 @@ export function setupMockApi() {
   }> = [
     {
       id: "adj1",
-      variant_id: "p1",
+      variant_id: "v1",
       variant_name: "Nike Air Max",
       sku: "NK-AM-01",
       quantity: -2,
@@ -1098,7 +1874,7 @@ export function setupMockApi() {
     },
     {
       id: "adj2",
-      variant_id: "p2",
+      variant_id: "v2",
       variant_name: "Adidas Ultraboost",
       sku: "AD-UB-02",
       quantity: -5,
@@ -1114,7 +1890,7 @@ export function setupMockApi() {
     },
     {
       id: "adj3",
-      variant_id: "p4",
+      variant_id: "v4",
       variant_name: "Sony WH-1000XM4",
       sku: "SN-WH-04",
       quantity: 1,
@@ -1164,15 +1940,17 @@ export function setupMockApi() {
   mock.onPost(/\/tenant\/adjustments$/).reply((config) => {
     const { variant_id, quantity, reason, notes } = JSON.parse(config.data);
     
-    // Lookup variant name and SKU
     let variantName = "Unknown Product";
     let sku = "SKU-UNKNOWN";
     
-    // mockProducts contains variant items
-    const prod = mockProducts.find(p => p.id === variant_id);
-    if (prod) {
-      variantName = prod.name;
-      sku = prod.sku;
+    for (const p of mockProducts) {
+      const v = p.variants.find((v: any) => v.id === variant_id);
+      if (v) {
+        const attrStr = Object.values(v.variant_attributes || {}).join(' / ');
+        variantName = attrStr ? `${p.name} · ${attrStr}` : p.name;
+        sku = v.sku;
+        break;
+      }
     }
     
     const newAdj = {
@@ -1212,7 +1990,6 @@ export function setupMockApi() {
     const id = urlParts[urlParts.length - 2];
     const { approver_pin } = JSON.parse(config.data);
     
-    // Simulating PIN validation (1234 or any pin for mock)
     if (approver_pin === "9999") {
       return [401, { error: { status: "UNAUTHORIZED", message: "Invalid PIN code", code: 401 } }];
     }
@@ -1227,10 +2004,13 @@ export function setupMockApi() {
         approved_at: new Date().toISOString()
       };
       
-      // Update quantity on mockProducts if found
-      const prodIdx = mockProducts.findIndex(p => p.id === mockAdjustments[adjIdx].variant_id);
-      if (prodIdx !== -1) {
-        mockProducts[prodIdx].stock_quantity += mockAdjustments[adjIdx].quantity;
+      // Update quantity on variants if found
+      for (const p of mockProducts) {
+        const v = p.variants.find((v: any) => v.id === mockAdjustments[adjIdx].variant_id);
+        if (v) {
+          v.stock_quantity += mockAdjustments[adjIdx].quantity;
+          break;
+        }
       }
       
       return [200, {
@@ -1463,13 +2243,16 @@ export function setupMockApi() {
       // For each item in the return:
       ret.items.forEach(item => {
         if (item.condition === 'sellable') {
-          // Increment stock on mockProducts if found
-          const prodIdx = mockProducts.findIndex(p => p.id === item.variant_id);
-          if (prodIdx !== -1) {
-            mockProducts[prodIdx].stock_quantity += item.quantity;
+          for (const p of mockProducts) {
+            const v = p.variants.find((v: any) => v.id === item.variant_id);
+            if (v) {
+              const tier = v.packaging_tiers.find((t: any) => t.id === item.packaging_tier_id);
+              const unitsPerTier = tier ? tier.units_per_tier : 1;
+              v.stock_quantity += item.quantity * unitsPerTier;
+              break;
+            }
           }
         } else if (item.condition === 'damaged') {
-          // Creates approved StockAdjustment automatically
           const newAdj = {
             id: `adj-auto-${Date.now()}-${Math.random()}`,
             variant_id: item.variant_id,
