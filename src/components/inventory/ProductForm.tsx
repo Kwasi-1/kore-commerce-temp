@@ -8,6 +8,7 @@ import { FileUpload, UploadedFile } from "@/components/ui/file-upload";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Switch } from "@/components/ui/switch";
 import apiClient from "@/api/client";
+import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
 
   // Settings
-  const [trackExpiryEnabled, setTrackExpiryEnabled] = useState(false);
+  const { tenant } = useAuthStore();
+  const [trackExpiryEnabled, setTrackExpiryEnabled] = useState(tenant?.track_expiry_enabled || false);
 
   // Simple Product Variant State (used if hasVariants === false)
   const [simpleSku, setSimpleSku] = useState("");
@@ -78,7 +80,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     }).catch(console.error);
 
     apiClient.get("/tenant/settings").then((res) => {
-      const storeData = res.data.success.data.store || {};
+      const storeData = res.data.success?.data?.store || {};
       setTrackExpiryEnabled(storeData.track_expiry_enabled || false);
     }).catch(console.error);
   }, []);
@@ -904,15 +906,26 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                                 <div className="border border-border rounded-xl bg-card p-4 shadow-sm animate-in fade-in duration-300">
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tiers for {Object.values(v.variant_attributes).join("/")}</h4>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 gap-1 rounded-lg text-xs"
-                                      onClick={() => addVariantTier(idx)}
-                                    >
-                                      <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add Tier
-                                    </Button>
+                                    <div className="flex items-center gap-4">
+                                      {trackExpiryEnabled && (
+                                        <div className="flex items-center gap-2 mr-2 bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
+                                          <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">Track Expiry</span>
+                                          <Switch
+                                            checked={v.track_expiry || false}
+                                            onCheckedChange={(val) => updateVariantField(idx, "track_expiry", val)}
+                                          />
+                                        </div>
+                                      )}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1 rounded-lg text-xs"
+                                        onClick={() => addVariantTier(idx)}
+                                      >
+                                        <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add Tier
+                                      </Button>
+                                    </div>
                                   </div>
                                   
                                   {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers))}

@@ -15,6 +15,11 @@ export interface Product {
   category: string;
   description?: string;
   stock_quantity?: number;
+  expiry_warning?: {
+    has_warning: boolean;
+    earliest_expiry: string;
+    days_until_expiry: number;
+  };
 }
 
 interface ProductCardProps {
@@ -113,6 +118,19 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
           {product.quantity || product.stock_quantity} Stock
         </div>
+
+        {/* Expiry Warning Badge */}
+        {product.expiry_warning?.has_warning && (
+          <div className={`absolute bottom-2 left-2 z-10 font-bold text-[9px] px-2 py-0.5 rounded-full shadow-sm ${
+            product.expiry_warning.days_until_expiry <= 0 
+              ? 'bg-destructive text-destructive-foreground animate-pulse' 
+              : 'bg-amber-500 text-black'
+          }`}>
+            {product.expiry_warning.days_until_expiry <= 0 
+              ? 'Expired' 
+              : `Exp: ${product.expiry_warning.days_until_expiry} days`}
+          </div>
+        )}
         
         {/* Image or Fallback */}
         {product.imageUrl ? (

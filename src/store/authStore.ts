@@ -11,6 +11,7 @@ interface Tenant {
   id: string;
   name: string;
   plan: string;
+  track_expiry_enabled?: boolean;
 }
 
 interface AuthState {

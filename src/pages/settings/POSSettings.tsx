@@ -4,21 +4,48 @@ import { CustomInputTextField, CustomTextareaField } from '@/components/shared/t
 import { Button } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthStore } from '@/store/authStore';
+import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
 export default function POSSettings() {
   const { posSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
+  const { staffUser, tenant, setTenant } = useAuthStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [expiryEnabled, setExpiryEnabled] = useState(false);
   
   const [localSettings, setLocalSettings] = useState(posSettings);
 
   useEffect(() => {
     fetchSettings();
+    // Fetch track_expiry_enabled from settings
+    apiClient.get('/tenant/settings').then(res => {
+      const isEnabled = res.data.success?.data?.store?.track_expiry_enabled || false;
+      setExpiryEnabled(isEnabled);
+      if (tenant && tenant.track_expiry_enabled !== isEnabled) {
+        setTenant({ ...tenant, track_expiry_enabled: isEnabled });
+      }
+    }).catch(console.error);
   }, [fetchSettings]);
 
   useEffect(() => {
     setLocalSettings(posSettings);
   }, [posSettings]);
+
+  const handleToggleExpiry = async (val: boolean) => {
+    try {
+      const endpoint = val ? '/tenant/settings/expiry/enable' : '/tenant/settings/expiry/disable';
+      await apiClient.post(endpoint);
+      setExpiryEnabled(val);
+      if (tenant) {
+        setTenant({ ...tenant, track_expiry_enabled: val });
+      }
+      toast.success(val ? 'Expiry tracking enabled' : 'Expiry tracking disabled');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update expiry tracking setting');
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +110,7 @@ export default function POSSettings() {
             <div className="border-t border-border/50 my-6"></div>
 
             {/* Credit Sale Rule */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-between justify-between">
               <div>
                 <h4 className="font-bold text-foreground text-[15px]">Require Customer Info for Credit</h4>
                 <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
@@ -96,6 +123,26 @@ export default function POSSettings() {
                 color="primary"
               />
             </div>
+
+            {staffUser?.role === 'owner' && (
+              <>
+                <div className="border-t border-border/50 my-6"></div>
+                {/* Expiry Tracking Toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-foreground text-[15px]">Enable Expiry Date Tracking</h4>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      When enabled, you will need to enter expiry dates when receiving stock for products with expiry tracking turned on.
+                    </p>
+                  </div>
+                  <Switch 
+                    isSelected={expiryEnabled} 
+                    onValueChange={handleToggleExpiry} 
+                    color="primary"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="border-t border-border/50 my-6"></div>
 

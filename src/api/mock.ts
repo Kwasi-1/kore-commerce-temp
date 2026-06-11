@@ -28,11 +28,12 @@ export function setupMockApi() {
     { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, last_login: new Date().toISOString() },
   ];
 
-  const mockTenant = {
+  let mockTenant = {
     id: 't1',
     name: 'HeadlessPOS Demo Store',
     currency: 'GHS',
-    plan: 'full_suite'
+    plan: 'full_suite',
+    track_expiry_enabled: false
   };
 
   mock.onGet('/tenant/staff').reply(200, {
@@ -80,7 +81,7 @@ export function setupMockApi() {
       email: 'hello@store.com',
       phoneNumber: '0241234567',
       additionalNumber: '',
-      track_expiry_enabled: true
+      track_expiry_enabled: false
     },
     pos_settings: {
       auto_print: 'ask', // 'always' | 'never' | 'ask'
@@ -108,6 +109,20 @@ export function setupMockApi() {
     return [200, { success: true }];
   });
 
+  // Enable Expiry date tracking
+  mock.onPost('/tenant/settings/expiry/enable').reply(() => {
+    mockTenant.track_expiry_enabled = true;
+    mockTenantSettings.store.track_expiry_enabled = true;
+    return [200, { success: true, tenant: mockTenant }];
+  });
+
+  // Disable Expiry date tracking
+  mock.onPost('/tenant/settings/expiry/disable').reply(() => {
+    mockTenant.track_expiry_enabled = false;
+    mockTenantSettings.store.track_expiry_enabled = false;
+    return [200, { success: true, tenant: mockTenant }];
+  });
+
   // -----------------------------------------------------
   // REPORTS / DASHBOARD
   // -----------------------------------------------------
@@ -132,9 +147,9 @@ export function setupMockApi() {
   // -----------------------------------------------------
   
   let mockProducts = [
-    { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes', status: 'active' },
+    { id: 'p1', name: 'Nike Air Max', sku: 'NK-AM-01', price: 850, cost_price: 500, stock_quantity: 4, reorder_point: 5, category: 'Shoes', status: 'active', track_expiry: true },
     { id: 'p2', name: 'Adidas Ultraboost', sku: 'AD-UB-02', price: 920, cost_price: 600, stock_quantity: 12, reorder_point: 5, category: 'Shoes', status: 'active' },
-    { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics', status: 'active' },
+    { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics', status: 'active', track_expiry: true },
     { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics', status: 'active' },
     { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel', status: 'active' },
     { id: 'p6', name: 'Nike Socks', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 15, reorder_point: 10, category: 'Apparel', status: 'active' },
@@ -166,6 +181,35 @@ export function setupMockApi() {
       filtered = filtered.filter(p => p.category === category);
     }
 
+    // Attach dynamic expiry warning if enabled
+    if (mockTenant.track_expiry_enabled) {
+      filtered = filtered.map(p => {
+        if (p.track_expiry) {
+          if (p.id === 'p3') {
+            return {
+              ...p,
+              expiry_warning: {
+                has_warning: true,
+                earliest_expiry: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+                days_until_expiry: 15
+              }
+            };
+          }
+          if (p.id === 'p1') {
+            return {
+              ...p,
+              expiry_warning: {
+                has_warning: true,
+                earliest_expiry: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+                days_until_expiry: -2
+              }
+            };
+          }
+        }
+        return p;
+      });
+    }
+
     return [200, { success: true, data: { products: filtered } }];
   });
 
@@ -184,6 +228,47 @@ export function setupMockApi() {
     }
 
     return [200, { success: { data: { products: filtered } } }];
+  });
+
+  // GET /pos/products for register screen
+  mock.onGet(/\/pos\/products$/).reply(() => {
+    const grouped: Record<string, any> = {};
+    
+    mockProducts.forEach(p => {
+      const parentName = p.name.split(' - ')[0];
+      if (!grouped[parentName]) {
+        grouped[parentName] = {
+          id: `parent-${p.id}`,
+          name: parentName,
+          category: p.category,
+          variants: []
+        };
+      }
+      
+      grouped[parentName].variants.push({
+        variant_id: p.id,
+        sku: p.sku,
+        stock_quantity: p.stock_quantity,
+        expiry_warning: mockTenant.track_expiry_enabled && p.track_expiry ? {
+          has_warning: true,
+          earliest_expiry: p.id === 'p1' 
+            ? new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] 
+            : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+          days_until_expiry: p.id === 'p1' ? -2 : 15
+        } : null,
+        packaging_tiers: [
+          { id: `tier_${p.id}`, name: 'Unit', units_per_tier: 1, is_base_unit: true }
+        ]
+      });
+    });
+
+    return [200, {
+      success: {
+        data: {
+          products: Object.values(grouped)
+        }
+      }
+    }];
   });
 
   mock.onPost('/tenant/products/bulk').reply((config) => {

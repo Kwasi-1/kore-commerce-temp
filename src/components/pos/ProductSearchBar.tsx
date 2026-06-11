@@ -125,6 +125,12 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       return;
     }
 
+    // Expiry warning confirmation (warn-but-allow rule)
+    if (product.expiry_warning?.has_warning && product.expiry_warning.days_until_expiry <= 0) {
+      const proceed = window.confirm("This item may be expired. Continue?");
+      if (!proceed) return;
+    }
+
     const currentQuantityInCart = useCartStore.getState().items.find(i => i.productId === product.id)?.quantity || 0;
     const stock = product.stock_quantity ?? Infinity;
     
