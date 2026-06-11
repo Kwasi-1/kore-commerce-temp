@@ -213,6 +213,138 @@ export function setupMockApi() {
     return [200, { success: true, data: { products: filtered } }];
   });
 
+  const getPosProductsData = (filteredProducts: any[]) => {
+    const grouped: Record<string, any> = {};
+    
+    filteredProducts.forEach(p => {
+      const parentName = p.name.split(' - ')[0].split(' · ')[0];
+      const attributeParts = p.name.split(' - ');
+      const variant_attributes: Record<string, string> = {};
+      if (attributeParts.length > 1) {
+        variant_attributes['attribute'] = attributeParts[1];
+      }
+      
+      if (!grouped[parentName]) {
+        grouped[parentName] = {
+          id: `parent-${p.id}`,
+          name: parentName,
+          category: p.category,
+          imageUrl: p.imageUrl,
+          description: p.description,
+          variants: []
+        };
+      }
+
+      let sell_mode: 'unit_only' | 'pack_only' | 'flexible' = 'unit_only';
+      let base_unit_name = 'unit';
+      let packaging_tiers = [
+        { 
+          id: `tier_${p.id}_u`, 
+          name: 'Unit', 
+          units_per_tier: 1, 
+          is_base_unit: true,
+          is_default_sale_unit: true,
+          prices: { retail: p.price, wholesale: Math.round(p.price * 0.9) }
+        }
+      ];
+
+      if (p.id === 'p3') {
+        sell_mode = 'flexible';
+        base_unit_name = 'piece';
+        packaging_tiers = [
+          { 
+            id: `tier_${p.id}_u`, 
+            name: 'Unit', 
+            units_per_tier: 1, 
+            is_base_unit: true,
+            is_default_sale_unit: true,
+            prices: { retail: 3500, wholesale: 3200 }
+          },
+          { 
+            id: `tier_${p.id}_c`, 
+            name: 'Case (10 units)', 
+            units_per_tier: 10, 
+            is_base_unit: false,
+            is_default_sale_unit: false,
+            prices: { retail: 32000, wholesale: 30000 }
+          }
+        ];
+      } else if (p.id === 'p5') {
+        sell_mode = 'flexible';
+        base_unit_name = 'piece';
+        packaging_tiers = [
+          { 
+            id: `tier_${p.id}_u`, 
+            name: 'Unit', 
+            units_per_tier: 1, 
+            is_base_unit: true,
+            is_default_sale_unit: true,
+            prices: { retail: 120, wholesale: 100 }
+          },
+          { 
+            id: `tier_${p.id}_c`, 
+            name: 'Carton (24 units)', 
+            units_per_tier: 24, 
+            is_base_unit: false,
+            is_default_sale_unit: false,
+            prices: { retail: 2400, wholesale: 2200 }
+          }
+        ];
+      } else if (p.id === 'p2') {
+        sell_mode = 'pack_only';
+        base_unit_name = 'pair';
+        packaging_tiers = [
+          { 
+            id: `tier_${p.id}_u`, 
+            name: 'Unit', 
+            units_per_tier: 1, 
+            is_base_unit: true,
+            is_default_sale_unit: false,
+            prices: { retail: 920, wholesale: 850 }
+          },
+          { 
+            id: `tier_${p.id}_b`, 
+            name: 'Box of 2', 
+            units_per_tier: 2, 
+            is_base_unit: false,
+            is_default_sale_unit: true,
+            prices: { retail: 1800, wholesale: 1700 }
+          }
+        ];
+      }
+
+      let stock_display = p.stock_quantity;
+      let stock_display_unit = base_unit_name;
+      const defaultTier = packaging_tiers.find(t => t.is_default_sale_unit) || packaging_tiers[0];
+      if (sell_mode === 'pack_only' && defaultTier) {
+        stock_display = Math.floor(p.stock_quantity / defaultTier.units_per_tier);
+        stock_display_unit = defaultTier.name;
+      }
+
+      grouped[parentName].variants.push({
+        variant_id: p.id,
+        sku: p.sku,
+        variant_attributes,
+        sell_mode,
+        base_unit_name,
+        stock_quantity: p.stock_quantity,
+        stock_display,
+        stock_display_unit,
+        low_stock: p.stock_quantity <= (p.reorder_point || 5),
+        packaging_tiers,
+        expiry_warning: mockTenant.track_expiry_enabled && p.track_expiry ? {
+          has_warning: true,
+          earliest_expiry: p.id === 'p1' 
+            ? new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] 
+            : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+          days_until_expiry: p.id === 'p1' ? -2 : 15
+        } : null
+      });
+    });
+
+    return Object.values(grouped);
+  };
+
   mock.onGet(/\/pos\/products\/search/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
@@ -227,45 +359,15 @@ export function setupMockApi() {
       );
     }
 
-    return [200, { success: { data: { products: filtered } } }];
+    return [200, { success: { data: { products: getPosProductsData(filtered) } } }];
   });
 
   // GET /pos/products for register screen
   mock.onGet(/\/pos\/products$/).reply(() => {
-    const grouped: Record<string, any> = {};
-    
-    mockProducts.forEach(p => {
-      const parentName = p.name.split(' - ')[0];
-      if (!grouped[parentName]) {
-        grouped[parentName] = {
-          id: `parent-${p.id}`,
-          name: parentName,
-          category: p.category,
-          variants: []
-        };
-      }
-      
-      grouped[parentName].variants.push({
-        variant_id: p.id,
-        sku: p.sku,
-        stock_quantity: p.stock_quantity,
-        expiry_warning: mockTenant.track_expiry_enabled && p.track_expiry ? {
-          has_warning: true,
-          earliest_expiry: p.id === 'p1' 
-            ? new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] 
-            : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-          days_until_expiry: p.id === 'p1' ? -2 : 15
-        } : null,
-        packaging_tiers: [
-          { id: `tier_${p.id}`, name: 'Unit', units_per_tier: 1, is_base_unit: true }
-        ]
-      });
-    });
-
     return [200, {
       success: {
         data: {
-          products: Object.values(grouped)
+          products: getPosProductsData(mockProducts)
         }
       }
     }];

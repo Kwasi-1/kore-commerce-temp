@@ -9,7 +9,14 @@ export interface CartItem {
   imageUrl?: string;
   category?: string;
   stock_quantity?: number;
+  variant_id: string;
+  packaging_tier_id: string;
+  tier_name: string;
+  units_per_tier: number;
+  unit_price: number;
+  price_type: 'retail' | 'wholesale';
 }
+
 
 export interface SavedTransaction {
   id: string;

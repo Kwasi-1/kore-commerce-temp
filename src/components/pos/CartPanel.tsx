@@ -20,6 +20,73 @@ import toast from "react-hot-toast";
 import apiClient from "@/api/client";
 import { Icon } from "@iconify/react";
 
+interface PackagingTier {
+  id: string;
+  name: string;
+  units_per_tier: number;
+  is_default_sale_unit: boolean;
+  prices: {
+    retail: number;
+    wholesale: number | null;
+  };
+}
+
+interface Product {
+  id: string;
+  variant_id: string;
+  product_name: string;
+  name: string;
+  sku: string;
+  price: number;
+  imageUrl?: string;
+  category: string;
+  description?: string;
+  stock_quantity: number;
+  stock_display: number;
+  stock_display_unit: string;
+  low_stock: boolean;
+  sell_mode: 'unit_only' | 'pack_only' | 'flexible';
+  packaging_tiers: PackagingTier[];
+  variant_attributes: Record<string, string>;
+  base_unit_name: string;
+}
+
+const flattenProducts = (parentProducts: any[]): Product[] => {
+  const flat: Product[] = [];
+  parentProducts.forEach(parent => {
+    (parent.variants || []).forEach((variant: any) => {
+      const attrValues = variant.variant_attributes ? Object.values(variant.variant_attributes).filter(Boolean) : [];
+      const combinedName = attrValues.length > 0 
+        ? `${parent.name} · ${attrValues.join(' · ')}`
+        : parent.name;
+        
+      const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
+      const defaultPrice = defaultTier ? defaultTier.prices.retail : 0;
+
+      flat.push({
+        id: variant.variant_id,
+        variant_id: variant.variant_id,
+        product_name: parent.name,
+        name: combinedName,
+        sku: variant.sku,
+        price: defaultPrice,
+        imageUrl: parent.imageUrl || parent.images?.[0] || undefined,
+        category: parent.category || 'General',
+        description: parent.description,
+        stock_quantity: variant.stock_quantity,
+        stock_display: variant.stock_display,
+        stock_display_unit: variant.stock_display_unit,
+        low_stock: variant.low_stock,
+        sell_mode: variant.sell_mode,
+        packaging_tiers: variant.packaging_tiers,
+        variant_attributes: variant.variant_attributes || {},
+        base_unit_name: variant.base_unit_name || 'unit'
+      });
+    });
+  });
+  return flat;
+};
+
 interface CartPanelProps {
   isMobileView?: boolean;
   panelState?: "collapsed" | "default" | "expanded";
@@ -85,14 +152,21 @@ export default function CartPanel({
   const [editingQtyValue, setEditingQtyValue] = useState<string>("");
 
   const handleBlurQty = (productId: string, stockQuantity?: number) => {
+    const item = items.find(i => i.productId === productId);
+    const unitsPerTier = item ? item.units_per_tier : 1;
     let newQty = parseInt(editingQtyValue, 10);
     const stock = stockQuantity ?? Infinity;
     
     if (isNaN(newQty) || newQty < 1) {
       newQty = 1;
-    } else if (newQty > stock) {
-      newQty = stock;
-      toast.error(`Only ${stock} in stock!`);
+    } else if (newQty * unitsPerTier > stock) {
+      newQty = Math.floor(stock / unitsPerTier);
+      if (newQty < 1) {
+        removeItem(productId);
+        setEditingProductId(null);
+        return;
+      }
+      toast.error(`Only ${newQty} in stock!`);
     }
     
     updateQuantity(productId, newQty);
@@ -109,7 +183,7 @@ export default function CartPanel({
       try {
         const response = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(expandedSearchTerm)}`);
         const found = response.data?.success?.data?.products || [];
-        setSearchResults(found);
+        setSearchResults(flattenProducts(found));
       } catch (err) {
         console.error('Failed to search products in expanded panel:', err);
       } finally {
@@ -331,10 +405,15 @@ export default function CartPanel({
                         <h4 className="font-bold text-sm text-foreground truncate pr-2">
                           {item.name}
                         </h4>
-                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground font-semibold">
-                          <span>Size 42</span>
-                          <span>·</span>
-                          <span>Green</span>
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold">
+                          <span className="border border-border rounded-full px-2 py-0.5 text-primary bg-primary/10">
+                            {item.tier_name}
+                          </span>
+                          {item.price_type === 'wholesale' && (
+                            <span className="border border-amber-500/25 rounded-full px-2 py-0.5 text-amber-600 bg-amber-50 dark:bg-amber-950/20 font-bold">
+                              Wholesale
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -384,8 +463,8 @@ export default function CartPanel({
                         size="icon"
                         onClick={() => {
                           const stock = item.stock_quantity ?? Infinity;
-                          if (item.quantity >= stock) {
-                            toast.error(`Only ${stock} in stock!`);
+                          if ((item.quantity + 1) * item.units_per_tier > stock) {
+                            toast.error(`Only ${Math.floor(stock / item.units_per_tier)} packages in stock!`);
                             return;
                           }
                           updateQuantity(item.productId, item.quantity + 1);
@@ -457,54 +536,68 @@ export default function CartPanel({
                           No products found.
                         </div>
                       ) : (
-                        searchResults.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              const currentInCart = items.find(i => i.productId === p.id)?.quantity || 0;
-                              const stock = p.stock_quantity ?? Infinity;
-                              if (stock <= 0) {
-                                toast.error(`${p.name} is out of stock!`);
-                                return;
-                              }
-                              if (currentInCart >= stock) {
-                                toast.error(`Only ${stock} in stock!`);
-                                return;
-                              }
-                              
-                              addItem({
-                                productId: p.id,
-                                name: p.name,
-                                sku: p.sku,
-                                price: p.price,
-                                imageUrl: p.imageUrl,
-                                category: p.category,
-                                stock_quantity: p.stock_quantity
-                              });
-                              
-                              setExpandedSearchTerm('');
-                              toast.success(`${p.name} added to cart`);
-                            }}
-                            className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors"
-                          >
-                            <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                              {p.imageUrl ? (
-                                <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
-                              ) : (
-                                <span className="text-xs text-muted-foreground">📦</span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm text-foreground truncate">{p.name}</p>
-                              <p className="text-xs text-muted-foreground font-semibold">
-                                Stock: {p.stock_quantity !== undefined ? p.stock_quantity : '∞'}
-                              </p>
-                            </div>
-                            <span className="text-sm font-bold text-foreground shrink-0">
-                              <CurrencyDisplay amount={p.price} />
-                            </span>
-                          </button>
-                        ))
+                        searchResults.map((p) => {
+                          const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={() => {
+                                if (!tier) {
+                                  toast.error("No packaging tier defined for this variant!");
+                                  return;
+                                }
+                                const cartKey = `${p.variant_id}-${tier.id}`;
+                                const currentInCart = items.find(i => i.productId === cartKey)?.quantity || 0;
+                                const stock = p.stock_quantity ?? Infinity;
+                                if (stock <= 0) {
+                                  toast.error(`${p.name} is out of stock!`);
+                                  return;
+                                }
+                                if ((currentInCart + 1) * tier.units_per_tier > stock) {
+                                  toast.error(`Only ${p.stock_display} ${p.stock_display_unit} in stock!`);
+                                  return;
+                                }
+                                
+                                addItem({
+                                  productId: cartKey,
+                                  name: p.name,
+                                  sku: p.sku,
+                                  price: tier.prices.retail,
+                                  imageUrl: p.imageUrl,
+                                  category: p.category,
+                                  stock_quantity: p.stock_quantity,
+                                  variant_id: p.variant_id,
+                                  packaging_tier_id: tier.id,
+                                  tier_name: tier.name,
+                                  units_per_tier: tier.units_per_tier,
+                                  unit_price: tier.prices.retail,
+                                  price_type: 'retail'
+                                });
+                                
+                                setExpandedSearchTerm('');
+                                toast.success(`${p.name} added to cart`);
+                              }}
+                              className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors"
+                            >
+                              <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                {p.imageUrl ? (
+                                  <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">📦</span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-foreground truncate">{p.name}</p>
+                                <p className="text-xs text-muted-foreground font-semibold">
+                                  Stock: {p.stock_display} {p.stock_display_unit}
+                                </p>
+                              </div>
+                              <span className="text-sm font-bold text-foreground shrink-0">
+                                <CurrencyDisplay amount={tier ? tier.prices.retail : p.price} />
+                              </span>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   )}
@@ -870,13 +963,14 @@ export default function CartPanel({
                         {item.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          Size 42
+                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-bold text-primary bg-primary/10">
+                          {item.tier_name}
                         </span>
-                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-green-600 inline-block"></span>
-                          Green
-                        </span>
+                        {item.price_type === 'wholesale' && (
+                          <span className="border border-amber-500/25 rounded-full px-2 py-0.5 text-[11px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                            Wholesale
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Button
@@ -935,8 +1029,8 @@ export default function CartPanel({
                         size="icon"
                         onClick={() => {
                           const stock = item.stock_quantity ?? Infinity;
-                          if (item.quantity >= stock) {
-                            toast.error(`Only ${stock} in stock!`);
+                          if ((item.quantity + 1) * item.units_per_tier > stock) {
+                            toast.error(`Only ${Math.floor(stock / item.units_per_tier)} packages in stock!`);
                             return;
                           }
                           updateQuantity(item.productId, item.quantity + 1);

@@ -5,7 +5,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useShift } from '@/hooks/useShift';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import ProductCard, { Product } from './ProductCard';
+import ProductCard, { Product, PackagingTier } from './ProductCard';
 import { Spinner } from '@/components/ui/spinner';
 import {
   DropdownMenu,
@@ -51,16 +51,52 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     fetchProducts();
   }, []);
 
+  const flattenProducts = (parentProducts: any[]): Product[] => {
+    const flat: Product[] = [];
+    parentProducts.forEach(parent => {
+      (parent.variants || []).forEach((variant: any) => {
+        const attrValues = variant.variant_attributes ? Object.values(variant.variant_attributes).filter(Boolean) : [];
+        const combinedName = attrValues.length > 0 
+          ? `${parent.name} · ${attrValues.join(' · ')}`
+          : parent.name;
+          
+        const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
+        const defaultPrice = defaultTier ? defaultTier.prices.retail : 0;
+
+        flat.push({
+          id: variant.variant_id,
+          variant_id: variant.variant_id,
+          product_name: parent.name,
+          name: combinedName,
+          sku: variant.sku,
+          price: defaultPrice,
+          imageUrl: parent.imageUrl || parent.images?.[0] || undefined,
+          category: parent.category || 'General',
+          description: parent.description,
+          stock_quantity: variant.stock_quantity,
+          stock_display: variant.stock_display,
+          stock_display_unit: variant.stock_display_unit,
+          low_stock: variant.low_stock,
+          sell_mode: variant.sell_mode,
+          packaging_tiers: variant.packaging_tiers,
+          variant_attributes: variant.variant_attributes || {},
+          base_unit_name: variant.base_unit_name || 'unit',
+          expiry_warning: variant.expiry_warning
+        });
+      });
+    });
+    return flat;
+  };
+
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/tenant/products');
-      const fetchedProducts = response.data.data.products || [];
-      setProducts(fetchedProducts);
+      const response = await apiClient.get('/pos/products');
+      const fetchedProducts = response.data.success?.data?.products || [];
 
       // Compute categories and counts
       const counts: Record<string, number> = {};
-      fetchedProducts.forEach((p: Product) => {
+      fetchedProducts.forEach((p: any) => {
         const catName = p.category || 'Others Product';
         counts[catName] = (counts[catName] || 0) + 1;
       });
@@ -69,6 +105,9 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       // Sort alphabetically or by count
       catsArray.sort((a, b) => b.count - a.count);
       setCategories(catsArray);
+
+      // Flatten nested variants for listing
+      setProducts(flattenProducts(fetchedProducts));
 
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -103,7 +142,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     try {
       const searchResponse = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(query)}`);
       const foundProducts = searchResponse.data?.success?.data?.products || [];
-      setProducts(foundProducts);
+      setProducts(flattenProducts(foundProducts));
       setActiveCategories([]);
     } catch (error) {
       console.error('Search error:', error);
@@ -113,14 +152,21 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     }
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, selectedTier?: PackagingTier) => {
     // TEMPORARILY DISABLED SHIFT CHECK FOR TESTING
     if (false && !currentShift) {
       toast.error('You must start a shift first before adding items to the cart!');
       return;
     }
+
+    const tier = selectedTier || product.packaging_tiers.find(t => t.is_default_sale_unit) || product.packaging_tiers[0];
+    if (!tier) {
+      toast.error('No packaging tier defined for this variant!');
+      return;
+    }
     
-    if (product.stock_quantity !== undefined && product.stock_quantity <= 0) {
+    const stock = product.stock_quantity ?? Infinity;
+    if (stock <= 0) {
       toast.error(`${product.name} is out of stock!`);
       return;
     }
@@ -131,22 +177,29 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       if (!proceed) return;
     }
 
-    const currentQuantityInCart = useCartStore.getState().items.find(i => i.productId === product.id)?.quantity || 0;
-    const stock = product.stock_quantity ?? Infinity;
-    
-    if (currentQuantityInCart >= stock) {
-      toast.error(`Only ${stock} in stock!`);
+    const cartKey = `${product.variant_id}-${tier.id}`;
+    const currentQuantityInCart = useCartStore.getState().items.find(i => i.productId === cartKey)?.quantity || 0;
+    const incrementedQtyInBaseUnits = (currentQuantityInCart + 1) * tier.units_per_tier;
+
+    if (incrementedQtyInBaseUnits > stock) {
+      toast.error(`Only ${product.stock_display} ${product.stock_display_unit} in stock!`);
       return;
     }
 
     addItem({
-      productId: product.id,
+      productId: cartKey,
       name: product.name,
       sku: product.sku,
-      price: product.price,
+      price: tier.prices.retail,
       imageUrl: product.imageUrl,
       category: product.category,
-      stock_quantity: product.stock_quantity
+      stock_quantity: product.stock_quantity,
+      variant_id: product.variant_id,
+      packaging_tier_id: tier.id,
+      tier_name: tier.name,
+      units_per_tier: tier.units_per_tier,
+      unit_price: tier.prices.retail,
+      price_type: 'retail'
     });
   };
 

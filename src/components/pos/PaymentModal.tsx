@@ -77,8 +77,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     try {
       const payload: any = {
         items: items.map((item) => ({
-          productId: item.productId,
+          variant_id: item.variant_id,
+          packaging_tier_id: item.packaging_tier_id,
           quantity: item.quantity,
+          unit_price: item.unit_price,
+          price_type: item.price_type
         })),
         paymentMethod: isCreditSale ? 'credit' : activeTab,
         isCreditSale,
@@ -159,13 +162,18 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
             <span className="w-10 text-center">Qty</span>
             <span className="w-20 text-right">Total</span>
           </div>
-          <div className="space-y-1.5 text-xs text-zinc-800">
+          <div className="space-y-2 text-xs text-zinc-800">
             {displayItems.map((item: any) => (
-              <div key={item.productId} className="flex items-start">
-                <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
-                <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
-                <span className="w-20 text-right font-semibold">
-                  <CurrencyDisplay amount={item.price * item.quantity} />
+              <div key={item.productId} className="flex flex-col border-b border-zinc-100/50 pb-1.5 last:border-0">
+                <div className="flex items-start">
+                  <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
+                  <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                  <span className="w-20 text-right font-semibold">
+                    <CurrencyDisplay amount={item.price * item.quantity} />
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 text-left font-medium">
+                  {item.tier_name} · GHS {item.price.toLocaleString()} each
                 </span>
               </div>
             ))}
