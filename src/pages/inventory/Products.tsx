@@ -20,6 +20,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
+import { BulkStockUploadModal } from "./components/BulkStockUploadModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,7 @@ export default function Products() {
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Row Actions state
@@ -586,7 +588,13 @@ export default function Products() {
                     onClick={() => setIsBulkModalOpen(true)}
                     className="cursor-pointer"
                   >
-                    <Upload className="h-4 w-4 mr-2" /> Bulk Import (CSV)
+                    <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setIsBulkStockModalOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <Upload className="h-4 w-4 mr-2" /> Bulk Receive Stock (CSV/Excel)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -678,6 +686,12 @@ export default function Products() {
       <BulkProductUploadModal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={handleBulkSuccess}
+      />
+
+      <BulkStockUploadModal
+        isOpen={isBulkStockModalOpen}
+        onClose={() => setIsBulkStockModalOpen(false)}
         onSuccess={handleBulkSuccess}
       />
     </PageLayout>

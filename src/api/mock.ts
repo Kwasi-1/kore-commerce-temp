@@ -79,7 +79,8 @@ export function setupMockApi() {
       description: 'Your one stop shop for everything.',
       email: 'hello@store.com',
       phoneNumber: '0241234567',
-      additionalNumber: ''
+      additionalNumber: '',
+      track_expiry_enabled: true
     },
     pos_settings: {
       auto_print: 'ask', // 'always' | 'never' | 'ask'
@@ -754,6 +755,127 @@ export function setupMockApi() {
     const id = config.url?.split('/').pop();
     mockDiscounts = mockDiscounts.filter(d => d.id !== id);
     return [200, { success: true }];
+  });
+
+  // Suppliers list mock
+  mock.onGet(/\/tenant\/suppliers/).reply(200, {
+    success: {
+      status: "OK",
+      code: 200,
+      data: {
+        suppliers: [
+          { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true },
+          { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true }
+        ],
+        pagination: { total_items: 2, total_pages: 1, current_page: 1, per_page: 100 }
+      }
+    }
+  });
+
+  // Parse stock upload mock
+  mock.onPost('/tenant/stock/parse-upload').reply((config) => {
+    return [200, {
+      success: {
+        status: "OK",
+        code: 200,
+        data: {
+          matched: [
+            {
+              row_data: {
+                product_name: "Nike Air Max",
+                sku: "NK-AM-01",
+                quantity: 15,
+                cost_price: 500.0,
+                packaging_tier_name: "Unit"
+              },
+              variant_id: "p1",
+              variant_name: "Nike Air Max",
+              sku: "NK-AM-01",
+              current_stock: 4,
+              quantity_to_add: 15,
+              cost_price: 500.0,
+              packaging_tier_id: "tier_u1",
+              packaging_tier_name: "Unit"
+            },
+            {
+              row_data: {
+                product_name: "Sony WH-1000XM4",
+                sku: "SN-WH-04",
+                quantity: 5,
+                cost_price: 3100.0,
+                packaging_tier_name: "Unit"
+              },
+              variant_id: "p4",
+              variant_name: "Sony WH-1000XM4",
+              sku: "SN-WH-04",
+              current_stock: 8,
+              quantity_to_add: 5,
+              cost_price: 3100.0,
+              packaging_tier_id: "tier_u4",
+              packaging_tier_name: "Unit"
+            }
+          ],
+          unmatched: [
+            {
+              row_data: {
+                product_name: "Adidas Yeezy Boost",
+                sku: "AD-YB-99",
+                quantity: 10,
+                cost_price: 1200.0,
+                packaging_tier_name: "Unit"
+              },
+              suggested_action: "add_new"
+            }
+          ],
+          ambiguous: [
+            {
+              row_data: {
+                product_name: "Nike Socks Multi",
+                sku: "",
+                quantity: 50,
+                cost_price: 12.0,
+                packaging_tier_name: "Unit"
+              },
+              candidates: [
+                {
+                  variant_id: "p6",
+                  name: "Nike Socks (Black)",
+                  sku: "NK-SK-06"
+                },
+                {
+                  variant_id: "p6_white",
+                  name: "Nike Socks (White)",
+                  sku: "NK-SK-07"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }];
+  });
+
+  // Confirm stock upload mock
+  mock.onPost('/tenant/stock/confirm-upload').reply((config) => {
+    const payload = JSON.parse(config.data);
+    const matchedCount = (payload.matched || []).length;
+    const newProductsCount = (payload.new_products || []).length;
+    
+    return [200, {
+      success: {
+        status: "OK",
+        code: 200,
+        message: "Stock upload confirmed successfully",
+        data: {
+          purchase_order_id: "po-mock-uuid",
+          variants_updated: matchedCount,
+          new_products_created: newProductsCount,
+          stock_changes: [
+            { sku: "NK-AM-01", name: "Nike Air Max", quantity_added: 15, new_stock_total: 19 }
+          ]
+        }
+      }
+    }];
   });
 
   // Catch-all for any other GET requests to prevent errors during design
