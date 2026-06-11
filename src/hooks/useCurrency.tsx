@@ -22,7 +22,7 @@ export const CurrencyDisplay = ({ amount, className }: { amount: number, classNa
   const { formatAmount } = useCurrency();
   return (
     <span className={className}>
-      <span className="text-sm font-normal text-muted-foreground mr-1">GHS</span>
+      <span className="text-sm font-normal text-mutedforeground mr-1">GHS</span>
       {formatAmount(amount)}
     </span>
   );

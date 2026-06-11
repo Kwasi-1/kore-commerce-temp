@@ -136,11 +136,11 @@ export function setupMockApi() {
     { id: 'p3', name: 'Apple AirPods Pro', sku: 'AP-AP-03', price: 3500, cost_price: 2800, stock_quantity: 2, reorder_point: 5, category: 'Electronics', status: 'active' },
     { id: 'p4', name: 'Sony WH-1000XM4', sku: 'SN-WH-04', price: 4200, cost_price: 3100, stock_quantity: 8, reorder_point: 3, category: 'Electronics', status: 'active' },
     { id: 'p5', name: 'Basic White Tee', sku: 'AP-WT-05', price: 120, cost_price: 40, stock_quantity: 45, reorder_point: 20, category: 'Apparel', status: 'active' },
-    { id: 'p6', name: 'Nike Socks', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 0, reorder_point: 10, category: 'Apparel', status: 'out_of_stock' },
+    { id: 'p6', name: 'Nike Socks', sku: 'NK-SK-06', price: 40, cost_price: 15, stock_quantity: 15, reorder_point: 10, category: 'Apparel', status: 'active' },
     { id: 'p7', name: 'Leather Wallet', sku: 'LW-07', price: 250, cost_price: 100, stock_quantity: 20, reorder_point: 5, category: 'Accessories', status: 'active' },
-    { id: 'p8', name: 'Sunglasses Classic', sku: 'SG-08', price: 380, cost_price: 150, stock_quantity: 0, reorder_point: 5, category: 'Accessories', status: 'out_of_stock' },
+    { id: 'p8', name: 'Sunglasses Classic', sku: 'SG-08', price: 380, cost_price: 150, stock_quantity: 10, reorder_point: 5, category: 'Accessories', status: 'active' },
     { id: 'p9', name: 'Samsung Galaxy Tab', sku: 'SG-TAB-09', price: 5500, cost_price: 4200, stock_quantity: 3, reorder_point: 2, category: 'Electronics', status: 'active' },
-    { id: 'p10', name: 'Running Shorts', sku: 'RS-10', price: 95, cost_price: 35, stock_quantity: 0, reorder_point: 15, category: 'Apparel', status: 'draft' },
+    { id: 'p10', name: 'Running Shorts', sku: 'RS-10', price: 95, cost_price: 35, stock_quantity: 15, reorder_point: 15, category: 'Apparel', status: 'active' },
   ] as any[];
 
   mock.onGet(/\/tenant\/products/).reply((config) => {
@@ -166,6 +166,23 @@ export function setupMockApi() {
     }
 
     return [200, { success: true, data: { products: filtered } }];
+  });
+
+  mock.onGet(/\/pos\/products\/search/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const query = (searchParams.get('q') || '').toLowerCase();
+
+    let filtered = [...mockProducts];
+    if (query) {
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(query) ||
+        p.sku.toLowerCase().includes(query) ||
+        (p.category || '').toLowerCase().includes(query)
+      );
+    }
+
+    return [200, { success: { data: { products: filtered } } }];
   });
 
   mock.onPost('/tenant/products/bulk').reply((config) => {

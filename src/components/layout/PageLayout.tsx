@@ -42,7 +42,7 @@ export default function PageLayout({
       {title && (
         <div className="flex items-center justify-between mb-4 shrink-0 gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <h1 className="text-2xl md:text-[26px] font-bold text-foreground tracking-tight">{title}</h1>
+            <h1 className="text-2xl md:text-[26px] font-[AdventPro] font-bold text-foreground trackingtight">{title}</h1>
             {actions && <div>{actions}</div>}
           </div>
           
