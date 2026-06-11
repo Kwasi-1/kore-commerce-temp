@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
@@ -7,6 +9,11 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
 export default function Suppliers() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const staffUser = useAuthStore((state) => state.staffUser);
+  const showCreditTab = staffUser?.role === 'owner' || staffUser?.role === 'manager';
+
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -24,7 +31,8 @@ export default function Suppliers() {
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       const response = await apiClient.get(url);
-      setSuppliers(response.data.data.suppliers || []);
+      const suppliersList = response.data.data?.suppliers || response.data.success?.data?.suppliers || [];
+      setSuppliers(suppliersList);
     } catch (error) {
       console.error('Failed to fetch suppliers:', error);
       toast.error('Failed to load suppliers');
@@ -103,6 +111,32 @@ export default function Suppliers() {
 
   return (
     <PageLayout title="Suppliers">
+      {/* Tab Switcher */}
+      {showCreditTab && (
+        <div className="flex border-b border-border mb-6">
+          <button
+            onClick={() => navigate('/inventory/suppliers')}
+            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
+              location.pathname === '/inventory/suppliers'
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Supplier Directory
+          </button>
+          <button
+            onClick={() => navigate('/inventory/supplier-credit')}
+            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
+              location.pathname === '/inventory/supplier-credit'
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Credit Ledger
+          </button>
+        </div>
+      )}
+
       <EnhancedTableComponent
         columns={columns}
         rows={rows}

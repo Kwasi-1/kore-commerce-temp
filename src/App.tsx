@@ -32,6 +32,7 @@ const StockManagement = lazy(() => import('@/pages/inventory/StockManagement'));
 const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconciliation'));
 const StockAuditScreen = lazy(() => import('@/pages/inventory/StockAuditScreen'));
 const StockAdjustments = lazy(() => import('@/pages/inventory/StockAdjustments'));
+const SupplierCredit = lazy(() => import('@/pages/inventory/SupplierCredit'));
 
 // Staff & Expenses
 const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));
@@ -127,6 +128,7 @@ function AppRoutes() {
         <Route path="/inventory/stock-reconciliation" element={<StockReconciliation />} />
         <Route path="/inventory/stock-upload/audit" element={<StockAuditScreen />} />
         <Route path="/inventory/adjustments" element={<StockAdjustments />} />
+        <Route path="/inventory/supplier-credit" element={<SupplierCredit />} />
 
         {/* Operations */}
         <Route path="/staff" element={<StaffManagement />} />

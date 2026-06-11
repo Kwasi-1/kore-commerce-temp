@@ -759,16 +759,13 @@ export function setupMockApi() {
 
   // Suppliers list mock
   mock.onGet(/\/tenant\/suppliers/).reply(200, {
-    success: {
-      status: "OK",
-      code: 200,
-      data: {
-        suppliers: [
-          { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true },
-          { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true }
-        ],
-        pagination: { total_items: 2, total_pages: 1, current_page: 1, per_page: 100 }
-      }
+    success: true,
+    data: {
+      suppliers: [
+        { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true },
+        { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true }
+      ],
+      pagination: { total_items: 2, total_pages: 1, current_page: 1, per_page: 100 }
     }
   });
 
@@ -1180,7 +1177,7 @@ export function setupMockApi() {
   ];
 
   // GET /pos/returns
-  mock.onGet(/\/pos\/returns$/).reply((config) => {
+  mock.onGet(/\/pos\/returns(\?.*)?$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
     const status = searchParams.get('status') || '';
@@ -1351,6 +1348,159 @@ export function setupMockApi() {
       }];
     }
     return [404, { success: false, error: { message: "Return record not found" } }];
+  });
+
+  // Mock supplier credit database
+  let mockSupplierCredits: Array<{
+    id: string;
+    supplier_id: string;
+    supplier_name: string;
+    purchase_order_id: string;
+    purchase_order_ref: string;
+    total_amount: number;
+    amount_paid: number;
+    balance_remaining: number;
+    status: "outstanding" | "partial" | "settled";
+    due_date: string;
+    notes: string;
+    date_created: string;
+    payments: Array<{
+      id: string;
+      amount: number;
+      payment_method: string;
+      reference: string;
+      notes: string;
+      date_created: string;
+    }>;
+  }> = [
+    {
+      id: "sc1",
+      supplier_id: "sup1",
+      supplier_name: "TechWholesale Ghana",
+      purchase_order_id: "po1",
+      purchase_order_ref: "PO-2026-001",
+      total_amount: 15000.00,
+      amount_paid: 5000.00,
+      balance_remaining: 10000.00,
+      status: "partial" as const,
+      due_date: new Date(Date.now() + 5*86400000).toISOString().split('T')[0], // 5 days from now
+      notes: "Received batch of Sony headphones on 30-day terms",
+      date_created: new Date(Date.now() - 10*86400000).toISOString(),
+      payments: [
+        {
+          id: "scp1",
+          amount: 5000.00,
+          payment_method: "mobile_money",
+          reference: "TXN-MOMO-993",
+          notes: "First installment",
+          date_created: new Date(Date.now() - 5*86400000).toISOString()
+        }
+      ]
+    },
+    {
+      id: "sc2",
+      supplier_id: "sup2",
+      supplier_name: "Accra Garments",
+      purchase_order_id: "po2",
+      purchase_order_ref: "PO-2026-002",
+      total_amount: 3400.00,
+      amount_paid: 0.00,
+      balance_remaining: 3400.00,
+      status: "outstanding" as const,
+      due_date: new Date(Date.now() - 2*86400000).toISOString().split('T')[0], // 2 days ago (overdue)
+      notes: "Apparel invoice for basic white tees",
+      date_created: new Date(Date.now() - 15*86400000).toISOString(),
+      payments: []
+    }
+  ];
+
+  // GET /tenant/supplier-credit/summary
+  mock.onGet(/\/tenant\/supplier-credit\/summary$/).reply(200, {
+    success: true,
+    data: {
+      total_outstanding: 13400.00,
+      total_suppliers_with_debt: 2,
+      overdue_count: 1,
+      upcoming_due_7_days: 1
+    }
+  });
+
+  // GET /tenant/supplier-credit
+  mock.onGet(/\/tenant\/supplier-credit(\?.*)?$/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const status = searchParams.get('status') || '';
+    const supplierId = searchParams.get('supplier_id') || '';
+
+    let filtered = [...mockSupplierCredits];
+    if (status) {
+      filtered = filtered.filter(s => s.status === status);
+    }
+    if (supplierId) {
+      filtered = filtered.filter(s => s.supplier_id === supplierId);
+    }
+
+    return [200, {
+      success: true,
+      data: {
+        supplierCredits: filtered,
+        total: filtered.length
+      }
+    }];
+  });
+
+  // GET /tenant/supplier-credit/:id
+  mock.onGet(/\/tenant\/supplier-credit\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const id = url.split('/').pop() || '';
+    const credit = mockSupplierCredits.find(s => s.id === id);
+    if (credit) {
+      return [200, { success: true, data: { supplierCredit: credit } }];
+    }
+    return [404, { success: false, error: { message: "Supplier credit record not found" } }];
+  });
+
+  // POST /tenant/supplier-credit/:id/payments
+  mock.onPost(/\/tenant\/supplier-credit\/[^/]+\/payments/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { amount, payment_method, reference, notes } = JSON.parse(config.data);
+
+    const creditIdx = mockSupplierCredits.findIndex(s => s.id === id);
+    if (creditIdx !== -1) {
+      const credit = mockSupplierCredits[creditIdx];
+      const newPaid = credit.amount_paid + Number(amount);
+      const newRemaining = Math.max(0, credit.total_amount - newPaid);
+      const newStatus = newRemaining === 0 ? "settled" as const : "partial" as const;
+
+      const newPayment = {
+        id: `scp-${Date.now()}`,
+        amount: Number(amount),
+        payment_method,
+        reference: reference || `REF-${Date.now()}`,
+        notes: notes || '',
+        date_created: new Date().toISOString()
+      };
+
+      mockSupplierCredits[creditIdx] = {
+        ...credit,
+        amount_paid: newPaid,
+        balance_remaining: newRemaining,
+        status: newStatus,
+        payments: [...credit.payments, newPayment]
+      };
+
+      return [200, {
+        success: true,
+        message: "Supplier credit payment recorded successfully",
+        data: {
+          supplierCredit: mockSupplierCredits[creditIdx]
+        }
+      }];
+    }
+
+    return [404, { success: false, error: { message: "Supplier credit record not found" } }];
   });
 
   // Catch-all for any other GET requests to prevent errors during design
