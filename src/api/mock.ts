@@ -1097,6 +1097,262 @@ export function setupMockApi() {
     return [404, { error: { status: "NOT_FOUND", message: "Stock adjustment request not found", code: 404 } }];
   });
 
+  // Mock returns database
+  let mockReturns: Array<{
+    id: string;
+    original_transaction_id: string;
+    original_transaction_ref: string;
+    reason: string;
+    notes: string;
+    status: "pending" | "approved" | "rejected";
+    refund_method: string;
+    total_refund_amount: number;
+    initiated_by: string;
+    initiated_by_name: string;
+    approved_by: string | null;
+    approved_by_name: string | null;
+    approved_at: string | null;
+    date_created: string;
+    items: Array<{
+      variant_id: string;
+      product_name: string;
+      packaging_tier_id: string | null;
+      packaging_tier_name: string;
+      quantity: number;
+      unit_price: number;
+      condition: "sellable" | "damaged";
+    }>;
+  }> = [
+    {
+      id: "ret1",
+      original_transaction_id: "tx2",
+      original_transaction_ref: "RCP-0002",
+      reason: "defective",
+      notes: "Left sole glue coming undone",
+      status: "approved",
+      refund_method: "mobile_money",
+      total_refund_amount: 850.00,
+      initiated_by: "u3",
+      initiated_by_name: "Kofi Annan",
+      approved_by: "u2",
+      approved_by_name: "Ama Serwaa",
+      approved_at: new Date(Date.now() - 3600000).toISOString(),
+      date_created: new Date(Date.now() - 7200000).toISOString(),
+      items: [
+        {
+          variant_id: "p1",
+          product_name: "Nike Air Max",
+          packaging_tier_id: "tier_u1",
+          packaging_tier_name: "Unit",
+          quantity: 1,
+          unit_price: 850.00,
+          condition: "damaged"
+        }
+      ]
+    },
+    {
+      id: "ret2",
+      original_transaction_id: "tx4",
+      original_transaction_ref: "RCP-0004",
+      reason: "wrong_item",
+      notes: "Customer ordered White but got Black",
+      status: "pending",
+      refund_method: "cash",
+      total_refund_amount: 240.00,
+      initiated_by: "u3",
+      initiated_by_name: "Kofi Annan",
+      approved_by: null,
+      approved_by_name: null,
+      approved_at: null,
+      date_created: new Date().toISOString(),
+      items: [
+        {
+          variant_id: "p5",
+          product_name: "Basic White Tee",
+          packaging_tier_id: "tier_u5",
+          packaging_tier_name: "Unit",
+          quantity: 2,
+          unit_price: 120.00,
+          condition: "sellable"
+        }
+      ]
+    }
+  ];
+
+  // GET /pos/returns
+  mock.onGet(/\/pos\/returns$/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const status = searchParams.get('status') || '';
+    
+    let filtered = [...mockReturns];
+    if (status) {
+      filtered = filtered.filter(r => r.status === status);
+    }
+    
+    return [200, {
+      success: true,
+      data: {
+        returns: filtered,
+        total: filtered.length
+      }
+    }];
+  });
+
+  // GET /pos/returns/:id
+  mock.onGet(/\/pos\/returns\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const id = url.split('/').pop() || '';
+    const ret = mockReturns.find(r => r.id === id);
+    if (ret) {
+      return [200, { success: true, data: { return: ret } }];
+    }
+    return [404, { success: false, error: { message: 'Return not found' } }];
+  });
+
+  // POST /pos/returns
+  mock.onPost(/\/pos\/returns$/).reply((config) => {
+    const { original_transaction_id, reason, notes, refund_method, items } = JSON.parse(config.data);
+    
+    // Find transaction reference for transaction number
+    const tx = mockTransactions.find(t => t.id === original_transaction_id);
+    const txRef = tx ? tx.receiptNumber : "RCP-UNKNOWN";
+    
+    const newReturn = {
+      id: `ret-${Date.now()}`,
+      original_transaction_id,
+      original_transaction_ref: txRef,
+      reason,
+      notes: notes || '',
+      status: "pending" as const,
+      refund_method,
+      total_refund_amount: items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0),
+      initiated_by: "u3",
+      initiated_by_name: "Kofi Annan",
+      approved_by: null,
+      approved_by_name: null,
+      approved_at: null,
+      date_created: new Date().toISOString(),
+      items: items.map((it: any) => ({
+        variant_id: it.variant_id,
+        product_name: it.product_name || "Unknown Product",
+        packaging_tier_id: it.packaging_tier_id || null,
+        packaging_tier_name: it.packaging_tier_name || "Unit",
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        condition: it.condition
+      }))
+    };
+    
+    mockReturns = [newReturn, ...mockReturns];
+    
+    return [201, {
+      success: true,
+      data: {
+        return: newReturn
+      }
+    }];
+  });
+
+  // POST /pos/returns/:id/approve
+  mock.onPost(/\/pos\/returns\/[^/]+\/approve/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { approver_pin } = JSON.parse(config.data);
+    
+    if (approver_pin === "9999") {
+      return [401, { error: { status: "UNAUTHORIZED", message: "Invalid PIN code", code: 401 } }];
+    }
+    
+    const retIdx = mockReturns.findIndex(r => r.id === id);
+    if (retIdx !== -1) {
+      mockReturns[retIdx] = {
+        ...mockReturns[retIdx],
+        status: "approved",
+        approved_by: "u2",
+        approved_by_name: "Ama Serwaa",
+        approved_at: new Date().toISOString()
+      };
+      
+      const ret = mockReturns[retIdx];
+      // For each item in the return:
+      ret.items.forEach(item => {
+        if (item.condition === 'sellable') {
+          // Increment stock on mockProducts if found
+          const prodIdx = mockProducts.findIndex(p => p.id === item.variant_id);
+          if (prodIdx !== -1) {
+            mockProducts[prodIdx].stock_quantity += item.quantity;
+          }
+        } else if (item.condition === 'damaged') {
+          // Creates approved StockAdjustment automatically
+          const newAdj = {
+            id: `adj-auto-${Date.now()}-${Math.random()}`,
+            variant_id: item.variant_id,
+            variant_name: item.product_name,
+            sku: "SKU-AUTO",
+            quantity: -item.quantity,
+            reason: "damaged",
+            notes: `Auto-created from customer return ${ret.id}`,
+            status: "approved",
+            initiated_by: "u3",
+            initiated_by_name: "Kofi Annan",
+            approved_by: "u2",
+            approved_by_name: "Ama Serwaa",
+            approved_at: new Date().toISOString(),
+            date_created: new Date().toISOString()
+          };
+          mockAdjustments.push(newAdj);
+        }
+      });
+
+      // Update mock transaction status
+      const txIdx = mockTransactions.findIndex(t => t.id === ret.original_transaction_id);
+      if (txIdx !== -1) {
+        mockTransactions[txIdx].status = 'refunded';
+      }
+      
+      return [200, {
+        success: true,
+        message: "Return approved successfully",
+        data: {
+          return: mockReturns[retIdx]
+        }
+      }];
+    }
+    
+    return [404, { success: false, error: { message: "Return record not found" } }];
+  });
+
+  // POST /pos/returns/:id/reject
+  mock.onPost(/\/pos\/returns\/[^/]+\/reject/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { rejection_note } = JSON.parse(config.data);
+    
+    const retIdx = mockReturns.findIndex(r => r.id === id);
+    if (retIdx !== -1) {
+      mockReturns[retIdx] = {
+        ...mockReturns[retIdx],
+        status: "rejected",
+        approved_by: "u2",
+        approved_by_name: "Ama Serwaa",
+        approved_at: new Date().toISOString(),
+        notes: rejection_note ? `${mockReturns[retIdx].notes} | Rejection: ${rejection_note}` : mockReturns[retIdx].notes
+      };
+      
+      return [200, {
+        success: true,
+        message: "Return rejected successfully",
+        data: {
+          return: mockReturns[retIdx]
+        }
+      }];
+    }
+    return [404, { success: false, error: { message: "Return record not found" } }];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: true, data: {} });
   mock.onPost(/.*/).reply(200, { success: true, data: {} });

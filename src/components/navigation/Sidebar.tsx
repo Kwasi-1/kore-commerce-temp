@@ -15,6 +15,7 @@ import {
   Receipt,
   ClipboardList,
   Users,
+  ArrowLeftRight,
   BarChart3,
   TrendingUp,
   Tag,
@@ -56,6 +57,7 @@ export default function Sidebar() {
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'Transactions', to: '/pos/transactions', icon: History },
         { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
+        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
       ],
     },
     {

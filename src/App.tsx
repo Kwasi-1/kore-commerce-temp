@@ -22,6 +22,7 @@ const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
 const Transactions = lazy(() => import('@/pages/pos/Transactions'));
 const CreditLedger = lazy(() => import('@/pages/pos/CreditLedger'));
 const CashierLockScreen = lazy(() => import('@/pages/pos/CashierLockScreen'));
+const Returns = lazy(() => import('@/pages/pos/Returns'));
 
 // Inventory
 const Products = lazy(() => import('@/pages/inventory/Products'));
@@ -116,6 +117,7 @@ function AppRoutes() {
         {/* POS Dashboard Views */}
         <Route path="/pos/transactions" element={<Transactions />} />
         <Route path="/pos/credit-ledger" element={<CreditLedger />} />
+        <Route path="/pos/returns" element={<Returns />} />
 
         {/* Inventory */}
         <Route path="/inventory/products" element={<Products />} />

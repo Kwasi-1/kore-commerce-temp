@@ -10,6 +10,8 @@ import { format, startOfToday, endOfToday } from 'date-fns';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import TransactionSidePanel from '@/components/pos/TransactionSidePanel';
 import TransactionRefundModal from '@/components/pos/TransactionRefundModal';
+import ReturnModal from '@/components/pos/ReturnModal';
+
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -27,6 +29,11 @@ export default function Transactions() {
   const [refundType, setRefundType] = useState<'full' | 'partial'>('full');
   const [partialRefundAmount, setPartialRefundAmount] = useState<string>('');
   const [isRefunding, setIsRefunding] = useState(false);
+
+  // Return State
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [selectedTransactionForReturn, setSelectedTransactionForReturn] = useState<any>(null);
+
 
   const handlePrintReceipt = () => {
     window.print();
@@ -122,7 +129,8 @@ export default function Transactions() {
     ),
     amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={t.totalAmount || 0} /></span>,
     rowActions: [
-      { key: 'view_receipt', label: 'View Receipt', icon: 'mdi:receipt-text-outline' }
+      { key: 'view_receipt', label: 'View Receipt', icon: 'mdi:receipt-text-outline' },
+      ...(t.status === 'completed' ? [{ key: 'process_return', label: 'Process Return', icon: 'mdi:keyboard-backspace', className: 'text-destructive font-semibold' }] : [])
     ],
     __record: t
   }));
@@ -130,6 +138,9 @@ export default function Transactions() {
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'view_receipt') {
       handleViewReceipt(row.id);
+    } else if (actionKey === 'process_return') {
+      setSelectedTransactionForReturn(row.__record);
+      setIsReturnModalOpen(true);
     }
   };
 
@@ -231,6 +242,19 @@ export default function Transactions() {
         receiptData={selectedReceiptData}
         onSuccess={handleRefundSuccess}
       />
+
+      {/* Return Modal */}
+      {selectedTransactionForReturn && (
+        <ReturnModal
+          isOpen={isReturnModalOpen}
+          onClose={() => {
+            setIsReturnModalOpen(false);
+            setSelectedTransactionForReturn(null);
+          }}
+          transaction={selectedTransactionForReturn}
+          onSuccess={fetchTransactions}
+        />
+      )}
     </PageLayout>
   );
 }
