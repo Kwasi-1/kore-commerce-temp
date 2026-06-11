@@ -13,6 +13,7 @@ import {
   Truck,
   FileBadge,
   Receipt,
+  ClipboardList,
   Users,
   BarChart3,
   TrendingUp,
@@ -62,6 +63,7 @@ export default function Sidebar() {
       show: modules.inventory,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
+        { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
         { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },

@@ -878,6 +878,225 @@ export function setupMockApi() {
     }];
   });
 
+  // Mock adjustments database
+  let mockAdjustments: Array<{
+    id: string;
+    variant_id: string;
+    variant_name: string;
+    sku: string;
+    quantity: number;
+    reason: string;
+    notes: string;
+    status: string;
+    initiated_by: string;
+    initiated_by_name: string;
+    approved_by: string | null;
+    approved_by_name: string | null;
+    approved_at: string | null;
+    rejection_note?: string;
+    date_created: string;
+  }> = [
+    {
+      id: "adj1",
+      variant_id: "p1",
+      variant_name: "Nike Air Max",
+      sku: "NK-AM-01",
+      quantity: -2,
+      reason: "damaged",
+      notes: "Scuffed leather on display shoe",
+      status: "pending",
+      initiated_by: "u3",
+      initiated_by_name: "Kofi Annan",
+      approved_by: null,
+      approved_by_name: null,
+      approved_at: null,
+      date_created: new Date(Date.now() - 3600000).toISOString()
+    },
+    {
+      id: "adj2",
+      variant_id: "p2",
+      variant_name: "Adidas Ultraboost",
+      sku: "AD-UB-02",
+      quantity: -5,
+      reason: "expired",
+      notes: "Demo batch past shelf life",
+      status: "approved",
+      initiated_by: "u3",
+      initiated_by_name: "Kofi Annan",
+      approved_by: "u2",
+      approved_by_name: "Ama Serwaa",
+      approved_at: new Date(Date.now() - 86400000).toISOString(),
+      date_created: new Date(Date.now() - 90000000).toISOString()
+    },
+    {
+      id: "adj3",
+      variant_id: "p4",
+      variant_name: "Sony WH-1000XM4",
+      sku: "SN-WH-04",
+      quantity: 1,
+      reason: "counting_error",
+      notes: "Found extra unit behind drawer during shelf recount",
+      status: "approved",
+      initiated_by: "u2",
+      initiated_by_name: "Ama Serwaa",
+      approved_by: "u1",
+      approved_by_name: "Kwame Mensah",
+      approved_at: new Date(Date.now() - 172800000).toISOString(),
+      date_created: new Date(Date.now() - 180000000).toISOString()
+    }
+  ];
+
+  // GET /tenant/adjustments
+  mock.onGet(/\/tenant\/adjustments/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const status = searchParams.get('status') || '';
+    
+    let filtered = [...mockAdjustments];
+    if (status) {
+      filtered = filtered.filter(a => a.status === status);
+    }
+    
+    return [200, {
+      success: {
+        status: "OK",
+        code: 200,
+        data: {
+          adjustments: filtered,
+          pagination: {
+            page: 1,
+            perPage: 20,
+            total: filtered.length,
+            pages: 1,
+            hasNext: false,
+            hasPrev: false
+          }
+        }
+      }
+    }];
+  });
+
+  // POST /tenant/adjustments
+  mock.onPost(/\/tenant\/adjustments$/).reply((config) => {
+    const { variant_id, quantity, reason, notes } = JSON.parse(config.data);
+    
+    // Lookup variant name and SKU
+    let variantName = "Unknown Product";
+    let sku = "SKU-UNKNOWN";
+    
+    // mockProducts contains variant items
+    const prod = mockProducts.find(p => p.id === variant_id);
+    if (prod) {
+      variantName = prod.name;
+      sku = prod.sku;
+    }
+    
+    const newAdj = {
+      id: `adj-${Date.now()}`,
+      variant_id,
+      variant_name: variantName,
+      sku,
+      quantity: Number(quantity),
+      reason,
+      notes,
+      status: "pending",
+      initiated_by: "u1",
+      initiated_by_name: "Kwame Mensah",
+      approved_by: null,
+      approved_by_name: null,
+      approved_at: null,
+      date_created: new Date().toISOString()
+    };
+    
+    mockAdjustments = [newAdj, ...mockAdjustments];
+    
+    return [201, {
+      success: {
+        status: "CREATED",
+        code: 201,
+        data: {
+          adjustment: newAdj
+        }
+      }
+    }];
+  });
+
+  // POST /tenant/adjustments/:id/approve
+  mock.onPost(/\/tenant\/adjustments\/[^/]+\/approve/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { approver_pin } = JSON.parse(config.data);
+    
+    // Simulating PIN validation (1234 or any pin for mock)
+    if (approver_pin === "9999") {
+      return [401, { error: { status: "UNAUTHORIZED", message: "Invalid PIN code", code: 401 } }];
+    }
+    
+    const adjIdx = mockAdjustments.findIndex(a => a.id === id);
+    if (adjIdx !== -1) {
+      mockAdjustments[adjIdx] = {
+        ...mockAdjustments[adjIdx],
+        status: "approved",
+        approved_by: "u2",
+        approved_by_name: "Ama Serwaa",
+        approved_at: new Date().toISOString()
+      };
+      
+      // Update quantity on mockProducts if found
+      const prodIdx = mockProducts.findIndex(p => p.id === mockAdjustments[adjIdx].variant_id);
+      if (prodIdx !== -1) {
+        mockProducts[prodIdx].stock_quantity += mockAdjustments[adjIdx].quantity;
+      }
+      
+      return [200, {
+        success: {
+          status: "OK",
+          code: 200,
+          message: "Stock adjustment approved and stock updated successfully",
+          data: {
+            adjustment: mockAdjustments[adjIdx]
+          }
+        }
+      }];
+    }
+    
+    return [404, { error: { status: "NOT_FOUND", message: "Stock adjustment request not found", code: 404 } }];
+  });
+
+  // POST /tenant/adjustments/:id/reject
+  mock.onPost(/\/tenant\/adjustments\/[^/]+\/reject/).reply((config) => {
+    const url = config.url || '';
+    const urlParts = url.split('/');
+    const id = urlParts[urlParts.length - 2];
+    const { rejection_note } = JSON.parse(config.data);
+    
+    const adjIdx = mockAdjustments.findIndex(a => a.id === id);
+    if (adjIdx !== -1) {
+      mockAdjustments[adjIdx] = {
+        ...mockAdjustments[adjIdx],
+        status: "rejected",
+        approved_by: "u2",
+        approved_by_name: "Ama Serwaa",
+        approved_at: new Date().toISOString(),
+        rejection_note
+      };
+      
+      return [200, {
+        success: {
+          status: "OK",
+          code: 200,
+          message: "Stock adjustment request rejected",
+          data: {
+            adjustment: mockAdjustments[adjIdx]
+          }
+        }
+      }];
+    }
+    
+    return [404, { error: { status: "NOT_FOUND", message: "Stock adjustment request not found", code: 404 } }];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: true, data: {} });
   mock.onPost(/.*/).reply(200, { success: true, data: {} });
