@@ -174,6 +174,12 @@ export interface EnhancedTableProps {
   selectionMode?: "none" | "single" | "multiple";
   selectedKeys?: Selection | "all";
   onSelectionChange?: (keys: Selection | "all") => void;
+
+  // Inline accordion props
+  enableInlineAccordion?: boolean;
+  expandedRowIds?: Record<string, boolean>;
+  onRowExpandToggle?: (rowId: string) => void;
+  renderInlineAccordion?: (row: any) => React.ReactNode;
 }
 
 const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
@@ -262,6 +268,12 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   selectionMode,
   selectedKeys,
   onSelectionChange,
+
+  // Inline accordion props
+  enableInlineAccordion = false,
+  expandedRowIds,
+  onRowExpandToggle,
+  renderInlineAccordion,
 }) => {
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
   const [localFilterValue, setLocalFilterValue] =
@@ -782,6 +794,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 selected={selectedKeys}
                 onSelectionChange={onSelectionChange}
                 selectedRowId={selectedRow ? selectedRow.id : undefined}
+                enableInlineAccordion={enableInlineAccordion}
+                expandedRowIds={expandedRowIds}
+                onRowExpandToggle={onRowExpandToggle}
+                renderInlineAccordion={renderInlineAccordion}
               />
             </div>
 

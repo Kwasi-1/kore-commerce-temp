@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import CustomModal from '@/components/modals/modal';
 import ProductForm from '@/components/inventory/ProductForm';
@@ -10,8 +10,6 @@ import {
   XCircle, 
   Plus, 
   Upload, 
-  ChevronDown, 
-  ChevronUp, 
   Edit, 
   Archive, 
   Trash2, 
@@ -21,6 +19,7 @@ import {
 } from 'lucide-react';
 import { BulkProductUploadModal } from './components/BulkProductUploadModal';
 import { Button } from '@/components/ui/button';
+import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -198,6 +197,146 @@ export default function Products() {
     return variant.cost_price_per_base_unit || 0;
   };
 
+  // Transform products data into rows for EnhancedTableComponent
+  const tableRows = useMemo(() => {
+    return products.map((p) => ({
+      id: p.id,
+      __record: p,
+      image: p.images && p.images[0] ? (
+        <img src={p.images[0]} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted border" />
+      ) : (
+        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+          <Package className="h-5 w-5" />
+        </div>
+      ),
+      name: p.name,
+      category: p.category || '—',
+      variants: (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+          {p.has_variants ? `${p.variant_count} variants` : 'Simple'}
+        </span>
+      ),
+      total_stock: (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          p.total_stock_base_units === 0 ? 'bg-destructive/10 text-destructive border border-destructive/20' 
+          : p.total_stock_base_units <= 5 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20'
+          : 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+        }`}>
+          {p.total_stock_base_units} units
+        </span>
+      ),
+      status: (
+        <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          p.status === 'active' ? 'text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20' : 'text-muted-foreground bg-muted border border-border'
+        }`}>
+          {p.status || 'Active'}
+        </span>
+      ),
+    }));
+  }, [products]);
+
+  const renderVariantsAccordion = (row: any) => {
+    const p = row.__record;
+    const variants = productVariantsCache[p.id] || [];
+    const isLoadingVars = !!loadingVariants[p.id];
+
+    if (isLoadingVars) {
+      return (
+        <div className="flex items-center justify-center py-6 gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span className="text-xs text-muted-foreground">Loading variants...</span>
+        </div>
+      );
+    }
+
+    if (variants.length === 0) {
+      return (
+        <div className="text-center py-4 text-xs text-muted-foreground">
+          No variants found for this product.
+        </div>
+      );
+    }
+
+    return (
+      <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm animate-in fade-in duration-300">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/20 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+              <th className="px-4 py-2.5">Attributes</th>
+              <th className="px-4 py-2.5">SKU</th>
+              <th className="px-4 py-2.5">Sell Mode</th>
+              <th className="px-4 py-2.5">Stock</th>
+              <th className="px-4 py-2.5">Default Sale Tier</th>
+              <th className="px-4 py-2.5">Retail Price</th>
+              <th className="px-4 py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border text-xs">
+            {variants.map((v: any) => {
+              const attrStr = Object.entries(v.variant_attributes || {})
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ') || 'Default';
+                
+              const stockInfo = getStockDisplay(v);
+              const defaultSaleTier = v.packaging_tiers?.find((t: any) => t.is_default_sale_unit);
+              const defaultSaleTierName = defaultSaleTier ? defaultSaleTier.name : v.base_unit_name;
+              const retailPrice = getRetailPrice(v);
+
+              return (
+                <tr key={v.id} className="hover:bg-muted/10 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-foreground capitalize">
+                    {attrStr}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-muted-foreground">
+                    {v.sku}
+                  </td>
+                  <td className="px-4 py-2.5 capitalize">
+                    <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground">
+                      {v.sell_mode?.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`font-semibold ${v.stock_quantity === 0 ? 'text-destructive font-bold' : 'text-foreground'}`}>
+                      {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 capitalize">
+                    {defaultSaleTierName || '—'}
+                  </td>
+                  <td className="px-4 py-2.5 font-semibold text-foreground">
+                    GHS {Number(retailPrice).toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toast.success(`Edit variant ${v.sku}`)}
+                        className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
+                        title="Edit Variant"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toast.success(`Manage tiers for ${v.sku}`)}
+                        className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
+                        title="Manage Tiers"
+                      >
+                        <Layers className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   // Calculate metrics
   const totalProducts = products.length;
   const outOfStockCount = products.filter(p => p.total_stock_base_units === 0).length;
@@ -327,224 +466,40 @@ export default function Products() {
           ))}
         </div>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading products...</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-            <Package className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground font-medium">No products found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-muted/5 text-xs text-muted-foreground font-semibold uppercase">
-                  <th className="px-6 py-4 w-12"></th>
-                  <th className="px-6 py-4 w-16">Image</th>
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Variants</th>
-                  <th className="px-6 py-4">Total Stock</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {products.map(p => {
-                  const isExpanded = !!expandedProductIds[p.id];
-                  const variants = productVariantsCache[p.id] || [];
-                  const isLoadingVars = !!loadingVariants[p.id];
-
-                  return (
-                    <React.Fragment key={p.id}>
-                      {/* Main Product Row */}
-                      <tr 
-                        onClick={() => handleToggleExpand(p.id)}
-                        className="hover:bg-muted/20 transition-colors cursor-pointer group"
-                      >
-                        <td className="px-6 py-4">
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                          )}
-                        </td>
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          {p.images && p.images[0] ? (
-                            <img src={p.images[0]} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted border" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-                              <Package className="h-5 w-5" />
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-foreground text-sm">
-                          {p.name}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium capitalize">
-                          {p.category || '—'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                            {p.has_variants ? `${p.variant_count} variants` : 'Simple'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                            p.total_stock_base_units === 0 ? 'bg-destructive/10 text-destructive border border-destructive/20' 
-                            : p.total_stock_base_units <= 5 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20'
-                            : 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                          }`}>
-                            {p.total_stock_base_units} units
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                            p.status === 'active' ? 'text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20' : 'text-muted-foreground bg-muted border border-border'
-                          }`}>
-                            {p.status || 'Active'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(p)}
-                              className="h-8 w-8 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg"
-                              title="Edit Product"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleUpdateStatus(p, p.status === 'active' ? 'draft' : 'active')}
-                              className="h-8 w-8 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg"
-                              title={p.status === 'active' ? 'Archive Product' : 'Activate Product'}
-                            >
-                              <Archive className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setProductToDelete(p);
-                                setIsDeleteModalOpen(true);
-                              }}
-                              className="h-8 w-8 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Accordion content */}
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={8} className="px-6 py-4 bg-muted/10 border-b border-border">
-                            {isLoadingVars ? (
-                              <div className="flex items-center justify-center py-6 gap-2">
-                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                <span className="text-xs text-muted-foreground">Loading variants...</span>
-                              </div>
-                            ) : variants.length === 0 ? (
-                              <div className="text-center py-4 text-xs text-muted-foreground">
-                                No variants found for this product.
-                              </div>
-                            ) : (
-                              <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm animate-in fade-in duration-300">
-                                <table className="w-full text-left border-collapse">
-                                  <thead>
-                                    <tr className="border-b border-border bg-muted/20 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                                      <th className="px-4 py-2.5">Attributes</th>
-                                      <th className="px-4 py-2.5">SKU</th>
-                                      <th className="px-4 py-2.5">Sell Mode</th>
-                                      <th className="px-4 py-2.5">Stock</th>
-                                      <th className="px-4 py-2.5">Default Sale Tier</th>
-                                      <th className="px-4 py-2.5">Retail Price</th>
-                                      <th className="px-4 py-2.5 text-right">Actions</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border text-xs">
-                                    {variants.map((v: any) => {
-                                      const attrStr = Object.entries(v.variant_attributes || {})
-                                        .map(([key, val]) => `${key}: ${val}`)
-                                        .join(', ') || 'Default';
-                                        
-                                      const stockInfo = getStockDisplay(v);
-                                      const defaultSaleTier = v.packaging_tiers?.find((t: any) => t.is_default_sale_unit);
-                                      const defaultSaleTierName = defaultSaleTier ? defaultSaleTier.name : v.base_unit_name;
-                                      const retailPrice = getRetailPrice(v);
-
-                                      return (
-                                        <tr key={v.id} className="hover:bg-muted/10 transition-colors">
-                                          <td className="px-4 py-2.5 font-bold text-foreground capitalize">
-                                            {attrStr}
-                                          </td>
-                                          <td className="px-4 py-2.5 font-mono text-muted-foreground">
-                                            {v.sku}
-                                          </td>
-                                          <td className="px-4 py-2.5 capitalize">
-                                            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground">
-                                              {v.sell_mode?.replace('_', ' ')}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-2.5">
-                                            <span className={`font-semibold ${v.stock_quantity === 0 ? 'text-destructive font-bold' : 'text-foreground'}`}>
-                                              {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-2.5 capitalize">
-                                            {defaultSaleTierName || '—'}
-                                          </td>
-                                          <td className="px-4 py-2.5 font-semibold text-foreground">
-                                            GHS {Number(retailPrice).toFixed(2)}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-right">
-                                            <div className="flex justify-end gap-1">
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => toast.success(`Edit variant ${v.sku}`)}
-                                                className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
-                                                title="Edit Variant"
-                                              >
-                                                <Edit className="h-3.5 w-3.5" />
-                                              </Button>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => toast.success(`Manage tiers for ${v.sku}`)}
-                                                className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
-                                                title="Manage Tiers"
-                                              >
-                                                <Layers className="h-3.5 w-3.5" />
-                                              </Button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <EnhancedTableComponent
+          columns={[
+            { key: 'image', label: 'Image' },
+            { key: 'name', label: 'Name' },
+            { key: 'category', label: 'Category' },
+            { key: 'variants', label: 'Variants' },
+            { key: 'total_stock', label: 'Total Stock' },
+            { key: 'status', label: 'Status' }
+          ]}
+          rows={tableRows}
+          isLoading={isLoading}
+          enableInlineAccordion={true}
+          expandedRowIds={expandedProductIds}
+          onRowExpandToggle={handleToggleExpand}
+          renderInlineAccordion={renderVariantsAccordion}
+          showTopContent={false}
+          rowActions={[
+            { key: 'edit', label: 'Edit Product', icon: 'fluent:edit-20-filled' },
+            { key: 'archive', label: 'Toggle Status', icon: 'fluent:archive-20-filled' },
+            { key: 'delete', label: 'Delete Product', icon: 'fluent:delete-20-filled', color: 'danger', className: 'text-danger' }
+          ]}
+          onRowActionClick={(actionKey, rowData) => {
+            const originalProduct = rowData.__record;
+            if (actionKey === 'edit') {
+              handleEdit(originalProduct);
+            } else if (actionKey === 'archive') {
+              handleUpdateStatus(originalProduct, originalProduct.status === 'active' ? 'draft' : 'active');
+            } else if (actionKey === 'delete') {
+              setProductToDelete(originalProduct);
+              setIsDeleteModalOpen(true);
+            }
+          }}
+          pageSize={25}
+        />
       </div>
 
       {/* Single Product Form Modal */}

@@ -52,6 +52,10 @@ interface ICustomTableComponent {
   bottomContentOnMoblile?: (props: any) => React.ReactNode;
   enableSmartHiding?: boolean; // New prop to enable smart column hiding
   selectedRowId?: string | number; // New prop for highlighting selected row
+  enableInlineAccordion?: boolean;
+  expandedRowIds?: Record<string, boolean>;
+  onRowExpandToggle?: (rowId: string) => void;
+  renderInlineAccordion?: (row: any) => React.ReactNode;
 }
 
 const CustomTableComponent: React.FC<ICustomTableComponent> = ({
@@ -77,6 +81,10 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
   bottomContentOnMoblile,
   enableSmartHiding = true, // Default to true - enabled by default
   selectedRowId,
+  enableInlineAccordion = false,
+  expandedRowIds,
+  onRowExpandToggle,
+  renderInlineAccordion,
 }) => {
   const headers = columns;
   const screenSize = useScreenSize();
@@ -272,6 +280,124 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
             </>
           )}
         </div>
+        {bottomContent}
+      </div>
+    );
+  }
+
+  if (enableInlineAccordion) {
+    return (
+      <div className="w-full overflow-x-auto">
+        <table className={cn("w-full text-left border-collapse", classNames?.table)}>
+          <thead>
+            <tr className={cn("border-b border-border bg-muted/5 text-xs text-muted-foreground font-semibold uppercase", classNames?.thead)}>
+              <th className="px-6 py-4 w-12"></th>
+              {headers.map((column: any) => {
+                const colKey = typeof column === "string" ? column : column.key;
+                const colLabel = typeof column === "string" ? column : column.label;
+                return (
+                  <th
+                    key={colKey}
+                    className={cn(
+                      "px-6 py-4 uppercase font-medium text-xs text-muted-foreground text-left",
+                      colKey === "paid_amount" && "text-right",
+                      colKey === "actions" && "text-right",
+                      classNames?.th
+                    )}
+                  >
+                    {colLabel}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody className={cn("divide-y divide-border", classNames?.tbody)}>
+            {isLoading || isFetching ? (
+              <tr>
+                <td colSpan={headers.length + 1} className="py-16">
+                  <div className="flex items-center justify-center">
+                    <Spinner withBackdrop={true} />
+                  </div>
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={headers.length + 1} className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center gap-3">
+                    <Icon icon="ph:tray" className="text-5xl text-muted-foreground/40" />
+                    <p className="text-muted-foreground font-medium text-sm">Nothing to show here.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              rows.map((row, rowIndex) => {
+                const rowId = row.id || row.key;
+                const isExpanded = expandedRowIds ? !!expandedRowIds[rowId] : false;
+
+                return (
+                  <React.Fragment key={rowId}>
+                    <tr
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        const isInteractiveElement =
+                          target.closest("button") ||
+                          target.closest('[role="checkbox"]') ||
+                          target.closest(".dropdown") ||
+                          target.closest('[data-slot="trigger"]');
+                        if (isInteractiveElement) return;
+
+                        if (onRowExpandToggle) {
+                          onRowExpandToggle(rowId);
+                        } else if (onclick) {
+                          onclick(rowId);
+                        }
+                      }}
+                      className={cn(
+                        "hover:bg-muted/50 transition-colors cursor-pointer group border-b border-border/50 last:border-0",
+                        selectedRowId === rowId && "bg-muted/50",
+                        classNames?.tr
+                      )}
+                    >
+                      <td className="px-6 py-4 w-12">
+                        {isExpanded ? (
+                          <Icon icon="lucide:chevron-up" className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        ) : (
+                          <Icon icon="lucide:chevron-down" className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        )}
+                      </td>
+                      {headers.map((column: any) => {
+                        const colKey = typeof column === "string" ? column : column.key;
+                        const cellValue = getKeyValue(row, colKey);
+                        const shouldHide = shouldHideCell(rowIndex, colKey);
+
+                        return (
+                          <td
+                            key={colKey}
+                            className={cn(
+                              "px-6 py-4 text-sm text-foreground transition-all duration-300 ease-in-out group-hover:opacity-100",
+                              shouldHide && "opacity-0 group-hover:opacity-100",
+                              colKey === "actions" && "text-right",
+                              classNames?.td
+                            )}
+                          >
+                            {cellValue}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {isExpanded && renderInlineAccordion && (
+                      <tr>
+                        <td colSpan={headers.length + 1} className="px-6 py-4 bg-muted/10 border-b border-border">
+                          {renderInlineAccordion(row)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
+          </tbody>
+        </table>
         {bottomContent}
       </div>
     );
