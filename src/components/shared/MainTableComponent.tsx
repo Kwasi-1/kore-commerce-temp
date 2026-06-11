@@ -253,7 +253,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[540px] max-h-fit",
+  containerStyles = "min-h-[540px] max-h-fit rounded-xl",
 
   // Additional
   additionalModals,

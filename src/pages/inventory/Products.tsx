@@ -1,41 +1,51 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import PageLayout from '@/components/layout/PageLayout';
-import CustomModal from '@/components/modals/modal';
-import ProductForm from '@/components/inventory/ProductForm';
-import apiClient from '@/api/client';
-import toast from 'react-hot-toast';
-import { 
-  Package, 
-  AlertTriangle, 
-  XCircle, 
-  Plus, 
-  Upload, 
-  Edit, 
-  Archive, 
-  Trash2, 
-  Loader2, 
-  Search, 
-  Layers
-} from 'lucide-react';
-import { BulkProductUploadModal } from './components/BulkProductUploadModal';
-import { Button } from '@/components/ui/button';
-import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import React, { useState, useEffect, useMemo } from "react";
+import { Selection } from "@nextui-org/react";
+import PageLayout from "@/components/layout/PageLayout";
+import CustomModal from "@/components/modals/modal";
+import ProductForm from "@/components/inventory/ProductForm";
+import apiClient from "@/api/client";
+import toast from "react-hot-toast";
+import {
+  Package,
+  AlertTriangle,
+  XCircle,
+  Plus,
+  Upload,
+  Edit,
+  Archive,
+  Trash2,
+  Loader2,
+  Search,
+  Layers,
+  ChevronDown,
+} from "lucide-react";
+import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import EnhancedTableComponent from "@/components/shared/MainTableComponent";
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Search and filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<Selection>(new Set(["all"]));
+  const [categoryFilter, setCategoryFilter] = useState<Selection>(
+    new Set(["all"]),
+  );
   const [categories, setCategories] = useState<string[]>([]);
-  
+
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  
+
   // Row Actions state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
@@ -43,31 +53,48 @@ export default function Products() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Accordion / cache state for variants
-  const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
-  const [productVariantsCache, setProductVariantsCache] = useState<Record<string, any[]>>({});
-  const [loadingVariants, setLoadingVariants] = useState<Record<string, boolean>>({});
+  const [expandedProductIds, setExpandedProductIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [productVariantsCache, setProductVariantsCache] = useState<
+    Record<string, any[]>
+  >({});
+  const [loadingVariants, setLoadingVariants] = useState<
+    Record<string, boolean>
+  >({});
 
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      let url = '/tenant/products?limit=100';
+      let url = "/tenant/products?limit=100";
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      if (statusFilter !== 'all') url += `&status=${statusFilter}`;
-      if (categoryFilter !== 'all') url += `&category=${categoryFilter}`;
+      const statusVal =
+        statusFilter instanceof Set
+          ? Array.from(statusFilter)[0]
+          : statusFilter;
+      if (statusVal && statusVal !== "all") url += `&status=${statusVal}`;
+      const categoryVal =
+        categoryFilter instanceof Set
+          ? Array.from(categoryFilter)[0]
+          : categoryFilter;
+      if (categoryVal && categoryVal !== "all")
+        url += `&category=${categoryVal}`;
 
       const response = await apiClient.get(url);
       const data = response.data.data.products || [];
       setProducts(data);
-      
+
       // Extract categories for filter options
-      const uniqueCats = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean))) as string[];
-      setCategories(prev => {
+      const uniqueCats = Array.from(
+        new Set(data.map((p: any) => p.category).filter(Boolean)),
+      ) as string[];
+      setCategories((prev) => {
         const union = Array.from(new Set([...prev, ...uniqueCats]));
         return union;
       });
     } catch (error) {
-      console.error('Failed to fetch products:', error);
-      toast.error('Failed to load products');
+      console.error("Failed to fetch products:", error);
+      toast.error("Failed to load products");
     } finally {
       setIsLoading(false);
     }
@@ -107,12 +134,12 @@ export default function Products() {
     setIsDeleting(true);
     try {
       await apiClient.delete(`/tenant/products/${productToDelete.id}`);
-      toast.success('Product deleted successfully');
+      toast.success("Product deleted successfully");
       setIsDeleteModalOpen(false);
       setProductToDelete(null);
       fetchProducts();
     } catch (error) {
-      toast.error('Failed to delete product');
+      toast.error("Failed to delete product");
     } finally {
       setIsDeleting(false);
     }
@@ -121,11 +148,13 @@ export default function Products() {
   const handleUpdateStatus = async (product: any, newStatus: string) => {
     setIsUpdatingStatus(true);
     try {
-      await apiClient.patch(`/tenant/products/${product.id}/status`, { status: newStatus });
+      await apiClient.patch(`/tenant/products/${product.id}/status`, {
+        status: newStatus,
+      });
       toast.success(`Product marked as ${newStatus}`);
       fetchProducts();
     } catch (error) {
-      toast.error('Failed to update product status');
+      toast.error("Failed to update product status");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -134,31 +163,31 @@ export default function Products() {
   // Toggle variant row expansion and lazy-load details
   const handleToggleExpand = async (productId: string) => {
     const isExpanded = !!expandedProductIds[productId];
-    
-    setExpandedProductIds(prev => ({
+
+    setExpandedProductIds((prev) => ({
       ...prev,
-      [productId]: !isExpanded
+      [productId]: !isExpanded,
     }));
 
     if (!isExpanded && !productVariantsCache[productId]) {
-      setLoadingVariants(prev => ({ ...prev, [productId]: true }));
+      setLoadingVariants((prev) => ({ ...prev, [productId]: true }));
       try {
         const res = await apiClient.get(`/tenant/products/${productId}`);
         const productDetails = res.data.data.product;
         const variants = productDetails.variants || [];
-        setProductVariantsCache(prev => ({
+        setProductVariantsCache((prev) => ({
           ...prev,
-          [productId]: variants
+          [productId]: variants,
         }));
       } catch (err) {
         console.error("Failed to fetch product variants:", err);
         toast.error("Failed to load variants");
-        setExpandedProductIds(prev => ({
+        setExpandedProductIds((prev) => ({
           ...prev,
-          [productId]: false
+          [productId]: false,
         }));
       } finally {
-        setLoadingVariants(prev => ({ ...prev, [productId]: false }));
+        setLoadingVariants((prev) => ({ ...prev, [productId]: false }));
       }
     }
   };
@@ -166,24 +195,28 @@ export default function Products() {
   // Helper to compute stock display (flexible / unit / pack only)
   const getStockDisplay = (variant: any) => {
     const qty = variant.stock_quantity || 0;
-    if (variant.sell_mode === 'pack_only') {
-      const defaultPurchaseTier = variant.packaging_tiers?.find((t: any) => t.is_default_purchase_unit);
+    if (variant.sell_mode === "pack_only") {
+      const defaultPurchaseTier = variant.packaging_tiers?.find(
+        (t: any) => t.is_default_purchase_unit,
+      );
       if (defaultPurchaseTier && defaultPurchaseTier.units_per_tier > 0) {
         return {
           value: qty / defaultPurchaseTier.units_per_tier,
-          unit: defaultPurchaseTier.name
+          unit: defaultPurchaseTier.name,
         };
       }
     }
     return {
       value: qty,
-      unit: variant.base_unit_name || 'unit'
+      unit: variant.base_unit_name || "unit",
     };
   };
 
   // Helper to determine the retail price
   const getRetailPrice = (variant: any) => {
-    let tier = variant.packaging_tiers?.find((t: any) => t.is_default_sale_unit);
+    let tier = variant.packaging_tiers?.find(
+      (t: any) => t.is_default_sale_unit,
+    );
     if (!tier) {
       tier = variant.packaging_tiers?.find((t: any) => t.is_base_unit);
     }
@@ -191,7 +224,7 @@ export default function Products() {
       tier = variant.packaging_tiers[0];
     }
     if (tier) {
-      const priceRec = tier.prices?.find((p: any) => p.price_type === 'retail');
+      const priceRec = tier.prices?.find((p: any) => p.price_type === "retail");
       if (priceRec) return priceRec.price;
     }
     return variant.cost_price_per_base_unit || 0;
@@ -202,34 +235,47 @@ export default function Products() {
     return products.map((p) => ({
       id: p.id,
       __record: p,
-      image: p.images && p.images[0] ? (
-        <img src={p.images[0]} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted border" />
-      ) : (
-        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-          <Package className="h-5 w-5" />
-        </div>
-      ),
+      image:
+        p.images && p.images[0] ? (
+          <img
+            src={p.images[0]}
+            alt={p.name}
+            className="h-10 w-10 rounded-lg object-cover bg-muted border"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+            <Package className="h-5 w-5" />
+          </div>
+        ),
       name: p.name,
-      category: p.category || '—',
+      category: p.category || "—",
       variants: (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-          {p.has_variants ? `${p.variant_count} variants` : 'Simple'}
+          {p.has_variants ? `${p.variant_count} variants` : "Simple"}
         </span>
       ),
       total_stock: (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
-          p.total_stock_base_units === 0 ? 'bg-destructive/10 text-destructive border border-destructive/20' 
-          : p.total_stock_base_units <= 5 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20'
-          : 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-        }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+            p.total_stock_base_units === 0
+              ? "bg-destructive/10 text-destructive border border-destructive/20"
+              : p.total_stock_base_units <= 5
+                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20"
+                : "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
+          }`}
+        >
           {p.total_stock_base_units} units
         </span>
       ),
       status: (
-        <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
-          p.status === 'active' ? 'text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20' : 'text-muted-foreground bg-muted border border-border'
-        }`}>
-          {p.status || 'Active'}
+        <span
+          className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+            p.status === "active"
+              ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
+              : "text-muted-foreground bg-muted border border-border"
+          }`}
+        >
+          {p.status || "Active"}
         </span>
       ),
     }));
@@ -244,7 +290,9 @@ export default function Products() {
       return (
         <div className="flex items-center justify-center py-6 gap-2">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground">Loading variants...</span>
+          <span className="text-xs text-muted-foreground">
+            Loading variants...
+          </span>
         </div>
       );
     }
@@ -273,13 +321,18 @@ export default function Products() {
           </thead>
           <tbody className="divide-y divide-border text-xs">
             {variants.map((v: any) => {
-              const attrStr = Object.entries(v.variant_attributes || {})
-                .map(([key, val]) => `${key}: ${val}`)
-                .join(', ') || 'Default';
-                
+              const attrStr =
+                Object.entries(v.variant_attributes || {})
+                  .map(([key, val]) => `${key}: ${val}`)
+                  .join(", ") || "Default";
+
               const stockInfo = getStockDisplay(v);
-              const defaultSaleTier = v.packaging_tiers?.find((t: any) => t.is_default_sale_unit);
-              const defaultSaleTierName = defaultSaleTier ? defaultSaleTier.name : v.base_unit_name;
+              const defaultSaleTier = v.packaging_tiers?.find(
+                (t: any) => t.is_default_sale_unit,
+              );
+              const defaultSaleTierName = defaultSaleTier
+                ? defaultSaleTier.name
+                : v.base_unit_name;
               const retailPrice = getRetailPrice(v);
 
               return (
@@ -292,16 +345,18 @@ export default function Products() {
                   </td>
                   <td className="px-4 py-2.5 capitalize">
                     <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground">
-                      {v.sell_mode?.replace('_', ' ')}
+                      {v.sell_mode?.replace("_", " ")}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className={`font-semibold ${v.stock_quantity === 0 ? 'text-destructive font-bold' : 'text-foreground'}`}>
+                    <span
+                      className={`font-semibold ${v.stock_quantity === 0 ? "text-destructive font-bold" : "text-foreground"}`}
+                    >
                       {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 capitalize">
-                    {defaultSaleTierName || '—'}
+                    {defaultSaleTierName || "—"}
                   </td>
                   <td className="px-4 py-2.5 font-semibold text-foreground">
                     GHS {Number(retailPrice).toFixed(2)}
@@ -320,7 +375,9 @@ export default function Products() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => toast.success(`Manage tiers for ${v.sku}`)}
+                        onClick={() =>
+                          toast.success(`Manage tiers for ${v.sku}`)
+                        }
                         className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
                         title="Manage Tiers"
                       >
@@ -339,18 +396,25 @@ export default function Products() {
 
   // Calculate metrics
   const totalProducts = products.length;
-  const outOfStockCount = products.filter(p => p.total_stock_base_units === 0).length;
-  const lowStockCount = products.filter(p => p.total_stock_base_units > 0 && p.total_stock_base_units <= 5).length;
-  
+  const outOfStockCount = products.filter(
+    (p) => p.total_stock_base_units === 0,
+  ).length;
+  const lowStockCount = products.filter(
+    (p) => p.total_stock_base_units > 0 && p.total_stock_base_units <= 5,
+  ).length;
+
   // Custom total value calculation based on average or base unit prices
-  const totalValue = products.reduce((sum, p) => sum + (p.total_stock_base_units || 0), 0);
+  const totalValue = products.reduce(
+    (sum, p) => sum + (p.total_stock_base_units || 0),
+    0,
+  );
 
   // Status Filter Tabs
   const statuses = [
-    { uid: 'all', name: 'All' },
-    { uid: 'active', name: 'Active' },
-    { uid: 'draft', name: 'Draft' },
-    { uid: 'archived', name: 'Archived' }
+    { uid: "all", name: "All" },
+    { uid: "active", name: "Active" },
+    { uid: "draft", name: "Draft" },
+    { uid: "archived", name: "Archived" },
   ];
 
   return (
@@ -359,8 +423,12 @@ export default function Products() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">Total Products</p>
-            <h3 className="text-2xl font-bold tracking-tight">{totalProducts}</h3>
+            <p className="text-sm font-bold text-muted-foreground mb-1">
+              Total Products
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight">
+              {totalProducts}
+            </h3>
           </div>
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
             <Package className="h-6 w-6" />
@@ -369,8 +437,12 @@ export default function Products() {
 
         <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">Low Stock</p>
-            <h3 className="text-2xl font-bold tracking-tight">{lowStockCount}</h3>
+            <p className="text-sm font-bold text-muted-foreground mb-1">
+              Low Stock
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight">
+              {lowStockCount}
+            </h3>
           </div>
           <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
             <AlertTriangle className="h-6 w-6" />
@@ -379,8 +451,12 @@ export default function Products() {
 
         <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">Out of Stock</p>
-            <h3 className="text-2xl font-bold tracking-tight text-destructive">{outOfStockCount}</h3>
+            <p className="text-sm font-bold text-muted-foreground mb-1">
+              Out of Stock
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight text-destructive">
+              {outOfStockCount}
+            </h3>
           </div>
           <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
             <XCircle className="h-6 w-6" />
@@ -389,7 +465,9 @@ export default function Products() {
 
         <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">Total Base Units</p>
+            <p className="text-sm font-bold text-muted-foreground mb-1">
+              Total Base Units
+            </p>
             <h3 className="text-2xl font-bold tracking-tight">
               {totalValue.toLocaleString()}
             </h3>
@@ -401,106 +479,123 @@ export default function Products() {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-card border rounded-[20px] shadow-sm overflow-hidden mb-6">
-        {/* Toolbar */}
-        <div className="p-6 border-b border-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex-1 max-w-md relative">
-            <input
-              type="text"
-              placeholder="Search by name or SKU..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-xl bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
-            />
-            <div className="absolute left-3 top-2.5 text-muted-foreground">
-              <Search className="h-4.5 w-4.5" />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 self-end md:self-auto">
-            {/* Category Select Filter */}
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-4 py-2 border border-border rounded-xl bg-muted/50 text-sm focus:outline-none text-foreground font-medium"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
 
-            <Button
-              onClick={openNewProduct}
-              className="gap-2 bg-primary text-primary-foreground font-bold rounded-xl text-sm px-4"
-            >
-              <Plus className="h-4 w-4" />
-              Add Product
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setIsBulkModalOpen(true)}
-              className="gap-2 font-bold rounded-xl text-sm border-border text-foreground px-4"
-            >
-              <Upload className="h-4 w-4" />
-              Bulk Upload
-            </Button>
-          </div>
-        </div>
-
-        {/* Status Tab list */}
-        <div className="px-6 py-2.5 bg-muted/10 border-b border-border flex gap-2 overflow-x-auto scrollbar-hide">
-          {statuses.map(s => (
-            <button
-              key={s.uid}
-              onClick={() => setStatusFilter(s.uid)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === s.uid
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-
-        <EnhancedTableComponent
-          columns={[
-            { key: 'image', label: 'Image' },
-            { key: 'name', label: 'Name' },
-            { key: 'category', label: 'Category' },
-            { key: 'variants', label: 'Variants' },
-            { key: 'total_stock', label: 'Total Stock' },
-            { key: 'status', label: 'Status' }
-          ]}
-          rows={tableRows}
-          isLoading={isLoading}
-          enableInlineAccordion={true}
-          expandedRowIds={expandedProductIds}
-          onRowExpandToggle={handleToggleExpand}
-          renderInlineAccordion={renderVariantsAccordion}
-          showTopContent={false}
-          rowActions={[
-            { key: 'edit', label: 'Edit Product', icon: 'fluent:edit-20-filled' },
-            { key: 'archive', label: 'Toggle Status', icon: 'fluent:archive-20-filled' },
-            { key: 'delete', label: 'Delete Product', icon: 'fluent:delete-20-filled', color: 'danger', className: 'text-danger' }
-          ]}
-          onRowActionClick={(actionKey, rowData) => {
-            const originalProduct = rowData.__record;
-            if (actionKey === 'edit') {
-              handleEdit(originalProduct);
-            } else if (actionKey === 'archive') {
-              handleUpdateStatus(originalProduct, originalProduct.status === 'active' ? 'draft' : 'active');
-            } else if (actionKey === 'delete') {
-              setProductToDelete(originalProduct);
-              setIsDeleteModalOpen(true);
-            }
-          }}
-          pageSize={25}
-        />
-      </div>
+      <EnhancedTableComponent
+        columns={[
+          { key: "image", label: "Image" },
+          { key: "name", label: "Name" },
+          { key: "category", label: "Category" },
+          { key: "variants", label: "Variants" },
+          { key: "total_stock", label: "Total Stock" },
+          { key: "status", label: "Status" },
+        ]}
+        rows={tableRows}
+        isLoading={isLoading}
+        enableInlineAccordion={true}
+        expandedRowIds={expandedProductIds}
+        onRowExpandToggle={handleToggleExpand}
+        renderInlineAccordion={renderVariantsAccordion}
+        showTopContent={true}
+        rowActions={[
+          { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
+          {
+            key: "archive",
+            label: "Toggle Status",
+            icon: "fluent:archive-20-filled",
+          },
+          {
+            key: "delete",
+            label: "Delete Product",
+            icon: "fluent:delete-20-filled",
+            color: "danger",
+            className: "text-danger",
+          },
+        ]}
+        onRowActionClick={(actionKey, rowData) => {
+          const originalProduct = rowData.__record;
+          if (actionKey === "edit") {
+            handleEdit(originalProduct);
+          } else if (actionKey === "archive") {
+            handleUpdateStatus(
+              originalProduct,
+              originalProduct.status === "active" ? "draft" : "active",
+            );
+          } else if (actionKey === "delete") {
+            setProductToDelete(originalProduct);
+            setIsDeleteModalOpen(true);
+          }
+        }}
+        // pageSize={25}
+        showSearch={true}
+        searchPlaceholder="Search by name or SKU..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        showFilter={true}
+        filterLabel="Status"
+        filterOptions={statuses}
+        filterValue={statusFilter}
+        onFilterChange={(keys: any) => setStatusFilter(keys)}
+        // Category Filter
+        additionalFilters={[
+          {
+            label: "Category",
+            value: categoryFilter,
+            onChange: (keys: any) => setCategoryFilter(keys),
+            options: [
+              { uid: "all", name: "All Categories" },
+              ...categories.map((c) => ({ uid: c, name: c })),
+            ],
+          },
+        ]}
+        // Actions
+        showAddButton={false}
+        onRefresh={fetchProducts}
+        topActions={[
+          {
+            customComponent: (
+              <DropdownMenu>
+                <div className="flex rounded-md overflow-hidden border shadow-sm h-[38px] bg-muted">
+                  <Button
+                    variant="ghost"
+                    className="gap-2 rounded-none text-[13px] text-foreground/80 border-r border-muted-foreground/20 h-full"
+                    onClick={openNewProduct}
+                  >
+                    <Plus className="h-4 w-4 text-foreground/80" />
+                    <span className="hidden lg:inline">Add Product</span>
+                  </Button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="rounded-none  text-muted-foreground hover:bg-muted/90 px-2 h-full"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48 rounded-xl shadow-lg border-border"
+                >
+                  <DropdownMenuItem
+                    onClick={openNewProduct}
+                    className="cursor-pointer"
+                  >
+                    <Package className="h-4 w-4 mr-2" /> Single Product
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <Upload className="h-4 w-4 mr-2" /> Bulk Import (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          },
+        ]}
+        mobileFriendly={false}
+        containerStyles="rounded-2xl"
+      />
 
       {/* Single Product Form Modal */}
       <CustomModal
@@ -513,16 +608,20 @@ export default function Products() {
         }}
         header={
           <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-            <p className="text-sm text-muted-foreground font-normal">Fill in the details below.</p>
+            <h2 className="text-xl font-bold">
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </h2>
+            <p className="text-sm text-muted-foreground font-normal">
+              Fill in the details below.
+            </p>
           </div>
         }
         body={
           <div className="p-2 pb-6">
-            <ProductForm 
-              onSuccess={handleFormSuccess} 
+            <ProductForm
+              onSuccess={handleFormSuccess}
               onCancel={() => setIsModalOpen(false)}
-              initialData={editingProduct} 
+              initialData={editingProduct}
             />
           </div>
         }
@@ -539,28 +638,44 @@ export default function Products() {
         size="md"
         header={
           <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold text-destructive">Delete Product</h2>
-            <p className="text-sm text-muted-foreground font-normal">This action cannot be undone.</p>
+            <h2 className="text-xl font-bold text-destructive">
+              Delete Product
+            </h2>
+            <p className="text-sm text-muted-foreground font-normal">
+              This action cannot be undone.
+            </p>
           </div>
         }
         body={
           <div className="p-2 py-4">
             <p className="text-sm text-foreground">
-              Are you sure you want to delete <strong>{productToDelete?.name}</strong>? This will remove it permanently from your inventory.
+              Are you sure you want to delete{" "}
+              <strong>{productToDelete?.name}</strong>? This will remove it
+              permanently from your inventory.
             </p>
           </div>
         }
         footer={
           <div className="flex gap-2 w-full justify-end px-2 pb-2">
-            <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteProduct} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete Product'}
+            <Button
+              variant="ghost"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteProduct}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Product"}
             </Button>
           </div>
         }
       />
 
-      <BulkProductUploadModal 
+      <BulkProductUploadModal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         onSuccess={handleBulkSuccess}
