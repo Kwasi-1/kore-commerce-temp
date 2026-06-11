@@ -6,7 +6,7 @@ import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { PackageCheck } from 'lucide-react';
+import { PackageCheck, CreditCard } from 'lucide-react';
 
 export default function PurchaseOrders() {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
@@ -67,6 +67,7 @@ export default function PurchaseOrders() {
     { key: 'supplier', label: 'Supplier' },
     { key: 'date', label: 'Date Created' },
     { key: 'total', label: 'Total Value' },
+    { key: 'type', label: 'Type' },
     { key: 'status', label: 'Status' }
   ];
 
@@ -85,6 +86,19 @@ export default function PurchaseOrders() {
       supplier: po.supplier ? po.supplier.name : 'Unknown Supplier',
       date: new Date(po.date_created).toLocaleDateString(),
       total: <span className="font-medium"><CurrencyDisplay amount={po.total_amount || 0} /></span>,
+      type: po.is_credit_purchase ? (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400">
+          <CreditCard className="h-3 w-3" />
+          Credit
+          {po.credit_due_date && (
+            <span className="text-[10px] text-amber-500 ml-0.5">
+              · due {new Date(po.credit_due_date).toLocaleDateString()}
+            </span>
+          )}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">Cash</span>
+      ),
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
           po.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
@@ -141,7 +155,7 @@ export default function PurchaseOrders() {
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
         placement="right"
         size="lg"
-        classNames={{ base: "sm:w-[500px]" }}
+        classNames={{ base: "sm:w-[520px]" }}
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
