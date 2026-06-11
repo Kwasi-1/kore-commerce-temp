@@ -9,21 +9,33 @@ import SmoothScroll from "@/components/SmoothScroll";
 import "@/index.css";
 
 import { setupMockApi } from "@/api/mock";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 if (import.meta.env.VITE_USE_MOCK_API === 'true') {
   setupMockApi();
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <NextUIProvider>
-        {/* <SmoothScroll> */}
-          <App />
-          <Toaster />
-          <HotToaster position="top-right" />
-        {/* </SmoothScroll> */}
-      </NextUIProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <NextUIProvider>
+          {/* <SmoothScroll> */}
+            <App />
+            <Toaster />
+            <HotToaster position="top-right" />
+          {/* </SmoothScroll> */}
+        </NextUIProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   </React.StrictMode>,
 );
