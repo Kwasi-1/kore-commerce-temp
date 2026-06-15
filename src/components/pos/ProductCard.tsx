@@ -4,6 +4,7 @@ import { CurrencyDisplay } from '@/hooks';
 import { Minus, Plus, Box, X } from 'lucide-react';
 import React, { useRef, useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 
 export interface PackagingTier {
   id: string;
@@ -50,6 +51,63 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const { items, updateQuantity, removeItem } = useCartStore();
   const [showTierSelector, setShowTierSelector] = useState(false);
 
+  const { 
+    showProductImages, 
+    showStockCount, 
+    gridDensity, 
+    defaultPriceType, 
+    soundEffectsEnabled 
+  } = useRegisterPreferencesStore();
+
+  // Density styles dictionary
+  const densityStyles = {
+    compact: {
+      card: "p-1.5 md:p-2 rounded-lg md:rounded-xl",
+      imageMb: "mb-1.5",
+      title: "text-[12px] font-semibold leading-tight line-clamp-1 mb-0.5",
+      subtitle: "text-[10px] line-clamp-1 leading-tight mb-0.5 font-medium",
+      sku: "text-[9px] mb-1 font-normal",
+      price: "text-[13px] tracking-tight",
+      actionBarMt: "mt-1.5",
+      btnHeight: "h-8",
+      btnText: "text-[11px]",
+      btnIconSize: "h-3 w-3",
+      qtyInput: "w-8 h-6 text-xs",
+      qtyText: "text-[12px] w-6",
+      qtyBtnSize: "h-6.5 w-6.5"
+    },
+    normal: {
+      card: "p-2.5 rounded-xl md:rounded-[18px]",
+      imageMb: "mb-2.5",
+      title: "text-[14px] font-bold text-foreground line-clamp-1 leading-tight mb-0.5",
+      subtitle: "text-[12px] text-muted-foreground/80 line-clamp-1 leading-tight mb-0.5 font-semibold",
+      sku: "text-[11px] text-muted-foreground/60 line-clamp-1 leading-tight mb-1.5 font-medium",
+      price: "text-[15px] tracking-tight",
+      actionBarMt: "mt-2.5",
+      btnHeight: "h-10",
+      btnText: "text-[13px]",
+      btnIconSize: "h-3.5 w-3.5",
+      qtyInput: "w-10 h-7 text-sm",
+      qtyText: "text-[14px] w-10",
+      qtyBtnSize: "h-8 w-8"
+    },
+    large: {
+      card: "p-4 md:p-5 rounded-2xl md:rounded-[22px]",
+      imageMb: "mb-3.5",
+      title: "text-[16px] font-extrabold text-foreground line-clamp-2 leading-tight mb-1",
+      subtitle: "text-[13px] text-muted-foreground/85 line-clamp-1 leading-tight mb-1 font-bold",
+      sku: "text-[12px] text-muted-foreground/60 line-clamp-1 leading-tight mb-2 font-semibold",
+      price: "text-[18px] tracking-tight",
+      actionBarMt: "mt-3.5",
+      btnHeight: "h-11",
+      btnText: "text-[14px]",
+      btnIconSize: "h-4 w-4",
+      qtyInput: "w-12 h-8 text-base",
+      qtyText: "text-[16px] w-12",
+      qtyBtnSize: "h-9 w-9"
+    }
+  }[gridDensity];
+
   // Determine target tier for automatic modes
   const getTargetTier = (p: Product) => {
     if (p.sell_mode === 'unit_only') {
@@ -88,6 +146,9 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       return;
     }
     updateQuantity(cartItem!.productId, cartQuantity + 1);
+    if (soundEffectsEnabled) {
+      playCartChime();
+    }
   };
 
   const handleDecrement = () => {
@@ -140,6 +201,9 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     } else {
       if (!isInCart) {
         onAddToCart(product, targetTier || undefined);
+        if (soundEffectsEnabled) {
+          playCartChime();
+        }
       } else if (!isEditingQty) {
         handleIncrement();
       }
@@ -154,9 +218,15 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const attributeValues = product.variant_attributes ? Object.values(product.variant_attributes).filter(Boolean) : [];
   const displaySubtitle = attributeValues.length > 0 ? attributeValues.join(' · ') : null;
 
+  // Determine active default pricing based on preference
+  const defaultTier = targetTier || product.packaging_tiers.find(t => t.is_default_sale_unit) || product.packaging_tiers[0];
+  const activePrice = defaultPriceType === 'wholesale'
+    ? (defaultTier?.prices.wholesale ?? defaultTier?.prices.retail ?? product.price)
+    : (defaultTier?.prices.retail ?? product.price);
+
   return (
     <div 
-      className={`relative bg-card rounded-xl md:rounded-[18px] border p-2.5 flex flex-col transition-all group select-none ${
+      className={`relative bg-card border flex flex-col transition-all group select-none ${densityStyles.card} ${
         (product.sell_mode === 'flexible' ? isVariantInCart : isInCart) 
           ? 'ring-1 ring-foreground/10 dark:ring-foreground/15 shadow-sm' 
           : 'border-border hover:shadow-md'
@@ -183,13 +253,17 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                   e.stopPropagation();
                   onAddToCart(product, tier);
                   setShowTierSelector(false);
+                  if (soundEffectsEnabled) {
+                    playCartChime();
+                  }
                 }}
                 className="w-full py-1.5 px-2.5 bg-secondary hover:bg-primary/10 hover:text-primary rounded-lg text-left text-xs font-bold transition-all flex justify-between items-center border border-transparent hover:border-primary/20"
               >
                 <span>{tier.name}</span>
                 <span className="text-muted-foreground font-semibold">
-                  GHS {tier.prices.retail.toLocaleString()}
+                  GHS {(defaultPriceType === 'wholesale' ? (tier.prices.wholesale ?? tier.prices.retail) : tier.prices.retail).toLocaleString()}
                 </span>
+                {/* <CurrencyDisplay amount={(defaultPriceType === 'wholesale' ? (tier.prices.wholesale ?? tier.prices.retail) : tier.prices.retail).toLocaleString()} /> */}
               </button>
             ))}
           </div>
@@ -206,11 +280,13 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       )}
 
       {/* Image Container */}
-      <div className="relative w-full pt-[85%] lg:pt-[75%] bg-muted/50 rounded-lg md:rounded-xl overflow-hidden mb-2.5 shrink-0">
+      <div className={`relative w-full pt-[85%] lg:pt-[75%] bg-muted/50 rounded-lg md:rounded-xl overflow-hidden ${densityStyles.imageMb} shrink-0`}>
         {/* Stock Badge */}
-        <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-          {stockDisplayVal} {stockDisplayUnit} Stock
-        </div>
+        {showStockCount && (
+          <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+            {stockDisplayVal} {stockDisplayUnit} Stock
+          </div>
+        )}
 
         {/* Expiry Warning Badge */}
         {product.expiry_warning?.has_warning && (
@@ -247,7 +323,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         )}
         
         {/* Image or Fallback */}
-        {product.imageUrl ? (
+        {(showProductImages && product.imageUrl) ? (
           <img 
             src={product.imageUrl} 
             alt={product.name} 
@@ -262,43 +338,43 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       
       {/* Product Info */}
       <div className="flex-1 flex flex-col pointer-events-none px-0.5">
-        <h3 className="text-[14px] font-bold text-foreground line-clamp-1 leading-tight mb-0.5">
+        <h3 className={densityStyles.title}>
           {displayTitle}
         </h3>
         {displaySubtitle && (
-          <p className="text-[12px] text-muted-foreground/80 line-clamp-1 leading-tight mb-0.5 font-semibold">
+          <p className={densityStyles.subtitle}>
             {displaySubtitle}
           </p>
         )}
-        <p className="text-[11px] text-muted-foreground/60 line-clamp-1 leading-tight mb-1.5 font-medium">
+        <p className={densityStyles.sku}>
           {product.sku}
         </p>
         
-        <div className="font-bold text-[15px] text-foreground tracking-tight">
-          <CurrencyDisplay amount={product.price || 0} />
+        <div className={`font-bold text-foreground tracking-tight ${densityStyles.price}`}>
+          <CurrencyDisplay amount={activePrice || 0} />
         </div>
       </div>
 
       {/* Action Bar (Hidden on Mobile) */}
-      <div className="mt-2.5 pointer-events-auto hidden md:block">
+      <div className={`pointer-events-auto hidden md:block ${densityStyles.actionBarMt}`}>
         {product.sell_mode === 'flexible' ? (
           <Button 
             variant="outline"
             onClick={(e) => { e.stopPropagation(); setShowTierSelector(true); }}
-            className="w-full h-10 rounded-full border-border text-[13px] font-bold text-foreground hover:bg-muted transition-colors shadow-sm flex items-center gap-2 justify-center"
+            className={`w-full ${densityStyles.btnHeight} rounded-full border-border ${densityStyles.btnText} font-bold text-foreground hover:bg-muted transition-colors shadow-sm flex items-center gap-1.5 justify-center`}
           >
-            <Plus className="h-3.5 w-3.5" />
-            Add to Cart
+            <Plus className={densityStyles.btnIconSize} />
+            <span>Select Unit</span>
           </Button>
         ) : isInCart ? (
-          <div className="flex items-center justify-between w-full h-10 px-1 bg-secondary rounded-full">
+          <div className={`flex items-center justify-between w-full ${densityStyles.btnHeight} px-1 bg-secondary rounded-full`}>
             <Button
               variant="ghost"
               size="icon"
               onClick={(e) => { e.stopPropagation(); handleDecrement(); }}
-              className="h-8 w-8 rounded-full hover:bg-background text-foreground"
+              className="h-7 w-7 md:h-8 md:w-8 rounded-full hover:bg-background text-foreground"
             >
-              <Minus className="h-3.5 w-3.5" />
+              <Minus className={densityStyles.btnIconSize} />
             </Button>
             
             {isEditingQty ? (
@@ -306,7 +382,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                 ref={inputRef}
                 type="number"
                 min="1"
-                className="w-10 h-7 text-center font-bold text-sm bg-background border border-border rounded-md outline-none no-spin-buttons"
+                className={`${densityStyles.qtyInput} text-center font-bold bg-background border border-border rounded-md outline-none no-spin-buttons`}
                 value={inputValue}
                 onChange={handleQtyChange}
                 onBlur={handleQtyBlur}
@@ -315,7 +391,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
               />
             ) : (
               <span 
-                className="font-bold text-[14px] w-10 text-center cursor-pointer hover:text-primary transition-colors"
+                className={`font-bold ${densityStyles.qtyText} text-center cursor-pointer hover:text-primary transition-colors`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsEditingQty(true);
@@ -329,18 +405,24 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
             <Button
               size="icon"
               onClick={(e) => { e.stopPropagation(); handleIncrement(); }}
-              className="h-8 w-8 rounded-full bg-primary hover:brightness-95 text-primary-foreground shadow-sm"
+              className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-primary hover:brightness-95 text-primary-foreground shadow-sm"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className={densityStyles.btnIconSize} />
             </Button>
           </div>
         ) : (
           <Button 
             variant="outline"
-            onClick={(e) => { e.stopPropagation(); onAddToCart(product, targetTier || undefined); }}
-            className="w-full h-10 rounded-full border-border text-[13px] font-bold text-foreground hover:bg-muted transition-colors shadow-sm flex items-center gap-2 justify-center"
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              onAddToCart(product, targetTier || undefined); 
+              if (soundEffectsEnabled) {
+                playCartChime();
+              }
+            }}
+            className={`w-full ${densityStyles.btnHeight} rounded-full border-border ${densityStyles.btnText} font-bold text-foreground hover:bg-muted transition-colors shadow-sm flex items-center gap-1.5 justify-center`}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className={densityStyles.btnIconSize} />
              Add to Cart
           </Button>
         )}

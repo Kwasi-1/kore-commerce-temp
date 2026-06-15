@@ -19,6 +19,7 @@ import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 import apiClient from "@/api/client";
 import { Icon } from "@iconify/react";
+import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 
 interface PackagingTier {
   id: string;
@@ -113,6 +114,8 @@ export default function CartPanel({
     resumeTransaction,
     addItem,
   } = useCartStore();
+
+  const { showProductImages, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -391,7 +394,7 @@ export default function CartPanel({
                     {/* Item Details */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border/40">
-                        {item.imageUrl ? (
+                        {(showProductImages && item.imageUrl) ? (
                           <img
                             src={item.imageUrl}
                             alt={item.name}
@@ -406,7 +409,7 @@ export default function CartPanel({
                           {item.name}
                         </h4>
                         <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold">
-                          <span className="border border-border rounded-full px-2 py-0.5 text-primary bg-primary/10">
+                          <span className="border border-border rounded-full px-2 py-0.5 text-muted-foreground bg-primary/10">
                             {item.tier_name}
                           </span>
                           {item.price_type === 'wholesale' && (
@@ -558,11 +561,19 @@ export default function CartPanel({
                                   return;
                                 }
                                 
+                                const activePrice = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+                                  ? tier.prices.wholesale
+                                  : tier.prices.retail;
+                                  
+                                const activePriceType = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+                                  ? 'wholesale'
+                                  : 'retail';
+
                                 addItem({
                                   productId: cartKey,
                                   name: p.name,
                                   sku: p.sku,
-                                  price: tier.prices.retail,
+                                  price: activePrice,
                                   imageUrl: p.imageUrl,
                                   category: p.category,
                                   stock_quantity: p.stock_quantity,
@@ -570,9 +581,13 @@ export default function CartPanel({
                                   packaging_tier_id: tier.id,
                                   tier_name: tier.name,
                                   units_per_tier: tier.units_per_tier,
-                                  unit_price: tier.prices.retail,
-                                  price_type: 'retail'
+                                  unit_price: activePrice,
+                                  price_type: activePriceType
                                 });
+                                
+                                if (soundEffectsEnabled) {
+                                  playCartChime();
+                                }
                                 
                                 setExpandedSearchTerm('');
                                 toast.success(`${p.name} added to cart`);
@@ -580,7 +595,7 @@ export default function CartPanel({
                               className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors"
                             >
                               <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                {p.imageUrl ? (
+                                {(showProductImages && p.imageUrl) ? (
                                   <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <span className="text-xs text-muted-foreground">📦</span>
@@ -943,7 +958,7 @@ export default function CartPanel({
               >
                 {/* Image */}
                 <div className="w-[88px] h-[88px] rounded-[14px] flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center">
-                  {item.imageUrl ? (
+                  {(showProductImages && item.imageUrl) ? (
                     <img
                       src={item.imageUrl}
                       alt={item.name}

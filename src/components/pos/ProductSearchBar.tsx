@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import ProductCard, { Product, PackagingTier } from './ProductCard';
 import { Spinner } from '@/components/ui/spinner';
+import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,32 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [renderedCollapsed, setRenderedCollapsed] = useState(isCartCollapsed);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const { gridDensity, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
+
+  const getGridColsClass = () => {
+    if (renderedCollapsed) {
+      switch (gridDensity) {
+        case 'compact':
+          return 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8';
+        case 'large':
+          return 'grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
+        case 'normal':
+        default:
+          return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
+      }
+    } else {
+      switch (gridDensity) {
+        case 'compact':
+          return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
+        case 'large':
+          return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3';
+        case 'normal':
+        default:
+          return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
+      }
+    }
+  };
 
   useEffect(() => {
     setIsTransitioning(true);
@@ -186,11 +213,19 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       return;
     }
 
+    const activePrice = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+      ? tier.prices.wholesale
+      : tier.prices.retail;
+      
+    const activePriceType = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+      ? 'wholesale'
+      : 'retail';
+
     addItem({
       productId: cartKey,
       name: product.name,
       sku: product.sku,
-      price: tier.prices.retail,
+      price: activePrice,
       imageUrl: product.imageUrl,
       category: product.category,
       stock_quantity: product.stock_quantity,
@@ -198,9 +233,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       packaging_tier_id: tier.id,
       tier_name: tier.name,
       units_per_tier: tier.units_per_tier,
-      unit_price: tier.prices.retail,
-      price_type: 'retail'
+      unit_price: activePrice,
+      price_type: activePriceType
     });
+
+    if (soundEffectsEnabled) {
+      playCartChime();
+    }
   };
 
   const toggleCategory = (catName: string) => {
@@ -429,11 +468,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           <div 
             className={`grid gap-3 md:gap-4 pb-28 transition-opacity duration-100 ${
               isTransitioning ? 'opacity-0' : 'opacity-100'
-            } ${
-              renderedCollapsed
-                ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
-                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-            }`}
+            } ${getGridColsClass()}`}
           >
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
