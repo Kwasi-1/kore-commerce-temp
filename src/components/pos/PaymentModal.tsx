@@ -221,132 +221,134 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   };
 
   const renderPaymentFlow = () => (
-    <div className="flex flex-col h-full">
-      <div className="mb-6 flex justify-between items-end border-b border-border/50 pb-4">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
       </div>
 
-      {/* Credit Toggle Section (Moved to top) */}
-      <div className="mb-6">
-        <div 
-          className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
-          onClick={() => setIsCreditSale(!isCreditSale)}
-        >
-          <div>
-            <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
-            <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
+      <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide space-y-6">
+        {/* Credit Toggle Section (Moved to top) */}
+        <div>
+          <div 
+            className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
+            onClick={() => setIsCreditSale(!isCreditSale)}
+          >
+            <div>
+              <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
+              <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
+            </div>
+            <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <Switch 
+                 isSelected={isCreditSale} 
+                 onValueChange={setIsCreditSale} 
+                 color="default" 
+                 size="sm"
+                 classNames={{ wrapper: "mr-0" }}
+              />
+            </div>
           </div>
-          <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
-            <Switch 
-               isSelected={isCreditSale} 
-               onValueChange={setIsCreditSale} 
-               color="default" 
-               size="sm"
-               classNames={{ wrapper: "mr-0" }}
-            />
-          </div>
+
+          {isCreditSale && (
+            <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+              <CustomInputTextField
+                label="Customer Name"
+                labelPlacement="outside"
+                placeholder="Enter customer name..."
+                value={customerName}
+                onChange={(e: any) => setCustomerName(e.target.value)}
+                className="bg-secondary/30 rounded-xl border-border/50"
+              />
+              <CustomInputTextField
+                label="Phone Number"
+                labelPlacement="outside"
+                placeholder="+233"
+                value={customerPhone}
+                onChange={(e: any) => setCustomerPhone(e.target.value)}
+                className="bg-secondary/30 rounded-xl border-border/50"
+              />
+            </div>
+          )}
         </div>
 
-        {isCreditSale && (
-          <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-            <CustomInputTextField
-              label="Customer Name"
-              labelPlacement="outside"
-              placeholder="Enter customer name..."
-              value={customerName}
-              onChange={(e: any) => setCustomerName(e.target.value)}
-              className="bg-secondary/30 rounded-xl border-border/50"
-            />
-            <CustomInputTextField
-              label="Phone Number"
-              labelPlacement="outside"
-              placeholder="+233"
-              value={customerPhone}
-              onChange={(e: any) => setCustomerPhone(e.target.value)}
-              className="bg-secondary/30 rounded-xl border-border/50"
-            />
-          </div>
+        {/* Show Payment Methods ONLY if not credit sale */}
+        {!isCreditSale && (
+          <>
+            <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
+              {[
+                { id: 'cash', label: 'Cash' },
+                { id: 'mobile_money', label: 'MoMo' },
+                { id: 'card', label: 'Card' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                    activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-6">
+              {activeTab === 'cash' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <CustomInputTextField
+                    label="Amount Tendered"
+                    labelPlacement="outside"
+                    type="number"
+                    placeholder="0.00"
+                    value={amountTenderedStr}
+                    onChange={(e: any) => setAmountTenderedStr(e.target.value)}
+                    autoFocus
+                    className="h-14 text-xl font-bold rounded-xl bg-background border-border"
+                  />
+                  
+                  {amountTenderedStr && amountTendered >= total && (
+                    <div className="bg-secondary rounded-xl p-4 flex items-center justify-between border border-border/50 animate-in fade-in">
+                      <span className="text-foreground font-bold uppercase tracking-wider text-xs">Change Due</span>
+                      <span className="text-2xl font-black text-foreground">
+                        <CurrencyDisplay amount={change} />
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'mobile_money' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <CustomInputTextField
+                    label="Mobile Number"
+                    labelPlacement="outside"
+                    type="tel"
+                    placeholder="+233"
+                    value={momoNumber}
+                    onChange={(e: any) => setMomoNumber(e.target.value)}
+                    className="h-14 text-lg font-bold rounded-xl bg-background border-border"
+                  />
+                  <div className="p-4 bg-secondary rounded-lg text-sm font-medium borde border-border/50 text-muted-foreground">
+                    The customer will receive a secure payment prompt on their phone.
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'card' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
+                  <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
+                  <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
+                  <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
+                    Process payment on physical terminal, then confirm below.
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Show Payment Methods ONLY if not credit sale */}
-      {!isCreditSale && (
-        <>
-          <div className="flex p-1 bg-secondary/50 rounded-full mb-6 border border-border/50">
-            {[
-              { id: 'cash', label: 'Cash' },
-              { id: 'mobile_money', label: 'MoMo' },
-              { id: 'card', label: 'Card' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                  activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1 space-y-6">
-            {activeTab === 'cash' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <CustomInputTextField
-                  label="Amount Tendered"
-                  labelPlacement="outside"
-                  type="number"
-                  placeholder="0.00"
-                  value={amountTenderedStr}
-                  onChange={(e: any) => setAmountTenderedStr(e.target.value)}
-                  autoFocus
-                  className="h-14 text-xl font-bold rounded-xl bg-background border-border"
-                />
-                
-                {amountTenderedStr && amountTendered >= total && (
-                  <div className="bg-secondary rounded-xl p-4 flex items-center justify-between border border-border/50 animate-in fade-in">
-                    <span className="text-foreground font-bold uppercase tracking-wider text-xs">Change Due</span>
-                    <span className="text-2xl font-black text-foreground">
-                      <CurrencyDisplay amount={change} />
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'mobile_money' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <CustomInputTextField
-                  label="Mobile Number"
-                  labelPlacement="outside"
-                  type="tel"
-                  placeholder="+233"
-                  value={momoNumber}
-                  onChange={(e: any) => setMomoNumber(e.target.value)}
-                  className="h-14 text-lg font-bold rounded-xl bg-background border-border"
-                />
-                <div className="p-4 bg-secondary rounded-lg text-sm font-medium borde border-border/50 text-muted-foreground">
-                  The customer will receive a secure payment prompt on their phone.
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'card' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
-                <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
-                <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
-                <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
-                  Process payment on physical terminal, then confirm below.
-                </p>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
       {/* Bottom Footer */}
-      <div className="mt-auto pt-6 border-t border-border/50">
+      <div className="mt-auto pt-6 border-t border-border/50 shrink-0">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
           <span className="text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
@@ -390,15 +392,15 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   );
 
   const modalBody = (
-    <div className="flex flex-col md:flex-row w-full h-full">
+    <div className="flex flex-col md:flex-row w-full h-[80vh] min-h-0 overflow-hidden">
       {/* Left Column: Receipt Preview */}
-      <div className={`w-full md:w-[380px] lg:w-[400px]  bg-zinc-50 dark:bg-black/40 borde border-border rounded-xl p-6 flex-shrink-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0 ' : ''}`}>
+      <div className={`w-full md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-6 flex-shrink-0 flex flex-col min-h-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0 ' : ''}`}>
          {renderReceiptPreview()}
       </div>
 
       {/* Right Column: Flow */}
-      <div className="flex-1 p-6 md:p-8 overflow-y-auto relative bg-card">
-        <div className="max-w-md mx-auto h-full flex flex-col justify-center">
+      <div className="flex-1 p-6 md:p-8 overflow-hidden relative bg-card flex flex-col min-h-0">
+        <div className="max-w-md mx-auto w-full h-full flex flex-col justify-between min-h-0">
            {isSuccess ? renderSuccessScreen() : renderPaymentFlow()}
         </div>
       </div>
