@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import CustomModal from "@/components/modals/modal";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
+import DashboardCard from "@/components/ui/dashboard-card";
 
 interface Adjustment {
   id: string;
@@ -295,50 +296,36 @@ export default function StockAdjustments() {
   };
 
   return (
-    <PageLayout title="Stock Adjustments">
-      {/* Header and trigger */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Stock Adjustments</h1>
-          <p className="text-xs text-muted-foreground">Correct stock levels or record write-offs due to damages or audits.</p>
-        </div>
-        <Button onClick={() => setIsDrawerOpen(true)} className="rounded-xl bg-primary flex items-center gap-1.5 h-11 text-sm font-semibold">
+    <PageLayout title="Stock Adjustments" actions={
+        <Button onClick={() => setIsDrawerOpen(true)} className="rounded-md bg-primary flex items-center gap-1.5 h-11 text-sm font-semibold">
           <Plus className="h-4 w-4" />
           New Adjustment
         </Button>
-      </div>
-
+    }>
       {/* Metric summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">Pending Approvals</p>
-            <h3 className="text-2xl font-bold tracking-tight text-amber-500">{pendingApprovalsCount} Requests</h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-            <Clock className="h-5 w-5" />
-          </div>
-        </div>
 
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">Written Off (Month)</p>
-            <h3 className="text-2xl font-bold tracking-tight text-destructive">{totalWrittenOffMonth} Units</h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">Total Adjustments (Month)</p>
-            <h3 className="text-2xl font-bold tracking-tight text-primary">{totalAdjustmentsMonth} logged</h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <ArrowRightLeft className="h-5 w-5" />
-          </div>
-        </div>
+       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <DashboardCard
+          title="Pending Approvals"
+          value={isLoading ? '...' : `${pendingApprovalsCount} Requests`}
+          className="border border-border"
+          valueStyle="text-amber-500 xl:text-2xl"
+          action={<Clock className="h-5 w-5 text-amber-500" />}
+        />
+        <DashboardCard
+          title="Total Written Off"
+          value={isLoading ? '...' : `${totalWrittenOffMonth} units`}
+          className="border border-border"
+          valueStyle="text-destructive xl:text-2xl"
+          action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
+        />
+        <DashboardCard
+          title="Total Adjustments"
+          value={isLoading ? '...' : `${totalAdjustmentsMonth} logged`}
+          className="border border-border md:col-span-3 lg:col-span-1"
+          valueStyle="text-primary xl:text-2xl"
+          action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
+        />
       </div>
 
       {/* SECTION 1: Pending Approvals (Manager Panel) */}
@@ -576,7 +563,7 @@ export default function StockAdjustments() {
               <SlidersHorizontal className="h-5 w-5 text-primary" />
               Record Stock Adjustment
             </h2>
-            <p className="text-sm text-muted-foreground font-normal">
+            <p className="text-sm text-muted-foreground font-normal leading-normal mt-2 font-sans !tracking-wide">
               Correct records or report damages. Adjustments require a manager's PIN validation.
             </p>
           </div>
