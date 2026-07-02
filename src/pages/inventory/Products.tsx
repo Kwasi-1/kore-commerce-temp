@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import EnhancedTableComponent from "@/components/shared/MainTableComponent";
+import DashboardCard from "@/components/ui/dashboard-card";
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -252,13 +253,13 @@ export default function Products() {
       name: p.name,
       category: p.category || "—",
       variants: (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20">
           {p.has_variants ? `${p.variant_count} variants` : "Simple"}
         </span>
       ),
       total_stock: (
         <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
             p.total_stock_base_units === 0
               ? "bg-destructive/10 text-destructive border border-destructive/20"
               : p.total_stock_base_units <= 5
@@ -271,7 +272,7 @@ export default function Products() {
       ),
       status: (
         <span
-          className={`capitalize inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+          className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
             p.status === "active"
               ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
               : "text-muted-foreground bg-muted border border-border"
@@ -422,62 +423,31 @@ export default function Products() {
   return (
     <PageLayout title="Products Inventory">
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">
-              Total Products
-            </p>
-            <h3 className="text-2xl font-bold tracking-tight">
-              {totalProducts}
-            </h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Package className="h-6 w-6" />
-          </div>
-        </div>
-
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">
-              Low Stock
-            </p>
-            <h3 className="text-2xl font-bold tracking-tight">
-              {lowStockCount}
-            </h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
-            <AlertTriangle className="h-6 w-6" />
-          </div>
-        </div>
-
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">
-              Out of Stock
-            </p>
-            <h3 className="text-2xl font-bold tracking-tight text-destructive">
-              {outOfStockCount}
-            </h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <XCircle className="h-6 w-6" />
-          </div>
-        </div>
-
-        <div className="bg-card border rounded-[20px] p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-muted-foreground mb-1">
-              Total Base Units
-            </p>
-            <h3 className="text-2xl font-bold tracking-tight">
-              {totalValue.toLocaleString()}
-            </h3>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 dark:text-green-400">
-            <Layers className="h-6 w-6" />
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+        <DashboardCard
+          title="Total Products"
+          value={isLoading ? '...' : totalProducts}
+          className="border border-border"
+          action={<Package className="text-muted-foreground/50 h-5 w-5" />}
+        />
+        <DashboardCard
+          title="Low Stock"
+          value={isLoading ? '...' : lowStockCount}
+          className="border border-border"
+          action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
+        />
+        <DashboardCard
+          title="Out of Stock"
+          value={isLoading ? '...' : outOfStockCount}
+          className="border border-border"
+          action={<XCircle className="text-muted-foreground/50 h-5 w-5" />}
+        />
+        <DashboardCard
+          title="Total Base Units"
+          value={isLoading ? '...' : totalValue.toLocaleString()}
+          className="border border-border md:col-span-3 lg:col-span-1"
+          action={<Layers className="text-muted-foreground/50 h-5 w-5" />}
+        />
       </div>
 
       {/* Main Table Card */}

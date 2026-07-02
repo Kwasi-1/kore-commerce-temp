@@ -297,33 +297,60 @@ export default function StockAdjustments() {
 
   return (
     <PageLayout title="Stock Adjustments" actions={
-        <Button onClick={() => setIsDrawerOpen(true)} className="rounded-md bg-primary flex items-center gap-1.5 h-11 text-sm font-semibold">
+        <Button onClick={() => setIsDrawerOpen(true)} className="rounded-full bg-muted flex items-center gap-1.5 h-11 text-sm font-semibold">
           <Plus className="h-4 w-4" />
-          New Adjustment
+          <span className="hidden md:block">New Adjustment</span>
         </Button>
     }>
       {/* Metric summary Cards */}
 
-       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <DashboardCard
           title="Pending Approvals"
-          value={isLoading ? '...' : `${pendingApprovalsCount} Requests`}
+          value={
+            isLoading ? (
+              "..."
+            ) : (
+              <>
+                {pendingApprovalsCount}
+                <span className="text-[75%] font-normal ml-1">Requests</span>
+              </>
+            )
+          }
           className="border border-border"
           valueStyle="text-amber-500 xl:text-2xl"
           action={<Clock className="h-5 w-5 text-amber-500" />}
         />
         <DashboardCard
           title="Total Written Off"
-          value={isLoading ? '...' : `${totalWrittenOffMonth} units`}
+          value={
+            isLoading ? (
+              "..."
+            ) : (
+              <>
+                {totalWrittenOffMonth}
+                <span className="text-[75%] font-normal ml-1">units</span>
+              </>
+            )
+          }
           className="border border-border"
-          valueStyle="text-destructive xl:text-2xl"
+          valueStyle={`text-${totalWrittenOffMonth > 0 ? "destructive" : "success"} xl:text-2xl`}
           action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
         />
         <DashboardCard
           title="Total Adjustments"
-          value={isLoading ? '...' : `${totalAdjustmentsMonth} logged`}
+          value={
+            isLoading ? (
+              "..."
+            ) : (
+              <>
+                {totalAdjustmentsMonth}
+                <span className="text-[75%] font-normal ml-1">logged</span>
+              </>
+            )
+          }
           className="border border-border md:col-span-3 lg:col-span-1"
-          valueStyle="text-primary xl:text-2xl"
+          valueStyle="text-muted-foreground xl:text-2xl"
           action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
         />
       </div>
