@@ -242,7 +242,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                   <div
                     key={rowId}
                     className={cn(
-                      "px-2 py-4 rounded-sm relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200"
+                      "px-2 py-4 rounded-md relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200 text-[13px]"
                     )}
                     onClick={() => {
                       toggleExpanded(rowId);
