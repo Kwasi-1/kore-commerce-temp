@@ -123,7 +123,7 @@ const NewModal = extendVariants(Modal, {
     placement: {
       right: {
         wrapper: "justify-end items-stretch sm:items-stretch",
-        base: "mx-0 sm:mx-0 my-0 sm:my-0 h-full max-h-screen overflow-y-auto scrollbar-hide min-w-[500px]",
+        base: "mx-0 sm:mx-0 my-0 sm:my-0 h-full max-h-screen overflow-y-auto scrollbar-hide w-full sm:w-auto min-w-0 sm:min-w-[450px]",
       },
     },
   },
