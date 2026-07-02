@@ -31,30 +31,69 @@ export interface DateFilterValue {
 }
 
 interface IDateFilter {
-  color?: "success" | "default" | "secondary" | "primary" | "warning" | "danger";
-  defaultDate?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
+  color?:
+    | "success"
+    | "default"
+    | "secondary"
+    | "primary"
+    | "warning"
+    | "danger";
+  defaultDate?:
+    | "today"
+    | "this_week"
+    | "this_month"
+    | "last_month"
+    | "this_year"
+    | "last_year"
+    | "all_time";
   value?: DateFilterValue;
   onChange?: (val: DateFilterValue) => void;
 }
+
+interface DateShortcutConfig {
+  id: string;
+  label: string;
+}
+
+const DATE_SHORTCUTS: DateShortcutConfig[] = [
+  { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "this_week", label: "This week" },
+  { id: "last_week", label: "Last week" },
+  { id: "this_month", label: "This month" },
+  { id: "last_month", label: "Last month" },
+  { id: "this_year", label: "This year" },
+  { id: "last_year", label: "Last year" },
+  { id: "custom", label: "Custom" },
+];
 
 export const CustomOnlyDateFilterComponent = ({
   color = "default",
   defaultDate = "today",
   value,
-  onChange
+  onChange,
 }: IDateFilter) => {
   const [date, setDate] = useState<DateRange | undefined>(
-    value?.active === "custom" && value.start_date 
-      ? { from: value.start_date, to: value.end_date || undefined } 
-      : undefined
+    value?.active === "custom" && value.start_date
+      ? { from: value.start_date, to: value.end_date || undefined }
+      : undefined,
   );
   const [dismissDatePopup, setDismissDatePopup] = useState(true);
-  const [activeShortcut, setActiveShortcut] = useState<string>(value?.active || defaultDate);
-  const [currentMonth, setCurrentMonth] = useState(value?.start_date || new Date());
+  const [activeShortcut, setActiveShortcut] = useState<string>(
+    value?.active || defaultDate,
+  );
+  const [currentMonth, setCurrentMonth] = useState(
+    value?.start_date || new Date(),
+  );
   const [view, setView] = useState<"days" | "months" | "years">("days");
-  const [yearNavigator, setYearNavigator] = useState((value?.start_date || new Date()).getFullYear());
+  const [yearNavigator, setYearNavigator] = useState(
+    (value?.start_date || new Date()).getFullYear(),
+  );
   const [popupPosition, setPopupPosition] = useState<{
-    top?: number; bottom?: number; left?: number; right?: number;
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
   }>({});
 
   const divRef = useRef<HTMLDivElement>(null);
@@ -195,6 +234,22 @@ export const CustomOnlyDateFilterComponent = ({
     }
   };
 
+  const handleShortcutClick = (shortcutId: string) => {
+    if (shortcutId === "custom") {
+      handleFilterChange("custom");
+    } else {
+      const start = dateMap[shortcutId].start_date;
+      const end = dateMap[shortcutId].end_date;
+      const range = { from: start, to: end };
+      setDate(range);
+      if (start) {
+        setCurrentMonth(start);
+        setYearNavigator(start.getFullYear());
+      }
+      handleFilterChange(shortcutId, range);
+    }
+  };
+
   // Initialize with default date on mount if no value provided
   useEffect(() => {
     if (!value?.active && onChange) {
@@ -287,181 +342,24 @@ export const CustomOnlyDateFilterComponent = ({
                 ? `${popupPosition.right}px`
                 : "auto",
           }}
-          className="absolute bg-white dark:bg-primary-gray z-50 border rounded mt-1 shadow-lg flex"
+          className="absolute bg-white dark:bg-primary-gray z-50 border rounded mt-1 shadow-lg flex flex-col md:flex-row max-w-[95vw] sm:max-w-none"
         >
-          {/* Left sidebar with shortcuts */}
-          <div className=" py-6 px-4 min-w-[140px]">
+          {/* Left sidebar with shortcuts (Desktop) */}
+          <div className="hidden md:block py-6 px-4 min-w-[140px] tracking-tighter border-r border-zinc-100 dark:border-zinc-800">
             <div className="space-y-3">
-              <button
-                onClick={() => {
-                  const range = { from: startOfToday(), to: endOfToday() };
-                  setDate(range);
-                  setCurrentMonth(new Date());
-                  setYearNavigator(new Date().getFullYear());
-                  handleFilterChange("today", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "today"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Today
-              </button>
-              <button
-                onClick={() => {
-                  const yesterday = subDays(new Date(), 1);
-                  const range = {
-                    from: yesterday,
-                    to: yesterday,
-                  };
-                  setDate(range);
-                  setCurrentMonth(yesterday);
-                  setYearNavigator(yesterday.getFullYear());
-                  handleFilterChange("yesterday", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "yesterday"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Yesterday
-              </button>
-              <button
-                onClick={() => {
-                  const weekStart = startOfWeek(new Date());
-                  const range = {
-                    from: weekStart,
-                    to: endOfToday(),
-                  };
-                  setDate(range);
-                  setCurrentMonth(weekStart);
-                  setYearNavigator(weekStart.getFullYear());
-                  handleFilterChange("this_week", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "this_week"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                This week
-              </button>
-              <button
-                onClick={() => {
-                  const lastWeekStart = startOfWeek(subDays(new Date(), 7));
-                  const range = {
-                    from: lastWeekStart,
-                    to: subDays(startOfWeek(new Date()), 1),
-                  };
-                  setDate(range);
-                  setCurrentMonth(lastWeekStart);
-                  setYearNavigator(lastWeekStart.getFullYear());
-                  handleFilterChange("last_week", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "last_week"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Last week
-              </button>
-              <button
-                onClick={() => {
-                  const monthStart = startOfMonth(new Date());
-                  const range = {
-                    from: monthStart,
-                    to: endOfMonth(new Date()),
-                  };
-                  setDate(range);
-                  setCurrentMonth(monthStart);
-                  setYearNavigator(monthStart.getFullYear());
-                  handleFilterChange("this_month", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "this_month"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                This month
-              </button>
-              <button
-                onClick={() => {
-                  const lastMonthStart = startOfMonth(
-                    subDays(startOfMonth(new Date()), 1)
-                  );
-                  const range = {
-                    from: lastMonthStart,
-                    to: endOfMonth(subDays(startOfMonth(new Date()), 1)),
-                  };
-                  setDate(range);
-                  setCurrentMonth(lastMonthStart);
-                  setYearNavigator(lastMonthStart.getFullYear());
-                  handleFilterChange("last_month", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "last_month"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Last month
-              </button>
-              <button
-                onClick={() => {
-                  const yearStart = startOfYear(new Date());
-                  const range = {
-                    from: yearStart,
-                    to: endOfYear(new Date()),
-                  };
-                  setDate(range);
-                  setCurrentMonth(yearStart);
-                  setYearNavigator(yearStart.getFullYear());
-                  handleFilterChange("this_year", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "this_year"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                This year
-              </button>
-              <button
-                onClick={() => {
-                  const lastYearStart = startOfYear(subYears(new Date(), 1));
-                  const range = {
-                    from: lastYearStart,
-                    to: endOfYear(subYears(new Date(), 1)),
-                  };
-                  setDate(range);
-                  setCurrentMonth(lastYearStart);
-                  setYearNavigator(lastYearStart.getFullYear());
-                  handleFilterChange("last_year", range);
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "last_year"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Last year
-              </button>
-              <button
-                onClick={() => {
-                  handleFilterChange("custom");
-                }}
-                className={`w-full text-left px-3 py-2 text-base font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                  value?.active === "custom"
-                    ? "bg-primary/20 text-primary-foreground font-bold"
-                    : ""
-                }`}
-              >
-                Custom
-              </button>
+              {DATE_SHORTCUTS.map((shortcut) => (
+                <button
+                  key={shortcut.id}
+                  onClick={() => handleShortcutClick(shortcut.id)}
+                  className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                    value?.active === shortcut.id
+                      ? "bg-primary/20 text-primary-foreground font-bold"
+                      : ""
+                  }`}
+                >
+                  {shortcut.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -477,7 +375,7 @@ export const CustomOnlyDateFilterComponent = ({
                     setCurrentMonth(subYears(currentMonth, 1));
                   }
                 }}
-                className={`${view === "years" ? "hidden" : "inline-flex"} p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors`}
+                className={`${view === "years" ? "hidden" : "inline-flex"} h-9 w-9 items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md transition-colors`}
                 aria-label="Previous"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -492,7 +390,7 @@ export const CustomOnlyDateFilterComponent = ({
                     setView("days");
                   }
                 }}
-                className="flex items-center mx-auto gap-2 px-3 py-1.5 hover:bg-primary-gray/20 dark:hover:bg-white/5 rounded-none transition-colors font-bold text-xl"
+                className="flex items-center mx-auto gap-2 px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors font-bold text-base text-zinc-800 dark:text-zinc-100"
               >
                 {view === "days" && format(currentMonth, "MMM yyyy")}
                 {view === "years" && format(currentMonth, "MMM yyyy")}
@@ -510,16 +408,16 @@ export const CustomOnlyDateFilterComponent = ({
                       new Date(
                         currentMonth.getFullYear(),
                         currentMonth.getMonth() + 1,
-                        1
-                      )
+                        1,
+                      ),
                     );
                   } else {
                     setCurrentMonth(
-                      setYear(currentMonth, currentMonth.getFullYear() + 1)
+                      setYear(currentMonth, currentMonth.getFullYear() + 1),
                     );
                   }
                 }}
-                className={`${view === "years" ? "hidden" : "inline-flex"} p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors`}
+                className={`${view === "years" ? "hidden" : "inline-flex"} h-9 w-9 items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md transition-colors`}
                 aria-label="Next"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -536,6 +434,28 @@ export const CustomOnlyDateFilterComponent = ({
                   selected={date}
                   onSelect={setDate}
                   numberOfMonths={1}
+                  classNames={{
+                    caption: "hidden",
+                    caption_label: "hidden",
+                    nav: "hidden",
+                    month_caption: "hidden",
+                    // v9 layout
+                    month_grid: "w-full border-collapse space-y-1",
+                    weekdays: "flex justify-center",
+                    weekday:
+                      "text-ash-text/70 rounded-md w-9 font-normal text-[0.72rem] text-center dark:text-zinc-500",
+                    week: "flex w-full mt-2 justify-center",
+                    day: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                    day_button:
+                      "h-9 w-9 p-0 text-xs font-normal hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md flex items-center justify-center aria-selected:opacity-100 transition-colors text-inherit bg-transparent",
+                    // v8/compatibility layout
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex justify-center",
+                    head_cell:
+                      "text-ash-text/70 rounded-md w-9 font-normal text-[0.72rem] text-center dark:text-zinc-500",
+                    row: "flex w-full mt-2 justify-center",
+                    cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                  }}
                   modifiersClassNames={{
                     selected: "my-selected",
                     today: "my-today",
@@ -611,6 +531,25 @@ export const CustomOnlyDateFilterComponent = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Mobile bottom shortcuts */}
+          <div className="block md:hidden border-t border-zinc-100 dark:border-zinc-800 py-3 px-4 max-w-full overflow-hidden">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {DATE_SHORTCUTS.map((shortcut) => (
+                <button
+                  key={shortcut.id}
+                  onClick={() => handleShortcutClick(shortcut.id)}
+                  className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                    value?.active === shortcut.id
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "bg-zinc-100/60 dark:bg-zinc-800/60 text-ash-text"
+                  }`}
+                >
+                  {shortcut.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
