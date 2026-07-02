@@ -545,7 +545,7 @@ export default function StockAdjustments() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border ${
                         item.status === "approved"
                           ? "text-green-600 bg-green-500/10 border-green-500/20"
                           : item.status === "rejected"
