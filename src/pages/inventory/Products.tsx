@@ -35,6 +35,16 @@ export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "group">("list");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,9 +244,11 @@ export default function Products() {
     return variant.cost_price_per_base_unit || 0;
   };
 
+  const effectiveViewMode = isMobile ? "list" : viewMode;
+
   // Transform products data into rows for EnhancedTableComponent
   const tableRows = useMemo(() => {
-    if (viewMode === "group") {
+    if (effectiveViewMode === "group") {
       return products.map((p) => ({
         id: p.id,
         __record: p,
@@ -385,7 +397,7 @@ export default function Products() {
     });
 
     return flatRows;
-  }, [products, viewMode]);
+  }, [products, effectiveViewMode]);
 
   const renderVariantsAccordion = (row: any) => {
     const p = row.__record;
@@ -557,7 +569,7 @@ export default function Products() {
 
       <EnhancedTableComponent
         columns={
-          viewMode === "group"
+          effectiveViewMode === "group"
             ? [
                 { key: "image", label: "Image" },
                 { key: "name", label: "Name" },
@@ -579,37 +591,37 @@ export default function Products() {
         }
         rows={tableRows}
         isLoading={isLoading}
-        enableInlineAccordion={viewMode === "group"}
-        expandedRowIds={viewMode === "group" ? expandedProductIds : undefined}
-        onRowExpandToggle={viewMode === "group" ? handleToggleExpand : undefined}
-        renderInlineAccordion={viewMode === "group" ? renderVariantsAccordion : undefined}
+        enableInlineAccordion={effectiveViewMode === "group"}
+        expandedRowIds={effectiveViewMode === "group" ? expandedProductIds : undefined}
+        onRowExpandToggle={effectiveViewMode === "group" ? handleToggleExpand : undefined}
+        renderInlineAccordion={effectiveViewMode === "group" ? renderVariantsAccordion : undefined}
         showTopContent={true}
         topActions={[
           {
             customComponent: (
-              <div className="flex rounded-md overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
+              <div className="hidden sm:flex rounded-md overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
                 <Button
                   variant={viewMode === "list" ? "secondary" : "ghost"}
-                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[6px] ${
+                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[8px] ${
                     viewMode === "list"
                       ? "bg-background text-foreground shadow-sm font-bold border border-border"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => setViewMode("list")}
                 >
-                  <Layers className="h-3.5 w-3.5 mr1.5" />
+                  <Layers className="h-3.5 w-3.5" />
                   {/* List */}
                 </Button>
                 <Button
                   variant={viewMode === "group" ? "secondary" : "ghost"}
-                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[6px] ${
+                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[8px] ${
                     viewMode === "group"
                       ? "bg-background text-foreground shadow-sm font-bold border border-border"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => setViewMode("group")}
                 >
-                  <Package className="h-3.5 w-3.5 mr1.5" />
+                  <Package className="h-3.5 w-3.5" />
                   {/* Grouped */}
                 </Button>
               </div>
