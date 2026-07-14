@@ -22,6 +22,7 @@ interface PageLayoutProps {
   subtitleStyles?: string;
   className?: string;
   children: React.ReactNode;
+  constrainHeight?: boolean;
 }
 
 export default function PageLayout({
@@ -32,6 +33,7 @@ export default function PageLayout({
   subtitleStyles,
   className = "",
   children,
+  constrainHeight = false,
 }: PageLayoutProps) {
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -44,7 +46,7 @@ export default function PageLayout({
 
   return (
     <div
-      className={`w-full min-h-full  text-foreground overflow-x-hidden scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
+      className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground overflow-x-hidden scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
         <div className="w-full mb-4">
@@ -112,7 +114,7 @@ export default function PageLayout({
       )}
 
 
-      <div className="flex-1">{children}</div>
+      <div className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 overflow-y-auto md:overflow-hidden" : ""}`}>{children}</div>
     </div>
   );
 }

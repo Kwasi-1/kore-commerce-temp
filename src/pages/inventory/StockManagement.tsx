@@ -122,8 +122,8 @@ export default function StockManagement() {
   const hasChanges = Object.keys(stockChanges).length > 0;
 
   return (
-    <PageLayout title="Stock Management">
-      <div className="flex flex-col gap-4">
+    <PageLayout title="Stock Management" constrainHeight={true}>
+      <div className="flex flex-col flex-1 min-h-0 relative h-full md:h-full gap-4">
         
         <div className="flex justify-between items-end mb-2">
           <div>

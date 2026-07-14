@@ -255,7 +255,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[540px] max-h-fit rounded-xl md:rounded-2xl",
+  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-2xl",
 
   // Additional
   additionalModals,
@@ -450,6 +450,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   const topContent = useMemo(() => {
     if (!showTopContent) return null;
 
+    const hasAddButton = showAddButton || !!customAddButton;
+
     return (
       <div className="flex flex-col gap-3">
         {title && (
@@ -458,14 +460,14 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
           </h4>
         )}
 
-        <div className="flex justify-between gap-3 lg:items-end flex-wrap lg:flex-nowrap lg:flex-row lg:itemscenter mb-4">
-          <div className="flex lg:flex-row lg:items-center flex-wrap lg:flex-nowrap items-center gap-2 w-full">
-            {/* Search Input */}
-            {showSearch && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+          {/* Search bar wrapper (full-width on mobile/tablet, inline on desktop) */}
+          {showSearch && (
+            <div className="w-full lg:w-[20rem] flex-shrink-0">
               <Input
                 isClearable
                 classNames={{
-                  base: "w-full lg:w-[20rem] h-[2.5rem] text-xs placeholder-xs",
+                  base: "w-full h-[2.5rem] text-xs placeholder-xs",
                   inputWrapper:
                     "border-1 border-border h-full",
                 }}
@@ -482,130 +484,136 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 onClear={() => handleSearchChange("")}
                 onValueChange={handleSearchChange}
               />
-            )}
+            </div>
+          )}
 
-            {/* Filter Dropdown */}
-            {showFilter && filterOptions.length > 0 && (
-              <Dropdown>
-                <DropdownTrigger className="flex">
-                  <Button
-                    endContent={
-                      <Icon icon="stash:chevron-down" className="text-[20px]" />
-                    }
-                    size="sm"
-                    variant="flat"
-                    className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
+          {/* Controls and Actions bar (filters, top actions, refresh, add button aligned on the same row on mobile) */}
+          <div className={`flex flex-row items-center justify-between flex-wrap gap-2 w-full lg:flex-1 ${hasAddButton ? "" : "lg:justify-end lg:gap-4"}`}>
+            {/* Left aligned controls: Filters & Top Actions */}
+            <div className="flex flex-row items-center flex-wrap gap-2">
+              {/* Filter Dropdown */}
+              {showFilter && filterOptions.length > 0 && (
+                <Dropdown>
+                  <DropdownTrigger className="flex">
+                    <Button
+                      endContent={
+                        <Icon icon="stash:chevron-down" className="text-[20px]" />
+                      }
+                      size="sm"
+                      variant="flat"
+                      className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
+                    >
+                      {filterLabel}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    disallowEmptySelection
+                    aria-label="Filter Options"
+                    closeOnSelect={false}
+                    selectedKeys={localFilterValue}
+                    selectionMode="single"
+                    onSelectionChange={handleFilterChange}
                   >
-                    {filterLabel}
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu
-                  disallowEmptySelection
-                  aria-label="Filter Options"
-                  closeOnSelect={false}
-                  selectedKeys={localFilterValue}
-                  selectionMode="single"
-                  onSelectionChange={handleFilterChange}
+                    {filterOptions.map((option) => (
+                      <DropdownItem key={option.uid} className="capitalize">
+                        {capitalize(option.name)}
+                      </DropdownItem>
+                    ))}
+                  </DropdownMenu>
+                </Dropdown>
+              )}
+
+              {/* Additional Filters */}
+              {additionalFilters.map((filter, index) => (
+                <Dropdown key={index}>
+                  <DropdownTrigger className="flex">
+                    <Button
+                      endContent={
+                        <Icon icon="stash:chevron-down" className="text-[20px]" />
+                      }
+                      size="sm"
+                      variant="flat"
+                      className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
+                    >
+                      {filter.label}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    disallowEmptySelection
+                    aria-label={`${filter.label} Filter Options`}
+                    closeOnSelect={false}
+                    selectedKeys={filter.value}
+                    selectionMode="single"
+                    onSelectionChange={filter.onChange}
+                  >
+                    {filter.options.map((option) => (
+                      <DropdownItem key={option.uid} className="capitalize">
+                        {capitalize(option.name)}
+                      </DropdownItem>
+                    ))}
+                  </DropdownMenu>
+                </Dropdown>
+              ))}
+
+              {/* Top Actions */}
+              {topActions.map((action, index) => (
+                <React.Fragment key={index}>
+                  {action.customComponent ? (
+                    action.customComponent
+                  ) : (
+                    <Button
+                      isLoading={action.loading}
+                      variant={action.variant || "light"}
+                      radius="none"
+                      color={action.color}
+                      className={action.className || "text-primary-cct"}
+                      startContent={
+                        action.icon ? (
+                          typeof action.icon === "string" ? (
+                            <Icon icon={action.icon} className="text-[19px]" />
+                          ) : (
+                            action.icon
+                          )
+                        ) : undefined
+                      }
+                      onPress={action.onPress}
+                    >
+                      {action.title}
+                    </Button>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Right aligned controls: Add Button + Refresh */}
+            <div className="flex flex-row items-center gap-2">
+              {onRefresh && (
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  size="sm"
+                  className="border border-border text-muted-foreground hover:text-foreground"
+                  onPress={onRefresh}
+                  title="Refresh"
                 >
-                  {filterOptions.map((option) => (
-                    <DropdownItem key={option.uid} className="capitalize">
-                      {capitalize(option.name)}
-                    </DropdownItem>
-                  ))}
-                </DropdownMenu>
-              </Dropdown>
-            )}
-
-            {/* Additional Filters */}
-            {additionalFilters.map((filter, index) => (
-              <Dropdown key={index}>
-                <DropdownTrigger className="flex">
-                  <Button
-                    endContent={
-                      <Icon icon="stash:chevron-down" className="text-[20px]" />
-                    }
-                    size="sm"
-                    variant="flat"
-                    className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
-                  >
-                    {filter.label}
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu
-                  disallowEmptySelection
-                  aria-label={`${filter.label} Filter Options`}
-                  closeOnSelect={false}
-                  selectedKeys={filter.value}
-                  selectionMode="single"
-                  onSelectionChange={filter.onChange}
+                  <Icon icon="solar:refresh-bold" className="text-[16px]" />
+                </Button>
+              )}
+              {showAddButton ? (
+                <Button
+                  variant="light"
+                  radius="none"
+                  className="text-primary-cct"
+                  startContent={
+                    <Icon icon={addButtonIcon} className="text-[19px]" />
+                  }
+                  onPress={onAddButtonClick}
+                  size="md"
                 >
-                  {filter.options.map((option) => (
-                    <DropdownItem key={option.uid} className="capitalize">
-                      {capitalize(option.name)}
-                    </DropdownItem>
-                  ))}
-                </DropdownMenu>
-              </Dropdown>
-            ))}
-
-            {/* Top Actions */}
-            {topActions.map((action, index) => (
-              <React.Fragment key={index}>
-                {action.customComponent ? (
-                  action.customComponent
-                ) : (
-                  <Button
-                    isLoading={action.loading}
-                    variant={action.variant || "light"}
-                    radius="none"
-                    color={action.color}
-                    className={action.className || "text-primary-cct"}
-                    startContent={
-                      action.icon ? (
-                        typeof action.icon === "string" ? (
-                          <Icon icon={action.icon} className="text-[19px]" />
-                        ) : (
-                          action.icon
-                        )
-                      ) : undefined
-                    }
-                    onPress={action.onPress}
-                  >
-                    {action.title}
-                  </Button>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-
-          {/* Add Button + Refresh */}
-          <div className="flex gap-2 items-center">
-            {onRefresh && (
-              <Button
-                isIconOnly
-                variant="flat"
-                size="sm"
-                className="border border-border text-muted-foreground hover:text-foreground"
-                onPress={onRefresh}
-                title="Refresh"
-              >
-                <Icon icon="solar:refresh-bold" className="text-[16px]" />
-              </Button>
-            )}
-            {showAddButton ? (
-              <Button
-                variant="light"
-                radius="none"
-                className="text-primary-cct"
-                startContent={
-                  <Icon icon={addButtonIcon} className="text-[19px]" />
-                }
-                onPress={onAddButtonClick}
-                size="md"
-              >
-                {addButtonText}
-              </Button>
-            ) : customAddButton ? ( customAddButton ): (null) }
+                  {addButtonText}
+                </Button>
+              ) : customAddButton ? ( customAddButton ): (null) }
+            </div>
           </div>
           {showDateFilter && (
             <div className="flex justify-items-end">
@@ -753,10 +761,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
       {/* Main Layout Container */}
       {(isLoading || processedRows.length > 0) && (
-        <div className="relative">
+        <div className="relative flex-1 flex flex-col min-h-0">
           {/* Table Container - Slides left when detail view opens */}
           <motion.div
-            className="w-full"
+            className="w-full flex-1 flex flex-col min-h-0"
             animate={{
               width: enableRowExpansion && selectedRow ? "60%" : "100%",
             }}
@@ -766,7 +774,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             }}
           >
             {/* Scrollable table area with max height */}
-            <div className="maxh-[520px] h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
+            <div className="max-h-[520px] md:max-h-none md:flex-1 md:min-h-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
               <CustomTableComponent
                 columns={enhancedColumns}
                 rows={paginatedRows}

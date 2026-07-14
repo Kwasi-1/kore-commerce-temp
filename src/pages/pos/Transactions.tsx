@@ -149,8 +149,8 @@ export default function Transactions() {
   };
 
   return (
-    <PageLayout title="POS Transactions">
-      <div className="flex flex-col gap-6">
+    <PageLayout title="POS Transactions" constrainHeight={true}>
+      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
 
         {/* Summary Cards */}
         <div className="flex justify-between items-center mb-2">

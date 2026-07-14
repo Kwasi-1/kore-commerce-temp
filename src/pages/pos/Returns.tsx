@@ -176,8 +176,8 @@ export default function Returns() {
   };
 
   return (
-    <PageLayout title="POS Returns History">
-      <div className="flex flex-col gap-6">
+    <PageLayout title="POS Returns History" constrainHeight={true}>
+      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
