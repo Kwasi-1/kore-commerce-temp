@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import CustomContainerComponent from "@/components/shared/custom.container.component";
 import CustomTableComponent from "@/components/shared/table.component";
 import { Key } from "react";
-import { DateFilter } from "@/components/ui/date-filter";
+import { CustomOnlyDateFilterComponent, DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import { Button as UIbutton } from "../ui/button";
 
 
@@ -181,6 +181,11 @@ export interface EnhancedTableProps {
   expandedRowIds?: Record<string, boolean>;
   onRowExpandToggle?: (rowId: string) => void;
   renderInlineAccordion?: (row: any) => React.ReactNode;
+
+  // Date filter props
+  dateFilterValue?: DateFilterValue;
+  onDateFilterChange?: (val: DateFilterValue) => void;
+  defaultDateFilterRange?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
 }
 
 const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
@@ -228,6 +233,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   searchIcon = "si:search-line",
 
   showDateFilter = false,
+  dateFilterValue,
+  onDateFilterChange,
+  defaultDateFilterRange = "today",
 
   // Filter
   showFilter = true,
@@ -585,8 +593,16 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               ))}
             </div>
 
-            {/* Right aligned controls: Add Button + Refresh */}
+            {/* Right aligned controls: Add Button + Refresh + Date Filter */}
             <div className="flex flex-row items-center gap-2">
+              {showDateFilter && (
+                <CustomOnlyDateFilterComponent
+                  value={dateFilterValue}
+                  onChange={onDateFilterChange}
+                  defaultDate={defaultDateFilterRange}
+                  showLabelOnMobile={true}
+                />
+              )}
               {onRefresh && (
                 <Button
                   isIconOnly
@@ -615,11 +631,6 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               ) : customAddButton ? ( customAddButton ): (null) }
             </div>
           </div>
-          {showDateFilter && (
-            <div className="flex justify-items-end">
-              <DateFilter />
-            </div>
-          )}
         </div>
 
         {/* Additional Modals */}
@@ -721,6 +732,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     handleFilterChange,
     handleClearFilters,
     onRefresh,
+    dateFilterValue,
+    onDateFilterChange,
+    defaultDateFilterRange,
   ]);
 
   // Client-side pagination
@@ -813,7 +827,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
             {/* Client-side Pagination bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 pt-4 pb-2 border-t border-border mt-2">
+              <div className="flex items-center justify-between px-2 pt-4 pb-2 border-t border-border/70 mt-2">
                 <p className="text-xs text-muted-foreground">
                   Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, processedRows.length)} of {processedRows.length}
                 </p>
@@ -824,7 +838,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     variant="flat"
                     isDisabled={currentPage === 1}
                     onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className="border border-border"
+                    className="border border-border rounded-md"
                   >
                     <Icon icon="ph:caret-left" className="text-base" />
                   </Button>
@@ -836,7 +850,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                       variant={currentPage === page ? "solid" : "flat"}
                       color={currentPage === page ? "primary" : "default"}
                       onPress={() => setCurrentPage(page)}
-                      className={currentPage !== page ? "border border-border" : ""}
+                      className={currentPage !== page ? "border border-border rounded-md" : "rounded-md"}
                     >
                       {page}
                     </Button>
@@ -847,7 +861,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     variant="flat"
                     isDisabled={currentPage === totalPages}
                     onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className="border border-border"
+                    className="border border-border rounded-md"
                   >
                     <Icon icon="ph:caret-right" className="text-base" />
                   </Button>

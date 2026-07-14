@@ -34,7 +34,7 @@ export function DashboardCard({
       className={cn(
         "flex h-full min-h-[100px] flex-col justify-between rounded-xl md:rounded-[10px] bg-card p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-200",
         onClick && "cursor-pointer hover:border-foreground/50", subvalue ? "md:min-h-[140px]" : "md:min-h-[120px]",
-        isActive ? "border-foreground bg-secondary/30 ring-1 ring-foreground/10" : "border-border",
+        isActive ? "border-foreground/30 bg-secondary/30 ring-1 ring-foreground/10" : "border-border",
         className,
       )}
       {...props}

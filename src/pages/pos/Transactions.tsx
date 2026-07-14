@@ -152,16 +152,7 @@ export default function Transactions() {
     <PageLayout title="POS Transactions" constrainHeight={true}>
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
 
-        {/* Summary Cards */}
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-bold">Sales Overview</h2>
-          <CustomOnlyDateFilterComponent 
-            value={dateFilter} 
-            onChange={(val) => setDateFilter(val)} 
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <DashboardCard
             title="Total Sales"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.total} />}
@@ -218,6 +209,10 @@ export default function Transactions() {
           ]}
           filterValue={paymentFilter}
           onFilterChange={(keys: any) => setPaymentFilter(keys)}
+          showDateFilter={true}
+          dateFilterValue={dateFilter}
+          onDateFilterChange={setDateFilter}
+          defaultDateFilterRange="today"
           showAddButton={false}
           onRefresh={fetchTransactions}
           onRowActionClick={handleRowActionClick}

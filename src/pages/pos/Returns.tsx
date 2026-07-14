@@ -21,7 +21,8 @@ import {
   XCircle,
   ChevronRight
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
+import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 
 interface ReturnItem {
   variant_id: string;
@@ -59,6 +60,7 @@ export default function Returns() {
   // Filtering states
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ active: 'all_time', start_date: null, end_date: null });
   
   // Drawer state for return details
   const [selectedReturn, setSelectedReturn] = useState<ReturnRecord | null>(null);
@@ -78,6 +80,16 @@ export default function Returns() {
         data = data.filter(r => r.status === statusArr[0]);
       }
 
+      // Client-side filtering by date range
+      if (dateFilter.start_date) {
+        const start = startOfDay(dateFilter.start_date).getTime();
+        data = data.filter(r => new Date(r.date_created).getTime() >= start);
+      }
+      if (dateFilter.end_date) {
+        const end = endOfDay(dateFilter.end_date).getTime();
+        data = data.filter(r => new Date(r.date_created).getTime() <= end);
+      }
+
       // Client-side search by return ID, transaction ref or notes
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -95,7 +107,7 @@ export default function Returns() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, dateFilter]);
 
   useEffect(() => {
     fetchReturns();
@@ -180,7 +192,7 @@ export default function Returns() {
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
             title="Total Returns Logged"
             value={isLoading ? '...' : stats.count.toString()}
@@ -226,6 +238,10 @@ export default function Returns() {
           ]}
           filterValue={statusFilter}
           onFilterChange={(keys: any) => setStatusFilter(keys)}
+          showDateFilter={true}
+          dateFilterValue={dateFilter}
+          onDateFilterChange={setDateFilter}
+          defaultDateFilterRange="all_time"
           showAddButton={false}
           onRefresh={fetchReturns}
           onclick={handleRowClick}

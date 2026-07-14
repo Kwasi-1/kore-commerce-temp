@@ -37,6 +37,7 @@ interface IDateFilter {
   defaultDate?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
   value?: DateFilterValue;
   onChange?: (val: DateFilterValue) => void;
+  showLabelOnMobile?: boolean;
 }
 
 interface DateShortcutConfig {
@@ -61,7 +62,8 @@ export const CustomOnlyDateFilterComponent = ({
   color = "default",
   defaultDate = "today",
   value,
-  onChange
+  onChange,
+  showLabelOnMobile = false,
 }: IDateFilter) => {
   const [date, setDate] = useState<DateRange | undefined>(
     value?.active === "custom" && value.start_date 
@@ -307,10 +309,12 @@ export const CustomOnlyDateFilterComponent = ({
       <button
         ref={buttonRef}
         onClick={() => setDismissDatePopup(!dismissDatePopup)}
-        className="flex items-center gap-1.5 px-2.5 py-2.5 sm:px-4 sm:py-2 bg-primary-gray/20 border rounded-full sm:rounded-lg hover:bg-gray-200/30 transition-colors shadow-badge-blue"
+        className={`flex items-center gap-1.5 px-2.5 py-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
+          showLabelOnMobile ? "rounded-md" : "rounded-full sm:rounded-md"
+        } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue`}
       >
         <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span className="hidden sm:inline text-[13px] text-foreground">{getButtonLabel()}</span>
+        <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px] text-foreground`}>{getButtonLabel()}</span>
       </button>
 
       {/* Date Picker Popup */}
