@@ -669,6 +669,7 @@ export function setupMockApi() {
         total_stock_base_units: totalStock,
         status: p.status || 'active',
         expiry_warning: expiryWarning,
+        variants: p.variants || [],
         // Compatibility properties:
         quantity: totalStock,
         sku: p.variants?.[0]?.sku || ''

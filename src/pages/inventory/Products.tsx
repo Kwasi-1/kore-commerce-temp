@@ -34,6 +34,7 @@ import DashboardCard from "@/components/ui/dashboard-card";
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"list" | "group">("list");
 
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -235,54 +236,156 @@ export default function Products() {
 
   // Transform products data into rows for EnhancedTableComponent
   const tableRows = useMemo(() => {
-    return products.map((p) => ({
-      id: p.id,
-      __record: p,
-      image:
-        p.images && p.images[0] ? (
-          <img
-            src={p.images[0]}
-            alt={p.name}
-            className="h-10 w-10 rounded-lg object-cover bg-muted border"
-          />
-        ) : (
-          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-            <Package className="h-5 w-5" />
-          </div>
+    if (viewMode === "group") {
+      return products.map((p) => ({
+        id: p.id,
+        __record: p,
+        image:
+          p.images && p.images[0] ? (
+            <img
+              src={p.images[0]}
+              alt={p.name}
+              className="h-10 w-10 rounded-lg object-cover bg-muted border"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+              <Package className="h-5 w-5" />
+            </div>
+          ),
+        name: p.name,
+        category: p.category || "—",
+        variants: (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20">
+            {p.has_variants ? `${p.variant_count} variants` : "Simple"}
+          </span>
         ),
-      name: p.name,
-      category: p.category || "—",
-      variants: (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20">
-          {p.has_variants ? `${p.variant_count} variants` : "Simple"}
-        </span>
-      ),
-      total_stock: (
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-            p.total_stock_base_units === 0
-              ? "bg-destructive/10 text-destructive border border-destructive/20"
-              : p.total_stock_base_units <= 5
-                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20"
-                : "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
-          }`}
-        >
-          {p.total_stock_base_units} units
-        </span>
-      ),
-      status: (
-        <span
-          className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-            p.status === "active"
-              ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
-              : "text-muted-foreground bg-muted border border-border"
-          }`}
-        >
-          {p.status || "Active"}
-        </span>
-      ),
-    }));
-  }, [products]);
+        total_stock: (
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+              p.total_stock_base_units === 0
+                ? "bg-destructive/10 text-destructive border border-destructive/20"
+                : p.total_stock_base_units <= 5
+                  ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20"
+                  : "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
+            }`}
+          >
+            {p.total_stock_base_units} units
+          </span>
+        ),
+        status: (
+          <span
+            className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+              p.status === "active"
+                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
+                : "text-muted-foreground bg-muted border border-border"
+            }`}
+          >
+            {p.status || "Active"}
+          </span>
+        ),
+      }));
+    }
+
+    // List view: flatten variants
+    const flatRows: any[] = [];
+    products.forEach((p) => {
+      const vars = p.variants || [];
+      if (vars.length === 0) {
+        flatRows.push({
+          id: p.id,
+          __record: p,
+          image: p.images && p.images[0] ? (
+            <img
+              src={p.images[0]}
+              alt={p.name}
+              className="h-10 w-10 rounded-lg object-cover bg-muted border"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+              <Package className="h-5 w-5" />
+            </div>
+          ),
+          name: p.name,
+          category: p.category || "—",
+          sku: "—",
+          sell_mode: (
+            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground">
+              unit only
+            </span>
+          ),
+          price: "—",
+          stock: (
+            <span className="font-semibold text-destructive font-bold">
+              0 units
+            </span>
+          ),
+          status: (
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+              p.status === "active"
+                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
+                : "text-muted-foreground bg-muted border border-border"
+            }`}>
+              {p.status || "Active"}
+            </span>
+          ),
+        });
+        return;
+      }
+
+      vars.forEach((v: any) => {
+        const attrStr = Object.values(v.variant_attributes || {}).join(" / ");
+        const fullName = attrStr ? `${p.name} (${attrStr})` : p.name;
+        const stockInfo = getStockDisplay(v);
+        const retailPrice = getRetailPrice(v);
+
+        flatRows.push({
+          id: `${p.id}-${v.id}`,
+          __record: p,
+          __variant: v,
+          image: p.images && p.images[0] ? (
+            <img
+              src={p.images[0]}
+              alt={fullName}
+              className="h-10 w-10 rounded-lg object-cover bg-muted border"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+              <Package className="h-5 w-5" />
+            </div>
+          ),
+          name: fullName,
+          category: p.category || "—",
+          sku: v.sku || "—",
+          sell_mode: (
+            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground capitalize">
+              {v.sell_mode?.replace("_", " ")}
+            </span>
+          ),
+          price: (
+            <span className="font-semibold text-foreground">
+              GHS {Number(retailPrice).toFixed(2)}
+            </span>
+          ),
+          stock: (
+            <span className={`font-semibold ${v.stock_quantity === 0 ? "text-destructive font-bold" : "text-foreground"}`}>
+              {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
+            </span>
+          ),
+          status: (
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+              p.status === "active"
+                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
+                : "text-muted-foreground bg-muted border border-border"
+            }`}>
+              {p.status || "Active"}
+            </span>
+          ),
+        });
+      });
+    });
+
+    return flatRows;
+  }, [products, viewMode]);
 
   const renderVariantsAccordion = (row: any) => {
     const p = row.__record;
@@ -453,21 +556,66 @@ export default function Products() {
       {/* Main Table Card */}
 
       <EnhancedTableComponent
-        columns={[
-          { key: "image", label: "Image" },
-          { key: "name", label: "Name" },
-          { key: "category", label: "Category" },
-          { key: "variants", label: "Variants" },
-          { key: "total_stock", label: "Total Stock" },
-          { key: "status", label: "Status" },
-        ]}
+        columns={
+          viewMode === "group"
+            ? [
+                { key: "image", label: "Image" },
+                { key: "name", label: "Name" },
+                { key: "category", label: "Category" },
+                { key: "variants", label: "Variants" },
+                { key: "total_stock", label: "Total Stock" },
+                { key: "status", label: "Status" },
+              ]
+            : [
+                { key: "image", label: "Image" },
+                { key: "name", label: "Name" },
+                { key: "category", label: "Category" },
+                { key: "sku", label: "SKU" },
+                { key: "sell_mode", label: "Sell Mode" },
+                { key: "price", label: "Price" },
+                { key: "stock", label: "Stock" },
+                { key: "status", label: "Status" },
+              ]
+        }
         rows={tableRows}
         isLoading={isLoading}
-        enableInlineAccordion={true}
-        expandedRowIds={expandedProductIds}
-        onRowExpandToggle={handleToggleExpand}
-        renderInlineAccordion={renderVariantsAccordion}
+        enableInlineAccordion={viewMode === "group"}
+        expandedRowIds={viewMode === "group" ? expandedProductIds : undefined}
+        onRowExpandToggle={viewMode === "group" ? handleToggleExpand : undefined}
+        renderInlineAccordion={viewMode === "group" ? renderVariantsAccordion : undefined}
         showTopContent={true}
+        topActions={[
+          {
+            customComponent: (
+              <div className="flex rounded-md overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[6px] ${
+                    viewMode === "list"
+                      ? "bg-background text-foreground shadow-sm font-bold border border-border"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setViewMode("list")}
+                >
+                  <Layers className="h-3.5 w-3.5 mr1.5" />
+                  {/* List */}
+                </Button>
+                <Button
+                  variant={viewMode === "group" ? "secondary" : "ghost"}
+                  className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[6px] ${
+                    viewMode === "group"
+                      ? "bg-background text-foreground shadow-sm font-bold border border-border"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setViewMode("group")}
+                >
+                  <Package className="h-3.5 w-3.5 mr1.5" />
+                  {/* Grouped */}
+                </Button>
+              </div>
+            )
+          }
+        ]}
         rowActions={[
           { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
           {
