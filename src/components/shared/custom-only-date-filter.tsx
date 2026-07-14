@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateRange, DayPicker } from "react-day-picker";
 import {
   endOfMonth,
@@ -38,6 +39,8 @@ interface IDateFilter {
   value?: DateFilterValue;
   onChange?: (val: DateFilterValue) => void;
   showLabelOnMobile?: boolean;
+  align?: "start" | "center" | "end";
+  side?: "top" | "right" | "bottom" | "left";
 }
 
 interface DateShortcutConfig {
@@ -64,26 +67,29 @@ export const CustomOnlyDateFilterComponent = ({
   value,
   onChange,
   showLabelOnMobile = false,
+  align = "end",
+  side = "bottom",
 }: IDateFilter) => {
   const [date, setDate] = useState<DateRange | undefined>(
     value?.active === "custom" && value.start_date 
       ? { from: value.start_date, to: value.end_date || undefined } 
       : undefined
   );
-  const [dismissDatePopup, setDismissDatePopup] = useState(true);
+  const [open, setOpen] = useState(false);
   const [activeShortcut, setActiveShortcut] = useState<string>(value?.active || defaultDate);
   const [currentMonth, setCurrentMonth] = useState(value?.start_date || new Date());
   const [view, setView] = useState<"days" | "months" | "years">("days");
   const [yearNavigator, setYearNavigator] = useState((value?.start_date || new Date()).getFullYear());
-  const [coords, setCoords] = useState<{
-    top: number;
-    left: number;
-    width?: string;
-    transform?: string;
-  }>({ top: 0, left: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
-  const divRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const dateMap: any = {
     today: {
@@ -128,70 +134,7 @@ export const CustomOnlyDateFilterComponent = ({
     },
   };
 
-  // Calculate popup position using viewport-fixed coordinates.
-  // Priority: Below → Above → Left → Right → fallback below clamped.
-  const calculatePosition = () => {
-    if (!buttonRef.current) return;
 
-    const buttonRect = buttonRef.current.getBoundingClientRect();
-    const popupWidth = 460;
-    const popupHeight = 530; // actual rendered size is ~526px, adding small buffer
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Mobile: center horizontally, below or above the button
-    if (viewportWidth < 640) {
-      const topPos = buttonRect.bottom + 4;
-      const finalTop = viewportHeight - topPos >= popupHeight
-        ? topPos
-        : Math.max(8, buttonRect.top - popupHeight - 4);
-      setCoords({
-        top: finalTop,
-        left: viewportWidth / 2,
-        width: "min(360px, 92vw)",
-        transform: "translateX(-50%)",
-      });
-      return;
-    }
-
-    // Desktop: compute available space in all four directions
-    const spaceBelow = viewportHeight - buttonRect.bottom;
-    const spaceAbove = buttonRect.top;
-    const spaceLeft  = buttonRect.left;
-    const spaceRight = viewportWidth - buttonRect.right;
-
-    let finalTop  = 0;
-    let finalLeft = 0;
-
-    if (spaceBelow >= popupHeight) {
-      // 1. Open below the button, right-align with button
-      finalTop  = buttonRect.bottom + 4;
-      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
-    } else if (spaceAbove >= popupHeight) {
-      // 2. Open above the button
-      finalTop  = buttonRect.top - popupHeight - 4;
-      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
-    } else if (spaceLeft >= popupWidth) {
-      // 3. Not enough vertical space — open to the left of the trigger
-      finalLeft = buttonRect.left - popupWidth - 8;
-      finalTop  = Math.max(8, Math.min(viewportHeight - popupHeight - 8,
-        buttonRect.top + buttonRect.height / 2 - popupHeight / 2));
-    } else if (spaceRight >= popupWidth) {
-      // 4. Open to the right of the trigger
-      finalLeft = buttonRect.right + 8;
-      finalTop  = Math.max(8, Math.min(viewportHeight - popupHeight - 8,
-        buttonRect.top + buttonRect.height / 2 - popupHeight / 2));
-    } else {
-      // 5. Fallback: use whichever vertical direction has more room, clamped
-      finalTop  = spaceBelow >= spaceAbove
-        ? buttonRect.bottom + 4
-        : Math.max(8, buttonRect.top - popupHeight - 4);
-      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
-    }
-
-    setCoords({ top: finalTop, left: finalLeft });
-  };
 
   const getButtonLabel = () => {
     const activeFilter = value?.active || activeShortcut;
@@ -238,7 +181,7 @@ export const CustomOnlyDateFilterComponent = ({
         start_date: dateMap[key].start_date,
         end_date: dateMap[key].end_date,
       });
-      setDismissDatePopup(true);
+      setOpen(false);
     }
   };
 
@@ -282,68 +225,28 @@ export const CustomOnlyDateFilterComponent = ({
     }
   }, [date]);
 
-  // Calculate position when popup opens
-  useEffect(() => {
-    if (!dismissDatePopup) {
-      calculatePosition();
-
-      // Recalculate on window resize
-      const handleResize = () => calculatePosition();
-      window.addEventListener("resize", handleResize);
-
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, [dismissDatePopup]);
-
-  // Handle click outside to close popup
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        divRef.current &&
-        !divRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setDismissDatePopup(true);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [divRef, buttonRef]);
-
   return (
-    <div className="relative font-header">
-      {/* Main Button */}
-      <button
-        ref={buttonRef}
-        onClick={() => setDismissDatePopup(!dismissDatePopup)}
-        className={`flex items-center gap-1.5 px-2.5 py-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
-          showLabelOnMobile ? "rounded-md" : "rounded-full sm:rounded-md"
-        } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue`}
-      >
-        <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px] text-foreground`}>{getButtonLabel()}</span>
-      </button>
-
-      {/* Date Picker Popup */}
-      <style>{css}</style>
-      {!dismissDatePopup && (
-        <div
-          ref={divRef}
-          onMouseLeave={() => setDismissDatePopup(true)}
-          style={{
-            position: "fixed",
-            top: `${coords.top}px`,
-            left: `${coords.left}px`,
-            width: coords.width,
-            transform: coords.transform,
-          }}
-          className="bg-popover text-popover-foreground z-50 border border-border rounded shadow-lg flex flex-col md:flex-row sm:max-w-sm md:max-w-none custom-calendar-container"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={`flex items-center gap-1.5 px-2.5 py-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
+            showLabelOnMobile ? "rounded-md" : "rounded-full sm:rounded-md"
+          } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue`}
         >
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px] text-foreground`}>{getButtonLabel()}</span>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align={isMobile ? "center" : align}
+        side={isMobile ? "bottom" : side}
+        sideOffset={4}
+        avoidCollisions
+        collisionPadding={8}
+        className="p-0 w-[320px] md:w-[480px] bg-popover border-border text-popover-foreground font-header flex flex-col md:flex-row custom-calendar-container"
+      >
+        <style>{css}</style>
           {/* Left sidebar with shortcuts (Desktop) */}
           <div className="hidden md:block py-6 px-4 min-w-[140px] tracking-tighter border-r border-border/60">
             <div className="space-y-3">
@@ -549,9 +452,8 @@ export const CustomOnlyDateFilterComponent = ({
               ))}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

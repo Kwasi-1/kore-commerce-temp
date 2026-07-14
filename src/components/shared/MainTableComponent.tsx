@@ -298,8 +298,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
       if (onSearchChange) {
         onSearchChange(value);
       }
+      setCurrentPage(1);
     },
-    [onSearchChange],
+    [onSearchChange, setCurrentPage],
   );
 
   // Handle filter change
@@ -309,8 +310,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
       if (onFilterChange) {
         onFilterChange(selection);
       }
+      setCurrentPage(1);
     },
-    [onFilterChange],
+    [onFilterChange, setCurrentPage],
   );
 
   // Handle clearing all filters and search
@@ -552,7 +554,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     closeOnSelect={false}
                     selectedKeys={filter.value}
                     selectionMode="single"
-                    onSelectionChange={filter.onChange}
+                    onSelectionChange={(keys) => {
+                      filter.onChange(keys);
+                      setCurrentPage(1);
+                    }}
                   >
                     {filter.options.map((option) => (
                       <DropdownItem key={option.uid} className="capitalize">
@@ -598,9 +603,13 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               {showDateFilter && (
                 <CustomOnlyDateFilterComponent
                   value={dateFilterValue}
-                  onChange={onDateFilterChange}
+                  onChange={(val) => {
+                    if (onDateFilterChange) onDateFilterChange(val);
+                    setCurrentPage(1);
+                  }}
                   defaultDate={defaultDateFilterRange}
                   showLabelOnMobile={true}
+                  side="left" align="start"
                 />
               )}
               {onRefresh && (
