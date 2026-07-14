@@ -423,7 +423,7 @@ export default function Products() {
   return (
     <PageLayout title="Products Inventory">
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <DashboardCard
           title="Total Products"
           value={isLoading ? '...' : totalProducts}
@@ -521,58 +521,56 @@ export default function Products() {
         ]}
         // Actions
         showAddButton={false}
-        onRefresh={fetchProducts}
-        topActions={[
-          {
-            customComponent: (
-              <DropdownMenu>
-                <div className="flex rounded-md overflow-hidden border shadow-sm h-[38px] bg-muted">
-                  <Button
-                    variant="ghost"
-                    className="gap-2 rounded-none text-[13px] text-foreground/80 border-r border-muted-foreground/20 h-full"
-                    onClick={openNewProduct}
-                  >
-                    <Plus className="h-4 w-4 text-foreground/80" />
-                    <span className="hidden lg:inline">Add Product</span>
-                  </Button>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="rounded-none  text-muted-foreground hover:bg-muted/90 px-2 h-full"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </div>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-48 rounded-xl shadow-lg border-border"
+        customAddButton= {
+          <DropdownMenu>
+            <div className="flex rounded-md overflow-hidden border shadow-sm lg:h-[34px] bg-muted">
+              <Button
+                variant="ghost"
+                className="gap-2 rounded-none text-[12px] text-foreground/70 hover:text-foreground/90 border-r border-muted-foreground/20 h-full hidden lg:flex"
+                onClick={openNewProduct}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden lg:inline">Add Product</span>
+              </Button>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  // size="sm"
+                  variant="ghost"
+                  className="rounded-none text-muted-foreground hover:bg-muted/90 px-2 h-full"
                 >
-                  <DropdownMenuItem
-                    onClick={openNewProduct}
-                    className="cursor-pointer"
-                  >
-                    <Package className="h-4 w-4 mr-2" /> Single Product
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setIsBulkModalOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setIsBulkStockModalOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    <Upload className="h-4 w-4 mr-2" /> Bulk Receive Stock (CSV/Excel)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ),
-          },
-        ]}
+                  <ChevronDown className="h-4 w-4 hidden lg:inline" />
+                  <Plus className="h-4 w-4 lg:hidden" />
+                </Button>
+              </DropdownMenuTrigger>
+            </div>
+            <DropdownMenuContent
+              align="end"
+              className="w-48 rounded-xl shadow-lg border-border"
+            >
+              <DropdownMenuItem
+                onClick={openNewProduct}
+                className="cursor-pointer"
+              >
+                <Package className="h-4 w-4 mr-2" /> Single Product
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setIsBulkModalOpen(true)}
+                className="cursor-pointer"
+              >
+                <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setIsBulkStockModalOpen(true)}
+                className="cursor-pointer"
+              >
+                <Upload className="h-4 w-4 mr-2" /> Bulk Receive Stock (CSV/Excel)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+        onRefresh={fetchProducts}
         mobileFriendly={false}
-        containerStyles="rounded-2xl"
+        // containerStyles=""
       />
 
       {/* Single Product Form Modal */}

@@ -310,4 +310,17 @@
     transition-duration: 0s !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Premium Dashboard Gradient Background with subtle brand color glow */
+.dashboard-main-gradient {
+  background: 
+    radial-gradient(circle at 100% 100%, hsl(var(--primary) / 0.03) 0%, transparent 60%),
+    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 40%, hsl(var(--secondary)) 100%);
+}
+
+.dark .dashboard-main-gradient {
+  background: 
+    radial-gradient(circle at 100% 100%, hsl(var(--primary) / 0.04) 0%, transparent 60%),
+    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 50%, hsl(var(--secondary)) 100%);
 }

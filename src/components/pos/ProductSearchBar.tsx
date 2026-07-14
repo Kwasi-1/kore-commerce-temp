@@ -32,7 +32,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     if (renderedCollapsed) {
       switch (gridDensity) {
         case 'compact':
-          return 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8';
+          return 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7';
         case 'large':
           return 'grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
         case 'normal':
@@ -432,7 +432,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
       {/* Product Grid */}
       <div 
-        className="flex-1 overflow-y-auto pt-2 md:pt-4 scrollbar-hide"
+        className="flex-1 overflow-y-auto pt-2 md:pt-4 scrollbar-hide px-1 -mx-1"
         style={{
           maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)'

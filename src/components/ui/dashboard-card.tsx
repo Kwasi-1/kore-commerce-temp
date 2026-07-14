@@ -32,7 +32,7 @@ export function DashboardCard({
     <div
       onClick={onClick}
       className={cn(
-        "flex h-full min-h-[100px] flex-col justify-between rounded-xl md:rounded-[14px] bg-card p-4 md:p-5 border shadow-sm text-card-foreground transition-all duration-200",
+        "flex h-full min-h-[100px] flex-col justify-between rounded-xl md:rounded-[10px] bg-card p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-200",
         onClick && "cursor-pointer hover:border-foreground/50", subvalue ? "md:min-h-[140px]" : "md:min-h-[120px]",
         isActive ? "border-foreground bg-secondary/30 ring-1 ring-foreground/10" : "border-border",
         className,
@@ -49,7 +49,7 @@ export function DashboardCard({
 
       <div className="flex flex-col gap-2">
         <div className="flex">
-          <p className={`text-xl md:text-2xl lg:text-2xl xl:text-3xl font-semibold text-ink textforeground ${valueStyle}`}>
+          <p className={`text-[1.3rem] md:text-2xl lg:text-[1.75rem] xl:text-3xl font-semibold text-ink textforeground ${valueStyle}`}>
             {value}
           </p>
           {valueTrailing}

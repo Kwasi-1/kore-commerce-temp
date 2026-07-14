@@ -44,7 +44,7 @@ export default function PageLayout({
 
   return (
     <div
-      className={`w-full min-h-full bg-background text-foreground overflow-x-hidden scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
+      className={`w-full min-h-full  text-foreground overflow-x-hidden scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
         <div className="w-full mb-4">

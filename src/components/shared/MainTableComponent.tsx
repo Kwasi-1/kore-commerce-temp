@@ -152,6 +152,7 @@ export interface EnhancedTableProps {
   addButtonText?: string;
   addButtonIcon?: string;
   onAddButtonClick?: () => void;
+  customAddButton?: React.ReactNode; 
 
   // Row actions dropdown
   rowActions?: TableAction[];
@@ -247,6 +248,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   addButtonText = "Add New",
   addButtonIcon = "fluent:add-24-filled",
   onAddButtonClick,
+  customAddButton,
 
   // Row actions
   rowActions = [],
@@ -456,8 +458,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
           </h4>
         )}
 
-        <div className="flex justify-between gap-3 lg:items-end flex-col lg:flex-row items-center mb-4">
-          <div className="flex lg:flex-row lg:items-center flex-col items-center gap-2 w-full">
+        <div className="flex justify-between gap-3 lg:items-end flex-wrap lg:flex-nowrap lg:flex-row lg:itemscenter mb-4">
+          <div className="flex lg:flex-row lg:items-center flex-wrap lg:flex-nowrap items-center gap-2 w-full">
             {/* Search Input */}
             {showSearch && (
               <Input
@@ -492,7 +494,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border"
+                    className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
                   >
                     {filterLabel}
                   </Button>
@@ -524,7 +526,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     }
                     size="sm"
                     variant="flat"
-                    className="flex items-center gap-2 pl-4 py-2 h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border"
+                    className="flex items-center gap-2 pl-[0.7rem] md:pl-4 pr-1 md:pr-2 py-1.5 md:py-2 h-[35px] md:h-[38px] bg-muted border rounded-md transition-colors text-nowrap border-border text-muted-foreground hover:text-foreground"
                   >
                     {filter.label}
                   </Button>
@@ -590,7 +592,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 <Icon icon="solar:refresh-bold" className="text-[16px]" />
               </Button>
             )}
-            {showAddButton && (
+            {showAddButton ? (
               <Button
                 variant="light"
                 radius="none"
@@ -603,7 +605,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               >
                 {addButtonText}
               </Button>
-            )}
+            ) : customAddButton ? ( customAddButton ): (null) }
           </div>
           {showDateFilter && (
             <div className="flex justify-items-end">
