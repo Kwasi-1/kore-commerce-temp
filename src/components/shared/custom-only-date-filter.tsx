@@ -132,8 +132,8 @@ export const CustomOnlyDateFilterComponent = ({
     if (!buttonRef.current) return;
 
     const buttonRect = buttonRef.current.getBoundingClientRect();
-    const popupWidth = 500;
-    const popupHeight = 450;
+    const popupWidth = 460;
+    const popupHeight = 530; // actual rendered size is ~526px, adding small buffer
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
