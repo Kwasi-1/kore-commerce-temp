@@ -75,11 +75,12 @@ export const CustomOnlyDateFilterComponent = ({
   const [currentMonth, setCurrentMonth] = useState(value?.start_date || new Date());
   const [view, setView] = useState<"days" | "months" | "years">("days");
   const [yearNavigator, setYearNavigator] = useState((value?.start_date || new Date()).getFullYear());
-  const [popupPosition, setPopupPosition] = useState<{
-    top?: number; bottom?: number; left?: number; right?: number;
-  }>({});
-  const [isMobileFixed, setIsMobileFixed] = useState(false);
-  const [mobileTop, setMobileTop] = useState(0);
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width?: string;
+    transform?: string;
+  }>({ top: 0, left: 0 });
 
   const divRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -127,7 +128,8 @@ export const CustomOnlyDateFilterComponent = ({
     },
   };
 
-  // Calculate popup position based on available space
+  // Calculate popup position using viewport-fixed coordinates.
+  // Priority: Below → Above → Left → Right → fallback below clamped.
   const calculatePosition = () => {
     if (!buttonRef.current) return;
 
@@ -138,47 +140,57 @@ export const CustomOnlyDateFilterComponent = ({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // On mobile: use fixed positioning centered horizontally on the viewport
+    // Mobile: center horizontally, below or above the button
     if (viewportWidth < 640) {
-      setIsMobileFixed(true);
-      // Place popup just below the button, centered on screen
       const topPos = buttonRect.bottom + 4;
-      // If not enough space below, place above
       const finalTop = viewportHeight - topPos >= popupHeight
         ? topPos
         : Math.max(8, buttonRect.top - popupHeight - 4);
-      setMobileTop(finalTop);
+      setCoords({
+        top: finalTop,
+        left: viewportWidth / 2,
+        width: "min(360px, 92vw)",
+        transform: "translateX(-50%)",
+      });
       return;
     }
 
-    setIsMobileFixed(false);
-    const spaceRight = viewportWidth - buttonRect.right;
-    const spaceLeft = buttonRect.left;
+    // Desktop: compute available space in all four directions
     const spaceBelow = viewportHeight - buttonRect.bottom;
     const spaceAbove = buttonRect.top;
+    const spaceLeft  = buttonRect.left;
+    const spaceRight = viewportWidth - buttonRect.right;
 
-    const position: any = {};
+    let finalTop  = 0;
+    let finalLeft = 0;
 
-    // Horizontal positioning — button lives on the right side of the header,
-    // so prefer anchoring to the right edge (popup opens leftward)
-    if (spaceLeft >= popupWidth) {
-      position.right = 0;
-    } else if (spaceRight >= popupWidth) {
-      position.left = 0;
-    } else {
-      position.right = 0;
-    }
-
-    // Vertical positioning
     if (spaceBelow >= popupHeight) {
-      position.top = buttonRect.height + 4;
+      // 1. Open below the button, right-align with button
+      finalTop  = buttonRect.bottom + 4;
+      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
     } else if (spaceAbove >= popupHeight) {
-      position.bottom = buttonRect.height + 4;
+      // 2. Open above the button
+      finalTop  = buttonRect.top - popupHeight - 4;
+      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
+    } else if (spaceLeft >= popupWidth) {
+      // 3. Not enough vertical space — open to the left of the trigger
+      finalLeft = buttonRect.left - popupWidth - 8;
+      finalTop  = Math.max(8, Math.min(viewportHeight - popupHeight - 8,
+        buttonRect.top + buttonRect.height / 2 - popupHeight / 2));
+    } else if (spaceRight >= popupWidth) {
+      // 4. Open to the right of the trigger
+      finalLeft = buttonRect.right + 8;
+      finalTop  = Math.max(8, Math.min(viewportHeight - popupHeight - 8,
+        buttonRect.top + buttonRect.height / 2 - popupHeight / 2));
     } else {
-      position.top = buttonRect.height + 4;
+      // 5. Fallback: use whichever vertical direction has more room, clamped
+      finalTop  = spaceBelow >= spaceAbove
+        ? buttonRect.bottom + 4
+        : Math.max(8, buttonRect.top - popupHeight - 4);
+      finalLeft = Math.max(8, Math.min(viewportWidth - popupWidth - 8, buttonRect.right - popupWidth));
     }
 
-    setPopupPosition(position);
+    setCoords({ top: finalTop, left: finalLeft });
   };
 
   const getButtonLabel = () => {
@@ -323,25 +335,14 @@ export const CustomOnlyDateFilterComponent = ({
         <div
           ref={divRef}
           onMouseLeave={() => setDismissDatePopup(true)}
-          style={
-            isMobileFixed
-              ? {
-                  position: "fixed",
-                  top: `${mobileTop}px`,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "min(360px, 92vw)",
-                }
-              : {
-                  top: popupPosition.top !== undefined ? `${popupPosition.top}px` : "auto",
-                  bottom: popupPosition.bottom !== undefined ? `${popupPosition.bottom}px` : "auto",
-                  left: popupPosition.left !== undefined ? `${popupPosition.left}px` : "auto",
-                  right: popupPosition.right !== undefined ? `${popupPosition.right}px` : "auto",
-                }
-          }
-          className={`${
-            isMobileFixed ? "fixed" : "absolute"
-          } bg-popover text-popover-foreground z-50 border border-border rounded mt-1 shadow-lg flex flex-col md:flex-row sm:max-w-sm md:max-w-none custom-calendar-container`}
+          style={{
+            position: "fixed",
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            width: coords.width,
+            transform: coords.transform,
+          }}
+          className="bg-popover text-popover-foreground z-50 border border-border rounded shadow-lg flex flex-col md:flex-row sm:max-w-sm md:max-w-none custom-calendar-container"
         >
           {/* Left sidebar with shortcuts (Desktop) */}
           <div className="hidden md:block py-6 px-4 min-w-[140px] tracking-tighter border-r border-border/60">
