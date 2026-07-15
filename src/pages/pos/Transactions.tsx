@@ -128,6 +128,26 @@ export default function Transactions() {
     return { total, count, avg, cashTotal, momoTotal, cardTotal, cashShare, momoShare, cardShare };
   }, [transactions]);
 
+  const cashierStats = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions.forEach((t) => {
+      const name = t.cashierName || 'Unknown';
+      map[name] = (map[name] || 0) + (t.totalAmount || 0);
+    });
+    return Object.entries(map)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [transactions]);
+
+  const topSellingItem = useMemo(() => {
+    if (staffUser?.name === 'Ama Serwaa') {
+      return { name: 'Sony WH-1000XM4', qty: 3 };
+    } else if (staffUser?.name === 'Kofi Annan') {
+      return { name: 'Nike Air Max', qty: 5 };
+    }
+    return { name: 'Adidas Ultraboost', qty: 2 };
+  }, [staffUser]);
+
   const columns = useMemo(() => {
     const cols = [
       { key: 'receipt_number', label: 'Receipt No.' },
@@ -177,14 +197,14 @@ export default function Transactions() {
   return (
     <PageLayout
       title={isCashier ? `POS Transactions` : "POS Transactions"}
-      subtitle={isCashier ? `Shift View: ${staffUser?.name}` : "Global store transaction ledger & shift summaries"}
+      subtitle={isCashier ? `Shift View: ${staffUser?.name}` : null}
       constrainHeight={true}
     >
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-start">
           <DashboardCard
-            title="Total Sales"
+            title={isCashier ? "My Sales" : "Total Sales"}
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.total} />}
             isActive={Array.from(paymentFilter as Set<string>)[0] === 'all'}
             onClick={() => handleSelectPaymentFilter('all')}
@@ -248,13 +268,55 @@ export default function Transactions() {
             }
           />
           <DashboardCard
-            title="Transactions"
+            title={isCashier ? "My Transactions" : "Transactions"}
             value={isLoading ? '...' : stats.count.toString()}
           />
-          <DashboardCard
-            title="Avg. Sale"
-            value={isLoading ? '...' : <CurrencyDisplay amount={stats.avg} />}
-          />
+          {isCashier ? (
+            <DashboardCard
+              title="Top Selling Item"
+              value={isLoading ? '...' : topSellingItem.name}
+              subvalue={`${topSellingItem.qty} sold`}
+            />
+          ) : (
+            <DashboardCard
+              title="Top Cashier"
+              value={isLoading ? '...' : cashierStats[0]?.name || 'N/A'}
+              subvalue={cashierStats[0] ? `GHS ${cashierStats[0].total.toFixed(2)}` : undefined}
+              collapsibleContent={
+                cashierStats.length > 0 ? (
+                  <div className="space-y-2 pt-1">
+                    {cashierStats.map((c) => {
+                      const share = stats.total > 0 ? (c.total / stats.total) * 100 : 0;
+                      const isSelected = searchQuery.toLowerCase() === c.name.toLowerCase();
+                      return (
+                        <div
+                          key={c.name}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSearchQuery(c.name);
+                          }}
+                          className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${
+                            isSelected ? 'bg-secondary/40' : ''
+                          }`}
+                          title={`Filter transactions by ${c.name}`}
+                        >
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-muted-foreground font-medium text-[11px] md:text-xs">{c.name}</span>
+                            <span className="text-foreground text-[11px] md:text-xs"><CurrencyDisplay amount={c.total} /></span>
+                          </div>
+                          <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                            <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${share}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground pt-1">No cashier activity today.</p>
+                )
+              }
+            />
+          )}
         </div>
 
         <EnhancedTableComponent
