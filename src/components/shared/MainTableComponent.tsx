@@ -188,6 +188,8 @@ export interface EnhancedTableProps {
   defaultDateFilterRange?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
 }
 
+const DEFAULT_FILTER_VALUE: Selection = new Set(["all"]);
+
 const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   // Core table props
   columns,
@@ -241,7 +243,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   showFilter = true,
   filterLabel = "Status",
   filterOptions = [],
-  filterValue = new Set(["all"]),
+  filterValue = DEFAULT_FILTER_VALUE,
   onFilterChange,
 
   // Additional filters
@@ -296,7 +298,15 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   }, [searchValue]);
 
   useEffect(() => {
-    setLocalFilterValue(filterValue);
+    setLocalFilterValue((prev) => {
+      if (prev === filterValue) return prev;
+      const prevArr = prev instanceof Set ? Array.from(prev) : [prev];
+      const nextArr = filterValue instanceof Set ? Array.from(filterValue) : [filterValue];
+      if (prevArr.length === nextArr.length && prevArr.every((v, i) => v === nextArr[i])) {
+        return prev;
+      }
+      return filterValue;
+    });
   }, [filterValue]);
 
   // Handle search change

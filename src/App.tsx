@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { ModuleRoute } from '@/components/shared/ModuleRoute';
 import { usePrefetchModules } from '@/hooks/usePrefetchModules';
+import { useAuthStore } from '@/store/authStore';
 
 // Layouts (not lazy — tiny files, always needed)
 import AuthLayout from '@/layouts/AuthLayout';
@@ -66,6 +67,8 @@ function AppRoutes() {
   // Fires silently in background after login — warms the browser cache
   // so navigation to allowed pages is instant with no Suspense flash.
   usePrefetchModules();
+  const staffUser = useAuthStore((state) => state.staffUser);
+  const isCashier = staffUser?.role === 'cashier';
 
   return (
     <Routes>
@@ -108,12 +111,12 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<Overview />} />
+        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Overview /></ProtectedRoute>} />
 
         {/* Settings */}
-        <Route path="/settings/profile" element={<BusinessProfile />} />
-        <Route path="/settings/pos" element={<POSSettings />} />
-        <Route path="/settings/plan" element={<PlanBilling />} />
+        <Route path="/settings/profile" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><BusinessProfile /></ProtectedRoute>} />
+        <Route path="/settings/pos" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><POSSettings /></ProtectedRoute>} />
+        <Route path="/settings/plan" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PlanBilling /></ProtectedRoute>} />
 
         {/* POS Dashboard Views */}
         <Route path="/pos/transactions" element={<Transactions />} />
@@ -121,37 +124,37 @@ function AppRoutes() {
         <Route path="/pos/returns" element={<Returns />} />
 
         {/* Inventory */}
-        <Route path="/inventory/products" element={<Products />} />
-        <Route path="/inventory/suppliers" element={<Suppliers />} />
-        <Route path="/inventory/purchase-orders" element={<PurchaseOrders />} />
-        <Route path="/inventory/stock" element={<StockManagement />} />
-        <Route path="/inventory/stock-reconciliation" element={<StockReconciliation />} />
-        <Route path="/inventory/stock-upload/audit" element={<StockAuditScreen />} />
-        <Route path="/inventory/adjustments" element={<StockAdjustments />} />
-        <Route path="/inventory/supplier-credit" element={<SupplierCredit />} />
+        <Route path="/inventory/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Products /></ProtectedRoute>} />
+        <Route path="/inventory/suppliers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Suppliers /></ProtectedRoute>} />
+        <Route path="/inventory/purchase-orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PurchaseOrders /></ProtectedRoute>} />
+        <Route path="/inventory/stock" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockManagement /></ProtectedRoute>} />
+        <Route path="/inventory/stock-reconciliation" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockReconciliation /></ProtectedRoute>} />
+        <Route path="/inventory/stock-upload/audit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockAuditScreen /></ProtectedRoute>} />
+        <Route path="/inventory/adjustments" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockAdjustments /></ProtectedRoute>} />
+        <Route path="/inventory/supplier-credit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><SupplierCredit /></ProtectedRoute>} />
 
         {/* Operations */}
-        <Route path="/staff" element={<StaffManagement />} />
-        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/staff" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StaffManagement /></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Expenses /></ProtectedRoute>} />
 
         {/* Reports */}
-        <Route path="/reports/sales" element={<SalesSummary />} />
-        <Route path="/reports/products" element={<ProductReport />} />
-        <Route path="/reports/cashiers" element={<CashierReport />} />
-        <Route path="/reports/end-of-day" element={<EndOfDay />} />
+        <Route path="/reports/sales" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><SalesSummary /></ProtectedRoute>} />
+        <Route path="/reports/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductReport /></ProtectedRoute>} />
+        <Route path="/reports/cashiers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><CashierReport /></ProtectedRoute>} />
+        <Route path="/reports/end-of-day" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><EndOfDay /></ProtectedRoute>} />
 
         {/* Ecommerce */}
-        <Route path="/ecommerce/orders" element={<ModuleRoute requiredModule="ecommerce"><OnlineOrders /></ModuleRoute>} />
-        <Route path="/ecommerce/customers" element={<ModuleRoute requiredModule="ecommerce"><Customers /></ModuleRoute>} />
-        <Route path="/ecommerce/storefront" element={<ModuleRoute requiredModule="ecommerce"><StorefrontSettings /></ModuleRoute>} />
-        <Route path="/ecommerce/discounts" element={<ModuleRoute requiredModule="ecommerce"><Discounts /></ModuleRoute>} />
+        <Route path="/ecommerce/orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="ecommerce"><OnlineOrders /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/ecommerce/customers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="ecommerce"><Customers /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/ecommerce/storefront" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="ecommerce"><StorefrontSettings /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/ecommerce/discounts" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="ecommerce"><Discounts /></ModuleRoute></ProtectedRoute>} />
 
         {/* Catch-all for other dashboard routes */}
-        <Route path="/dashboard/*" element={<Overview />} />
+        <Route path="/dashboard/*" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Overview /></ProtectedRoute>} />
       </Route>
 
       {/* 404 Catch-all */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to={isCashier ? "/pos/register" : "/dashboard"} replace />} />
     </Routes>
   );
 }

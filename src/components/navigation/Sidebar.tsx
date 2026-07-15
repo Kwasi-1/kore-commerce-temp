@@ -35,6 +35,8 @@ import { useThemeStore } from '@/store/themeStore';
 
 export default function Sidebar() {
   const tenant = useAuthStore((state) => state.tenant);
+  const staffUser = useAuthStore((state) => state.staffUser);
+  const isCashier = staffUser?.role === 'cashier';
   const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'pos_only';
   const modules = getModules(plan);
@@ -47,7 +49,7 @@ export default function Sidebar() {
   const navSections = [
     {
       title: 'Dashboard',
-      show: true,
+      show: !isCashier,
       items: [{ name: 'Overview', to: '/dashboard', icon: LayoutDashboard }],
     },
     {
@@ -62,7 +64,7 @@ export default function Sidebar() {
     },
     {
       title: 'Inventory',
-      show: modules.inventory,
+      show: !isCashier && modules.inventory,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
@@ -74,12 +76,12 @@ export default function Sidebar() {
     },
     {
       title: 'Expenses',
-      show: modules.expenses,
+      show: !isCashier && modules.expenses,
       items: [{ name: 'Expenses', to: '/expenses', icon: Receipt }],
     },
     {
       title: 'Ecommerce',
-      show: modules.ecommerce,
+      show: !isCashier && modules.ecommerce,
       items: [
         { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
         { name: 'Customers', to: '/ecommerce/customers', icon: Users },
@@ -89,12 +91,12 @@ export default function Sidebar() {
     },
     {
       title: 'Staff',
-      show: modules.staff,
+      show: !isCashier && modules.staff,
       items: [{ name: 'Staff', to: '/staff', icon: Users }],
     },
     {
       title: 'Reports',
-      show: modules.reports,
+      show: !isCashier && modules.reports,
       items: [
         { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
         { name: 'Products', to: '/reports/products', icon: Tag },
@@ -104,7 +106,7 @@ export default function Sidebar() {
     },
     {
       title: 'Settings',
-      show: modules.settings,
+      show: !isCashier && modules.settings,
       items: [
         { name: 'Business Profile', to: '/settings/profile', icon: Settings },
         { name: 'POS Settings', to: '/settings/pos', icon: Receipt },
@@ -141,7 +143,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-6 scrollbar-hide flex flex-col">
+      <nav className={clsx("flex-1 overflow-y-auto px-3 pb-4 space-y-6 scrollbar-hide flex flex-col", isCashier && "justify-center")}>
         {navSections.map(
           (section) =>
             section.show && (

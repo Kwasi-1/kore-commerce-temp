@@ -340,7 +340,7 @@ export default function CreditLedger() {
     <PageLayout title="Credit Ledger" constrainHeight={true}>
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
             title="Total Outstanding Debt"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.totalDebt} />}
