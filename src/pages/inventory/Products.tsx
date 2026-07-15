@@ -34,7 +34,15 @@ import DashboardCard from "@/components/ui/dashboard-card";
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"list" | "group">("list");
+  const [viewMode, setViewMode] = useState<"list" | "group">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("preferred_products_view_mode");
+      if (saved === "list" || saved === "group") {
+        return saved;
+      }
+    }
+    return "list";
+  });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -255,6 +263,11 @@ export default function Products() {
     );
   };
 
+  const handleSetViewMode = (mode: "list" | "group") => {
+    setViewMode(mode);
+    localStorage.setItem("preferred_products_view_mode", mode);
+  };
+
   // Helper to determine the retail price
   const getRetailPrice = (variant: any) => {
     let tier = variant.packaging_tiers?.find(
@@ -303,7 +316,7 @@ export default function Products() {
         total_stock: getStockCell(p.total_stock_base_units, "units"),
         status: (
           <span
-            className={`capitalize inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+            className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -346,7 +359,7 @@ export default function Products() {
           price: "—",
           stock: getStockCell(0, "units"),
           status: (
-            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -403,7 +416,7 @@ export default function Products() {
           ),
           stock: getStockCell(stockInfo.value, stockInfo.unit),
           status: (
-            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-[5px] text-[11px] font-bold ${
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -622,7 +635,7 @@ export default function Products() {
                       ? "bg-background text-foreground shadow-sm font-bold border border-border"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setViewMode("list")}
+                  onClick={() => handleSetViewMode("list")}
                 >
                   <Layers className="h-3.5 w-3.5" />
                   {/* List */}
@@ -634,7 +647,7 @@ export default function Products() {
                       ? "bg-background text-foreground shadow-sm font-bold border border-border"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setViewMode("group")}
+                  onClick={() => handleSetViewMode("group")}
                 >
                   <Package className="h-3.5 w-3.5" />
                   {/* Grouped */}

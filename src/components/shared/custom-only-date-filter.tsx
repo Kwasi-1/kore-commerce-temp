@@ -248,7 +248,7 @@ export const CustomOnlyDateFilterComponent = ({
       >
         <style>{css}</style>
           {/* Left sidebar with shortcuts (Desktop) */}
-          <div className="hidden md:block py-6 px-4 min-w-[140px] tracking-tighter border-r border-border/60">
+          <div className="hidden md:block pt-6 py-4 px-4 min-w-[140px] tracking-tighter border-r border-border/60">
             <div className="space-y-3">
               {DATE_SHORTCUTS.map((shortcut) => (
                 <button
