@@ -229,8 +229,8 @@ export const CustomOnlyDateFilterComponent = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className={`flex items-center gap-1.5 px-2.5 py-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
-            showLabelOnMobile ? "rounded-md" : "rounded-full sm:rounded-md"
+          className={`flex items-center gap-1.5 px-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
+            showLabelOnMobile ? "rounded-md py-1.5" : "py-2.5 rounded-full sm:rounded-md"
           } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue`}
         >
           <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

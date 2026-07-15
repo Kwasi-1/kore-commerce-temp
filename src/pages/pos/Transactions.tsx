@@ -11,14 +11,25 @@ import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/sha
 import TransactionSidePanel from '@/components/pos/TransactionSidePanel';
 import TransactionRefundModal from '@/components/pos/TransactionRefundModal';
 import ReturnModal from '@/components/pos/ReturnModal';
+import { useAuthStore } from '@/store/authStore';
+import { ChevronDown } from 'lucide-react';
 
 
 export default function Transactions() {
+  const staffUser = useAuthStore((state) => state.staffUser);
+  const isCashier = staffUser?.role === 'cashier';
+
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({ active: 'today', start_date: startOfToday(), end_date: endOfToday() });
+
+  const handleSelectPaymentFilter = useCallback((method: string) => {
+    const current = Array.from(paymentFilter as Set<string>)[0];
+    if (current === method) return;
+    setPaymentFilter(new Set([method]));
+  }, [paymentFilter]);
   
   // Receipt Side Panel
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -59,6 +70,9 @@ export default function Transactions() {
       if (dateFilter.end_date) {
         url += `&end_date=${dateFilter.end_date.toISOString()}`;
       }
+      if (isCashier && staffUser?.name) {
+        url += `&cashier_name=${encodeURIComponent(staffUser.name)}`;
+      }
       const response = await apiClient.get(url);
       let data = response.data.data.transactions || [];
 
@@ -78,7 +92,7 @@ export default function Transactions() {
     } finally {
       setIsLoading(false);
     }
-  }, [paymentFilter, searchQuery, dateFilter]);
+  }, [paymentFilter, searchQuery, dateFilter, isCashier, staffUser]);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchTransactions(), 300);
@@ -106,16 +120,28 @@ export default function Transactions() {
     const cashTotal = transactions.filter(t => t.paymentMethod === 'cash').reduce((s, t) => s + t.totalAmount, 0);
     const momoTotal = transactions.filter(t => t.paymentMethod === 'mobile_money').reduce((s, t) => s + t.totalAmount, 0);
     const cardTotal = transactions.filter(t => t.paymentMethod === 'card').reduce((s, t) => s + t.totalAmount, 0);
-    return { total, count, avg, cashTotal, momoTotal, cardTotal };
+    
+    const cashShare = total > 0 ? (cashTotal / total) * 100 : 0;
+    const momoShare = total > 0 ? (momoTotal / total) * 100 : 0;
+    const cardShare = total > 0 ? (cardTotal / total) * 100 : 0;
+
+    return { total, count, avg, cashTotal, momoTotal, cardTotal, cashShare, momoShare, cardShare };
   }, [transactions]);
 
-  const columns = [
-    { key: 'receipt_number', label: 'Receipt No.' },
-    { key: 'date', label: 'Date & Time' },
-    { key: 'cashier', label: 'Cashier' },
-    { key: 'payment_method', label: 'Payment Method' },
-    { key: 'amount', label: 'Total Amount' }
-  ];
+  const columns = useMemo(() => {
+    const cols = [
+      { key: 'receipt_number', label: 'Receipt No.' },
+      { key: 'date', label: 'Date & Time' },
+    ];
+    if (!isCashier) {
+      cols.push({ key: 'cashier', label: 'Cashier' });
+    }
+    cols.push(
+      { key: 'payment_method', label: 'Payment Method' },
+      { key: 'amount', label: 'Total Amount' }
+    );
+    return cols;
+  }, [isCashier]);
 
   const rows = transactions.map((t: any) => ({
     id: t.id,
@@ -149,44 +175,85 @@ export default function Transactions() {
   };
 
   return (
-    <PageLayout title="POS Transactions" constrainHeight={true}>
+    <PageLayout
+      title={isCashier ? `POS Transactions` : "POS Transactions"}
+      subtitle={isCashier ? `Shift View: ${staffUser?.name}` : "Global store transaction ledger & shift summaries"}
+      constrainHeight={true}
+    >
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-start">
           <DashboardCard
             title="Total Sales"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.total} />}
-            className="col-span-2 md:col-span-1"
             isActive={Array.from(paymentFilter as Set<string>)[0] === 'all'}
-            onClick={() => setPaymentFilter(new Set(['all']))}
+            onClick={() => handleSelectPaymentFilter('all')}
+            collapsibleContent={
+              <div className="space-y-2 pt-1">
+                <div 
+                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === 'cash' ? 'bg-secondary/40' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectPaymentFilter('cash');
+                  }}
+                >
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">Cash</span>
+                    </div>
+                    <span className="text-foreground text-[11px] md:text-xs"><CurrencyDisplay amount={stats.cashTotal} /></span>
+                  </div>
+                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                    <div className="bg-green-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.cashShare}%` }} />
+                  </div>
+                </div>
+                <div 
+                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === 'mobile_money' ? 'bg-secondary/40' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectPaymentFilter('mobile_money');
+                  }}
+                >
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-blue-500" />
+                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">Mobile Money</span>
+                    </div>
+                    <span className="text-foreground text-[11px] md:text-xs"><CurrencyDisplay amount={stats.momoTotal} /></span>
+                  </div>
+                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.momoShare}%` }} />
+                  </div>
+                </div>
+                <div 
+                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === 'card' ? 'bg-secondary/40' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectPaymentFilter('card');
+                  }}
+                >
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-purple-500" />
+                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">Card</span>
+                    </div>
+                    <span className="text-foreground text-[11px] md:text-xs"><CurrencyDisplay amount={stats.cardTotal} /></span>
+                  </div>
+                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                    <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.cardShare}%` }} />
+                  </div>
+                </div>
+              </div>
+            }
           />
           <DashboardCard
             title="Transactions"
             value={isLoading ? '...' : stats.count.toString()}
-            isActive={Array.from(paymentFilter as Set<string>)[0] === 'all'}
-            onClick={() => setPaymentFilter(new Set(['all']))}
           />
           <DashboardCard
             title="Avg. Sale"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.avg} />}
-          />
-          <DashboardCard
-            title="Cash"
-            value={isLoading ? '...' : <CurrencyDisplay amount={stats.cashTotal} />}
-            isActive={Array.from(paymentFilter as Set<string>)[0] === 'cash'}
-            onClick={() => setPaymentFilter(new Set(['cash']))}
-          />
-          <DashboardCard
-            title="Mobile Money"
-            value={isLoading ? '...' : <CurrencyDisplay amount={stats.momoTotal} />}
-            isActive={Array.from(paymentFilter as Set<string>)[0] === 'mobile_money'}
-            onClick={() => setPaymentFilter(new Set(['mobile_money']))}
-          />
-          <DashboardCard
-            title="Card"
-            value={isLoading ? '...' : <CurrencyDisplay amount={stats.cardTotal} />}
-            isActive={Array.from(paymentFilter as Set<string>)[0] === 'card'}
-            onClick={() => setPaymentFilter(new Set(['card']))}
           />
         </div>
 
@@ -196,7 +263,7 @@ export default function Transactions() {
           isLoading={isLoading}
           title="Transaction History"
           showSearch={true}
-          searchPlaceholder="Search by receipt or cashier..."
+          searchPlaceholder={isCashier ? "Search by receipt number..." : "Search by receipt or cashier..."}
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           showFilter={true}

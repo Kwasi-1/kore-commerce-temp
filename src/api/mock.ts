@@ -1130,9 +1130,15 @@ export function setupMockApi() {
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
 
+    const cashierName = searchParams.get('cashier_name');
+
     let filtered = [...mockTransactions];
     if (method) {
       filtered = filtered.filter(t => t.paymentMethod === method);
+    }
+
+    if (cashierName) {
+      filtered = filtered.filter(t => t.cashierName?.toLowerCase() === cashierName.toLowerCase());
     }
     
     if (startDate && endDate) {
