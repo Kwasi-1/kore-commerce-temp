@@ -187,24 +187,24 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
       size="2xl"
       header={
         <div className="pt-4 px-2">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text=lg md:text-xl font-bold flex items-center gap-2">
+            {/* <Truck className="h-5 w-5 text-primary" /> */}
             Receive Stock from Shipment
           </h2>
-          <p className="text-sm text-muted-foreground font-normal">
+          <p className="text-[12px] md:text-sm text-muted-foreground font-normal leading-[1.4]">
             Upload your supplier stock CSV or Excel sheet to receive items into inventory.
           </p>
         </div>
       }
       body={
-        <div className="flex-1 w-full md:p-2 space-y-6">
+        <div className="flex-1 w-full md:p-2 space-y-3 md:space-y-4">
           {/* File Upload Drop Zone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+            className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
               isDragging
                 ? "border-primary bg-primary/5 scale-[0.99]"
                 : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/10"
@@ -245,7 +245,7 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
           </div>
 
           {/* Download template & credit purchase */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl border bg-muted/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border bg-muted/30">
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-foreground">Need a template?</h4>
               <p className="text-xs text-muted-foreground">
@@ -264,11 +264,11 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
           </div>
 
           {/* Supplier and Credit Options */}
-          <div className="border rounded-2xl p-5 space-y-5 bg-card">
+          <div className="border rounded-lg md:rounded-xl p-5 space-y-5 bg-card">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <label className="text-sm font-bold text-foreground flex items-center gap-2 cursor-pointer" htmlFor="credit-toggle">
-                  <CreditCard className="h-4 w-4 text-primary" />
+                  {/* <CreditCard className="h-4 w-4 text-primary" /> */}
                   Credit Purchase
                 </label>
                 <p className="text-xs text-muted-foreground">

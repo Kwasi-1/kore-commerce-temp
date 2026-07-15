@@ -733,23 +733,23 @@ export default function Products() {
             </div>
             <DropdownMenuContent
               align="end"
-              className="w-48 rounded-xl shadow-lg border-border"
+              className="w-52 rounded-xl shadow-lg border-border"
             >
               <DropdownMenuItem
                 onClick={openNewProduct}
-                className="cursor-pointer"
+                className="cursor-pointer text-[13px]"
               >
                 <Package className="h-4 w-4 mr-2" /> Single Product
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setIsBulkModalOpen(true)}
-                className="cursor-pointer"
+                className="cursor-pointer text-[13px]"
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setIsBulkStockModalOpen(true)}
-                className="cursor-pointer"
+                className="cursor-pointer text-[13px]"
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Receive Stock (CSV/Excel)
               </DropdownMenuItem>

@@ -323,4 +323,15 @@
   background: 
     radial-gradient(circle at 100% 100%, hsl(var(--primary) / 0.04) 0%, transparent 60%),
     linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 50%, hsl(var(--secondary)) 100%);
+}
+
+/* Hide default browser numeric spin controls app-wide */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }

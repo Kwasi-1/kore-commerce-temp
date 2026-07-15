@@ -314,7 +314,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   };
 
   // Generic Packaging Tiers table component renderer
-  const renderTiersTable = (tiers: any[], onTiersChange: (newTiers: any[]) => void) => {
+  const renderTiersTable = (tiers: any[], onTiersChange: (newTiers: any[]) => void, costPriceValue: string) => {
     const updateTierField = (tierIdx: number, field: string, value: any) => {
       const updated = tiers.map((t, i) => {
         if (i !== tierIdx) return t;
@@ -407,10 +407,20 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                     type="number"
                     step="0.01"
                     required
-                    className="w-full px-2 py-1 text-xs border border-border rounded bg-card focus:outline-none text-foreground font-semibold"
+                    className={cn(
+                      "w-full px-2 py-1 text-xs border rounded bg-card focus:outline-none text-foreground font-semibold",
+                      costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier)
+                        ? "border-amber-500 bg-amber-500/5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        : "border-border"
+                    )}
                     value={t.retail_price}
                     onChange={(e) => updateTierField(tierIdx, "retail_price", e.target.value)}
                   />
+                  {costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier) && (
+                    <span className="text-[9px] text-amber-500 block mt-0.5 font-semibold leading-none">
+                      Below cost!
+                    </span>
+                  )}
                 </td>
                 <td className="p-2">
                   <input
@@ -757,7 +767,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 </Button>
               </div>
 
-              {renderTiersTable(simpleTiers, setSimpleTiers)}
+              {renderTiersTable(simpleTiers, setSimpleTiers, simpleCostPrice)}
             </div>
           </div>
         ) : (
@@ -928,7 +938,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                                     </div>
                                   </div>
                                   
-                                  {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers))}
+                                  {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers), v.cost_price_per_base_unit)}
                                 </div>
                               </td>
                             </tr>

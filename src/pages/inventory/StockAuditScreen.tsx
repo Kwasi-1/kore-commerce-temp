@@ -450,10 +450,10 @@ export default function StockAuditScreen() {
         )}
       </div>
 
-      <div className="space-y-8 pb-32">
+      <div className="space-y-8 pb-32 w-full min-w-0">
         {/* SECTION 1: Ambiguous items (Needs Resolving) */}
         {ambiguousRows.length > 0 && (
-          <div className="border border-orange-500/30 rounded-2xl overflow-hidden bg-orange-500/5 shadow-sm">
+          <div className="border border-orange-500/30 rounded-xl overflow-hidden bg-orange-500/5 shadow-sm">
             <div className="bg-orange-500/10 border-b border-orange-500/20 px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <HelpCircle className="h-5 w-5 text-orange-500" />
@@ -465,7 +465,7 @@ export default function StockAuditScreen() {
                 Multiple potential matches found in system. Please resolve.
               </span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-orange-500/10 text-xs text-muted-foreground font-bold uppercase tracking-wider bg-orange-500/5">
@@ -511,7 +511,7 @@ export default function StockAuditScreen() {
 
         {/* SECTION 2: Unmatched items (Create New / Skip) */}
         {unmatchedRows.length > 0 && (
-          <div className="border border-yellow-500/30 rounded-2xl overflow-hidden bg-yellow-500/5 shadow-sm animate-in fade-in duration-300">
+          <div className="border border-yellow-500/30 rounded-xl overflow-hidden bg-yellow-500/5 shadow-sm animate-in fade-in duration-300">
             <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-yellow-500" />
@@ -523,7 +523,7 @@ export default function StockAuditScreen() {
                 Not found in your system. Create new product drafts or exclude.
               </span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-yellow-500/10 text-xs text-muted-foreground font-bold uppercase tracking-wider bg-yellow-500/5">
@@ -580,7 +580,7 @@ export default function StockAuditScreen() {
         )}
 
         {/* SECTION 3: Matched items (Ready to Receive) */}
-        <div className="border border-green-500/30 rounded-2xl overflow-hidden bg-background shadow-md">
+        <div className="border border-green-500/30 rounded-xl overflow-hidden bg-background shadow-md">
           <div className="bg-green-500/15 border-b border-green-500/20 px-5 py-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -598,7 +598,7 @@ export default function StockAuditScreen() {
               No matched products in shipment. Resolve ambiguous or unmatched items to populate this list.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b text-xs text-muted-foreground font-bold uppercase tracking-wider bg-muted/20">
@@ -608,9 +608,9 @@ export default function StockAuditScreen() {
                     <th className="px-4 py-3">Product Variant</th>
                     <th className="px-4 py-3">SKU</th>
                     <th className="px-4 py-3">Current Stock</th>
-                    <th className="px-4 py-3 w-28">Quantity to Add</th>
+                    <th className="px-4 py-3 w-36">Quantity to Add</th>
                     <th className="px-4 py-3 w-32">Packaging Tier</th>
-                    <th className="px-4 py-3 w-28">Cost Price</th>
+                    <th className="px-4 py-3 w-36">Cost Price</th>
                     <th className="px-4 py-3">New Total</th>
                     {trackExpiryEnabled && (
                       <>
@@ -754,7 +754,7 @@ export default function StockAuditScreen() {
       </div>
 
       {/* Sticky Bottom Actions Bar */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-card/80 backdrop-blur-md px-6 py-4 flex items-center justify-between z-30 shadow-xl">
+      <div className="absolute bottom-0 left-0 right-0 border-t bg-card/80 backdrop-blur-md px-6 py-4 flex items-center justify-between z-30 shadow-xl">
         <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <div className="text-left">
@@ -856,7 +856,7 @@ export default function StockAuditScreen() {
                 <select
                   value={newProdCategory}
                   onChange={(e) => setNewProdCategory(e.target.value)}
-                  className="w-full h-10 px-3 py-2 border rounded-xl bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full h-10 px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="General">General</option>
                   {categories.map((c) => (
@@ -890,8 +890,17 @@ export default function StockAuditScreen() {
                   value={newProdRetailPrice}
                   onChange={(e) => setNewProdRetailPrice(e.target.value)}
                   placeholder="0.00"
-                  className="rounded-xl h-10 text-sm"
+                  className={`rounded-xl h-10 text-sm ${
+                    newProdRetailPrice && newProdCostPrice && Number(newProdRetailPrice) < Number(newProdCostPrice)
+                      ? "border-amber-500 bg-amber-500/5 focus-visible:ring-amber-500"
+                      : ""
+                  }`}
                 />
+                {newProdRetailPrice && newProdCostPrice && Number(newProdRetailPrice) < Number(newProdCostPrice) && (
+                  <span className="text-[10px] text-amber-500 font-medium block mt-1">
+                    ⚠️ Retail price is less than cost price (negative margin)
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2">
