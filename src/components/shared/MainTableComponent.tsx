@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import {
   Button,
@@ -290,6 +290,14 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     useState<Selection>(filterValue);
   const [selectedRow, setSelectedRow] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setLocalSearchValue(searchValue);
+  }, [searchValue]);
+
+  useEffect(() => {
+    setLocalFilterValue(filterValue);
+  }, [filterValue]);
 
   // Handle search change
   const handleSearchChange = useCallback(

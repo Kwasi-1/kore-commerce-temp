@@ -12,7 +12,7 @@ import TransactionSidePanel from '@/components/pos/TransactionSidePanel';
 import TransactionRefundModal from '@/components/pos/TransactionRefundModal';
 import ReturnModal from '@/components/pos/ReturnModal';
 import { useAuthStore } from '@/store/authStore';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 
 
 export default function Transactions() {
@@ -64,11 +64,16 @@ export default function Transactions() {
       if (methodArr[0] !== 'all') {
         url += `&payment_method=${methodArr[0]}`;
       }
-      if (dateFilter.start_date) {
-        url += `&start_date=${dateFilter.start_date.toISOString()}`;
-      }
-      if (dateFilter.end_date) {
-        url += `&end_date=${dateFilter.end_date.toISOString()}`;
+      if (isCashier) {
+        url += `&start_date=${startOfToday().toISOString()}`;
+        url += `&end_date=${endOfToday().toISOString()}`;
+      } else {
+        if (dateFilter.start_date) {
+          url += `&start_date=${dateFilter.start_date.toISOString()}`;
+        }
+        if (dateFilter.end_date) {
+          url += `&end_date=${dateFilter.end_date.toISOString()}`;
+        }
       }
       if (isCashier && staffUser?.name) {
         url += `&cashier_name=${encodeURIComponent(staffUser.name)}`;
@@ -114,12 +119,13 @@ export default function Transactions() {
 
   // Summary stats derived from all (unfiltered) transactions — fetched once
   const stats = useMemo(() => {
-    const total = transactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
-    const count = transactions.length;
+    const netTransactions = transactions.filter(t => t.status !== 'refunded' && t.status !== 'voided');
+    const total = netTransactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+    const count = netTransactions.length;
     const avg = count > 0 ? total / count : 0;
-    const cashTotal = transactions.filter(t => t.paymentMethod === 'cash').reduce((s, t) => s + t.totalAmount, 0);
-    const momoTotal = transactions.filter(t => t.paymentMethod === 'mobile_money').reduce((s, t) => s + t.totalAmount, 0);
-    const cardTotal = transactions.filter(t => t.paymentMethod === 'card').reduce((s, t) => s + t.totalAmount, 0);
+    const cashTotal = netTransactions.filter(t => t.paymentMethod === 'cash').reduce((s, t) => s + (t.totalAmount || 0), 0);
+    const momoTotal = netTransactions.filter(t => t.paymentMethod === 'mobile_money').reduce((s, t) => s + (t.totalAmount || 0), 0);
+    const cardTotal = netTransactions.filter(t => t.paymentMethod === 'card').reduce((s, t) => s + (t.totalAmount || 0), 0);
     
     const cashShare = total > 0 ? (cashTotal / total) * 100 : 0;
     const momoShare = total > 0 ? (momoTotal / total) * 100 : 0;
@@ -130,7 +136,8 @@ export default function Transactions() {
 
   const cashierStats = useMemo(() => {
     const map: Record<string, number> = {};
-    transactions.forEach((t) => {
+    const netTransactions = transactions.filter(t => t.status !== 'refunded' && t.status !== 'voided');
+    netTransactions.forEach((t) => {
       const name = t.cashierName || 'Unknown';
       map[name] = (map[name] || 0) + (t.totalAmount || 0);
     });
@@ -147,6 +154,11 @@ export default function Transactions() {
     }
     return { name: 'Adidas Ultraboost', qty: 2 };
   }, [staffUser]);
+
+  const isCashierFiltered = useMemo(() => {
+    if (isCashier || !searchQuery) return false;
+    return cashierStats.some((c) => searchQuery.toLowerCase() === c.name.toLowerCase());
+  }, [isCashier, searchQuery, cashierStats]);
 
   const columns = useMemo(() => {
     const cols = [
@@ -282,6 +294,17 @@ export default function Transactions() {
               title="Top Cashier"
               value={isLoading ? '...' : cashierStats[0]?.name || 'N/A'}
               subvalue={cashierStats[0] ? `GHS ${cashierStats[0].total.toFixed(2)}` : undefined}
+              toggleIcon={
+                isCashierFiltered ? (
+                  <X
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearchQuery('');
+                    }}
+                    className="h-4 w-4 text-muted-foreground hover:scale-115 cursor-pointer animate-in fade-in spin-in-12 duration-200"
+                  />
+                ) : undefined
+              }
               collapsibleContent={
                 cashierStats.length > 0 ? (
                   <div className="space-y-2 pt-1">
@@ -293,12 +316,12 @@ export default function Transactions() {
                           key={c.name}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSearchQuery(c.name);
+                            setSearchQuery(isSelected ? '' : c.name);
                           }}
                           className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${
                             isSelected ? 'bg-secondary/40' : ''
                           }`}
-                          title={`Filter transactions by ${c.name}`}
+                          title={isSelected ? `Clear filter for ${c.name}` : `Filter transactions by ${c.name}`}
                         >
                           <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-muted-foreground font-medium text-[11px] md:text-xs">{c.name}</span>
@@ -338,7 +361,7 @@ export default function Transactions() {
           ]}
           filterValue={paymentFilter}
           onFilterChange={(keys: any) => setPaymentFilter(keys)}
-          showDateFilter={true}
+          showDateFilter={!isCashier}
           dateFilterValue={dateFilter}
           onDateFilterChange={setDateFilter}
           defaultDateFilterRange="today"

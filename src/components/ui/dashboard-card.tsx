@@ -15,6 +15,7 @@ export interface DashboardCardProps
   valueStyle?: string;
   onClick?: () => void;
   collapsibleContent?: React.ReactNode;
+  toggleIcon?: React.ReactNode;
 }
 
 export function DashboardCard({
@@ -29,6 +30,7 @@ export function DashboardCard({
   valueStyle,
   onClick,
   collapsibleContent,
+  toggleIcon,
   ...props
 }: DashboardCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -61,12 +63,14 @@ export function DashboardCard({
           <div className="flex-shrink-0">{action}</div>
         ) : collapsibleContent ? (
           <div className="flex-shrink-0 p-1 hover:bg-muted-foreground/10 rounded-full transition-colors">
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform duration-300",
-                isExpanded && "rotate-180"
-              )}
-            />
+            {toggleIcon ? toggleIcon : (
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform duration-300",
+                  isExpanded && "rotate-180"
+                )}
+              />
+            )}
           </div>
         ) : null}
       </div>
