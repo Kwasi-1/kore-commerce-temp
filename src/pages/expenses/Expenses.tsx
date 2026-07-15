@@ -143,8 +143,8 @@ export default function Expenses() {
       
       {/* Summary Cards */}
       <div className="mb-8">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">This Month's Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h3 className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">This Month's Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <DashboardCard
             title="Total Expenses"
             value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}

@@ -144,7 +144,7 @@ export default function Returns() {
 
   const columns = [
     { key: 'date', label: 'Date' },
-    { key: 'id', label: 'Return ID' },
+    { key: 'id_display', label: 'Return ID' },
     { key: 'original_ref', label: 'Orig. Receipt' },
     { key: 'items_count', label: 'Items Count' },
     { key: 'amount', label: 'Total Refund' },

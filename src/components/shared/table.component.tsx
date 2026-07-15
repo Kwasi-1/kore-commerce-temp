@@ -207,19 +207,6 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
   if (screenSize != "desktop" && mobileFriendly) {
     return (
       <div className="p-2 relative">
-        <div
-          className={cn(
-            " mt-4 mb-2   p-3 cursor-pointer uppercase font-medium  text-xs rounded-none",
-            mobileHeadersClassname
-          )}
-        >
-          {mobileHeaders.map((i) => (
-            <h4 key={typeof i == "string" ? i : i.key} className="">
-              {typeof i == "string" ? i : i.label}
-            </h4>
-          ))}
-        </div>
-
         <div className="grid grid-cols-1 gap-3 mt-4 mb-10">
           {isLoading || isFetching ? (
             <div className="flex items-center justify-center py-12">
@@ -490,6 +477,7 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
 
                 return (
                   <TableCell
+                    key={columnKey}
                     className={cn(
                       "transition-all duration-300 ease-in-out group-hover:opacity-100",
                       shouldHide &&

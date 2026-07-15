@@ -47,7 +47,7 @@ export default function BottomNav() {
     ? [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'History', to: '/pos/transactions', icon: History },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
+        { name: 'Credit', to: '/pos/credit-ledger', icon: BookOpen },
         { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
       ]
     : [
@@ -123,7 +123,7 @@ export default function BottomNav() {
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 dark:bg-sidebar/90 backdrop-blur-md border-t border-border dark:border-white/10 flex items-center justify-around px-2 z-50 shadow[0_-4px_12px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 dark:bg-sidebar/90 backdrop-blur-md bordert border-border dark:border-white/10 flex items-center justify-around px-2 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         
         {/* Slim top loading bar during transitions */}
         <div
@@ -145,21 +145,21 @@ export default function BottomNav() {
               {/* Active top indicator bar */}
               <span
                 className={clsx(
-                  "absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-full transition-all duration-300",
+                  "absolute top-0 left-1/2 -translate-x-1/2 h[3px] rounded-b-full transition-all duration-300",
                   isActive ? "w-8 bg-primary" : "w-0 bg-transparent"
                 )}
               />
               {/* Icon + label wrapper with optional bg */}
               <span
                 className={clsx(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200",
+                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 h-[70%] justify-center",
                   isActive
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground/80 hover:text-foreground hover:bg-muted"
+                    ? "text-background border border-primary/30 dark:border-primary/30 bg-foreground/85"
+                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted"
                 )}
               >
                 <item.icon className="h-5 w-5" />
-                <span className="text-[10px] font-semibold">{item.name}</span>
+                {/* <span className="text-[10px] font-semibold">{item.name}</span> */}
               </span>
             </button>
           );

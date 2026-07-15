@@ -265,7 +265,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-xl",
+  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-xl dark:border-border/50",
 
   // Additional
   additionalModals,
@@ -483,9 +483,23 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     return (
       <div className="flex flex-col gap-3">
         {title && (
-          <h4 className="capitalize text-muted-foreground font-semibold">
-            {title}
-          </h4>
+          <div className="flex items-center justify-between w-full">
+            <h4 className="capitalize text-muted-foreground text-sm font-semibold">
+              {title}
+            </h4>
+            {onRefresh && (
+              <Button
+                isIconOnly
+                variant="flat"
+                size="sm"
+                className="border border-border text-muted-foreground hover:text-foreground md:hidden rounded-lg bg-muted/50"
+                onPress={onRefresh}
+                title="Refresh"
+              >
+                <Icon icon="solar:refresh-bold" className="text-[16px]" />
+              </Button>
+            )}
+          </div>
         )}
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
@@ -495,7 +509,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               <Input
                 isClearable
                 classNames={{
-                  base: "w-full h-[2.5rem] text-xs placeholder-xs",
+                  base: "w-full h-[2.5rem] text-[8px] md:text-xs placeholder-xs",
                   inputWrapper:
                     "border-1 border-border h-full",
                 }}
@@ -635,7 +649,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   isIconOnly
                   variant="flat"
                   size="sm"
-                  className="border border-border text-muted-foreground hover:text-foreground"
+                  className="hidden md:inline-flex border border-border text-muted-foreground hover:text-foreground h-[35px] w-[35px]"
                   onPress={onRefresh}
                   title="Refresh"
                 >
