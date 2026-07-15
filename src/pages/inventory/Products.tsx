@@ -226,6 +226,35 @@ export default function Products() {
     };
   };
 
+  const getStockCell = (quantity: number, unitName: string) => {
+    const isOutOfStock = quantity === 0;
+    const isLowStock = quantity > 0 && quantity <= 5;
+
+    if (isOutOfStock) {
+      return (
+        <span className="inline-flex items-center gap-1 text-destructive font-bold text-[12px]">
+          <XCircle className="h-3.5 w-3.5 shrink-0" />
+          {Number(quantity.toFixed(2))} {unitName}
+        </span>
+      );
+    }
+
+    if (isLowStock) {
+      return (
+        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-[12px]">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {Number(quantity.toFixed(2))} {unitName}
+        </span>
+      );
+    }
+
+    return (
+      <span className="text-foreground/80 font-medium text-[12px]">
+        {Number(quantity.toFixed(2))} {unitName}
+      </span>
+    );
+  };
+
   // Helper to determine the retail price
   const getRetailPrice = (variant: any) => {
     let tier = variant.packaging_tiers?.find(
@@ -271,19 +300,7 @@ export default function Products() {
             {p.has_variants ? `${p.variant_count} variants` : "Simple"}
           </span>
         ),
-        total_stock: (
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              p.total_stock_base_units === 0
-                ? "bg-destructive/10 text-destructive border border-destructive/20"
-                : p.total_stock_base_units <= 5
-                  ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20"
-                  : "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
-            }`}
-          >
-            {p.total_stock_base_units} units
-          </span>
-        ),
+        total_stock: getStockCell(p.total_stock_base_units, "units"),
         status: (
           <span
             className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
@@ -326,11 +343,7 @@ export default function Products() {
             </span>
           ),
           price: "—",
-          stock: (
-            <span className="font-semibold text-destructive font-bold">
-              0 units
-            </span>
-          ),
+          stock: getStockCell(0, "units"),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
@@ -378,11 +391,7 @@ export default function Products() {
               GHS {Number(retailPrice).toFixed(2)}
             </span>
           ),
-          stock: (
-            <span className={`font-semibold ${v.stock_quantity === 0 ? "text-destructive font-bold" : "text-foreground"}`}>
-              {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
-            </span>
-          ),
+          stock: getStockCell(stockInfo.value, stockInfo.unit),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
@@ -467,11 +476,7 @@ export default function Products() {
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-                    <span
-                      className={`font-semibold ${v.stock_quantity === 0 ? "text-destructive font-bold" : "text-foreground"}`}
-                    >
-                      {Number(stockInfo.value.toFixed(2))} {stockInfo.unit}
-                    </span>
+                    {getStockCell(stockInfo.value, stockInfo.unit)}
                   </td>
                   <td className="px-4 py-2.5 capitalize">
                     {defaultSaleTierName || "—"}
