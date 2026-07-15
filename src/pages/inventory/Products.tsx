@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
 import CustomModal from "@/components/modals/modal";
@@ -32,6 +33,7 @@ import EnhancedTableComponent from "@/components/shared/MainTableComponent";
 import DashboardCard from "@/components/ui/dashboard-card";
 
 export default function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "group">(() => {
@@ -142,13 +144,11 @@ export default function Products() {
   };
 
   const handleEdit = (product: any) => {
-    setEditingProduct(product);
-    setIsModalOpen(true);
+    navigate(`/inventory/products/${product.id}/edit`);
   };
 
   const openNewProduct = () => {
-    setEditingProduct(null);
-    setIsModalOpen(true);
+    navigate("/inventory/products/new");
   };
 
   const handleDeleteProduct = async () => {
@@ -759,37 +759,6 @@ export default function Products() {
         onRefresh={fetchProducts}
         mobileFriendly={false}
         // containerStyles=""
-      />
-
-      {/* Single Product Form Modal */}
-      <CustomModal
-        isOpen={isModalOpen}
-        onOpenChange={() => setIsModalOpen(!isModalOpen)}
-        placement="right"
-        size="lg"
-        classNames={{
-          base: "sm:w-[500px]",
-        }}
-        header={
-          <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold">
-              {editingProduct ? "Edit Product" : "Add New Product"}
-            </h2>
-            <p className="text-sm text-muted-foreground font-normal">
-              Fill in the details below.
-            </p>
-          </div>
-        }
-        body={
-          <div className="p-2 pb-6">
-            <ProductForm
-              onSuccess={handleFormSuccess}
-              onCancel={() => setIsModalOpen(false)}
-              initialData={editingProduct}
-            />
-          </div>
-        }
-        footer={null}
       />
 
       {/* Delete Confirmation Modal */}

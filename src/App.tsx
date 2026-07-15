@@ -34,6 +34,7 @@ const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconcilia
 const StockAuditScreen = lazy(() => import('@/pages/inventory/StockAuditScreen'));
 const StockAdjustments = lazy(() => import('@/pages/inventory/StockAdjustments'));
 const SupplierCredit = lazy(() => import('@/pages/inventory/SupplierCredit'));
+const ProductFormPage = lazy(() => import('@/pages/inventory/ProductFormPage'));
 
 // Staff & Expenses
 const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));
@@ -125,6 +126,8 @@ function AppRoutes() {
 
         {/* Inventory */}
         <Route path="/inventory/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Products /></ProtectedRoute>} />
+        <Route path="/inventory/products/new" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductFormPage /></ProtectedRoute>} />
+        <Route path="/inventory/products/:id/edit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductFormPage /></ProtectedRoute>} />
         <Route path="/inventory/suppliers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Suppliers /></ProtectedRoute>} />
         <Route path="/inventory/purchase-orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PurchaseOrders /></ProtectedRoute>} />
         <Route path="/inventory/stock" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockManagement /></ProtectedRoute>} />

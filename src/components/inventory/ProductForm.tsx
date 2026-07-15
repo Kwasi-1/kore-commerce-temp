@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   CustomInputTextField, 
   CustomSelectField, 
@@ -11,7 +11,7 @@ import apiClient from "@/api/client";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 interface ProductFormProps {
   initialData?: any;
@@ -22,6 +22,17 @@ interface ProductFormProps {
 export default function ProductForm({ initialData, onSuccess, onCancel }: ProductFormProps) {
   const isEditing = !!initialData;
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Section refs for anchor navigation
+  const basicInfoRef = useRef<HTMLDivElement>(null);
+  const configRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
+  const imagesRef = useRef<HTMLDivElement>(null);
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const [categories, setCategories] = useState<string[]>([]);
   
   // Basic Info States
@@ -63,6 +74,26 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     { id: Math.random().toString(), name: "Size", values: "" }
   ]);
   const [variants, setVariants] = useState<any[]>([]);
+
+  // Bulk-edit states for variants
+  const [bulkStock, setBulkStock] = useState("");
+  const [bulkCost, setBulkCost] = useState("");
+  const [bulkSellMode, setBulkSellMode] = useState<"unit_only" | "pack_only" | "flexible">("unit_only");
+
+  const handleApplyBulkVariants = () => {
+    if (!bulkStock && !bulkCost) {
+      toast.error("Please enter a Stock or Cost value to apply.");
+      return;
+    }
+    setVariants(prev => prev.map(v => {
+      let updated = { ...v };
+      if (bulkStock !== "") updated.stock_quantity = bulkStock;
+      if (bulkCost !== "") updated.cost_price_per_base_unit = bulkCost;
+      updated.sell_mode = bulkSellMode;
+      return updated;
+    }));
+    toast.success("Bulk changes applied to all variants locally!");
+  };
 
   // Update base unit tier name dynamically on change of base unit name label
   useEffect(() => {
@@ -348,6 +379,59 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       onTiersChange(tiers.filter((_, i) => i !== tierIdx));
     };
 
+    if (tiers.length === 1) {
+      const t = tiers[0];
+      return (
+        <div className="p-4 border border-border dark:border-gray-800 rounded-xl bg-muted/10 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Base Unit Name</label>
+              <input
+                type="text"
+                required
+                disabled={t.is_base_unit}
+                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none disabled:opacity-80 disabled:bg-muted/20 text-foreground font-semibold h-9"
+                value={t.name}
+                onChange={(e) => updateTierField(0, "name", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Retail Price (GHS) *</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className={cn(
+                  "w-full px-3 py-2 text-xs border rounded-lg bg-card focus:outline-none text-foreground font-semibold h-9",
+                  costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier)
+                    ? "border-amber-500 bg-amber-500/5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                    : "border-border"
+                )}
+                value={t.retail_price}
+                onChange={(e) => updateTierField(0, "retail_price", e.target.value)}
+              />
+              {costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier) && (
+                <span className="text-[9px] text-amber-500 block mt-0.5 font-semibold leading-none">
+                  Below cost!
+                </span>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Wholesale Price (GHS)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none text-foreground h-9"
+                value={t.wholesale_price}
+                placeholder="Optional"
+                onChange={(e) => updateTierField(0, "wholesale_price", e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="overflow-x-auto border border-border dark:border-gray-800 rounded-xl bg-muted/10">
         <table className="w-full text-left border-collapse">
@@ -579,11 +663,51 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-4 px-4 space-y-6">
-      <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide pr-2">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-4 space-y-4">
+      {/* Sticky Anchor Navigation Bar */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/50 py-3 flex gap-2 overflow-x-auto scrollbar-hide shrink-0 mb-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
+          onClick={() => scrollToSection(basicInfoRef)}
+        >
+          Basic Info
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
+          onClick={() => scrollToSection(configRef)}
+        >
+          Configuration
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
+          onClick={() => scrollToSection(pricingRef)}
+        >
+          Pricing & Inventory
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
+          onClick={() => scrollToSection(imagesRef)}
+        >
+          Images
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
         
         {/* SECTION 1: BASIC INFO */}
-        <div className="space-y-4">
+        <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 1: Basic Info</h3>
           
           <CustomInputTextField
@@ -630,7 +754,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             rows={3}
           />
 
-          <div className="space-y-2">
+          {/* SECTION 1b: IMAGES */}
+          <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
             <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
             <FileUpload
               value={uploadedFiles}
@@ -641,12 +766,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           </div>
         </div>
 
-        <hr className="border-border/50" />
-
-        {/* SECTION 2: VARIANT TOGGLE */}
-        <div className="space-y-4">
+        {/* SECTION 2: CONFIGURATION */}
+        <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-4 shadow-sm">
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 2: Configuration</h3>
-          <div className="flex items-center justify-between p-4 border border-border dark:border-gray-800 rounded-2xl bg-muted/10 shadow-sm">
+          <div className="flex items-center justify-between p-4 border border-border dark:border-gray-800 rounded-xl bg-muted/10">
             <div className="space-y-0.5">
               <label className="text-sm font-bold text-foreground">Multiple Variants</label>
               <p className="text-xs text-muted-foreground">Toggle on if product has different sizes, colors, flavors, etc.</p>
@@ -659,11 +782,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           </div>
         </div>
 
-        <hr className="border-border/50" />
-
         {/* SECTION 3a: SIMPLE PRODUCT FORM */}
         {!hasVariants ? (
-          <div className="space-y-6">
+          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Product Inventory & Pricing</h3>
             
             <div className="grid grid-cols-2 gap-4">
@@ -773,7 +894,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         ) : (
           
           /* SECTION 3b: VARIANT BUILDER */
-          <div className="space-y-6">
+          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Variant Options Builder</h3>
             
             {/* Attribute lines */}
@@ -827,11 +948,66 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
               <Icon icon="fluent:settings-20-filled" className="mr-2 text-lg" /> Generate Variant Combinations
             </Button>
 
+            {/* Bulk Edit Panel */}
+            {variants.length > 0 && (
+              <div className="p-4 border border-border rounded-xl bg-muted/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Bulk Edit Variants</h4>
+                  <span className="text-[10px] text-muted-foreground">Quickly apply base values to all rows</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Initial Stock</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none"
+                      placeholder="e.g. 50"
+                      value={bulkStock}
+                      onChange={(e) => setBulkStock(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Cost Price (Base Unit)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none"
+                      placeholder="e.g. 25.00"
+                      value={bulkCost}
+                      onChange={(e) => setBulkCost(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Sell Mode</label>
+                    <select
+                      className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none w-full capitalize"
+                      value={bulkSellMode}
+                      onChange={(e) => setBulkSellMode(e.target.value as any)}
+                    >
+                      <option value="unit_only">Unit Only</option>
+                      <option value="pack_only">Pack Only</option>
+                      <option value="flexible">Flexible</option>
+                    </select>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg h-9"
+                    onClick={handleApplyBulkVariants}
+                  >
+                    Apply to All
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Combinations list */}
             {variants.length > 0 && (
               <div className="space-y-3">
                 <label className="text-xs font-bold text-muted-foreground uppercase">Generated Combinations ({variants.length})</label>
-                <div className="border border-border rounded-xl overflow-hidden shadow-sm bg-card">
+                
+                {/* Desktop view table */}
+                <div className="hidden sm:block border border-border rounded-xl overflow-hidden shadow-sm bg-card">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-muted border-b border-border/80 text-[10px] text-muted-foreground uppercase font-bold">
@@ -948,6 +1124,100 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile view stacked cards */}
+                <div className="block sm:hidden space-y-3">
+                  {variants.map((v, idx) => (
+                    <div key={v.id} className="border border-border bg-card rounded-xl p-4 space-y-4 shadow-sm">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="font-bold text-foreground capitalize">
+                          {Object.entries(v.variant_attributes).map(([key, val]) => `${key}: ${val}`).join(", ")}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className={cn("p-1.5 rounded hover:bg-muted text-muted-foreground", v.isExpanded && "bg-muted text-foreground")}
+                            onClick={() => updateVariantField(idx, "isExpanded", !v.isExpanded)}
+                            title="Packaging Tiers"
+                          >
+                            <Icon icon="fluent:box-multiple-20-filled" className="text-base" />
+                          </button>
+                          <button
+                            type="button"
+                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteVariant(idx)}
+                            title="Delete Combination"
+                          >
+                            <Icon icon="lucide:trash-2" className="text-base" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="space-y-1 col-span-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase">SKU</label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none font-mono"
+                            value={v.sku}
+                            onChange={(e) => updateVariantField(idx, "sku", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Stock</label>
+                          <input
+                            type="number"
+                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none"
+                            value={v.stock_quantity}
+                            onChange={(e) => updateVariantField(idx, "stock_quantity", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Cost</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none"
+                            value={v.cost_price_per_base_unit}
+                            onChange={(e) => updateVariantField(idx, "cost_price_per_base_unit", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Sell Mode</label>
+                          <select
+                            className="px-2.5 py-1.5 text-xs border border-border rounded bg-card focus:outline-none w-full capitalize"
+                            value={v.sell_mode}
+                            onChange={(e) => updateVariantField(idx, "sell_mode", e.target.value)}
+                          >
+                            <option value="unit_only">Unit Only</option>
+                            <option value="pack_only">Pack Only</option>
+                            <option value="flexible">Flexible</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {v.isExpanded && (
+                        <div className="border border-border rounded-xl bg-muted/10 p-3 shadow-inner animate-in fade-in duration-300 space-y-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tiers list</h4>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 gap-1 rounded-lg text-[10px]"
+                              onClick={() => addVariantTier(idx)}
+                            >
+                              <Icon icon="fluent:add-12-filled" className="text-[12px]" /> Add Tier
+                            </Button>
+                          </div>
+                          {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers), v.cost_price_per_base_unit)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
               </div>
             )}
           </div>
@@ -955,7 +1225,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
       </div>
 
-      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
+      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto shrink-0">
         <Button 
           variant="outline" 
           type="button"
