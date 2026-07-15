@@ -303,7 +303,7 @@ export default function Products() {
         total_stock: getStockCell(p.total_stock_base_units, "units"),
         status: (
           <span
-            className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+            className={`capitalize inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -323,6 +323,7 @@ export default function Products() {
         flatRows.push({
           id: p.id,
           __record: p,
+          rowClassName: "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-destructive",
           image: p.images && p.images[0] ? (
             <img
               src={p.images[0]}
@@ -345,7 +346,7 @@ export default function Products() {
           price: "—",
           stock: getStockCell(0, "units"),
           status: (
-            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -363,10 +364,19 @@ export default function Products() {
         const stockInfo = getStockDisplay(v);
         const retailPrice = getRetailPrice(v);
 
+        const isOutOfStock = v.stock_quantity === 0;
+        const isLowStock = v.stock_quantity > 0 && v.stock_quantity <= 5;
+        const rowClassName = isOutOfStock
+          ? "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-destructive"
+          : isLowStock
+            ? "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-amber-500 bg-amber-500/[0.02] dark:bg-amber-500/[0.01]"
+            : "";
+
         flatRows.push({
           id: `${p.id}-${v.id}`,
           __record: p,
           __variant: v,
+          rowClassName,
           image: p.images && p.images[0] ? (
             <img
               src={p.images[0]}
@@ -393,7 +403,7 @@ export default function Products() {
           ),
           stock: getStockCell(stockInfo.value, stockInfo.unit),
           status: (
-            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded-[5px] text-[11px] font-bold ${
               p.status === "active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
                 : "text-muted-foreground bg-muted border border-border"
@@ -604,7 +614,7 @@ export default function Products() {
         topActions={[
           {
             customComponent: (
-              <div className="hidden sm:flex rounded-md overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
+              <div className="hidden sm:flex rounded-[7px] overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
                 <Button
                   variant={viewMode === "list" ? "secondary" : "ghost"}
                   className={`h-full px-2.5 text-[12px] font-semibold transition-all rounded-[8px] ${

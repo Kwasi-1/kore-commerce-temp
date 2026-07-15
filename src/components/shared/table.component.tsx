@@ -477,7 +477,8 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                 "transition-all duration-200 ease-in-out hover:bg-secondary-gray/30 group hover:cursor-pointer",
                 onclick && "hover:cursor-pointer",
                 selectedRowId === rowId &&
-                  "bg-muted/50 relative z-10"
+                  "bg-muted/50 relative z-10",
+                row.rowClassName
               )}
             >
               {(columnKey) => {

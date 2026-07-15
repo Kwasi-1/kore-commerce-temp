@@ -263,7 +263,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-2xl",
+  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-xl",
 
   // Additional
   additionalModals,
@@ -836,7 +836,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
             {/* Client-side Pagination bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 pt-4 pb-2 border-t border-border/70 mt-2">
+              <div className="flex items-center justify-between px-2 pt-2 border-t border-border/70 mt-2">
                 <p className="text-xs text-muted-foreground">
                   Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, processedRows.length)} of {processedRows.length}
                 </p>
