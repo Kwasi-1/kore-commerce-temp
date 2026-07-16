@@ -50,7 +50,7 @@ export default function ProductFormPage() {
       title={id ? "Edit Product" : "Add New Product"}
       showBackButton={true}
       backUrl="/inventory/products"
-      className="max-w-4xl mx-auto"
+      className="max-w-5xl mx-auto"
     >
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
@@ -58,7 +58,7 @@ export default function ProductFormPage() {
           <p className="text-sm text-muted-foreground font-medium">Loading product details…</p>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto py-2">
+        <div className="max-w-5xl mx-auto py-2">
           <ProductForm
             initialData={productData}
             onSuccess={handleSuccess}

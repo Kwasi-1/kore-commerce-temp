@@ -716,12 +716,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-4 space-y-4">
+    <form onSubmit={handleSubmit} className="w-full bg-transparent md:py-4">
       {/* Two Column Grid layout */}
-      <div className="flex gap-6 items-start flex-1 overflow-hidden min-h-0">
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full relative">
         
         {/* Left column sidebar (sticky on desktop, horizontal scrollable on mobile) */}
-        <div className="lg:sticky lg:top-16 z-20 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 lg:h-fit">
+        <div className="sticky top-4 lg:top-6 z-50 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 md:py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 w-full lg:w-64 2xl:w-72">
           <PillSidebar
             options={sidebarOptions}
             activeKey={activeSection}
@@ -731,7 +731,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         </div>
 
         {/* Right column scrollable cards container */}
-        <div className="flex-1 overflow-y-auto space-y-6 pr-2 h-full pb-10 scroll-smooth">
+        <div className="flex-1 w-full space-y-6 pb-10">
         
         {/* SECTION 1: BASIC INFO */}
         <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-3 md:space-y-5 shadow-sm">

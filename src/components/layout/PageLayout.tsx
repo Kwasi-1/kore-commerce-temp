@@ -13,9 +13,11 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from '@iconify/react';
+import { cn } from "@/lib/utils";
 
 interface PageLayoutProps {
   title?: React.ReactNode;
+  titleClassName?: string;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   filterSlot?: React.ReactNode;
@@ -30,6 +32,7 @@ interface PageLayoutProps {
 
 export default function PageLayout({
   title,
+  titleClassName,
   subtitle,
   actions,
   filterSlot,
@@ -52,7 +55,7 @@ export default function PageLayout({
 
   return (
     <div
-      className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground overflow-x-hidden scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
+      className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
         <div className="w-full mb-4">
@@ -74,7 +77,7 @@ export default function PageLayout({
               </Button>
             )}
             <div className="flex flex-col gap-0.5 min-w-0">
-              <h1 className="text-2xl md:text-[26px] font-bold text-foreground tracking-tighter font-header">{title}</h1>
+              <h1 className={cn(" md:text-[26px] font-bold text-foreground tracking-tighter font-header", showBackButton ? "text-[22px]" : "text-2xl", titleClassName)}>{title}</h1>
               {subtitle && (
                 <p className="text-[11px] md:text-xs text-muted-foreground font-medium hidden">{subtitle}</p>
               )}
