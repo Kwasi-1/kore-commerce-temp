@@ -260,6 +260,12 @@
   }
 }
 
+.custom-header{
+  h1,h2, h3, h4, h5, h6{
+    @apply font-header tracking-[-0.05rem]
+  }
+}
+
 /* Three-State Collapsible Cart Animations */
 @keyframes fadeUpPill {
   from {
@@ -334,4 +340,4 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
-}
+}

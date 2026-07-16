@@ -58,82 +58,94 @@ export default function PageLayout({
       className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
-        <div className="w-full mb-4">
-        <div className="flex items-center justify-between mb-4 shrink-0 gap-2 md:gap-4">
-          {/* Left: title + subtitle only */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            {showBackButton && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (onBackClick) onBackClick();
-                  else if (backUrl) navigate(backUrl);
-                  else navigate(-1);
-                }}
-                className="h-8 w-8 md:h-9 md:w-9 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <h1 className={cn(" md:text-[26px] font-bold text-foreground tracking-tighter font-header", showBackButton ? "text-[22px]" : "text-2xl", titleClassName)}>{title}</h1>
-              {subtitle && (
-                <p className="text-[11px] md:text-xs text-muted-foreground font-medium hidden">{subtitle}</p>
+        <div className="w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0">
+          {/* Row 1: Title & Back Button on left, Profile & Notifications Pill on right */}
+          <div className="flex items-center justify-between w-full min-h-[44px] gap-3">
+            {/* Left side */}
+            <div className="flex items-center gap-2 min-w-0">
+              {showBackButton && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (onBackClick) onBackClick();
+                    else if (backUrl) navigate(backUrl);
+                    else navigate(-1);
+                  }}
+                  className="h-8 w-8 md:h-9 md:w-9 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
               )}
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <h1 className={cn("text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate", showBackButton ? "text-xl" : "text-2xl", titleClassName)}>
+                  {title}
+                </h1>
+                {/* {subtitle && (
+                  <p className={`text-[11px] md:text-sm text-muted-foreground font-medium bloc mt-0.5 hidden ${subtitleStyles}`}>
+                    {subtitle}
+                  </p>
+                )} */}
+              </div>
+            </div>
+
+            {/* Right side: Actions (Desktop) + Profile Pill */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Inline filter slot (Desktop only) */}
+              {filterSlot && <div className="hidden md:block shrink-0">{filterSlot}</div>}
+
+              {/* Inline actions (Desktop only) */}
+              {actions && <div className="hidden md:flex items-center gap-3">{actions}</div>}
+
+              {/* Profile Pill container */}
+              <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0 bg-card">
+                <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
+                  <Bell className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+                </Button>
+                
+                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10">
+                  <Settings className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
+                      <div className="h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm">
+                        {staffUser ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
+                      </div>
+                      <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground hidden md:flex" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">
+                    <DropdownMenuLabel className="flex flex-col py-2 px-3">
+                      <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
+                      <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
+                      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                      {isDark ? 'Light Mode' : 'Dark Mode'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
 
-          {/* Right: filter + actions + notifications + profile */}
-          <div className={`items-center gap-2 shrink-0 self-start ${showBackButton ? "hidden md:flex" : "flex"}`}>
-            {/* Inline filter slot (e.g. date picker) */}
-            {filterSlot && <div>{filterSlot}</div>}
-
-            {/* Inline actions (e.g. export button) */}
-            {actions && <div>{actions}</div>}
-
-            {/* Notifications + profile pill */}
-            <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1">
-              <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
-                <Bell className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
-              </Button>
-              
-              <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10">
-                <Settings className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              
-              {/* Profile Dropdown */}
-              <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 lg:pr-1 ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
-                  <div className="h-10 w-10 rounded-full border-2 border-background bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-sm">
-                    {staffUser ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
-                  </div>
-                  <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground hidden md:flex" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">
-                <DropdownMenuLabel className="flex flex-col py-2 px-3">
-                  <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
-                  <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {isDark ? 'Light Mode' : 'Dark Mode'}
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          </div>
-          </div>
+          {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop) */}
+          {/* {(actions || filterSlot) && (
+            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mt-2">
+              {filterSlot && <div className="shrink-0">{filterSlot}</div>}
+              {actions && <div className="flex items-center gap-3 w-full sm:w-auto">{actions}</div>}
+            </div>
+          )} */}
           {subtitle && (
-              <p className={`text-[12px] md:text-sm text-muted-foreground font-medium mb-2 ${subtitleStyles}`}>{subtitle}</p>
+              <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 ${subtitleStyles}`}>{subtitle}</p>
             )}
         </div>
       )}

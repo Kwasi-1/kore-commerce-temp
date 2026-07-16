@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
+import { Button } from '@/components/ui/button';
+import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
@@ -31,6 +33,7 @@ export default function Overview() {
   
   // Dashboard State
   const [todaySales, setTodaySales] = useState({ revenue: 0, orders: 0 });
+  const [activeShifts, setActiveShifts] = useState<any[]>([]);
   const [activeShiftsCount, setActiveShiftsCount] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -62,7 +65,9 @@ export default function Overview() {
 
           // 2. Fetch Active Shifts
           const shiftsRes = await apiClient.get('/tenant/pos/shifts?status=open');
-          setActiveShiftsCount(shiftsRes.data.data?.shifts?.length || 0);
+          const shifts = shiftsRes.data.data?.shifts || [];
+          setActiveShifts(shifts);
+          setActiveShiftsCount(shifts.length);
           
           // 4. Generate 7-Day Chart Data for POS
           const weekStart = startOfDay(subDays(new Date(), 6)).toISOString();
@@ -113,8 +118,33 @@ export default function Overview() {
         }
 
         // 3. Fetch Low Stock Products (Common for both)
-
-        // Replaced by conditional blocks above
+        try {
+          const productsRes = await apiClient.get('/tenant/products?limit=100');
+          const products = productsRes.data.data?.products || [];
+          const lowStockList: any[] = [];
+          
+          products.forEach((p: any) => {
+            const variants = p.variants || [];
+            variants.forEach((v: any) => {
+              const stock = v.stock_quantity ?? 0;
+              const threshold = v.low_stock_threshold ?? 5;
+              if (stock <= threshold) {
+                lowStockList.push({
+                  id: p.id,
+                  name: p.has_variants 
+                    ? `${p.name} (${Object.values(v.variant_attributes).join(', ')})`
+                    : p.name,
+                  sku: v.sku,
+                  stock_quantity: stock,
+                  reorder_point: threshold
+                });
+              }
+            });
+          });
+          setLowStockProducts(lowStockList);
+        } catch (err) {
+          console.error("Failed to load low stock products:", err);
+        }
 
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
@@ -135,46 +165,73 @@ export default function Overview() {
 
   const userName = staffUser?.name?.split(' ')[0] || 'Team';
 
+  const orderColumns = [
+    { key: "reference", label: "Reference" },
+    { key: "customer", label: "Customer" },
+    { key: "amount", label: "Total Amount" },
+    { key: "date", label: "Date" },
+    { key: "status", label: "Status" }
+  ];
+
+  const orderRows = recentOrders.map(order => ({
+    id: order.id,
+    reference: <span className="font-semibold text-sm">{order.reference}</span>,
+    customer: <span className="text-sm">{order.customer_name || 'Guest Customer'}</span>,
+    amount: <span className="font-bold"><CurrencyDisplay amount={order.total_amount} /></span>,
+    date: (
+      <span className="text-xs text-muted-foreground flex items-center gap-1">
+        <Clock className="w-3.5 h-3.5" />
+        {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
+      </span>
+    ),
+    status: (
+      <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center justify-center capitalize ${
+        order.status === 'delivered' ? 'text-green-600 bg-green-50 dark:bg-green-900/30' 
+        : order.status === 'cancelled' ? 'text-red-600 bg-red-50 dark:bg-red-900/30'
+        : 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
+      }`}>
+        {order.status}
+      </span>
+    )
+  }));
+
   return (
-    <PageLayout title="Overview">
-      
-      {/* Header & Quick Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            {getGreeting()}, {userName}
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Here's what's happening with your store today.
-          </p>
-        </div>
+    <PageLayout
+      title={`${getGreeting()}, ${userName}`}
+      titleClassName='xl:text-[27px]'
+      subtitle="Here's what's happening with your store today."
+      // subtitleStyles='hidde md:block lg:text-base lg:mt-1'
+      actions={
         <div className="flex gap-3">
-          <button 
+          <Button
+            variant="outline"
             onClick={() => navigate('/inventory/products')}
-            className="flex items-center px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium text-card-foreground hover:bg-muted/50 transition-colors shadow-sm"
+            className="rounded-md h-10 px-4 font-bold"
           >
             <PackagePlus className="w-4 h-4 mr-2" />
             Add Product
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => navigate('/pos/register')}
-            className="flex items-center px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:brightness-105 transition-all shadow-sm"
+            className="bg-primary text-primary-foreground rounded-md font-bold h-10 px-4"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
             Open Register
-          </button>
+          </Button>
         </div>
-      </div>
-
+      }
+      className='custom-header md:mt-2'
+    >
+      
       {/* POS Module Overview */}
       {hasPos && (
-        <div className="mb-10">
-          <h3 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+        <div className="mb-6 md:mb-10 mt-1 md:mt-2">
+          <h3 className="text-lg md:text-xl font-bold mb-3 text-foreground flex items-center gap-2">
             <MonitorSmartphone className="h-5 w-5 text-primary" />
             Point of Sale Overview
           </h3>
           {/* Top Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-6">
             <DashboardCard
               title="Today's Revenue"
               value={isLoading ? '...' : <CurrencyDisplay amount={todaySales.revenue} />}
@@ -186,23 +243,64 @@ export default function Overview() {
             <DashboardCard
               title="Active Shifts"
               value={isLoading ? '...' : activeShiftsCount.toString()}
-              subvalue={activeShiftsCount > 0 ? "Registers are open" : "All registers closed"}
+              // subvalue={activeShiftsCount > 0 ? "Registers are open" : "All registers closed"}
+              collapsibleContent={
+                activeShiftsCount > 0 ? (
+                  <div className="space-y-2 mt-2">
+                    <span className="font-bold text-muted-foreground uppercase text-[10px]">Active Cashiers</span>
+                    <div className="flex flex-col gap-1.5">
+                      {activeShifts.map((shift: any, idx: number) => {
+                        const name = shift.cashier?.name || shift.staff_member?.name || shift.staff?.name || `Cashier #${idx + 1}`;
+                        return (
+                          <div key={shift.id || idx} className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            <span>{name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-2">"All registers closed. <br/> No cashiers currently on active shifts.</div>
+                )
+              }
             />
             <DashboardCard
               title="Low Stock Items"
               value={isLoading ? '...' : lowStockProducts.length.toString()}
-              subvalue="Items below reorder point"
+              // subvalue="Items below reorder point"
               className="border border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10 shadow-sm"
+              collapsibleContent={
+                lowStockProducts.length > 0 ? (
+                  <div className="space-y-2 mt-2">
+                    <span className="font-bold text-red-600 dark:text-red-400 uppercase text-[10px]">Low stock list</span>
+                    <div className="flex flex-col gap-1.5">
+                      {lowStockProducts.slice(0, 5).map((product: any) => (
+                        <div
+                          key={`${product.id}-${product.sku}`}
+                          onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
+                          className="flex items-center justify-between text-xs text-foreground font-semibold hover:underline cursor-pointer"
+                        >
+                          <span className="truncate pr-2">{product.name}</span>
+                          <span className="text-red-500 font-bold shrink-0">{product.stock_quantity} left</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-2">All stock levels are healthy!</div>
+                )
+              }
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
             {/* 7-Day Revenue Chart */}
-            <div className="lg:col-span-2 bg-card p-6 rounded-xl border border-border shadow-sm text-card-foreground">
+            <div className="lg:col-span-2 bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm text-card-foreground">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold">Revenue (Last 7 Days)</h3>
               </div>
-              <div className="h-[300px] w-full">
+              <div className="h-[220px] md:h-[300px] w-full">
                 {isLoading ? (
                   <div className="h-full flex items-center justify-center text-gray-400">Loading chart data...</div>
                 ) : (
@@ -234,7 +332,7 @@ export default function Overview() {
             </div>
 
             {/* Low Stock Alerts */}
-            <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
+            <div className="bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
               <div className="flex items-center gap-2 mb-6">
                 <AlertCircle className="w-5 h-5 text-red-500" />
                 <h3 className="text-lg font-bold">Critical Alerts</h3>
@@ -251,12 +349,16 @@ export default function Overview() {
                     <p>Stock levels are healthy!</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {lowStockProducts.map(product => (
-                      <div key={product.id} className="flex justify-between items-center p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
+                  <div className="space-y-3 md:space-y-4">
+                    {lowStockProducts.slice(0, 5).map(product => (
+                      <div 
+                        key={`${product.id}-${product.sku}`} 
+                        onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
+                        className="flex justify-between items-center p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-all duration-200"
+                      >
                         <div>
                           <p className="font-semibold text-foreground text-sm">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">{product.sku}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-red-600 dark:text-red-400 font-bold text-sm">{product.stock_quantity} left</p>
@@ -283,13 +385,13 @@ export default function Overview() {
 
       {/* Ecommerce Module Overview */}
       {hasEcommerce && (
-        <div className="mb-10">
-          <h3 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+        <div className="mb-6 md:mb-10">
+          <h3 className="text-lg md:text-xl font-bold mb-3 text-foreground flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-primary" />
             Ecommerce Overview
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             <DashboardCard
               title="Online Revenue Today"
               value={isLoading ? '...' : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
@@ -310,50 +412,27 @@ export default function Overview() {
             />
           </div>
 
-          <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center">
-              <h3 className="font-bold">Recent Online Orders</h3>
+          <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden p-1">
+            <div className="p-4 pb-0 flex justify-between items-center">
+              <h3 className="font-bold text-foreground">Recent Online Orders</h3>
               <button 
                 onClick={() => navigate('/ecommerce/orders')}
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm font-medium text-muted-foreground hover:opacity-85 hover:underline transition duration-300 cursor-pointer"
               >
-                View all orders
+                View all orders &rarr;
               </button>
             </div>
-            <div className="divide-y divide-border">
-              {isLoading ? (
-                <div className="p-8 text-center text-muted-foreground">Loading orders...</div>
-              ) : recentOrders.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">No recent orders found.</div>
-              ) : (
-                recentOrders.map(order => (
-                  <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{order.reference}</span>
-                        <span className="text-xs text-muted-foreground">{order.customer_name}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right flex flex-col">
-                        <span className="font-semibold text-sm"><CurrencyDisplay amount={order.total_amount} /></span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                          <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      <span className={`w-24 text-center capitalize inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
-                        order.status === 'delivered' ? 'text-green-600 bg-green-50 dark:bg-green-900/30' 
-                        : order.status === 'cancelled' ? 'text-red-600 bg-red-50 dark:bg-red-900/30'
-                        : 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            
+            <EnhancedTableComponent
+              columns={orderColumns}
+              rows={orderRows}
+              isLoading={isLoading}
+              showTopContent={false}
+              isPaginated={false}
+              mobileFriendly={true}
+              onclick={() => navigate('/ecommerce/orders')}
+              containerStyles="shadow-none border-0"
+            />
           </div>
         </div>
       )}
