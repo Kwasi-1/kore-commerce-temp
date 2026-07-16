@@ -700,6 +700,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             activeKey={activeSection}
             onChange={handleNavClick}
             className="w-full font-semibold"
+            variant="primary"
           />
         </div>
 
