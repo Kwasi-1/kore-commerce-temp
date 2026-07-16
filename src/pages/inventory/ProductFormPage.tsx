@@ -46,7 +46,12 @@ export default function ProductFormPage() {
   };
 
   return (
-    <PageLayout title={id ? "Edit Product" : "Add New Product"} className="max-w-4xl mx-auto">
+    <PageLayout
+      title={id ? "Edit Product" : "Add New Product"}
+      showBackButton={true}
+      backUrl="/inventory/products"
+      className="max-w-4xl mx-auto"
+    >
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />

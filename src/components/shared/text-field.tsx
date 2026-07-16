@@ -127,20 +127,20 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             }
             classNames={{
               trigger: cn(
-  `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-md text-[12px] min-h-[56px] h-[56px]`,
+  `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg text-[12px] min-h-[56px] h-[56px]`,
   shouldFloat ? "pt-7 pb-1" : "py-3",  // ← pt-7 pushes value down further
   "px-3",
   className,
   error && "border-red-400",
 ),
               label: "hidden",
-              popoverContent: "rounded-md",
+              popoverContent: "rounded-lg",
             }}
           >
             {options?.map((option: any) => (
               <SelectItem
                 classNames={{
-                  base: "rounded-md",
+                  base: "rounded-lg",
                 }}
                 key={option?.value || option}
                 value={option?.value || option}
@@ -197,17 +197,17 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
         }
         classNames={{
           trigger: cn(
-            `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-md text-[12px] py-1`,
+            `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg text-[12px] py-1`,
             className,
           ),
           label: ` text-xs capitalize mt-1`,
-          popoverContent: "rounded-md",
+          popoverContent: "rounded-lg",
         }}
       >
         {options?.map((option: any) => (
           <SelectItem
             classNames={{
-              base: "rounded-md",
+              base: "rounded-lg",
             }}
             key={option?.value || option}
             value={option?.value || option}
@@ -340,7 +340,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
             placeholder={shouldFloat ? placeholder : ""}
             {...(inputProps ?? {})}
             className={cn(
-              "w-full bg-background border border-input rounded-md",
+              "w-full bg-background border border-input rounded-lg",
               startContent ? "pl-9" : "pl-3",
               endContent || isClearabe || error ? "pr-10" : "pr-3",
               shouldFloat ? "pt-6 pb-2" : "py-3",
@@ -430,7 +430,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
           placeholder={placeholder}
           {...(inputProps ?? {})}
           className={cn(
-            "w-full bg-background border border-input rounded-md",
+            "w-full bg-background border border-input rounded-lg",
             startContent ? "pl-9" : "pl-3",
             endContent || isClearabe || error ? "pr-10" : "pr-3",
             "py-3",
@@ -503,7 +503,7 @@ export const CustomDateInputField = (props: CustomDateInputFieldProps) => {
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className={`pl-3 text-left font-normal w-full justify-start border border-input bg-background rounded-md h-[3.5rem] ${
+            className={`pl-3 text-left font-normal w-full justify-start border border-input bg-background rounded-lg h-[3.5rem] ${
               !value && "text-muted-foreground"
             }`}
           >
@@ -638,7 +638,7 @@ export const CustomTextareaField = ({
             placeholder={shouldFloat ? placeholder : ""}
             {...(inputProps ?? {})}
             className={cn(
-              "w-full bg-background border border-input rounded-md resize-none",
+              "w-full bg-background border border-input rounded-lg resize-none",
               startContent ? "pl-9 pr-3" : "px-3",
               shouldFloat ? "pt-6 pb-2" : "py-4",
               "focus:border-primary-green focus:ring-1 focus:ring-primary-green focus:outline-none",
@@ -706,7 +706,7 @@ export const CustomTextareaField = ({
           placeholder={placeholder}
           {...(inputProps ?? {})}
           className={cn(
-            "w-full bg-background border border-input rounded-md resize-none px-3 py-3",
+            "w-full bg-background border border-input rounded-lg resize-none px-3 py-3",
             "focus:border-primary-green focus:ring-1 focus:ring-primary-green focus:outline-none",
             "disabled:cursor-not-allowed disabled:opacity-50",
             height,
@@ -844,7 +844,7 @@ export const AutoCompleteSelectComponent: React.FunctionComponent<
       >
         <div
           ref={wrapperRef}
-          className={` w-full flex flex-row relative border rounded-md border-collapse overflow-x-clip ${classNames?.inputWrapper}`}
+          className={` w-full flex flex-row relative border rounded-lg border-collapse overflow-x-clip ${classNames?.inputWrapper}`}
         >
           {labelPlacement === "inside" && (
             <h1
@@ -864,7 +864,7 @@ export const AutoCompleteSelectComponent: React.FunctionComponent<
             value={inputValue}
             placeholder={placeholder}
             className={cn(
-              `w-full p-2 bg-transparent rounded-md border-transparent outline-none focus:outline-transparent`,
+              `w-full p-2 bg-transparent rounded-lg border-transparent outline-none focus:outline-transparent`,
               classNames?.input,
             )}
           />
@@ -925,7 +925,7 @@ export const AutoCompleteSelectComponent: React.FunctionComponent<
                   returnItem?.(item);
                   setMenu(false);
                 }}
-                className="p-2 rounded-md text-left hover:bg-gray-300 dark:hover:bg-white hover:text-primary-black w-full flex flex-col transition-all"
+                className="p-2 rounded-lg text-left hover:bg-gray-300 dark:hover:bg-white hover:text-primary-black w-full flex flex-col transition-all"
               >
                 <div className="text-sm font-medium">
                   {item[TypeMap[type].name]},
@@ -1091,11 +1091,11 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
         items={filteredOptions}
         classNames={{
           base: cn(
-            "rounded-md bg-muted/30 border-gray-300/20",
+            "rounded-lg bg-muted/30 border-gray-300/20",
             className,
           ),
           // inputWrapper: cn(
-          //   "border dark:border-[#F5F5F580] bg-muted  rounded-md",
+          //   "border dark:border-[#F5F5F580] bg-muted  rounded-lg",
           //   className
           // ),
           selectorButton: cn(
@@ -1103,7 +1103,7 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
             className,
           ),
           endContentWrapper: "bg-transparent border-0",
-          popoverContent: "rounded-md",
+          popoverContent: "rounded-lg",
           ...selectProps?.classNames,
         }}
         {...(selectProps

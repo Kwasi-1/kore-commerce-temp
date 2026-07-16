@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import AuthLayout from '@/layouts/AuthLayout';
 import POSLayout from '@/layouts/POSLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
+import ProductFormPage from '@/pages/inventory/ProductFormPage';
 
 // Pages — lazy for code splitting. Chunks are prefetched by role after login.
 const Login = lazy(() => import('@/pages/Login'));
@@ -34,7 +35,6 @@ const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconcilia
 const StockAuditScreen = lazy(() => import('@/pages/inventory/StockAuditScreen'));
 const StockAdjustments = lazy(() => import('@/pages/inventory/StockAdjustments'));
 const SupplierCredit = lazy(() => import('@/pages/inventory/SupplierCredit'));
-const ProductFormPage = lazy(() => import('@/pages/inventory/ProductFormPage'));
 
 // Staff & Expenses
 const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));

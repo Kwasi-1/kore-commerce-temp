@@ -2,7 +2,7 @@ import React from "react";
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, User, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,6 +23,9 @@ interface PageLayoutProps {
   className?: string;
   children: React.ReactNode;
   constrainHeight?: boolean;
+  showBackButton?: boolean;
+  backUrl?: string;
+  onBackClick?: () => void;
 }
 
 export default function PageLayout({
@@ -34,6 +37,9 @@ export default function PageLayout({
   className = "",
   children,
   constrainHeight = false,
+  showBackButton = false,
+  backUrl,
+  onBackClick,
 }: PageLayoutProps) {
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -50,17 +56,33 @@ export default function PageLayout({
     >
       {title && (
         <div className="w-full mb-4">
-        <div className="flex items-center justify-between mb4 shrink-0 gap-2 md:gap-4">
+        <div className="flex items-center justify-between mb-4 shrink-0 gap-2 md:gap-4">
           {/* Left: title + subtitle only */}
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <h1 className="text-2xl md:text-[26px] font-bold text-foreground tracking-tighter font-header">{title}</h1>
-            {subtitle && (
-              <p className="text-[11px] md:text-xs text-muted-foreground font-medium hidden">{subtitle}</p>
+          <div className="flex items-center gap-2.5 min-w-0">
+            {showBackButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (onBackClick) onBackClick();
+                  else if (backUrl) navigate(backUrl);
+                  else navigate(-1);
+                }}
+                className="h-8 w-8 md:h-9 md:w-9 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
             )}
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <h1 className="text-2xl md:text-[26px] font-bold text-foreground tracking-tighter font-header">{title}</h1>
+              {subtitle && (
+                <p className="text-[11px] md:text-xs text-muted-foreground font-medium hidden">{subtitle}</p>
+              )}
+            </div>
           </div>
 
           {/* Right: filter + actions + notifications + profile */}
-          <div className="flex items-center gap-2 shrink-0 self-start">
+          <div className={`items-center gap-2 shrink-0 self-start ${showBackButton ? "hidden md:flex" : "flex"}`}>
             {/* Inline filter slot (e.g. date picker) */}
             {filterSlot && <div>{filterSlot}</div>}
 

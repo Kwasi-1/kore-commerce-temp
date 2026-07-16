@@ -29,9 +29,44 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   const pricingRef = useRef<HTMLDivElement>(null);
   const imagesRef = useRef<HTMLDivElement>(null);
 
+  const [activeSection, setActiveSection] = useState("basic");
+
   const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const handleNavClick = (section: string, ref: React.RefObject<HTMLDivElement>) => {
+    setActiveSection(section);
+    scrollToSection(ref);
+  };
+
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: "-10% 0px -70% 0px",
+      threshold: 0,
+    };
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          if (entry.target === basicInfoRef.current) setActiveSection("basic");
+          else if (entry.target === configRef.current) setActiveSection("config");
+          else if (entry.target === pricingRef.current) setActiveSection("pricing");
+          else if (entry.target === imagesRef.current) setActiveSection("images");
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+
+    if (basicInfoRef.current) observer.observe(basicInfoRef.current);
+    if (configRef.current) observer.observe(configRef.current);
+    if (pricingRef.current) observer.observe(pricingRef.current);
+    if (imagesRef.current) observer.observe(imagesRef.current);
+
+    return () => observer.disconnect();
+  }, []);
 
   const [categories, setCategories] = useState<string[]>([]);
   
@@ -666,49 +701,104 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-4 space-y-4">
       {/* Sticky Anchor Navigation Bar */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/50 py-3 flex gap-2 overflow-x-auto scrollbar-hide shrink-0 mb-2">
-        <Button
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
-          onClick={() => scrollToSection(basicInfoRef)}
+          onClick={() => handleNavClick("basic", basicInfoRef)}
+          className={cn(
+            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
+            activeSection === "basic"
+              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
+              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
+          )}
         >
-          Basic Info
-        </Button>
-        <Button
+          <span className="text-[12px] font-bold">Basic Info</span>
+          <span
+            className={cn(
+              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
+              activeSection === "basic"
+                ? "bg-white dark:bg-black text-black dark:text-white"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            1
+          </span>
+        </button>
+
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
-          onClick={() => scrollToSection(configRef)}
+          onClick={() => handleNavClick("config", configRef)}
+          className={cn(
+            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
+            activeSection === "config"
+              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
+              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
+          )}
         >
-          Configuration
-        </Button>
-        <Button
+          <span className="text-[12px] font-bold">Configuration</span>
+          <span
+            className={cn(
+              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
+              activeSection === "config"
+                ? "bg-white dark:bg-black text-black dark:text-white"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            2
+          </span>
+        </button>
+
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
-          onClick={() => scrollToSection(pricingRef)}
+          onClick={() => handleNavClick("pricing", pricingRef)}
+          className={cn(
+            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
+            activeSection === "pricing"
+              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
+              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
+          )}
         >
-          Pricing & Inventory
-        </Button>
-        <Button
+          <span className="text-[12px] font-bold">Pricing & Inventory</span>
+          <span
+            className={cn(
+              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
+              activeSection === "pricing"
+                ? "bg-white dark:bg-black text-black dark:text-white"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            3
+          </span>
+        </button>
+
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="rounded-full text-xs font-semibold px-4 border border-border hover:bg-muted bg-card shadow-sm shrink-0"
-          onClick={() => scrollToSection(imagesRef)}
+          onClick={() => handleNavClick("images", imagesRef)}
+          className={cn(
+            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
+            activeSection === "images"
+              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
+              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
+          )}
         >
-          Images
-        </Button>
+          <span className="text-[12px] font-bold">Images</span>
+          <span
+            className={cn(
+              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
+              activeSection === "images"
+                ? "bg-white dark:bg-black text-black dark:text-white"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            4
+          </span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-6 pr-2">
         
         {/* SECTION 1: BASIC INFO */}
-        <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 1: Basic Info</h3>
+        <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-3 md:space-y-5 shadow-sm">
+          <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 1: Basic Info</h3>
           
           <CustomInputTextField
             label="Product Name"
@@ -719,7 +809,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             placeholder="e.g. Coca-Cola Drink"
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <CustomSelectField
               label="Category"
               options={categoryOptions.length > 0 ? categoryOptions : [{ label: "General", value: "General" }]}
@@ -767,9 +857,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         </div>
 
         {/* SECTION 2: CONFIGURATION */}
-        <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-4 shadow-sm">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 2: Configuration</h3>
-          <div className="flex items-center justify-between p-4 border border-border dark:border-gray-800 rounded-xl bg-muted/10">
+        <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-4 md:p-6 rounded-xl space-y-4 shadow-sm">
+          <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 2: Configuration</h3>
+          <div className="flex items-center justify-between p-4 border border-border dark:border-gray-800 rounded-lg bg-muted/10">
             <div className="space-y-0.5">
               <label className="text-sm font-bold text-foreground">Multiple Variants</label>
               <p className="text-xs text-muted-foreground">Toggle on if product has different sizes, colors, flavors, etc.</p>
@@ -784,10 +874,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
         {/* SECTION 3a: SIMPLE PRODUCT FORM */}
         {!hasVariants ? (
-          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Product Inventory & Pricing</h3>
+          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
+            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Product Inventory & Pricing</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <CustomInputTextField
                 label="SKU / Barcode"
                 name="sku"
@@ -807,7 +897,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
               <CustomInputTextField
                 label="Initial Stock"
                 name="stock"
@@ -848,7 +938,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                     key={mode}
                     type="button"
                     className={cn(
-                      "flex-1 py-2 text-xs font-bold border rounded-xl transition-all capitalize shadow-sm",
+                      "flex-1 py-2 text-xs font-bold border rounded-lg transition-all capitalize shadow-sm",
                       simpleSellMode === mode
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-card text-foreground border-border hover:bg-muted"
@@ -862,7 +952,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             </div>
 
             {trackExpiryEnabled && (
-              <div className="flex items-center justify-between p-3 border border-border rounded-xl bg-muted/10">
+              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/10">
                 <div className="space-y-0.5">
                   <label className="text-xs font-bold text-foreground">Track Expiry Dates</label>
                   <p className="text-[10px] text-muted-foreground">Prompts cashiers and tracks batches automatically.</p>
@@ -894,8 +984,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         ) : (
           
           /* SECTION 3b: VARIANT BUILDER */
-          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-6 rounded-2xl space-y-6 shadow-sm">
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Variant Options Builder</h3>
+          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
+            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Variant Options Builder</h3>
             
             {/* Attribute lines */}
             <div className="space-y-3">
