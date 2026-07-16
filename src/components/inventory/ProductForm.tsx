@@ -12,6 +12,7 @@ import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
+import { PillSidebar } from "../shared/pill-sidebar";
 
 interface ProductFormProps {
   initialData?: any;
@@ -31,13 +32,30 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
   const [activeSection, setActiveSection] = useState("basic");
 
+  const sidebarOptions = [
+    { key: "basic", label: "Basic Info" },
+    { key: "config", label: "Configuration" },
+    { key: "pricing", label: "Pricing & Inventory" },
+    { key: "images", label: "Images" }
+  ];
+
+  const refsMap: Record<string, React.RefObject<HTMLDivElement>> = {
+    basic: basicInfoRef,
+    config: configRef,
+    pricing: pricingRef,
+    images: imagesRef
+  };
+
   const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleNavClick = (section: string, ref: React.RefObject<HTMLDivElement>) => {
-    setActiveSection(section);
-    scrollToSection(ref);
+  const handleNavClick = (key: string) => {
+    const targetRef = refsMap[key];
+    if (targetRef) {
+      setActiveSection(key);
+      scrollToSection(targetRef);
+    }
   };
 
   useEffect(() => {
@@ -699,102 +717,21 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full bg-transparent py-4 space-y-4">
-      {/* Sticky Anchor Navigation Bar */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/50 py-3 flex gap-2 overflow-x-auto scrollbar-hide shrink-0 mb-2">
-        <button
-          type="button"
-          onClick={() => handleNavClick("basic", basicInfoRef)}
-          className={cn(
-            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
-            activeSection === "basic"
-              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
-              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          <span className="text-[12px] font-bold">Basic Info</span>
-          <span
-            className={cn(
-              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
-              activeSection === "basic"
-                ? "bg-white dark:bg-black text-black dark:text-white"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            1
-          </span>
-        </button>
+      {/* Two Column Grid layout */}
+      <div className="flex gap-6 items-start flex-1 overflow-hidden min-h-0">
+        
+        {/* Left column sidebar (sticky on desktop, horizontal scrollable on mobile) */}
+        <div className="lg:sticky lg:top-16 z-20 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 lg:h-fit">
+          <PillSidebar
+            options={sidebarOptions}
+            activeKey={activeSection}
+            onChange={handleNavClick}
+            className="w-full font-semibold"
+          />
+        </div>
 
-        <button
-          type="button"
-          onClick={() => handleNavClick("config", configRef)}
-          className={cn(
-            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
-            activeSection === "config"
-              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
-              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          <span className="text-[12px] font-bold">Configuration</span>
-          <span
-            className={cn(
-              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
-              activeSection === "config"
-                ? "bg-white dark:bg-black text-black dark:text-white"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            2
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleNavClick("pricing", pricingRef)}
-          className={cn(
-            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
-            activeSection === "pricing"
-              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
-              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          <span className="text-[12px] font-bold">Pricing & Inventory</span>
-          <span
-            className={cn(
-              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
-              activeSection === "pricing"
-                ? "bg-white dark:bg-black text-black dark:text-white"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            3
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleNavClick("images", imagesRef)}
-          className={cn(
-            "flex items-center justify-between pl-4 pr-1.5 py-1 rounded-full shrink-0 border transition-all duration-200 ease-in-out gap-3 h-9 shadow-sm",
-            activeSection === "images"
-              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm"
-              : "bg-card text-foreground/80 border-border hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          <span className="text-[12px] font-bold">Images</span>
-          <span
-            className={cn(
-              "h-6 w-6 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ease-in-out shrink-0",
-              activeSection === "images"
-                ? "bg-white dark:bg-black text-black dark:text-white"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            4
-          </span>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+        {/* Right column scrollable cards container */}
+        <div className="flex-1 overflow-y-auto space-y-6 pr-2 h-full pb-10 scroll-smooth">
         
         {/* SECTION 1: BASIC INFO */}
         <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-3 md:space-y-5 shadow-sm">
@@ -1313,6 +1250,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           </div>
         )}
 
+        </div>
       </div>
 
       <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto shrink-0">
