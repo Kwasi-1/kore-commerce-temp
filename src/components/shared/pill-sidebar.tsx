@@ -35,8 +35,8 @@ export function PillSidebar({
               transition-[background-color,border-color,color] duration-200 ease-in-out
               ${
                 isActive
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground-900 hover:bg-muted/50"
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background text-foreground-900 hover:bg-muted/20"
               }`}
           >
             <span className="font-medium text-[15px]">{opt.label}</span>
@@ -52,7 +52,7 @@ export function PillSidebar({
               <span
                 className={`h-10 w-10 lg:w-12 lg:h-12 ml-3 flex items-center justify-center rounded-full
                   transition-[background-color,color] duration-200 ease-in-out
-                  ${isActive ? "bg-primary-foreground/90 text-white" : "bg-secondary text-secondary-foreground"}`}
+                  ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
                 aria-hidden="true"
               >
                 <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4" />
