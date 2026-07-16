@@ -58,33 +58,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     }
   };
 
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: "-10% 0px -70% 0px",
-      threshold: 0,
-    };
-
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          if (entry.target === basicInfoRef.current) setActiveSection("basic");
-          else if (entry.target === configRef.current) setActiveSection("config");
-          else if (entry.target === pricingRef.current) setActiveSection("pricing");
-          else if (entry.target === imagesRef.current) setActiveSection("images");
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
-
-    if (basicInfoRef.current) observer.observe(basicInfoRef.current);
-    if (configRef.current) observer.observe(configRef.current);
-    if (pricingRef.current) observer.observe(pricingRef.current);
-    if (imagesRef.current) observer.observe(imagesRef.current);
-
-    return () => observer.disconnect();
-  }, []);
 
   const [categories, setCategories] = useState<string[]>([]);
   
