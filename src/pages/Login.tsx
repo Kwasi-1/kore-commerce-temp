@@ -5,7 +5,7 @@ import { loginWithPin, loginWithPassword } from '@/api/auth';
 import apiClient from '@/api/client';
 import NumPad from '@/components/pos/NumPad';
 import { toast } from 'sonner';
-import { UserSquare2, ChevronLeft, Lock, Mail, Store } from 'lucide-react';
+import { UserSquare2, ChevronLeft, Lock, Mail, Store, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface StaffUser {
@@ -29,6 +29,7 @@ export default function Login() {
   // Manual login / Password entry states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const navigate = useNavigate();
@@ -244,13 +245,24 @@ export default function Login() {
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
+              className="block w-full pl-10 pr-10 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
               placeholder="••••••••"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
         <button
@@ -271,8 +283,8 @@ export default function Login() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
     >
-      <div className="text-center mb-8">
-        <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center text-white mb-6 shadow-lg shadow-pos-accent/30">
+      <div className="text-center mb-8 fontheader spacing-sm">
+        <div className="mx-auto h-16 w-16 mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-white/10 shadow-lg text-primary backdrop-blur-sm">
           <Store className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-bold text-foreground">HeadlessPOS</h2>
@@ -281,7 +293,7 @@ export default function Login() {
 
       <form onSubmit={handlePasswordSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Email Address</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
@@ -290,7 +302,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
+              className="block w-full pl-10 pr-3 py-3 border rounded-lg bg-zinc-800 text-white outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
               placeholder="admin@store.com"
               required
             />
@@ -298,26 +310,37 @@ export default function Login() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
+              className="block w-full pl-10 pr-10 py-3 border rounded-lg bg-zinc-800 text-white outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
               placeholder="••••••••"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
 
         <button
           type="submit"
           disabled={isAuthenticating}
-          className="w-full py-3 px-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
+          className="w-full py-3 px-4 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
         >
           {isAuthenticating ? 'Signing in...' : 'Sign In'}
         </button>
@@ -343,7 +366,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-background">
       {/* Left side - Dynamic Auth Panel */}
-      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card text-card-foreground shadow-2xl">
+      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card text-card-foreground shadow-2xl m-2 lg:ml-5 lg:my-5 lg:mr-0 rounded-lg">
         <AnimatePresence mode="wait">
           {currentView === 'staff_grid' && renderStaffGrid()}
           {currentView === 'pin_entry' && renderPinEntry()}
@@ -361,7 +384,7 @@ export default function Login() {
         </div>
         
         <div className="max-w-md text-center relative z-10">
-          <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/50 /5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
+          <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
              <Store className="h-16 w-16 text-primary" />
           </div>
           <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
