@@ -302,7 +302,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border rounded-lg bg-zinc-800 text-white outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
+              className="block w-full pl-10 pr-3 py-3 border rounded-lg bg-muted text-muted-foreground outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
               placeholder="admin@store.com"
               required
             />
@@ -319,7 +319,7 @@ export default function Login() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-10 py-3 border rounded-lg bg-zinc-800 text-white outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
+              className="block w-full pl-10 pr-10 py-3 border rounded-lg bg-muted text-muted-foreground outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
               placeholder="••••••••"
               required
             />
