@@ -19,9 +19,11 @@ interface AuthState {
   refreshToken: string | null;
   staffUser: StaffUser | null;
   tenant: Tenant | null;
-  login: (token: string, refreshToken: string, staffUser: StaffUser, tenant: Tenant) => void;
+  isFirstLogin: boolean;
+  login: (token: string, refreshToken: string, staffUser: StaffUser, tenant: Tenant, isFirstLogin?: boolean) => void;
   logout: () => void;
   setTenant: (tenant: Tenant) => void;
+  completeFirstLogin: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,11 +33,13 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       staffUser: null,
       tenant: null,
-      login: (token, refreshToken, staffUser, tenant) =>
-        set({ token, refreshToken, staffUser, tenant }),
+      isFirstLogin: false,
+      login: (token, refreshToken, staffUser, tenant, isFirstLogin = false) =>
+        set({ token, refreshToken, staffUser, tenant, isFirstLogin }),
       logout: () =>
-        set({ token: null, refreshToken: null, staffUser: null, tenant: null }),
+        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false }),
       setTenant: (tenant) => set({ tenant }),
+      completeFirstLogin: () => set({ isFirstLogin: false }),
     }),
     {
       name: 'headlesspos-auth', // localStorage key

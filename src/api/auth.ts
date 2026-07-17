@@ -15,3 +15,11 @@ export const loginWithPin = async (email: string, pin: string) => {
   });
   return response.data;
 };
+
+export const changePassword = async (current_password: string, new_password: string) => {
+  const response = await apiClient.post('/auth/staff/change-password', {
+    current_password,
+    new_password,
+  });
+  return response.data;
+};

@@ -67,8 +67,8 @@ export default function Login() {
     fetchStaff();
   }, []);
 
-  const handleSuccessfulAuth = (access_token: string, refresh_token: string, staff: any, tenant: any) => {
-    login(access_token, refresh_token, staff, tenant);
+  const handleSuccessfulAuth = (access_token: string, refresh_token: string, staff: any, tenant: any, isFirstLogin = false) => {
+    login(access_token, refresh_token, staff, tenant, isFirstLogin);
     
     // Smart Routing
     if (staff.role === 'cashier') {
@@ -88,7 +88,7 @@ export default function Login() {
       const response = await loginWithPin(selectedStaff.email, pin);
       const { access_token, refresh_token, staff, tenant } = response;
       toast.success('Logged in successfully', { id: toastId });
-      handleSuccessfulAuth(access_token, refresh_token, staff, tenant);
+      handleSuccessfulAuth(access_token, refresh_token, staff, tenant, false);
     } catch (error: any) {
       toast.dismiss(toastId);
       toast.error(error.response?.data?.error?.message || 'Invalid PIN');
@@ -111,9 +111,9 @@ export default function Login() {
 
     try {
       const response = await loginWithPassword(loginEmail, password);
-      const { access_token, refresh_token, staff, tenant } = response;
+      const { access_token, refresh_token, staff, tenant, is_first_login } = response;
       toast.success('Welcome back!', { id: toastId });
-      handleSuccessfulAuth(access_token, refresh_token, staff, tenant);
+      handleSuccessfulAuth(access_token, refresh_token, staff, tenant, is_first_login);
     } catch (error: any) {
       toast.dismiss(toastId);
       toast.error(error.response?.data?.error?.message || 'Invalid credentials');

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import ForcePasswordChangeModal from '@/components/modals/ForcePasswordChangeModal';
 
 export const ProtectedRoute = ({
   children,
@@ -24,5 +25,10 @@ export const ProtectedRoute = ({
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <ForcePasswordChangeModal />
+      {children}
+    </>
+  );
 };
