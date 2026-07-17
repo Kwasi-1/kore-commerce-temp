@@ -4,6 +4,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
@@ -234,15 +235,16 @@ export default function Overview() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-6">
             <DashboardCard
               title="Today's Revenue"
-              value={isLoading ? '...' : <CurrencyDisplay amount={todaySales.revenue} />}
+              value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
             />
             <DashboardCard
               title="Today's Orders"
-              value={isLoading ? '...' : todaySales.orders.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : todaySales.orders.toString()}
             />
             <DashboardCard
               title="Active Shifts"
-              value={isLoading ? '...' : activeShiftsCount.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : activeShiftsCount.toString()}
+              className='border-foreground/10 bg-secondary/30 hover:md:ring-1 ring-foreground/10'
               // subvalue={activeShiftsCount > 0 ? "Registers are open" : "All registers closed"}
               collapsibleContent={
                 activeShiftsCount > 0 ? (
@@ -267,7 +269,7 @@ export default function Overview() {
             />
             <DashboardCard
               title="Low Stock Items"
-              value={isLoading ? '...' : lowStockProducts.length.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : lowStockProducts.length.toString()}
               // subvalue="Items below reorder point"
               className="border border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10 shadow-sm"
               collapsibleContent={
@@ -302,7 +304,7 @@ export default function Overview() {
               </div>
               <div className="h-[220px] md:h-[300px] w-full">
                 {isLoading ? (
-                  <div className="h-full flex items-center justify-center text-gray-400">Loading chart data...</div>
+                  <div className="h-full flex items-center justify-center"><Spinner className="scale-125" /></div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -331,16 +333,23 @@ export default function Overview() {
               </div>
             </div>
 
-            {/* Low Stock Alerts */}
+            {/* Critical Alerts */}
             <div className="bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
-              <div className="flex items-center gap-2 mb-6">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                <h3 className="text-lg font-bold">Critical Alerts</h3>
+              <div className="flex items-center justify-between gap-2 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+                  <h3 className="text-lg font-bold text-foreground font-header">Critical alerts</h3>
+                </div>
+                {!isLoading && lowStockProducts.length > 0 && (
+                  <span className="bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-2 py-0.5 rounded font-mono">
+                    {lowStockProducts.length}
+                  </span>
+                )}
               </div>
               
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-x-hidden">
                 {isLoading ? (
-                  <div className="text-center text-gray-400 py-8">Checking stock levels...</div>
+                  <div className="flex items-center justify-center py-8"><Spinner /></div>
                 ) : lowStockProducts.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8 flex flex-col items-center">
                     <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-3 text-green-500">
@@ -349,20 +358,20 @@ export default function Overview() {
                     <p>Stock levels are healthy!</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 md:space-y-4">
+                  <div className="divide-y divide-border/60">
                     {lowStockProducts.slice(0, 5).map(product => (
                       <div 
                         key={`${product.id}-${product.sku}`} 
                         onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-all duration-200"
+                        className="flex justify-between items-center py-3 first:pt-0 last:pb-0 cursor-pointer hover:bg-muted/20 px-2 rounded-md -mx-2 transition-colors duration-200"
                       >
                         <div>
-                          <p className="font-semibold text-foreground text-sm">{product.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
+                          <p className="font-semibold text-foreground text-sm leading-snug">{product.name}</p>
+                          <p className="text-xs text-muted-foreground font-mono mt-0.5">{product.sku}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-red-600 dark:text-red-400 font-bold text-sm">{product.stock_quantity} left</p>
-                          <p className="text-xs text-muted-foreground">Reorder at {product.reorder_point || 5}</p>
+                          <p className="text-red-500 dark:text-red-400 font-bold text-sm leading-snug">{product.stock_quantity} left</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Reorder at {product.reorder_point || 5}</p>
                         </div>
                       </div>
                     ))}
@@ -373,9 +382,9 @@ export default function Overview() {
               {lowStockProducts.length > 0 && (
                 <button 
                   onClick={() => navigate('/inventory/stock')}
-                  className="mt-6 w-full py-2 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                  className="mt-4 pt-3 border-t border-border/60 w-full text-left text-sm font-semibold text-primary hover:underline transition-colors"
                 >
-                  Manage Stock Levels &rarr;
+                  → Manage stock levels
                 </button>
               )}
             </div>
@@ -394,20 +403,20 @@ export default function Overview() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             <DashboardCard
               title="Online Revenue Today"
-              value={isLoading ? '...' : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
+              value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
             />
             <DashboardCard
               title="Online Orders Today"
-              value={isLoading ? '...' : ecomStats.todayOrders.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : ecomStats.todayOrders.toString()}
             />
             <DashboardCard
               title="New Customers Today"
-              value={isLoading ? '...' : ecomStats.newCustomers.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : ecomStats.newCustomers.toString()}
               action={<Users className="w-4 h-4" />}
             />
             <DashboardCard
               title="Active Discounts"
-              value={isLoading ? '...' : ecomStats.activeDiscounts.toString()}
+              value={isLoading ? <Spinner className="py-1" /> : ecomStats.activeDiscounts.toString()}
               action={<Tag className="w-4 h-4" />}
             />
           </div>

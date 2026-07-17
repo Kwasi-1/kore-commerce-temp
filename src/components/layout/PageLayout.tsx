@@ -136,17 +136,17 @@ export default function PageLayout({
               </div>
             </div>
           </div>
+          {subtitle && (
+            <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 ${subtitleStyles}`}>{subtitle}</p>
+          )}
 
           {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop) */}
-          {/* {(actions || filterSlot) && (
-            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mt-2">
+          {(actions || filterSlot) && (
+            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2">
               {filterSlot && <div className="shrink-0">{filterSlot}</div>}
               {actions && <div className="flex items-center gap-3 w-full sm:w-auto">{actions}</div>}
             </div>
-          )} */}
-          {subtitle && (
-              <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 ${subtitleStyles}`}>{subtitle}</p>
-            )}
+          )}
         </div>
       )}
 
