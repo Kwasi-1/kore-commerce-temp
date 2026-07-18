@@ -120,12 +120,12 @@ export default function Transactions() {
   // Summary stats derived from all (unfiltered) transactions — fetched once
   const stats = useMemo(() => {
     const netTransactions = transactions.filter(t => t.status !== 'refunded' && t.status !== 'voided');
-    const total = netTransactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+    const total = netTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
     const count = netTransactions.length;
     const avg = count > 0 ? total / count : 0;
-    const cashTotal = netTransactions.filter(t => t.paymentMethod === 'cash').reduce((s, t) => s + (t.totalAmount || 0), 0);
-    const momoTotal = netTransactions.filter(t => t.paymentMethod === 'mobile_money').reduce((s, t) => s + (t.totalAmount || 0), 0);
-    const cardTotal = netTransactions.filter(t => t.paymentMethod === 'card').reduce((s, t) => s + (t.totalAmount || 0), 0);
+    const cashTotal = netTransactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total || 0), 0);
+    const momoTotal = netTransactions.filter(t => t.payment_method === 'mobile_money').reduce((s, t) => s + (t.total || 0), 0);
+    const cardTotal = netTransactions.filter(t => t.payment_method === 'card').reduce((s, t) => s + (t.total || 0), 0);
     
     const cashShare = total > 0 ? (cashTotal / total) * 100 : 0;
     const momoShare = total > 0 ? (momoTotal / total) * 100 : 0;
@@ -139,7 +139,7 @@ export default function Transactions() {
     const netTransactions = transactions.filter(t => t.status !== 'refunded' && t.status !== 'voided');
     netTransactions.forEach((t) => {
       const name = t.cashierName || 'Unknown';
-      map[name] = (map[name] || 0) + (t.totalAmount || 0);
+      map[name] = (map[name] || 0) + (t.total || 0);
     });
     return Object.entries(map)
       .map(([name, total]) => ({ name, total }))
@@ -177,18 +177,18 @@ export default function Transactions() {
 
   const rows = transactions.map((t: any) => ({
     id: t.id,
-    receipt_number: <span className="font-mono font-medium">{t.receiptNumber}</span>,
-    date: t.dateCreated ? format(new Date(t.dateCreated), 'MMM dd, yyyy h:mm a') : 'N/A',
+    receipt_number: <span className="font-mono font-medium">{t.orderNumber || t.id?.slice(0, 8)?.toUpperCase()}</span>,
+    date: t.date_created ? format(new Date(t.date_created), 'MMM dd, yyyy h:mm a') : 'N/A',
     cashier: t.cashierName || 'Unknown',
     payment_method: (
       <span className="capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-foreground">
-        {t.paymentMethod?.replace('_', ' ')}
+        {t.payment_method?.replace('_', ' ')}
       </span>
     ),
-    amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={t.totalAmount || 0} /></span>,
+    amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={t.total || 0} /></span>,
     rowActions: [
       { key: 'view_receipt', label: 'View Receipt', icon: 'mdi:receipt-text-outline' },
-      ...(t.status === 'completed' ? [{ key: 'process_return', label: 'Process Return', icon: 'mdi:keyboard-backspace', className: 'text-destructive font-semibold' }] : [])
+      { key: 'process_return', label: 'Process Return', icon: 'mdi:keyboard-backspace', className: 'text-destructive font-semibold' }
     ],
     __record: t
   }));
