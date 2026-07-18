@@ -180,8 +180,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   };
 
   const handleAddToCart = (product: Product, selectedTier?: PackagingTier) => {
-    // TEMPORARILY DISABLED SHIFT CHECK FOR TESTING
-    if (false && !currentShift) {
+    if (!currentShift) {
       toast.error('You must start a shift first before adding items to the cart!');
       return;
     }
