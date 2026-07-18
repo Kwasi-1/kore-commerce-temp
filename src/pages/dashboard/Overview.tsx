@@ -65,8 +65,8 @@ export default function Overview() {
           });
 
           // 2. Fetch Active Shifts
-          const shiftsRes = await apiClient.get('/tenant/pos/shifts?status=open');
-          const shifts = shiftsRes.data.data?.shifts || [];
+          const shiftsRes = await apiClient.get('/pos/shifts?status=open&per_page=50');
+          const shifts = shiftsRes.data.success?.data?.shifts || [];
           setActiveShifts(shifts);
           setActiveShiftsCount(shifts.length);
           
@@ -98,9 +98,9 @@ export default function Overview() {
             apiClient.get('/tenant/discounts')
           ]);
 
-          const orders = ordersRes.data.data.orders || [];
-          const customers = customersRes.data.data.customers || [];
-          const discounts = discountsRes.data.data.discounts || [];
+          const orders = ordersRes.data.success?.data?.orders || [];
+          const customers = customersRes.data.success?.data?.customers || [];
+          const discounts = discountsRes.data.success?.data?.discounts || [];
 
           const todayOrders = orders.filter((o: any) => new Date(o.created_at).getTime() > new Date(todayStart).getTime());
           const rev = todayOrders.reduce((acc: number, o: any) => acc + (o.status !== 'cancelled' ? o.total_amount : 0), 0);
@@ -121,7 +121,7 @@ export default function Overview() {
         // 3. Fetch Low Stock Products (Common for both)
         try {
           const productsRes = await apiClient.get('/tenant/products?limit=100');
-          const products = productsRes.data.data?.products || [];
+          const products = productsRes.data.success?.data?.products || [];
           const lowStockList: any[] = [];
           
           products.forEach((p: any) => {
