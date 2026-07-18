@@ -309,7 +309,7 @@ export default function Products() {
         name: p.name,
         category: p.category || "—",
         variants: (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20">
+          <span className={`${p.has_variants ? "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20 dark:border-primary/30" : "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-muted/30 dark:bg-inherit dark:text-secondary-foreground border border-border/50 dark:border-border"}`}>
             {p.has_variants ? `${p.variant_count} variants` : "Simple"}
           </span>
         ),
@@ -352,7 +352,7 @@ export default function Products() {
           category: p.category || "—",
           sku: "—",
           sell_mode: (
-            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground">
+            <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground">
               unit only
             </span>
           ),
@@ -405,7 +405,7 @@ export default function Products() {
           category: p.category || "—",
           sku: v.sku || "—",
           sell_mode: (
-            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground capitalize">
+            <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground capitalize">
               {v.sell_mode?.replace("_", " ")}
             </span>
           ),
