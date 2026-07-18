@@ -7,8 +7,7 @@ import {
   ModalFooter
 } from '@nextui-org/react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { CustomInputTextField } from '@/components/shared/text-field';
 import { Lock, Eye, EyeOff, AlertTriangle, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { changePassword } from '@/api/auth';
@@ -83,16 +82,16 @@ export default function ForcePasswordChangeModal() {
       hideCloseButton={true}
       placement="center"
       backdrop="blur"
-      className="border border-border/80 bg-zinc-900 text-white rounded-2xl shadow-2xl p-0 overflow-hidden font-header max-w-md w-full"
+      className=" font-header max-w-md w-full"
     >
       <ModalContent>
         <form onSubmit={handleSubmit}>
           <ModalHeader className="flex flex-col items-center text-center space-y-3 p-6 pb-2 border-b border-border/40">
-            <div className="h-12 w-12 rounded-[0.8rem] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-md">
+            <div className="h-12 w-12 rounded-[0.7rem] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
               <KeyRound className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-white">
+              <h2 className="text-xl font-bold tracking-tight">
                 Update Your Password
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -101,133 +100,121 @@ export default function ForcePasswordChangeModal() {
             </div>
           </ModalHeader>
 
-          <ModalBody className="p-6 space-y-4">
+          <ModalBody className="p-6 space-y-1">
             {/* Warning block */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-amber-500 text-xs">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex gap-3 text-amber-600 dark:text-amber-500 text-xs">
               <AlertTriangle className="h-5 w-5 shrink-0" />
               <div className="space-y-0.5">
                 <span className="font-bold">Immediate action required</span>
-                <p className="text-muted-foreground text-amber-400/90 leading-normal">
+                <p className="text-muted-foreground leading-normal">
                   Your administrator provisioned your account with a temporary key. You must set a new personal password before you can view your dashboard.
                 </p>
               </div>
             </div>
 
             {/* Current Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="current_password">Current Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-zinc-500" />
-                </div>
-                <Input
-                  id="current_password"
-                  type={showCurrent ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="pl-10 pr-10 border-border/80 bg-zinc-800 text-white focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/60 transition-all text-sm rounded-lg"
-                  placeholder="••••••••"
-                  required
-                />
+            <CustomInputTextField
+              id="current_password"
+              label="Current Password"
+              type={showCurrent ? "text" : "password"}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              endContent={
                 <button
                   type="button"
                   onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                 >
                   {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* New Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="new_password">New Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-zinc-500" />
-                </div>
-                <Input
-                  id="new_password"
-                  type={showNew ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-10 pr-10 border-border/80 bg-zinc-800 text-white focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/60 transition-all text-sm rounded-lg"
-                  placeholder="Enter a new strong password"
-                  required
-                />
+            <CustomInputTextField
+              id="new_password"
+              label="New Password"
+              type={showNew ? "text" : "password"}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter a new strong password"
+              required
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              endContent={
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                 >
                   {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* Confirm Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm_password">Confirm New Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-zinc-500" />
-                </div>
-                <Input
-                  id="confirm_password"
-                  type={showConfirm ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 border-border/80 bg-zinc-800 text-white focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/60 transition-all text-sm rounded-lg"
-                  placeholder="Re-enter your new password"
-                  required
-                />
+            <CustomInputTextField
+              id="confirm_password"
+              label="Confirm New Password"
+              type={showConfirm ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter your new password"
+              required
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              endContent={
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                 >
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* Password Safety Helper Indicators */}
-            <div className="bg-zinc-800/40 border border-border/40 rounded-xl p-4.5 space-y-2 text-xs">
-              <span className="font-semibold text-zinc-400">Password Safety Rules:</span>
-              <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="bg-muted/30 rounded-lg p-4 space-y-2 text-xs">
+              <span className="font-semibold text-muted-foreground">Password Safety Rules:</span>
+              <div className="grid grid-cols-2 gap-2 mt-2 font-medium">
                 <div className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${rules.length ? 'bg-green-500' : 'bg-zinc-600'}`} />
-                  <span className={rules.length ? 'text-green-400' : 'text-muted-foreground'}>At least 8 chars</span>
+                  <div className={`h-1.5 w-1.5 rounded-full ${rules.length ? 'bg-green-600 dark:bg-green-400' : 'bg-muted-foreground/30'}`} />
+                  <span className={rules.length ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>At least 8 chars</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${rules.upperLower ? 'bg-green-500' : 'bg-zinc-600'}`} />
-                  <span className={rules.upperLower ? 'text-green-400' : 'text-muted-foreground'}>Upper & Lowercase</span>
+                  <div className={`h-1.5 w-1.5 rounded-full ${rules.upperLower ? 'bg-green-600 dark:bg-green-400' : 'bg-muted-foreground/30'}`} />
+                  <span className={rules.upperLower ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>Upper & Lowercase</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${rules.number ? 'bg-green-500' : 'bg-zinc-600'}`} />
-                  <span className={rules.number ? 'text-green-400' : 'text-muted-foreground'}>At least 1 digit</span>
+                  <div className={`h-1.5 w-1.5 rounded-full ${rules.number ? 'bg-green-600 dark:bg-green-400' : 'bg-muted-foreground/30'}`} />
+                  <span className={rules.number ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>At least 1 digit</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${rules.special ? 'bg-green-500' : 'bg-zinc-600'}`} />
-                  <span className={rules.special ? 'text-green-400' : 'text-muted-foreground'}>1 special character</span>
+                  <div className={`h-1.5 w-1.5 rounded-full ${rules.special ? 'bg-green-600 dark:bg-green-400' : 'bg-muted-foreground/30'}`} />
+                  <span className={rules.special ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>1 special character</span>
                 </div>
               </div>
             </div>
           </ModalBody>
 
-          <ModalFooter className="bg-zinc-950/40 border-t border-border/40 px-6 py-4 flex flex-col sm:flex-row gap-3">
+          <ModalFooter className="px-6 py-4 flex flex-col sm:flex-row gap-3 pb-6">
             <Button
               type="button"
               variant="outline"
+              // size="lg"
               onClick={logout}
-              className="w-full sm:w-auto h-11 px-6 rounded-lg text-zinc-400 hover:text-white border-zinc-700 hover:bg-zinc-800 flex items-center justify-center font-bold"
+              className="w-full sm:w-auto font-bold h-11 px-6"
             >
               Sign Out
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || !isPasswordValid}
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50 h-11 font-bold rounded-lg transition-all"
+              variant="default"
+              // size="lg"
+              className="flex1 font-bold h-11"
             >
               {isSubmitting ? 'Updating password...' : 'Save & Continue'}
             </Button>

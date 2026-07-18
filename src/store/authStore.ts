@@ -5,6 +5,8 @@ interface StaffUser {
   id: string;
   name: string;
   role: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 interface Tenant {
@@ -20,7 +22,7 @@ interface AuthState {
   staffUser: StaffUser | null;
   tenant: Tenant | null;
   isFirstLogin: boolean;
-  login: (token: string, refreshToken: string, staffUser: StaffUser, tenant: Tenant, isFirstLogin?: boolean) => void;
+  login: (token: string, refreshToken: string, staffUser: any, tenant: Tenant, isFirstLogin?: boolean) => void;
   logout: () => void;
   setTenant: (tenant: Tenant) => void;
   completeFirstLogin: () => void;
@@ -34,8 +36,13 @@ export const useAuthStore = create<AuthState>()(
       staffUser: null,
       tenant: null,
       isFirstLogin: false,
-      login: (token, refreshToken, staffUser, tenant, isFirstLogin = false) =>
-        set({ token, refreshToken, staffUser, tenant, isFirstLogin }),
+      login: (token, refreshToken, staff, tenant, isFirstLogin = false) => {
+        const enrichedUser: StaffUser = {
+          ...staff,
+          name: staff.name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || 'Admin User'
+        };
+        set({ token, refreshToken, staffUser: enrichedUser, tenant, isFirstLogin });
+      },
       logout: () =>
         set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false }),
       setTenant: (tenant) => set({ tenant }),

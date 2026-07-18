@@ -112,7 +112,7 @@ export default function PageLayout({
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
                       <div className="h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm">
-                        {staffUser ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
+                        {staffUser?.name ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
                       </div>
                       <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground hidden md:flex" />
                     </button>
