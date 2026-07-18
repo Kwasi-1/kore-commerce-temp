@@ -79,7 +79,7 @@ export default function Transactions() {
         url += `&cashier_name=${encodeURIComponent(staffUser.name)}`;
       }
       const response = await apiClient.get(url);
-      let data = response.data.data.transactions || [];
+      let data = response.data.success?.data?.transactions || [];
 
       // Client-side search by receipt number or cashier
       if (searchQuery.trim()) {
@@ -109,7 +109,7 @@ export default function Transactions() {
       console.log('handleViewReceipt called with:', transactionId);
       const response = await apiClient.get(`/pos/transactions/${transactionId}/receipt`);
       console.log('API response:', response.data);
-      setSelectedReceiptData(response.data.data.receipt);
+      setSelectedReceiptData(response.data.success?.data?.receipt);
       setIsReceiptOpen(true);
     } catch (error) {
       console.error('Failed to fetch receipt:', error);

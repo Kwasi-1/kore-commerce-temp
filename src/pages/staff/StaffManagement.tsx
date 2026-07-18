@@ -24,7 +24,7 @@ export default function StaffManagement() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/staff?limit=50');
-      setStaffList(response.data.data.staff || []);
+      setStaffList(response.data.success.data.staff || []);
     } catch (error) {
       console.error('Failed to fetch staff:', error);
       toast.error('Failed to load staff directory');

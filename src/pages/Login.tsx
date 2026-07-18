@@ -50,7 +50,7 @@ export default function Login() {
           headers: { 'X-API-Key': apiKey },
         });
         
-        const staff = response.data.data.staff || [];
+        const staff = response.data.success?.data?.staff || [];
         setStaffList(staff);
         
         if (staff.length === 0) {

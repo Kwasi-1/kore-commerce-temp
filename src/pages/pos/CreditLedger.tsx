@@ -39,7 +39,7 @@ export default function CreditLedger() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/pos/credit-ledger');
-      const data = response.data.data.debtors || [];
+      const data = response.data.success?.data?.debtors || [];
       
       // Client-side search
       const filtered = data.filter((c: any) => 
@@ -64,7 +64,7 @@ export default function CreditLedger() {
     setIsPurchasesLoading(true);
     try {
       const response = await apiClient.get(`/tenant/customers/${customerId}/credit-purchases`);
-      setCreditPurchases(response.data.data.purchases || []);
+      setCreditPurchases(response.data.success?.data?.purchases || []);
     } catch (error) {
       console.error('Failed to fetch credit purchases:', error);
       toast.error('Could not load credit purchases');
@@ -92,7 +92,7 @@ export default function CreditLedger() {
         });
         toast.success('Debt settled successfully');
 
-        const enrichedSettlements = response.data.data.settlements?.map((s: any) => {
+        const enrichedSettlements = response.data.success?.data?.settlements?.map((s: any) => {
           const matchPurchase = creditPurchases.find(p => p.id === s.purchase_id);
           return {
             ...s,
@@ -105,7 +105,7 @@ export default function CreditLedger() {
           reference: `CONS-${Math.floor(1000 + Math.random() * 9000)}`,
           date: new Date().toISOString(),
           amount: amount,
-          balance_after: response.data.data.new_balance,
+          balance_after: response.data.success?.data?.new_balance,
           payment_method: method,
           type: 'consolidated',
           settlements: enrichedSettlements
@@ -123,7 +123,7 @@ export default function CreditLedger() {
           reference: `SET-${Math.floor(1000 + Math.random() * 9000)}`,
           date: new Date().toISOString(),
           amount: amount,
-          balance_after: response.data.data.new_balance,
+          balance_after: response.data.success?.data?.new_balance,
           payment_method: method,
           type: 'settlement',
           purchase_reference: activeSettlePurchase.reference,
@@ -140,7 +140,7 @@ export default function CreditLedger() {
       if (selectedDebtor) {
         setSelectedDebtor((prev: any) => ({
           ...prev,
-          outstanding_debt: response.data.data.new_balance
+          outstanding_debt: response.data.success?.data?.new_balance
         }));
         fetchCreditPurchases(selectedDebtor.id);
       }

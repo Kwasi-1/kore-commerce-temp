@@ -105,7 +105,7 @@ export default function Products() {
         url += `&category=${categoryVal}`;
 
       const response = await apiClient.get(url);
-      const data = response.data.data.products || [];
+      const data = response.data.success?.data?.products || [];
       setProducts(data);
 
       // Extract categories for filter options

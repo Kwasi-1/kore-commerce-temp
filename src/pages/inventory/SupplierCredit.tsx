@@ -121,7 +121,7 @@ export default function SupplierCredit() {
         url += `&status=${statusArr[0]}`;
       }
       const response = await apiClient.get(url);
-      let data = response.data.data.supplierCredits || [];
+      let data = response.data.success?.data?.supplierCredits || [];
 
       // Client-side search by supplier name or PO ref
       if (searchQuery.trim()) {
@@ -194,8 +194,8 @@ export default function SupplierCredit() {
       fetchCredits();
       
       // If detail panel is open, update the displayed item
-      if (isDetailOpen && selectedCredit.id === response.data.data.supplierCredit.id) {
-        setSelectedCredit(response.data.data.supplierCredit);
+      if (isDetailOpen && selectedCredit.id === response.data.success?.data?.supplierCredit?.id) {
+        setSelectedCredit(response.data.success?.data?.supplierCredit);
       }
     } catch (err: any) {
       console.error(err);

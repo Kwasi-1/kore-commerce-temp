@@ -23,7 +23,7 @@ export default function Customers() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/customers?limit=100');
-      const customersData = response.data.data.customers || [];
+      const customersData = response.data.success?.data?.customers || [];
       
       // Filter by search query on frontend
       const filtered = customersData.filter((c: any) => 

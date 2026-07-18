@@ -45,7 +45,7 @@ export default function OnlineOrders() {
       }
       
       const response = await apiClient.get(url);
-      const ordersData = response.data.data.orders || [];
+      const ordersData = response.data.success?.data?.orders || [];
       
       // Filter by search query on frontend since backend mock might not support it fully
       const filtered = ordersData.filter((o: any) => 

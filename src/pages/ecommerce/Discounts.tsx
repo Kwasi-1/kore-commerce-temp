@@ -21,7 +21,7 @@ export default function Discounts() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/discounts');
-      setDiscounts(response.data.data.discounts || []);
+      setDiscounts(response.data.success?.data?.discounts || []);
     } catch (error) {
       console.error('Failed to fetch discounts:', error);
       toast.error('Failed to load discounts');

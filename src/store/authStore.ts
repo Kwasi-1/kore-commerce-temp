@@ -11,7 +11,8 @@ interface StaffUser {
 
 interface Tenant {
   id: string;
-  name: string;
+  name: string;         // mapped from business_name
+  business_name?: string;
   plan: string;
   track_expiry_enabled?: boolean;
 }
@@ -41,7 +42,11 @@ export const useAuthStore = create<AuthState>()(
           ...staff,
           name: staff.name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || 'Admin User'
         };
-        set({ token, refreshToken, staffUser: enrichedUser, tenant, isFirstLogin });
+        const enrichedTenant: Tenant = {
+          ...tenant,
+          name: tenant.name || tenant.business_name || 'My Business',
+        };
+        set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin });
       },
       logout: () =>
         set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false }),

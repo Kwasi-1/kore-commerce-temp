@@ -18,7 +18,7 @@ export default function StockManagement() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/products?limit=100');
-      setProducts(response.data.data.products || []);
+      setProducts(response.data.success?.data?.products || []);
       setStockChanges({}); // Reset changes on fresh fetch
     } catch (error) {
       console.error('Failed to fetch products for stock management:', error);

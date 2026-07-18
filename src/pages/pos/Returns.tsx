@@ -73,7 +73,7 @@ export default function Returns() {
       let url = '/pos/returns';
       
       const response = await apiClient.get(url);
-      let data: ReturnRecord[] = response.data.data.returns || [];
+      let data: ReturnRecord[] = response.data.success?.data?.returns || [];
 
       // Client-side filtering by status
       if (statusArr[0] !== 'all') {

@@ -18,7 +18,7 @@ export default function StockReconciliation() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/products?limit=100');
-      setProducts(response.data.data.products || []);
+      setProducts(response.data.success?.data?.products || []);
       setPhysicalCounts({});
     } catch (error) {
       console.error('Failed to fetch products for reconciliation:', error);

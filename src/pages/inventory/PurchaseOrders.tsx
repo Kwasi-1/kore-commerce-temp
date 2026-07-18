@@ -28,7 +28,7 @@ export default function PurchaseOrders() {
       }
 
       const response = await apiClient.get(url);
-      setPurchaseOrders(response.data.data.purchaseOrders || []);
+      setPurchaseOrders(response.data.success?.data?.purchaseOrders || []);
     } catch (error) {
       console.error('Failed to fetch POs:', error);
       toast.error('Failed to load purchase orders');
