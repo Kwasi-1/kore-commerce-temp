@@ -496,22 +496,26 @@ export function setupMockApi() {
   };
 
   mock.onGet('/tenant/staff').reply(200, {
-    success: true,
-    data: { staff: mockStaff }
+    success: { status: 'OK', code: 200, data: { staff: mockStaff } }
   });
 
   // PIN Login (Accepts any 4-digit PIN for demo)
   mock.onPost('/auth/staff/pin-login').reply((config) => {
     const { email } = JSON.parse(config.data);
     const user = mockStaff.find(s => s.email === email);
-    if (!user) return [401, { error: { message: 'Invalid PIN' } }];
+    if (!user) return [401, { error: { status: 'UNAUTHORIZED', message: 'Invalid PIN', code: 401 } }];
     
     return [200, {
-      success: true,
-      access_token: 'mock-jwt-token',
-      refresh_token: 'mock-refresh-token',
-      staff: user,
-      tenant: mockTenant
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          access_token: 'mock-jwt-token',
+          refresh_token: 'mock-refresh-token',
+          staff: user,
+          tenant: mockTenant
+        }
+      }
     }];
   });
 
@@ -521,11 +525,16 @@ export function setupMockApi() {
     const user = mockStaff.find(s => s.email === email) || mockStaff[0]; // Fallback to owner if unknown
     
     return [200, {
-      success: true,
-      access_token: 'mock-jwt-token',
-      refresh_token: 'mock-refresh-token',
-      staff: user,
-      tenant: mockTenant
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          access_token: 'mock-jwt-token',
+          refresh_token: 'mock-refresh-token',
+          staff: user,
+          tenant: mockTenant
+        }
+      }
     }];
   });
 
@@ -550,36 +559,36 @@ export function setupMockApi() {
   };
 
   mock.onGet('/tenant/settings').reply(200, {
-    success: { data: mockTenantSettings }
+    success: { status: 'OK', code: 200, data: mockTenantSettings }
   });
 
   mock.onPatch('/tenant/settings/profile').reply((config) => {
     mockTenantSettings.store = { ...mockTenantSettings.store, ...JSON.parse(config.data) };
-    return [200, { success: true }];
+    return [200, { success: { status: 'OK', code: 200, data: {} } }];
   });
 
   mock.onPatch('/tenant/settings/contact').reply((config) => {
     mockTenantSettings.store = { ...mockTenantSettings.store, ...JSON.parse(config.data) };
-    return [200, { success: true }];
+    return [200, { success: { status: 'OK', code: 200, data: {} } }];
   });
 
   mock.onPatch('/tenant/settings/pos').reply((config) => {
     mockTenantSettings.pos_settings = { ...mockTenantSettings.pos_settings, ...JSON.parse(config.data) };
-    return [200, { success: true }];
+    return [200, { success: { status: 'OK', code: 200, data: {} } }];
   });
 
   // Enable Expiry date tracking
   mock.onPost('/tenant/settings/expiry/enable').reply(() => {
     mockTenant.track_expiry_enabled = true;
     mockTenantSettings.store.track_expiry_enabled = true;
-    return [200, { success: true, tenant: mockTenant }];
+    return [200, { success: { status: 'OK', code: 200, data: { tenant: mockTenant } } }];
   });
 
   // Disable Expiry date tracking
   mock.onPost('/tenant/settings/expiry/disable').reply(() => {
     mockTenant.track_expiry_enabled = false;
     mockTenantSettings.store.track_expiry_enabled = false;
-    return [200, { success: true, tenant: mockTenant }];
+    return [200, { success: { status: 'OK', code: 200, data: { tenant: mockTenant } } }];
   });
 
   // -----------------------------------------------------
@@ -588,14 +597,17 @@ export function setupMockApi() {
   
   // Sales Summary
   mock.onGet(/\/tenant\/reports\/sales/).reply(200, {
-    success: true,
-    data: {
-      summary: {
-        total_sales: 12450.50,
-        total_transactions: 84,
-        breakdown_by_channel: {
-          pos: { total: 8200.00, count: 60 },
-          storefront: { total: 4250.50, count: 24 }
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        summary: {
+          total_sales: 12450.50,
+          total_transactions: 84,
+          breakdown_by_channel: {
+            pos: { total: 8200.00, count: 60 },
+            storefront: { total: 4250.50, count: 24 }
+          }
         }
       }
     }
@@ -610,9 +622,9 @@ export function setupMockApi() {
     const id = url.split('/').pop() || '';
     const product = mockProducts.find(p => p.id === id);
     if (product) {
-      return [200, { success: true, data: { product } }];
+      return [200, { success: { status: 'OK', code: 200, data: { product } } }];
     }
-    return [404, { success: false, error: { message: 'Product not found' } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Product not found', code: 404 } }];
   });
 
   mock.onGet(/\/tenant\/products(\?.*)?$/).reply((config) => {
@@ -676,7 +688,7 @@ export function setupMockApi() {
       };
     });
 
-    return [200, { success: true, data: { products: mapped } }];
+    return [200, { success: { status: 'OK', code: 200, data: { products: mapped } } }];
   });
 
   const getPosProductsData = (products: any[]) => {
@@ -757,12 +769,14 @@ export function setupMockApi() {
       );
     }
 
-    return [200, { success: { data: { products: getPosProductsData(filtered) } } }];
+    return [200, { success: { status: 'OK', code: 200, data: { products: getPosProductsData(filtered) } } }];
   });
 
   mock.onGet(/\/pos\/products$/).reply(() => {
     return [200, {
       success: {
+        status: 'OK',
+        code: 200,
         data: {
           products: getPosProductsData(mockProducts)
         }
@@ -906,10 +920,10 @@ export function setupMockApi() {
         ];
       }
       
-      return [200, { success: true, message: 'Product updated successfully', data: { product: p } }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Product updated successfully', data: { product: p } } }];
     }
     
-    return [404, { success: false, error: { message: 'Product not found' } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Product not found', code: 404 } }];
   });
 
   mock.onPost('/tenant/products/bulk').reply((config) => {
@@ -956,8 +970,12 @@ export function setupMockApi() {
       });
     }
     return [200, {
-      success: true,
-      message: 'Products imported successfully'
+      success: {
+        status: 'OK',
+        code: 200,
+        message: 'Products imported successfully',
+        data: {}
+      }
     }];
   });
 
@@ -969,9 +987,9 @@ export function setupMockApi() {
     const productIndex = mockProducts.findIndex(p => p.id === id);
     if (productIndex !== -1) {
       mockProducts[productIndex] = { ...mockProducts[productIndex], status };
-      return [200, { success: true, message: 'Status updated' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Status updated', data: {} } }];
     }
-    return [404, { success: false, message: 'Product not found' }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Product not found', code: 404 } }];
   });
 
   mock.onDelete(/\/tenant\/products\/[^/]+/).reply((config) => {
@@ -981,9 +999,9 @@ export function setupMockApi() {
     const productIndex = mockProducts.findIndex(p => p.id === id);
     if (productIndex !== -1) {
       mockProducts.splice(productIndex, 1);
-      return [200, { success: true, message: 'Product deleted' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Product deleted', data: {} } }];
     }
-    return [404, { success: false, message: 'Product not found' }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Product not found', code: 404 } }];
   });
 
   mock.onPatch('/tenant/products/stock-update').reply((config) => {
@@ -997,7 +1015,7 @@ export function setupMockApi() {
         }
       }
     });
-    return [200, { success: true, message: 'Stock reconciliation updated' }];
+    return [200, { success: { status: 'OK', code: 200, message: 'Stock reconciliation updated', data: {} } }];
   });
 
   // -----------------------------------------------------
@@ -1005,11 +1023,14 @@ export function setupMockApi() {
   // -----------------------------------------------------
   
   mock.onGet(/\/tenant\/pos\/shifts/).reply(200, {
-    success: true,
-    data: {
-      shifts: [
-        { id: 'sh1', status: 'open', opened_at: new Date().toISOString(), opened_by_name: 'Kofi Annan', starting_cash: 500 }
-      ]
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        shifts: [
+          { id: 'sh1', status: 'open', opened_at: new Date().toISOString(), opened_by_name: 'Kofi Annan', starting_cash: 500 }
+        ]
+      }
     }
   });
 
@@ -1017,6 +1038,8 @@ export function setupMockApi() {
     const data = JSON.parse(config.data);
     return [200, {
       success: {
+        status: 'OK',
+        code: 200,
         data: {
           shift: {
             id: `sh${Math.floor(Math.random() * 1000)}`,
@@ -1034,13 +1057,16 @@ export function setupMockApi() {
   // -----------------------------------------------------
   
   mock.onGet(/\/tenant\/expenses\/summary/).reply(200, {
-    success: true,
-    data: {
-      summary: [
-        { category: 'utilities', total_amount: 1500 },
-        { category: 'supplies', total_amount: 450 },
-        { category: 'maintenance', total_amount: 200 }
-      ]
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        summary: [
+          { category: 'utilities', total_amount: 1500 },
+          { category: 'supplies', total_amount: 450 },
+          { category: 'maintenance', total_amount: 200 }
+        ]
+      }
     }
   });
 
@@ -1064,7 +1090,7 @@ export function setupMockApi() {
       filtered = filtered.filter(e => e.category === category);
     }
 
-    return [200, { success: true, data: { expenses: filtered } }];
+    return [200, { success: { status: 'OK', code: 200, data: { expenses: filtered } } }];
   });
 
   mock.onPut(/\/tenant\/expenses\/[^/]+\/void/).reply((config) => {
@@ -1072,9 +1098,9 @@ export function setupMockApi() {
     const idx = mockExpenses.findIndex(e => e.id === id);
     if (idx !== -1) {
       mockExpenses[idx].isVoided = true;
-      return [200, { success: true, message: 'Expense voided' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Expense voided', data: {} } }];
     }
-    return [404, { success: false }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Expense not found', code: 404 } }];
   });
   
   // POS Transactions
@@ -1097,9 +1123,9 @@ export function setupMockApi() {
     const id = urlParts[urlParts.length - 2];
     const tx = mockTransactions.find(t => t.id === id);
     if (tx) {
-      return [200, { success: true, data: { receipt: { ...tx, items: [{ name: 'Sample Product', qty: 1, price: tx.totalAmount }], tenant_name: 'HeadlessPOS Demo Store' } } }];
+      return [200, { success: { status: 'OK', code: 200, data: { receipt: { ...tx, items: [{ name: 'Sample Product', qty: 1, price: tx.totalAmount }], tenant_name: 'HeadlessPOS Demo Store' } } } }];
     }
-    return [404, { success: false }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Receipt not found', code: 404 } }];
   });
 
   mock.onPost(/\/pos\/transactions\/[^/]+\/refund/).reply((config) => {
@@ -1116,9 +1142,9 @@ export function setupMockApi() {
       } else {
         mockTransactions[txIndex] = { ...tx, status: 'partially_refunded', totalAmount: tx.totalAmount - amount };
       }
-      return [200, { success: true, message: 'Refund processed' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Refund processed', data: {} } }];
     }
-    return [404, { success: false, message: 'Transaction not found' }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Transaction not found', code: 404 } }];
   });
 
   mock.onGet(/^\/pos\/transactions/).reply((config) => {
@@ -1150,7 +1176,7 @@ export function setupMockApi() {
       });
     }
 
-    return [200, { success: true, data: { transactions: filtered, total: filtered.length } }];
+    return [200, { success: { status: 'OK', code: 200, data: { transactions: filtered, total: filtered.length } } }];
   });
 
   // POST /pos/transactions
@@ -1203,17 +1229,23 @@ export function setupMockApi() {
     mockTransactions = [newTx, ...mockTransactions];
     
     return [200, {
-      success: true,
-      data: {
-        transaction: newTx
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          transaction: newTx
+        }
       }
     }];
   });
   
   mock.onGet(/\/tenant\/inventory\/suppliers/).reply(200, {
-    success: true,
-    data: {
-      suppliers: mockSuppliers
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        suppliers: mockSuppliers
+      }
     }
   });
 
@@ -1229,9 +1261,12 @@ export function setupMockApi() {
     }
 
     return [200, {
-      success: true,
-      data: {
-        purchaseOrders: filtered
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          purchaseOrders: filtered
+        }
       }
     }];
   });
@@ -1260,9 +1295,12 @@ export function setupMockApi() {
     mockPurchaseOrders = [newPO, ...mockPurchaseOrders];
     
     return [200, {
-      success: true,
-      data: {
-        purchaseOrder: newPO
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          purchaseOrder: newPO
+        }
       }
     }];
   });
@@ -1275,12 +1313,12 @@ export function setupMockApi() {
     
     const poIdx = mockPurchaseOrders.findIndex(po => po.id === poId);
     if (poIdx === -1) {
-      return [404, { error: { message: 'Purchase order not found' } }];
+      return [404, { error: { status: 'NOT_FOUND', message: 'Purchase order not found', code: 404 } }];
     }
     
     const po = mockPurchaseOrders[poIdx];
     if (po.status === 'received') {
-      return [400, { error: { message: 'Purchase order already received' } }];
+      return [400, { error: { status: 'BAD_REQUEST', message: 'Purchase order already received', code: 400 } }];
     }
     
     po.status = 'received';
@@ -1379,24 +1417,26 @@ export function setupMockApi() {
   ];
 
   mock.onGet(/\/tenant\/customers\/.+\/orders/).reply(200, {
-    success: true,
-    data: {
-      orders: [
-        { id: 'o1', reference: 'ORD-1001', total_amount: 850.00, status: 'delivered', created_at: new Date().toISOString() }
-      ]
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        orders: [
+          { id: 'o1', reference: 'ORD-1001', total_amount: 850.00, status: 'delivered', created_at: new Date().toISOString() }
+        ]
+      }
     }
   });
 
   mock.onGet(/\/tenant\/customers\/[^/]+$/).reply((config) => {
     const id = config.url?.split('/').pop();
     const customer = mockCustomers.find(c => c.id === id);
-    if (customer) return [200, { success: true, data: { customer } }];
-    return [404, { success: false, error: { message: 'Customer not found' } }];
+    if (customer) return [200, { success: { status: 'OK', code: 200, data: { customer } } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Customer not found', code: 404 } }];
   });
 
   mock.onGet(/\/tenant\/customers/).reply(200, {
-    success: true,
-    data: { customers: mockCustomers, total: mockCustomers.length, page: 1, limit: 50 }
+    success: { status: 'OK', code: 200, data: { customers: mockCustomers, total: mockCustomers.length, page: 1, limit: 50 } }
   });
 
   mock.onGet(/^\/pos\/credit-ledger/).reply((config) => {
@@ -1416,7 +1456,7 @@ export function setupMockApi() {
       return c;
     }).filter(c => c.outstanding_debt > 0);
     
-    return [200, { success: true, data: { debtors, total: debtors.length } }];
+    return [200, { success: { status: 'OK', code: 200, data: { debtors, total: debtors.length } } }];
   });
 
   mock.onGet(/\/tenant\/customers\/[^/]+\/credit-purchases/).reply((config) => {
@@ -1445,7 +1485,7 @@ export function setupMockApi() {
       };
     });
     
-    return [200, { success: true, data: { purchases: data } }];
+    return [200, { success: { status: 'OK', code: 200, data: { purchases: data } } }];
   });
 
   mock.onPost(/\/tenant\/customers\/[^/]+\/settle-all-debt/).reply((config) => {
@@ -1455,7 +1495,7 @@ export function setupMockApi() {
     const { amount, payment_method } = JSON.parse(config.data);
     
     const customer = mockCustomers.find(c => c.id === customerId);
-    if (!customer) return [404, { success: false, message: 'Customer not found' }];
+    if (!customer) return [404, { error: { status: 'NOT_FOUND', message: 'Customer not found', code: 404 } }];
     
     const purchases = mockCreditHistory.filter(h => h.customer_id === customerId && h.type === 'credit_purchase');
     const settlements = mockCreditHistory.filter(h => h.customer_id === customerId && h.type === 'settlement');
@@ -1464,7 +1504,7 @@ export function setupMockApi() {
     const currentOutstanding = Math.max(0, totalCredit - totalSettled);
     
     if (amount <= 0 || amount > currentOutstanding) {
-      return [400, { success: false, message: 'Invalid settlement amount' }];
+      return [400, { error: { status: 'BAD_REQUEST', message: 'Invalid settlement amount', code: 400 } }];
     }
     
     let remainingPayment = amount;
@@ -1502,11 +1542,14 @@ export function setupMockApi() {
     customer.outstanding_debt = Math.max(0, currentOutstanding - amount);
     
     return [200, { 
-      success: true, 
-      message: 'Consolidated settlement processed successfully', 
-      data: { 
-        new_balance: customer.outstanding_debt,
-        settlements: settlementDetails
+      success: { 
+        status: 'OK',
+        code: 200,
+        message: 'Consolidated settlement processed successfully', 
+        data: { 
+          new_balance: customer.outstanding_debt,
+          settlements: settlementDetails
+        } 
       } 
     }];
   });
@@ -1518,14 +1561,14 @@ export function setupMockApi() {
     const { amount, payment_method } = JSON.parse(config.data);
     
     const purchase = mockCreditHistory.find(h => h.id === purchaseId);
-    if (!purchase) return [404, { success: false, message: 'Credit record not found' }];
+    if (!purchase) return [404, { error: { status: 'NOT_FOUND', message: 'Credit record not found', code: 404 } }];
     
     const settlements = mockCreditHistory.filter(h => h.type === 'settlement' && h.purchase_id === purchaseId);
     const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
     const remaining = purchase.amount - totalSettled;
     
     if (amount <= 0 || amount > remaining) {
-      return [400, { success: false, message: 'Invalid settlement amount' }];
+      return [400, { error: { status: 'BAD_REQUEST', message: 'Invalid settlement amount', code: 400 } }];
     }
     
     const newSettlement = {
@@ -1547,7 +1590,7 @@ export function setupMockApi() {
       customer.outstanding_debt = Math.max(0, customer.outstanding_debt - amount);
     }
     
-    return [200, { success: true, message: 'Payment recorded successfully', data: { new_balance: remaining - amount } }];
+    return [200, { success: { status: 'OK', code: 200, message: 'Payment recorded successfully', data: { new_balance: remaining - amount } } }];
   });
 
   // Orders
@@ -1561,11 +1604,14 @@ export function setupMockApi() {
   ];
 
   mock.onGet(/\/tenant\/orders\/[^/]+\/items/).reply(200, {
-    success: true,
-    data: {
-      items: [
-        { id: 'oi1', product_name: 'Nike Air Max', sku: 'NK-AM-01', quantity: 1, unit_price: 850.00, total_price: 850.00, image_url: null }
-      ]
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        items: [
+          { id: 'oi1', product_name: 'Nike Air Max', sku: 'NK-AM-01', quantity: 1, unit_price: 850.00, total_price: 850.00, image_url: null }
+        ]
+      }
     }
   });
 
@@ -1575,9 +1621,9 @@ export function setupMockApi() {
     const orderIndex = mockOrders.findIndex(o => o.id === id);
     if (orderIndex !== -1) {
       mockOrders[orderIndex].status = status;
-      return [200, { success: true, message: 'Order status updated' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Order status updated', data: {} } }];
     }
-    return [404, { success: false, error: { message: 'Order not found' } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Order not found', code: 404 } }];
   });
 
   mock.onPost(/\/tenant\/orders\/[^/]+\/refund/).reply((config) => {
@@ -1592,16 +1638,16 @@ export function setupMockApi() {
       } else {
         mockOrders[orderIndex] = { ...order, status: 'partially_refunded', total_amount: order.total_amount - amount };
       }
-      return [200, { success: true, message: 'Refund processed' }];
+      return [200, { success: { status: 'OK', code: 200, message: 'Refund processed', data: {} } }];
     }
-    return [404, { success: false, message: 'Order not found' }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Order not found', code: 404 } }];
   });
 
   mock.onGet(/\/tenant\/orders\/[^/]+$/).reply((config) => {
     const id = config.url?.split('/').pop();
     const order = mockOrders.find(o => o.id === id);
-    if (order) return [200, { success: true, data: { order } }];
-    return [404, { success: false, error: { message: 'Order not found' } }];
+    if (order) return [200, { success: { status: 'OK', code: 200, data: { order } } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Order not found', code: 404 } }];
   });
 
   mock.onGet(/\/tenant\/orders/).reply((config) => {
@@ -1618,7 +1664,7 @@ export function setupMockApi() {
       filtered = filtered.filter(o => o.channel === channel);
     }
 
-    return [200, { success: true, data: { orders: filtered, total: filtered.length, page: 1, limit: 50 } }];
+    return [200, { success: { status: 'OK', code: 200, data: { orders: filtered, total: filtered.length, page: 1, limit: 50 } } }];
   });
 
   // Storefront Settings
@@ -1634,18 +1680,16 @@ export function setupMockApi() {
   };
 
   mock.onGet(/\/tenant\/storefront\/settings/).reply(200, {
-    success: true,
-    data: { settings: mockStorefrontSettings }
+    success: { status: 'OK', code: 200, data: { settings: mockStorefrontSettings } }
   });
 
   mock.onPut(/\/tenant\/storefront\/settings/).reply((config) => {
     mockStorefrontSettings = { ...mockStorefrontSettings, ...JSON.parse(config.data) };
-    return [200, { success: true, message: 'Settings updated' }];
+    return [200, { success: { status: 'OK', code: 200, message: 'Settings updated', data: {} } }];
   });
 
   mock.onGet(/\/tenant\/storefront\/deployment/).reply(200, {
-    success: true,
-    data: { deployment: { url: 'https://demo-store.headlesspos.com', deployed_at: new Date().toISOString(), template: 'modern' } }
+    success: { status: 'OK', code: 200, data: { deployment: { url: 'https://demo-store.headlesspos.com', deployed_at: new Date().toISOString(), template: 'modern' } } }
   });
 
   // Discounts
@@ -1655,8 +1699,7 @@ export function setupMockApi() {
   ];
 
   mock.onGet(/\/tenant\/discounts/).reply(200, {
-    success: true,
-    data: { discounts: mockDiscounts }
+    success: { status: 'OK', code: 200, data: { discounts: mockDiscounts } }
   });
 
   mock.onPost(/\/tenant\/discounts\/[^/]+\/toggle/).reply((config) => {
@@ -1664,15 +1707,15 @@ export function setupMockApi() {
     const dIndex = mockDiscounts.findIndex(d => d.id === id);
     if (dIndex !== -1) {
       mockDiscounts[dIndex].is_active = !mockDiscounts[dIndex].is_active;
-      return [200, { success: true, data: { discount: mockDiscounts[dIndex] } }];
+      return [200, { success: { status: 'OK', code: 200, data: { discount: mockDiscounts[dIndex] } } }];
     }
-    return [404, { success: false }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Discount not found', code: 404 } }];
   });
 
   mock.onPost(/\/tenant\/discounts/).reply((config) => {
     const newD = { id: `d${Date.now()}`, ...JSON.parse(config.data), uses_count: 0 };
     mockDiscounts.push(newD);
-    return [200, { success: true, data: { discount: newD } }];
+    return [200, { success: { status: 'OK', code: 200, data: { discount: newD } } }];
   });
 
   mock.onPut(/\/tenant\/discounts\/[^/]+$/).reply((config) => {
@@ -1680,23 +1723,26 @@ export function setupMockApi() {
     const dIndex = mockDiscounts.findIndex(d => d.id === id);
     if (dIndex !== -1) {
       mockDiscounts[dIndex] = { ...mockDiscounts[dIndex], ...JSON.parse(config.data) };
-      return [200, { success: true }];
+      return [200, { success: { status: 'OK', code: 200, data: {} } }];
     }
-    return [404, { success: false }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Discount not found', code: 404 } }];
   });
 
   mock.onDelete(/\/tenant\/discounts\/[^/]+$/).reply((config) => {
     const id = config.url?.split('/').pop();
     mockDiscounts = mockDiscounts.filter(d => d.id !== id);
-    return [200, { success: true }];
+    return [200, { success: { status: 'OK', code: 200, data: {} } }];
   });
 
   // Suppliers list mock
   mock.onGet(/\/tenant\/suppliers/).reply(200, {
-    success: true,
-    data: {
-      suppliers: mockSuppliers,
-      pagination: { total_items: mockSuppliers.length, total_pages: 1, current_page: 1, per_page: 100 }
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        suppliers: mockSuppliers,
+        pagination: { total_items: mockSuppliers.length, total_pages: 1, current_page: 1, per_page: 100 }
+      }
     }
   });
 
@@ -2162,10 +2208,13 @@ export function setupMockApi() {
     }
     
     return [200, {
-      success: true,
-      data: {
-        returns: filtered,
-        total: filtered.length
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          returns: filtered,
+          total: filtered.length
+        }
       }
     }];
   });
@@ -2176,9 +2225,9 @@ export function setupMockApi() {
     const id = url.split('/').pop() || '';
     const ret = mockReturns.find(r => r.id === id);
     if (ret) {
-      return [200, { success: true, data: { return: ret } }];
+      return [200, { success: { status: 'OK', code: 200, data: { return: ret } } }];
     }
-    return [404, { success: false, error: { message: 'Return not found' } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Return not found', code: 404 } }];
   });
 
   // POST /pos/returns
@@ -2218,9 +2267,12 @@ export function setupMockApi() {
     mockReturns = [newReturn, ...mockReturns];
     
     return [201, {
-      success: true,
-      data: {
-        return: newReturn
+      success: {
+        status: 'CREATED',
+        code: 201,
+        data: {
+          return: newReturn
+        }
       }
     }];
   });
@@ -2287,15 +2339,18 @@ export function setupMockApi() {
       }
       
       return [200, {
-        success: true,
-        message: "Return approved successfully",
-        data: {
-          return: mockReturns[retIdx]
+        success: {
+          status: 'OK',
+          code: 200,
+          message: "Return approved successfully",
+          data: {
+            return: mockReturns[retIdx]
+          }
         }
       }];
     }
     
-    return [404, { success: false, error: { message: "Return record not found" } }];
+    return [404, { error: { status: "NOT_FOUND", message: "Return record not found", code: 404 } }];
   });
 
   // POST /pos/returns/:id/reject
@@ -2317,14 +2372,17 @@ export function setupMockApi() {
       };
       
       return [200, {
-        success: true,
-        message: "Return rejected successfully",
-        data: {
-          return: mockReturns[retIdx]
+        success: {
+          status: 'OK',
+          code: 200,
+          message: "Return rejected successfully",
+          data: {
+            return: mockReturns[retIdx]
+          }
         }
       }];
     }
-    return [404, { success: false, error: { message: "Return record not found" } }];
+    return [404, { error: { status: "NOT_FOUND", message: "Return record not found", code: 404 } }];
   });
 
   // Mock supplier credit database
@@ -2393,12 +2451,15 @@ export function setupMockApi() {
 
   // GET /tenant/supplier-credit/summary
   mock.onGet(/\/tenant\/supplier-credit\/summary$/).reply(200, {
-    success: true,
-    data: {
-      total_outstanding: 13400.00,
-      total_suppliers_with_debt: 2,
-      overdue_count: 1,
-      upcoming_due_7_days: 1
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        total_outstanding: 13400.00,
+        total_suppliers_with_debt: 2,
+        overdue_count: 1,
+        upcoming_due_7_days: 1
+      }
     }
   });
 
@@ -2418,10 +2479,13 @@ export function setupMockApi() {
     }
 
     return [200, {
-      success: true,
-      data: {
-        supplierCredits: filtered,
-        total: filtered.length
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          supplierCredits: filtered,
+          total: filtered.length
+        }
       }
     }];
   });
@@ -2432,9 +2496,9 @@ export function setupMockApi() {
     const id = url.split('/').pop() || '';
     const credit = mockSupplierCredits.find(s => s.id === id);
     if (credit) {
-      return [200, { success: true, data: { supplierCredit: credit } }];
+      return [200, { success: { status: 'OK', code: 200, data: { supplierCredit: credit } } }];
     }
-    return [404, { success: false, error: { message: "Supplier credit record not found" } }];
+    return [404, { error: { status: "NOT_FOUND", message: "Supplier credit record not found", code: 404 } }];
   });
 
   // POST /tenant/supplier-credit/:id/payments
@@ -2469,18 +2533,21 @@ export function setupMockApi() {
       };
 
       return [200, {
-        success: true,
-        message: "Supplier credit payment recorded successfully",
-        data: {
-          supplierCredit: mockSupplierCredits[creditIdx]
+        success: {
+          status: 'OK',
+          code: 200,
+          message: "Supplier credit payment recorded successfully",
+          data: {
+            supplierCredit: mockSupplierCredits[creditIdx]
+          }
         }
       }];
     }
 
-    return [404, { success: false, error: { message: "Supplier credit record not found" } }];
+    return [404, { error: { status: "NOT_FOUND", message: "Supplier credit record not found", code: 404 } }];
   });
 
   // Catch-all for any other GET requests to prevent errors during design
-  mock.onGet(/.*/).reply(200, { success: true, data: {} });
-  mock.onPost(/.*/).reply(200, { success: true, data: {} });
+  mock.onGet(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
+  mock.onPost(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
 }
