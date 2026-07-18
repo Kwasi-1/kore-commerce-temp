@@ -88,7 +88,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     apiClient
       .get('/tenant/suppliers?limit=100')
       .then((res) => {
-        const active = res.data.data.suppliers || [];
+        const active = res.data.success?.data?.suppliers || [];
         setSuppliers(active.map((s: any) => ({ label: s.name, value: s.id })));
       })
       .catch(console.error);
@@ -96,7 +96,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     apiClient
       .get('/tenant/products?limit=200')
       .then((res) => {
-        setProducts(res.data.data.products || []);
+        setProducts(res.data.success?.data?.products || []);
       })
       .catch(console.error);
   }, []);
@@ -115,7 +115,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     setIsFetchingVariants(true);
     try {
       const res = await apiClient.get(`/tenant/products/${pId}`);
-      const prod = res.data.data.product as ProductOption;
+      const prod = res.data.success?.data?.product as ProductOption;
       setLoadedProductDetail(prod);
 
       // If simple product (single variant), auto-select it

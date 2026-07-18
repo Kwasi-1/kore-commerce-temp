@@ -195,8 +195,8 @@ export default function Products() {
       setLoadingVariants((prev) => ({ ...prev, [productId]: true }));
       try {
         const res = await apiClient.get(`/tenant/products/${productId}`);
-        const productDetails = res.data.data.product;
-        const variants = productDetails.variants || [];
+        const productDetails = res.data.success?.data?.product;
+        const variants = productDetails?.variants || [];
         setProductVariantsCache((prev) => ({
           ...prev,
           [productId]: variants,

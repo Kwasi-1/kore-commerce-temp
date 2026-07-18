@@ -131,7 +131,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   // Fetch unique categories and store preferences on mount
   useEffect(() => {
     apiClient.get("/tenant/products?limit=100").then((res) => {
-      const prods = res.data.data.products || [];
+      const prods = res.data.success?.data?.products || [];
       const cats = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean))) as string[];
       setCategories(cats);
     }).catch(console.error);
@@ -148,7 +148,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       setIsLoading(true);
       apiClient.get(`/tenant/products/${initialData.id}`)
         .then((res) => {
-          const fullProduct = res.data.data.product;
+          const fullProduct = res.data.success?.data?.product;
           setName(fullProduct.name || "");
           setDescription(fullProduct.description || "");
           setCategory(fullProduct.category || "");
@@ -694,7 +694,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full relative">
         
         {/* Left column sidebar (sticky on desktop, horizontal scrollable on mobile) */}
-        <div className="sticky top-4 lg:top-6 z-50 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 md:py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 w-full lg:w-64 2xl:w-72">
+        <div className="sticky top-4 lg:top-6 z-50 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 md:py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 w-full lg:w-[17rem] 2xl:w-72">
           <PillSidebar
             options={sidebarOptions}
             activeKey={activeSection}

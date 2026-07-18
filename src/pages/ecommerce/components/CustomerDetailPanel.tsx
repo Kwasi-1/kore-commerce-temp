@@ -24,7 +24,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
       setIsLoadingOrders(true);
       try {
         const res = await apiClient.get(`/tenant/customers/${customer.id}/orders`);
-        setOrders(res.data.data.orders || []);
+        setOrders(res.data.success?.data?.orders || []);
       } catch (error) {
         console.error('Failed to fetch customer orders:', error);
         toast.error('Failed to load customer orders');

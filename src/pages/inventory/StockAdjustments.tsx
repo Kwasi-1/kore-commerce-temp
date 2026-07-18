@@ -123,7 +123,7 @@ export default function StockAdjustments() {
   useEffect(() => {
     apiClient.get("/tenant/staff")
       .then(res => {
-        const staffList = res.data.data?.staff || [];
+        const staffList = res.data.success?.data?.staff || [];
         const managersList = staffList.filter((s: Staff) => s.role === "owner" || s.role === "manager");
         setManagers(managersList);
         if (managersList.length > 0) {

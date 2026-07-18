@@ -17,7 +17,7 @@ export default function ProductFormPage() {
       setLoading(true);
       apiClient.get(`/tenant/products/${id}`)
         .then((res) => {
-          const product = res.data.data?.product;
+          const product = res.data.success?.data?.product;
           if (product) {
             setProductData(product);
           } else {

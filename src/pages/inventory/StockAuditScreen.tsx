@@ -118,7 +118,7 @@ export default function StockAuditScreen() {
     // Fetch tenant categories
     apiClient.get("/tenant/products?limit=100")
       .then(res => {
-        const prods = res.data.data?.products || [];
+        const prods = res.data.success?.data?.products || [];
         const cats = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean))) as string[];
         setCategories(cats);
       })
