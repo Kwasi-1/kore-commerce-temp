@@ -99,7 +99,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       const response = await apiClient.post('/pos/transactions', payload);
       
       toast.success('Payment successful!', { id: toastId });
-      setReceiptData(response.data.data?.receipt || { receiptNumber: 'RCP-' + Date.now().toString().slice(-4), dateCreated: new Date().toISOString() });
+      setReceiptData(response.data.success?.data?.receipt || { receiptNumber: 'RCP-' + Date.now().toString().slice(-4), dateCreated: new Date().toISOString() });
       setFrozenCart({ items, subtotal, discount, tax, total });
       clearCart();
       setIsSuccess(true);

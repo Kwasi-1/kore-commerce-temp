@@ -146,7 +146,7 @@ export default function StaffManagement() {
   };
 
   return (
-    <PageLayout title="Staff Management">
+    <PageLayout title="Staff Management" constrainHeight={true}>
       <EnhancedTableComponent
         columns={columns}
         rows={rows}

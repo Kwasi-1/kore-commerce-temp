@@ -139,10 +139,10 @@ export default function Expenses() {
   const totalExpenses = summary?.total || summaryList.reduce((acc: number, curr: any) => acc + (curr.total_amount || 0), 0);
 
   return (
-    <PageLayout title="Expenses">
+    <PageLayout title="Expenses" constrainHeight={true}>
       
       {/* Summary Cards */}
-      <div className="mb-8">
+      <div className="mb-4 lg:mb-6">
         <h3 className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">This Month's Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <DashboardCard

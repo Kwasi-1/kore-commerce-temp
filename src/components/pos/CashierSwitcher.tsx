@@ -25,7 +25,7 @@ export default function CashierSwitcher() {
         const response = await apiClient.get('/tenant/staff');
         // Filter to only show active staff who could potentially be cashiers
         // The mock returns a list of staff, some might be owners/managers
-        setCashiers(response.data.data?.staff || []);
+        setCashiers(response.data.success?.data?.staff || []);
       } catch (error) {
         console.error('Failed to fetch cashiers:', error);
       }
