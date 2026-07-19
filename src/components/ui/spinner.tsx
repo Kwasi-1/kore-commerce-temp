@@ -7,10 +7,10 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Spinner({ withBackdrop, className, ...props }: SpinnerProps) {
   const dots = (
-    <div className={cn("flex items-center justify-center gap-1.5 [&>*]:!bg-foreground/70", className)} {...props}>
-      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
-      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
-      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
+    <div className={cn("flex items-center justify-center gap-1.5 [&>*]:!bg-[#c1f375]", className)} {...props}>
+      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full border animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full border animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+      <div className="w-2 h-2 bg-[#CCFF00] dark:bg-primary rounded-full border animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
     </div>
   );
 
