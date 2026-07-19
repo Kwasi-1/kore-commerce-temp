@@ -487,7 +487,7 @@ export function setupMockApi() {
     { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, last_login: new Date().toISOString() },
   ];
 
-  let mockTenant = {
+let mockTenant = {
     id: 't1',
     name: 'HeadlessPOS Demo Store',
     currency: 'GHS',
@@ -496,26 +496,22 @@ export function setupMockApi() {
   };
 
   mock.onGet('/tenant/staff').reply(200, {
-    success: { status: 'OK', code: 200, data: { staff: mockStaff } }
+    success: true,
+    data: { staff: mockStaff }
   });
 
   // PIN Login (Accepts any 4-digit PIN for demo)
   mock.onPost('/auth/staff/pin-login').reply((config) => {
     const { email } = JSON.parse(config.data);
     const user = mockStaff.find(s => s.email === email);
-    if (!user) return [401, { error: { status: 'UNAUTHORIZED', message: 'Invalid PIN', code: 401 } }];
+    if (!user) return [401, { error: { message: 'Invalid PIN' } }];
     
     return [200, {
-      success: {
-        status: 'OK',
-        code: 200,
-        data: {
-          access_token: 'mock-jwt-token',
-          refresh_token: 'mock-refresh-token',
-          staff: user,
-          tenant: mockTenant
-        }
-      }
+      success: true,
+      access_token: 'mock-jwt-token',
+      refresh_token: 'mock-refresh-token',
+      staff: user,
+      tenant: mockTenant
     }];
   });
 
@@ -525,16 +521,11 @@ export function setupMockApi() {
     const user = mockStaff.find(s => s.email === email) || mockStaff[0]; // Fallback to owner if unknown
     
     return [200, {
-      success: {
-        status: 'OK',
-        code: 200,
-        data: {
-          access_token: 'mock-jwt-token',
-          refresh_token: 'mock-refresh-token',
-          staff: user,
-          tenant: mockTenant
-        }
-      }
+      success: true,
+      access_token: 'mock-jwt-token',
+      refresh_token: 'mock-refresh-token',
+      staff: user,
+      tenant: mockTenant
     }];
   });
 
