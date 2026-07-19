@@ -4,7 +4,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
-import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2 } from 'lucide-react';
+import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
@@ -24,7 +24,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
-  
+
   // Credit Toggle
   const [isCreditSale, setIsCreditSale] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -35,7 +35,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [isSuccess, setIsSuccess] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [frozenCart, setFrozenCart] = useState<any>(null);
-  
+
+  // Mobile-only: collapsible item list inside the compact summary
+  const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
+
   const { posSettings } = useSettingsStore();
 
   useEffect(() => {
@@ -49,6 +52,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setIsSuccess(false);
       setReceiptData(null);
       setFrozenCart(null);
+      setMobileItemsExpanded(false);
     }
   }, [isOpen, defaultMethod]);
 
@@ -65,7 +69,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       toast.error('Phone number is required for MoMo');
       return;
     }
-    
+
     if (isCreditSale && posSettings.require_customer_for_credit && (!customerName || !customerPhone)) {
       toast.error('Customer Name and Phone are required for Credit Sales');
       return;
@@ -97,17 +101,17 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       }
 
       const response = await apiClient.post('/pos/transactions', payload);
-      
+
       toast.success('Payment successful!', { id: toastId });
       setReceiptData(response.data.success?.data?.receipt || { receiptNumber: 'RCP-' + Date.now().toString().slice(-4), dateCreated: new Date().toISOString() });
       setFrozenCart({ items, subtotal, discount, tax, total });
       clearCart();
       setIsSuccess(true);
-      
+
       if (posSettings.auto_print === 'always') {
         setTimeout(() => window.print(), 100);
       }
-      
+
     } catch (error: any) {
       console.error('Transaction failed:', error);
       toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
@@ -120,16 +124,21 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     onClose();
   };
 
+  // Shared "current cart or frozen cart" resolution, used by both receipt views
+  const getDisplayData = () => ({
+    displayItems: frozenCart ? frozenCart.items : items,
+    displaySubtotal: frozenCart ? frozenCart.subtotal : subtotal,
+    displayDiscount: frozenCart ? frozenCart.discount : discount,
+    displayTax: frozenCart ? frozenCart.tax : tax,
+    displayTotal: frozenCart ? frozenCart.total : total,
+  });
+
   const renderReceiptPreview = () => {
-    const displayItems = frozenCart ? frozenCart.items : items;
-    const displaySubtotal = frozenCart ? frozenCart.subtotal : subtotal;
-    const displayDiscount = frozenCart ? frozenCart.discount : discount;
-    const displayTax = frozenCart ? frozenCart.tax : tax;
-    const displayTotal = frozenCart ? frozenCart.total : total;
+    const { displayItems, displaySubtotal, displayDiscount, displayTax, displayTotal } = getDisplayData();
 
     return (
       <div className="bg-white text-black p-6 print:p-2 rounded-xl print:rounded-none shadow-sm print:shadow-none relative h-full flex flex-col font-sans text-sm border border-border/20 print:border-none">
-        
+
         {/* Header */}
         <div className="text-center mb-6">
           <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900">VYSION STORE</h3>
@@ -220,16 +229,74 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     );
   };
 
+  // NEW: compact, bounded-height receipt summary for mobile.
+  // Shows totals up front; items are tucked behind a disclosure with its
+  // own max-height + scroll, so it can never push the payment panel off screen.
+  const renderMobileReceiptSummary = () => {
+    const { displayItems, displaySubtotal, displayDiscount, displayTax, displayTotal } = getDisplayData();
+
+    return (
+      <div className="bg-secondary/40 rounded-xl border border-border/50 p-3.5 flex-shrink-0">
+        <div className="space-y-1 text-xs text-muted-foreground font-medium">
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span className="text-foreground"><CurrencyDisplay amount={displaySubtotal} /></span>
+          </div>
+          {displayDiscount > 0 && (
+            <div className="flex justify-between">
+              <span>Discount</span>
+              <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} /></span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span>Tax (12%)</span>
+            <span className="text-foreground"><CurrencyDisplay amount={displayTax} /></span>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-baseline pt-2 mt-2 border-t border-border/50">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total</span>
+          <span className="text-lg font-black text-foreground"><CurrencyDisplay amount={displayTotal} /></span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileItemsExpanded((v) => !v)}
+          className="w-full mt-2.5 pt-2 border-t border-border/50 text-xs font-bold text-muted-foreground flex items-center justify-center gap-1"
+        >
+          {mobileItemsExpanded ? 'Hide' : 'View'} {displayItems.length} item{displayItems.length !== 1 ? 's' : ''}
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${mobileItemsExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        {mobileItemsExpanded && (
+          <div className="mt-2.5 pt-2.5 border-t border-border/50 max-h-36 overflow-y-auto space-y-2 scrollbar-hide">
+            {displayItems.map((item: any) => (
+              <div key={item.productId} className="flex justify-between text-xs">
+                <div className="pr-2">
+                  <span className="text-foreground font-semibold">{item.name}</span>
+                  <span className="text-muted-foreground"> × {item.quantity}</span>
+                </div>
+                <span className="text-muted-foreground font-medium whitespace-nowrap">
+                  <CurrencyDisplay amount={item.price * item.quantity} />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderPaymentFlow = () => (
     <div className="flex flex-col h-full min-h-0">
-      <div className="mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
+      <div className="mb-4 md:mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide space-y-6">
         {/* Credit Toggle Section (Moved to top) */}
         <div>
-          <div 
+          <div
             className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
             onClick={() => setIsCreditSale(!isCreditSale)}
           >
@@ -238,10 +305,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
             </div>
             <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
-              <Switch 
-                 isSelected={isCreditSale} 
-                 onValueChange={setIsCreditSale} 
-                 color="default" 
+              <Switch
+                 isSelected={isCreditSale}
+                 onValueChange={setIsCreditSale}
+                 color="default"
                  size="sm"
                  classNames={{ wrapper: "mr-0" }}
               />
@@ -273,7 +340,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         {/* Show Payment Methods ONLY if not credit sale */}
         {!isCreditSale && (
           <>
-            <div className="flex p-1 bg-secondary/50 rounded-lg border border-border/50 shrink-0">
+            <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
               {[
                 { id: 'cash', label: 'Cash' },
                 { id: 'mobile_money', label: 'MoMo' },
@@ -282,7 +349,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 ${
                     activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
                   }`}
                 >
@@ -304,11 +371,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     autoFocus
                     className="h-14 text-xl font-bold rounded-xl bg-background border-border"
                   />
-                  
+
                   {amountTenderedStr && amountTendered >= total && (
-                    <div className="bg-secondary rounded-xl p-4 flex items-center justify-between border border-border/50 animate-in fade-in">
+                    <div className="bg-secondary/80 rounded-lg p-4 py-3 flex items-center justify-between animate-in fade-in">
                       <span className="text-foreground font-bold uppercase tracking-wider text-xs">Change Due</span>
-                      <span className="text-2xl font-black text-foreground">
+                      <span className="text-xl font-black text-foreground">
                         <CurrencyDisplay amount={change} />
                       </span>
                     </div>
@@ -327,7 +394,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     onChange={(e: any) => setMomoNumber(e.target.value)}
                     className="h-14 text-lg font-bold rounded-xl bg-background border-border"
                   />
-                  <div className="p-4 bg-secondary rounded-lg text-sm font-medium borde border-border/50 text-muted-foreground">
+                  <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium borde border-border/50 text-muted-foreground">
                     The customer will receive a secure payment prompt on their phone.
                   </div>
                 </div>
@@ -347,16 +414,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         )}
       </div>
 
-      {/* Bottom Footer */}
-      <div className="mt-auto pt-6 border-t border-border/50 shrink-0">
+      {/* Bottom Footer — sticky, never scrolls away */}
+      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 bg-card">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
-          <span className="text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
+          <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
         </div>
         <Button
           onClick={handleTransaction}
           disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total)}
-          className="w-full h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
+          className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
         >
           {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
         </Button>
@@ -379,7 +446,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <Printer className="h-4 w-4" />
           Print Receipt
         </Button>
-        
+
         <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-2">
           <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
         </div>
@@ -392,13 +459,24 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   );
 
   const modalBody = (
-    <div className="flex flex-col md:flex-row w-full h-[80vh] min-h-0 overflow-hidden">
-      {/* Left Column: Receipt Preview */}
-      <div className={`w-full md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-6 flex-shrink-0 flex flex-col min-h-0 ${isSuccess ? 'hidden md:block print:block print:w-full print:border-none print:p-0 ' : ''}`}>
+    // h-[90dvh] on mobile (dvh accounts for the mobile browser chrome so the
+    // sheet doesn't get cut off by the address bar), h-[80vh] from md up.
+    <div className="flex flex-col md:flex-row w-full h-[85dvh] md:h-[80vh] min-h-0 overflow-hidden">
+
+      {/* Mobile-only compact summary: bounded height, never displaces the payment panel */}
+      {!isSuccess && (
+        <div className="md:hidden flex-shrink-0 px-4 pt-4">
+          {renderMobileReceiptSummary()}
+        </div>
+      )}
+
+      {/* Left Column: full Receipt Preview — desktop/tablet only. Mobile relies on the
+          compact summary above; printing is handled separately via the portal below. */}
+      <div className="hidden md:flex md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-5 m-2 flex-shrink-0 flex-col min-h-0">
          {renderReceiptPreview()}
       </div>
 
-      {/* Right Column: Flow */}
+      {/* Right Column: Flow — always gets the remaining space, guaranteed */}
       <div className="flex-1 p-6 md:p-8 overflow-hidden relative bg-card flex flex-col min-h-0">
         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-between min-h-0">
            {isSuccess ? renderSuccessScreen() : renderPaymentFlow()}
@@ -414,7 +492,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         onOpenChange={() => { if (!isProcessing) onClose(); }}
         size="4xl"
         classNames={{
-          body: "p-0 overflow-hidden max-h-[90vh] p-2 ",
+          body: "p-0 overflow-hidden max-h-[90dvh] md:max-h-[90vh]",
           header: "hidden"
         }}
         body={modalBody}
