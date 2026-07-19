@@ -14,9 +14,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import CustomContainerComponent from "@/components/shared/custom.container.component";
 import CustomTableComponent from "@/components/shared/table.component";
 import { Key } from "react";
-import { CustomOnlyDateFilterComponent, DateFilterValue } from "@/components/shared/custom-only-date-filter";
+import {
+  CustomOnlyDateFilterComponent,
+  DateFilterValue,
+} from "@/components/shared/custom-only-date-filter";
 import { Button as UIbutton } from "../ui/button";
-
 
 // Types for the enhanced table
 export interface TableColumn {
@@ -118,6 +120,10 @@ export interface EnhancedTableProps {
   showTopContent?: boolean;
   title?: string;
 
+  // Empty state customization
+  emptyStateTitle?: string;
+  emptyStateDescription?: string;
+
   // Search functionality
   showSearch?: boolean;
   searchPlaceholder?: string;
@@ -152,7 +158,7 @@ export interface EnhancedTableProps {
   addButtonText?: string;
   addButtonIcon?: string;
   onAddButtonClick?: () => void;
-  customAddButton?: React.ReactNode; 
+  customAddButton?: React.ReactNode;
 
   // Row actions dropdown
   rowActions?: TableAction[];
@@ -185,7 +191,14 @@ export interface EnhancedTableProps {
   // Date filter props
   dateFilterValue?: DateFilterValue;
   onDateFilterChange?: (val: DateFilterValue) => void;
-  defaultDateFilterRange?: "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "all_time";
+  defaultDateFilterRange?:
+    | "today"
+    | "this_week"
+    | "this_month"
+    | "last_month"
+    | "this_year"
+    | "last_year"
+    | "all_time";
 }
 
 const DEFAULT_FILTER_VALUE: Selection = new Set(["all"]);
@@ -226,6 +239,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   // Top content
   showTopContent = true,
   title = "",
+
+  emptyStateTitle,
+  emptyStateDescription,
 
   // Search
   showSearch = true,
@@ -301,8 +317,12 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     setLocalFilterValue((prev) => {
       if (prev === filterValue) return prev;
       const prevArr = prev instanceof Set ? Array.from(prev) : [prev];
-      const nextArr = filterValue instanceof Set ? Array.from(filterValue) : [filterValue];
-      if (prevArr.length === nextArr.length && prevArr.every((v, i) => v === nextArr[i])) {
+      const nextArr =
+        filterValue instanceof Set ? Array.from(filterValue) : [filterValue];
+      if (
+        prevArr.length === nextArr.length &&
+        prevArr.every((v, i) => v === nextArr[i])
+      ) {
         return prev;
       }
       return filterValue;
@@ -342,7 +362,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     setLocalFilterValue(defaultSelection);
     if (onFilterChange) onFilterChange(defaultSelection);
 
-    additionalFilters.forEach(f => {
+    additionalFilters.forEach((f) => {
       f.onChange(defaultSelection);
     });
     setCurrentPage(1);
@@ -351,11 +371,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   // Detect if any filter/search is active
   const hasActiveFilters = useMemo(() => {
     if (localSearchValue && localSearchValue.trim() !== "") return true;
-    const filterArr = localFilterValue instanceof Set
-      ? Array.from(localFilterValue)
-      : [];
+    const filterArr =
+      localFilterValue instanceof Set ? Array.from(localFilterValue) : [];
     if (filterArr.length > 0 && filterArr[0] !== "all") return true;
-    return additionalFilters.some(f => {
+    return additionalFilters.some((f) => {
       const arr = f.value instanceof Set ? Array.from(f.value) : [];
       return arr.length > 0 && arr[0] !== "all";
     });
@@ -510,8 +529,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 isClearable
                 classNames={{
                   base: "w-full h-[2.5rem] text-[8px] md:text-xs placeholder-xs",
-                  inputWrapper:
-                    "border-1 border-border h-full",
+                  inputWrapper: "border-1 border-border h-full",
                 }}
                 placeholder={searchPlaceholder}
                 size="sm"
@@ -530,7 +548,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
           )}
 
           {/* Controls and Actions bar (filters, top actions, refresh, add button aligned on the same row on mobile) */}
-          <div className={`flex flex-row items-center justify-between flex-wrap gap-2 w-full lg:flex-1 ${hasAddButton ? "" : "lg:justify-end lg:gap-4"}`}>
+          <div
+            className={`flex flex-row items-center justify-between flex-wrap gap-2 w-full lg:flex-1 ${hasAddButton ? "" : "lg:justify-end lg:gap-4"}`}
+          >
             {/* Left aligned controls: Filters & Top Actions */}
             <div className="flex flex-row items-center flex-wrap gap-2">
               {/* Filter Dropdown */}
@@ -539,7 +559,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   <DropdownTrigger className="flex">
                     <Button
                       endContent={
-                        <Icon icon="stash:chevron-down" className="text-[20px]" />
+                        <Icon
+                          icon="stash:chevron-down"
+                          className="text-[20px]"
+                        />
                       }
                       size="sm"
                       variant="flat"
@@ -571,7 +594,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   <DropdownTrigger className="flex">
                     <Button
                       endContent={
-                        <Icon icon="stash:chevron-down" className="text-[20px]" />
+                        <Icon
+                          icon="stash:chevron-down"
+                          className="text-[20px]"
+                        />
                       }
                       size="sm"
                       variant="flat"
@@ -641,7 +667,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   }}
                   defaultDate={defaultDateFilterRange}
                   showLabelOnMobile={true}
-                  side="left" align="start"
+                  side="left"
+                  align="start"
                 />
               )}
               {onRefresh && (
@@ -669,7 +696,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 >
                   {addButtonText}
                 </Button>
-              ) : customAddButton ? ( customAddButton ): (null) }
+              ) : customAddButton ? (
+                customAddButton
+              ) : null}
             </div>
           </div>
         </div>
@@ -794,9 +823,18 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Icon icon="ph:tray" className="text-6xl text-muted-foreground/30" />
           <div className="text-center">
-            <p className="text-muted-foreground font-medium">No results found</p>
+            <p className="text-muted-foreground font-medium">
+              {emptyStateTitle || "No results found"}
+            </p>
+            {emptyStateDescription && (
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                {emptyStateDescription}
+              </p>
+            )}
             {hasActiveFilters && (
-              <p className="text-xs text-muted-foreground/70 mt-1">Your filters or search returned no results</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Your filters or search returned no results
+              </p>
             )}
           </div>
           {hasActiveFilters && (
@@ -870,7 +908,9 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-2 pt-2 border-t border-border/70 mt-2">
                 <p className="text-xs text-muted-foreground">
-                  Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, processedRows.length)} of {processedRows.length}
+                  Showing {(currentPage - 1) * pageSize + 1}–
+                  {Math.min(currentPage * pageSize, processedRows.length)} of{" "}
+                  {processedRows.length}
                 </p>
                 <div className="flex items-center gap-1">
                   <Button
@@ -878,30 +918,38 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     size="sm"
                     variant="flat"
                     isDisabled={currentPage === 1}
-                    onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     className="border border-border rounded-md"
                   >
                     <Icon icon="ph:caret-left" className="text-base" />
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      isIconOnly
-                      size="sm"
-                      variant={currentPage === page ? "solid" : "flat"}
-                      color={currentPage === page ? "primary" : "default"}
-                      onPress={() => setCurrentPage(page)}
-                      className={currentPage !== page ? "border border-border rounded-md" : "rounded-md"}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        isIconOnly
+                        size="sm"
+                        variant={currentPage === page ? "solid" : "flat"}
+                        color={currentPage === page ? "primary" : "default"}
+                        onPress={() => setCurrentPage(page)}
+                        className={
+                          currentPage !== page
+                            ? "border border-border rounded-md"
+                            : "rounded-md"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    ),
+                  )}
                   <Button
                     isIconOnly
                     size="sm"
                     variant="flat"
                     isDisabled={currentPage === totalPages}
-                    onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onPress={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     className="border border-border rounded-md"
                   >
                     <Icon icon="ph:caret-right" className="text-base" />
@@ -932,7 +980,10 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   onPress={() => setSelectedRow(null)}
                   size="sm"
                 >
-                  <Icon icon="mdi:close" className="text-lg text-muted-foreground" />
+                  <Icon
+                    icon="mdi:close"
+                    className="text-lg text-muted-foreground"
+                  />
                 </Button>
 
                 {/* Detail Content */}

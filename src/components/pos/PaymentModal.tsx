@@ -273,7 +273,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         {/* Show Payment Methods ONLY if not credit sale */}
         {!isCreditSale && (
           <>
-            <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
+            <div className="flex p-1 bg-secondary/50 rounded-lg border border-border/50 shrink-0">
               {[
                 { id: 'cash', label: 'Cash' },
                 { id: 'mobile_money', label: 'MoMo' },
@@ -282,7 +282,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
                     activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
                   }`}
                 >
