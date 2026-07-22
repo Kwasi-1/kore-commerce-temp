@@ -81,11 +81,6 @@ export default function PageLayout({
                 <h1 className={cn("text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate", showBackButton ? "text-xl" : "text-2xl", titleClassName)}>
                   {title}
                 </h1>
-                {/* {subtitle && (
-                  <p className={`text-[11px] md:text-sm text-muted-foreground font-medium bloc mt-0.5 hidden ${subtitleStyles}`}>
-                    {subtitle}
-                  </p>
-                )} */}
               </div>
             </div>
 
@@ -99,7 +94,12 @@ export default function PageLayout({
 
               {/* Profile Pill container */}
               <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0 bg-card">
-                <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/notifications')}
+                  className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10"
+                >
                   <Bell className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
                 </Button>

@@ -210,7 +210,7 @@ export default function Overview() {
   return (
     <PageLayout
       title={`${getGreeting()}, ${userName}`}
-      titleClassName='xl:text-[27px]'
+      titleClassName='xl:text-[27px] text-wrap'
       subtitle="Here's what's happening with your store today."
       actions={
         <div className="hidden md:flex gap-3">
