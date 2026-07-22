@@ -10,6 +10,7 @@ import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
 import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone, History as HistoryIcon } from 'lucide-react';
+import clsx from 'clsx';
 import {
   BarChart,
   Bar,
@@ -37,7 +38,9 @@ export default function Overview() {
   const [activeShifts, setActiveShifts] = useState<any[]>([]);
   const [activeShiftsCount, setActiveShiftsCount] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
+  const [recentPosTransactions, setRecentPosTransactions] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [activeMobileFeedTab, setActiveMobileFeedTab] = useState<'all' | 'pos' | 'online' | 'alerts'>('all');
 
   // Ecommerce State
   const [ecomStats, setEcomStats] = useState({
@@ -57,18 +60,26 @@ export default function Overview() {
         const todayEnd = endOfDay(new Date()).toISOString();
         
         if (hasPos) {
-          const salesRes = await apiClient.get(`/tenant/reports/sales?start_date=${todayStart}&end_date=${todayEnd}`);
+          const [salesRes, shiftsRes, txRes] = await Promise.all([
+            apiClient.get(`/tenant/reports/sales?start_date=${todayStart}&end_date=${todayEnd}`),
+            apiClient.get('/pos/shifts?status=open&per_page=50'),
+            apiClient.get('/pos/transactions?limit=5')
+          ]);
+
           const salesData = salesRes.data.success?.data?.summary || { total_sales: 0, total_transactions: 0 };
           setTodaySales({
             revenue: salesData.total_sales || 0,
             orders: salesData.total_transactions || 0
           });
 
-          // 2. Fetch Active Shifts
-          const shiftsRes = await apiClient.get('/pos/shifts?status=open&per_page=50');
+          // Active Shifts
           const shifts = shiftsRes.data.success?.data?.shifts || [];
           setActiveShifts(shifts);
           setActiveShiftsCount(shifts.length);
+
+          // Recent POS Transactions
+          const transactions = txRes.data.success?.data?.transactions || [];
+          setRecentPosTransactions(transactions);
           
           // 4. Generate 7-Day Chart Data for POS
           const weekStart = startOfDay(subDays(new Date(), 6)).toISOString();
@@ -226,10 +237,10 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
       {/* ========================================================================= */}
-      <div className="block md:hidden space-y5 pb-10 -mx-4 -mt-6 bg-sidebar">
+      <div className="block md:hidden space-y5 -mb-10 -mx-4 -mt-6 bg-sidebar">
 
         {/* 1. Hero Balance / Revenue Card */}
-        <div className="bg-card borde border-border/80 rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3">
+        <div className="bg-background rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Today's Sales Revenue
@@ -307,33 +318,33 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* 3. Floating Quick Action Capsule Bar (ZEN Style) */}
-        <div className="bg-sidebar border border-zinc-800 text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
+        {/* 3. Floating Quick Action Capsule Bar (ZEN Style with Tactile Touch Feedback) */}
+        <div className="bg-sidebar text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
           <button
             onClick={() => navigate('/pos/register')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
           >
             <ShoppingCart className="h-3.5 w-3.5 text-primary" />
             Register
           </button>
           <button
             onClick={() => navigate('/inventory/products/new')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
           >
             <PackagePlus className="h-3.5 w-3.5 text-primary" />
-            + Product
+            Product
           </button>
           <button
             onClick={() => navigate('/pos/transactions')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
           >
             <HistoryIcon className="h-3.5 w-3.5 text-primary" />
             Sales
           </button>
         </div>
 
-        {/* 4. Recent Activity Feed Sheet */}
-        <div className="bg-card border border-border/80 rounded-t-2xl p-4 shadow-sm space-y-3">
+        {/* 4. Recent Activity Feed Sheet (Flex-Fill to Bottom Nav) */}
+        <div className="flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
             <button
@@ -344,56 +355,181 @@ export default function Overview() {
             </button>
           </div>
 
-          {/* Quick Filters */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="px-2.5 py-1 rounded-full bg-primary text-zinc-950 font-bold text-[11px]">
+          {/* Interactive Quick Filters */}
+          <div className="flex items-center gap-1.5 text-xs flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveMobileFeedTab('all')}
+              className={clsx(
+                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+                activeMobileFeedTab === 'all'
+                  ? "bg-primary text-zinc-950 shadow-sm"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
               All
-            </span>
-            <span
-              onClick={() => navigate('/pos/transactions')}
-              className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-semibold text-[11px] cursor-pointer hover:text-foreground"
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveMobileFeedTab('pos')}
+              className={clsx(
+                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+                activeMobileFeedTab === 'pos'
+                  ? "bg-primary text-zinc-950 shadow-sm"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
             >
               POS Sales
-            </span>
+            </button>
             {hasEcommerce && (
-              <span
-                onClick={() => navigate('/ecommerce/orders')}
-                className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-semibold text-[11px] cursor-pointer hover:text-foreground"
+              <button
+                type="button"
+                onClick={() => setActiveMobileFeedTab('online')}
+                className={clsx(
+                  "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+                  activeMobileFeedTab === 'online'
+                    ? "bg-primary text-zinc-950 shadow-sm"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                )}
               >
                 Online
-              </span>
+              </button>
             )}
+            <button
+              type="button"
+              onClick={() => setActiveMobileFeedTab('alerts')}
+              className={clsx(
+                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+                activeMobileFeedTab === 'alerts'
+                  ? "bg-primary text-zinc-950 shadow-sm"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Alerts
+              {lowStockProducts.length > 0 && (
+                <span className="ml-1 bg-rose-500 text-white px-1.5 py-[2px] rounded-full text-[9px]">
+                  {lowStockProducts.length}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Feed List */}
-          <div className="divide-y divide-border/50 pt-1">
+          {/* Dynamic Feed List */}
+          <div className="flex-1 divide-y divide-border/50 pt-1">
             {isLoading ? (
-              <div className="py-6 text-center"><Spinner /></div>
-            ) : lowStockProducts.length > 0 ? (
-              lowStockProducts.slice(0, 3).map((prod: any) => (
-                <div
-                  key={prod.id}
-                  onClick={() => navigate(`/inventory/products/${prod.id}/edit`)}
-                  className="py-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
-                      <AlertCircle className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground truncate max-w-[170px]">{prod.name}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">Stock Warning</p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md text-[11px]">
-                    {prod.stock_quantity} left
-                  </span>
-                </div>
-              ))
+              <div className="py-8 text-center"><Spinner /></div>
             ) : (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                No recent critical alerts. Store operations running smoothly!
-              </div>
+              (() => {
+                // Filter feed items based on activeMobileFeedTab
+                let items: any[] = [];
+                
+                if (activeMobileFeedTab === 'pos') {
+                  items = recentPosTransactions.map(tx => ({ type: 'pos', data: tx }));
+                } else if (activeMobileFeedTab === 'online') {
+                  items = recentOrders.map(ord => ({ type: 'online', data: ord }));
+                } else if (activeMobileFeedTab === 'alerts') {
+                  items = lowStockProducts.map(prod => ({ type: 'alert', data: prod }));
+                } else {
+                  // ALL: combine POS, Online, and Alerts
+                  const posItems = recentPosTransactions.slice(0, 3).map(tx => ({ type: 'pos', data: tx }));
+                  const alertItems = lowStockProducts.slice(0, 2).map(prod => ({ type: 'alert', data: prod }));
+                  const onlineItems = recentOrders.slice(0, 2).map(ord => ({ type: 'online', data: ord }));
+                  items = [...posItems, ...alertItems, ...onlineItems];
+                }
+
+                if (items.length === 0) {
+                  return (
+                    <div className="py-8 text-center text-xs text-muted-foreground">
+                      No recent activity recorded for this view.
+                    </div>
+                  );
+                }
+
+                return items.map((item, idx) => {
+                  if (item.type === 'alert') {
+                    const prod = item.data;
+                    return (
+                      <div
+                        key={`alert-${prod.id}-${idx}`}
+                        onClick={() => navigate(`/inventory/products/${prod.id}/edit`)}
+                        className="py-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                            <AlertCircle className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground truncate max-w-[170px]">{prod.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">Stock Warning</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md text-[11px]">
+                          {prod.stock_quantity} left
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  if (item.type === 'pos') {
+                    const tx = item.data;
+                    const amount = tx.amount_tendered?.parsedValue || tx.amount_tendered || 0;
+                    return (
+                      <div
+                        key={`pos-${tx.id || idx}`}
+                        onClick={() => navigate('/pos/transactions')}
+                        className="py-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                            <ShoppingCart className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground truncate max-w-[170px]">
+                              {tx.orderNumber || `POS Sale #${tx.id?.substring(0, 6)}`}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-mono capitalize">
+                              {tx.payment_method || 'Cash'} • {tx.cashierName || 'Cashier'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-[11px]">
+                          <CurrencyDisplay amount={amount} symbolClassName="text-[10px] font-semibold mr-1 opacity-80" />
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  if (item.type === 'online') {
+                    const ord = item.data;
+                    return (
+                      <div
+                        key={`online-${ord.id || idx}`}
+                        onClick={() => navigate('/ecommerce/orders')}
+                        className="py-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                            <ShoppingBag className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground truncate max-w-[170px]">
+                              {ord.reference || `Order #${ord.id?.substring(0, 6)}`}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              {ord.customer_name || 'Online Customer'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-extrabold text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px]">
+                          <CurrencyDisplay amount={ord.total_amount} symbolClassName="text-[10px] font-semibold mr-1 opacity-80" />
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                });
+              })()
             )}
           </div>
         </div>

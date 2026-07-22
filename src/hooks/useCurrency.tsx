@@ -18,11 +18,19 @@ export const useCurrency = () => {
   return { formatGHS, formatAmount };
 };
 
-export const CurrencyDisplay = ({ amount, className }: { amount: number, className?: string }) => {
+export const CurrencyDisplay = ({
+  amount,
+  className,
+  symbolClassName,
+}: {
+  amount: number;
+  className?: string;
+  symbolClassName?: string;
+}) => {
   const { formatAmount } = useCurrency();
   return (
     <span className={className}>
-      <span className="text-sm font-normal text-mutedforeground mr-1">GHS</span>
+      <span className={symbolClassName || "text-sm font-normal text-muted-foreground mr-1"}>GHS</span>
       {formatAmount(amount)}
     </span>
   );
