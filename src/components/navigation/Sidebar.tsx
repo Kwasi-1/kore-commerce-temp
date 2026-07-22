@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { getModules } from '@/utils/permissions';
+import koreLogo from '@/assets/images/kore.png';
 import {
   LayoutDashboard,
   MonitorSmartphone,
@@ -27,11 +28,10 @@ import {
   ShoppingBag,
   Globe,
   BookOpen,
-  Store,
   ChevronsLeft,
-  ChevronsRight,
   Sliders,
-  CreditCard
+  CreditCard,
+  Bell
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -45,6 +45,22 @@ const decodeHtml = (str: string) => {
     .replace(/&gt;/g, '>');
 };
 
+interface NavItem {
+  name: string;
+  to: string;
+  icon: any;
+  badge?: number | string;
+}
+
+interface NavSection {
+  title: string;
+  icon: any;
+  show: boolean;
+  hasDividerAfter?: boolean;
+  badge?: number | string;
+  items: NavItem[];
+}
+
 export default function Sidebar() {
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
@@ -56,13 +72,14 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isPending, startTransition] = useTransition();
+  const [logoError, setLogoError] = useState(false);
 
   const rawTenantName = tenant?.name || tenant?.business_name || 'HeadlessPOS';
   const tenantName = decodeHtml(rawTenantName);
   const userName = staffUser?.name || `${staffUser?.first_name || ''} ${staffUser?.last_name || ''}`.trim() || 'Store User';
   const userRole = staffUser?.role || 'Staff';
 
-  const navSections = [
+  const navSections: NavSection[] = [
     {
       title: 'Dashboard',
       icon: LayoutDashboard,
@@ -73,6 +90,7 @@ export default function Sidebar() {
       title: 'POS',
       icon: MonitorSmartphone,
       show: modules.pos,
+      hasDividerAfter: true,
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'Transactions', to: '/pos/transactions', icon: History },
@@ -84,10 +102,11 @@ export default function Sidebar() {
       title: 'Inventory',
       icon: Package,
       show: !isCashier && modules.inventory,
+      badge: 4,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: 4 },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge },
@@ -103,12 +122,21 @@ export default function Sidebar() {
       title: 'Ecommerce',
       icon: ShoppingBag,
       show: !isCashier && modules.ecommerce,
+      badge: 2,
+      hasDividerAfter: true,
       items: [
-        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
+        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: 2 },
         { name: 'Customers', to: '/ecommerce/customers', icon: Users },
         { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe },
         { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag },
       ],
+    },
+    {
+      title: 'Notifications',
+      icon: Bell,
+      show: true,
+      badge: 3,
+      items: [{ name: 'Activity Log', to: '/notifications', icon: Bell, badge: 3 }],
     },
     {
       title: 'Staff',
@@ -120,6 +148,7 @@ export default function Sidebar() {
       title: 'Reports',
       icon: TrendingUp,
       show: !isCashier && modules.reports,
+      hasDividerAfter: true,
       items: [
         { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
         { name: 'Products', to: '/reports/products', icon: Tag },
@@ -191,8 +220,17 @@ export default function Sidebar() {
         {!isCollapsed ? (
           <div className="bg-[#1a1b1e] border border-[#1a1b1e] rounded-xl p-3 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-[0.6rem] bg-primary text-zinc-950 font-black text-base flex items-center justify-center shadow-md shrink-0">
-                {tenantName.charAt(0).toUpperCase()}
+              <div className="h-9 w-9 rounded-[0.6rem] bg-primary text-zinc-950 font-black text-base flex items-center justify-center shadow-md shrink-0 overflow-hidden p1">
+                {!logoError ? (
+                  <img
+                    src={koreLogo}
+                    alt="Kore Logo"
+                    onError={() => setLogoError(true)}
+                    className="h-full w-full object-contain rounded-md"
+                  />
+                ) : (
+                  tenantName.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-bold font-header capitalize text-white truncate tracking-tight">
@@ -216,9 +254,18 @@ export default function Sidebar() {
           <div
             onClick={() => setIsCollapsed(false)}
             title="Expand sidebar"
-            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-4"
+            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-4 overflow-hidden p1.5"
           >
-            {tenantName.charAt(0).toUpperCase()}
+            {!logoError ? (
+              <img
+                src={koreLogo}
+                alt="Kore Logo"
+                onError={() => setLogoError(true)}
+                className="h-full w-full object-contain rounded-sm"
+              />
+            ) : (
+              tenantName.charAt(0).toUpperCase()
+            )}
           </div>
         )}
       </div>
@@ -248,13 +295,18 @@ export default function Sidebar() {
                       onClick={() => startTransition(() => navigate(item.to))}
                       title={item.name}
                       className={clsx(
-                        "min-h-10 min-w-10 p-3 rounded-xl flex items-center justify-center transition-all",
+                        "relative min-h-10 min-w-10 p-3 rounded-xl flex items-center justify-center transition-all",
                         isActive
                           ? "bg-primary text-zinc-950 shadow-md font-bold"
                           : "text-zinc-400 hover:text-white hover:bg-white/10"
                       )}
                     >
                       <ItemIcon className="h-[22px] w-[22px]" />
+                      {item.badge && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-zinc-950 font-black text-[9px] h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center ring-2 ring-[#121316]">
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -263,88 +315,118 @@ export default function Sidebar() {
           }
 
           // --- Expanded State ---
-          if (hasMultipleItems) {
-            // Grouped Accordion Section (like POS, Inventory, Ecommerce, Reports, Settings)
-            return (
-              <div key={section.title} className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenSections((prev) => ({ ...prev, [section.title]: true }));
-                    if (section.items[0]?.to) {
-                      startTransition(() => navigate(section.items[0].to));
-                    }
-                  }}
-                  className={clsx(
-                    "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-semibold capitalize transition-colors group cursor-pointer",
-                    isSectionActive ? "text-primary font-bold bg-white/5" : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <SectionIcon className={clsx("h-5 w-5 shrink-0 transition-colors", isSectionActive ? "text-primary" : "text-zinc-400 group-hover:text-white")} />
-                    <span className="text-[13px] font-bold capitalize">{section.title}</span>
-                  </div>
-                  <div
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSection(section.title);
-                    }}
-                    className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 group-hover:text-white transition-colors"
-                  >
-                    {isOpen ? (
-                      <ChevronDown className="h-3.5 w-3.5 transition-transform" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 transition-transform" />
-                    )}
-                  </div>
-                </button>
-
-                {isOpen && (
-                  <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
-                    {section.items.map((item) => {
-                      const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
-                      return (
-                        <button
-                          key={item.name}
-                          onClick={() => startTransition(() => navigate(item.to))}
-                          className={clsx(
-                            "relative flex items-center w-full px-3 py-2 rounded-md text-[12px] tracking-wide font-medium transition-all group",
-                            isActive
-                              ? "text-white font-bold shadow-sm before:absolute before:-left-[13px] before:top-1/2 before:-translate-y-1/2 before:w-[2px] before:h-4 before:bg-primary before:rounded-2xl"
-                              : "text-zinc-400 hover:text-white"
-                          )}
-                        >
-                          <span className="truncate">{item.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          // Single Item Section (like Dashboard -> Overview, Expenses, Staff)
-          const singleItem = section.items[0];
-          const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
-          const SingleIcon = singleItem.icon;
-
           return (
             <div key={section.title} className="space-y-1">
-              <button
-                type="button"
-                onClick={() => startTransition(() => navigate(singleItem.to))}
-                className={clsx(
-                  "flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-xs lg:text-sm font-bold capitalize tracking-wider transition-all",
-                  isActive
-                    ? "bg-primary text-zinc-950 font-black shadow-md"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <SingleIcon className={clsx("h-5 w-5 shrink-0", isActive ? "text-zinc-950" : "text-zinc-400")} />
-                <span className="truncate">{section.title}</span>
-              </button>
+              {hasMultipleItems ? (
+                // Grouped Accordion Section (like POS, Inventory, Ecommerce, Reports, Settings)
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenSections((prev) => ({ ...prev, [section.title]: true }));
+                      if (section.items[0]?.to) {
+                        startTransition(() => navigate(section.items[0].to));
+                      }
+                    }}
+                    className={clsx(
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-semibold capitalize transition-colors group cursor-pointer",
+                      isSectionActive ? "text-primary font-bold bg-white/5" : "text-zinc-400 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <SectionIcon className={clsx("h-5 w-5 shrink-0 transition-colors", isSectionActive ? "text-primary" : "text-zinc-400 group-hover:text-white")} />
+                      <span className="text-[13px] font-bold capitalize">{section.title}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {section.badge && (
+                        <span className="bg-primary/20 text-primary font-bold text-[10px] px-1.5 py-0.5 rounded-md">
+                          {section.badge}
+                        </span>
+                      )}
+                      <div
+                        role="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSection(section.title);
+                        }}
+                        className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 group-hover:text-white transition-colors"
+                      >
+                        {isOpen ? (
+                          <ChevronDown className="h-3.5 w-3.5 transition-transform" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 transition-transform" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
+                      {section.items.map((item) => {
+                        const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                        return (
+                          <button
+                            key={item.name}
+                            onClick={() => startTransition(() => navigate(item.to))}
+                            className={clsx(
+                              "relative flex items-center justify-between w-full px-3 py-2 rounded-md text-[12px] tracking-wide font-medium transition-all group",
+                              isActive
+                                ? "text-white font-bold shadow-sm before:absolute before:-left-[13px] before:top-1/2 before:-translate-y-1/2 before:w-[2px] before:h-4 before:bg-primary before:rounded-2xl"
+                                : "text-zinc-400 hover:text-white"
+                            )}
+                          >
+                            <span className="truncate">{item.name}</span>
+                            {item.badge && (
+                              <span className="bg-primary text-zinc-950 font-black text-[9px] px-[5px] py-[1px] rounded">
+                                {item.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Single Item Section (like Dashboard -> Overview, Expenses, Notifications, Staff)
+                (() => {
+                  const singleItem = section.items[0];
+                  const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
+                  const SingleIcon = singleItem.icon;
+
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => startTransition(() => navigate(singleItem.to))}
+                      className={clsx(
+                        "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs lg:text-sm font-bold capitalize tracking-wider transition-all",
+                        isActive
+                          ? "bg-primary text-zinc-950 font-black shadow-md"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <SingleIcon className={clsx("h-5 w-5 shrink-0", isActive ? "text-zinc-950" : "text-zinc-400")} />
+                        <span className="truncate">{section.title}</span>
+                      </div>
+                      {section.badge && (
+                        <span className={clsx(
+                          "font-black text-[10px] px-1.5 py-0.5 rounded-md",
+                          isActive ? "bg-zinc-950 text-primary" : "bg-primary text-zinc-950"
+                        )}>
+                          {section.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()
+              )}
+
+              {/* Section Divider */}
+              {/* {section.hasDividerAfter && (
+                <div className="border-t border-white/5 mt-4 mx-2" />
+              )} */}
             </div>
           );
         })}
