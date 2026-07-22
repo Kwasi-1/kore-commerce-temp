@@ -237,7 +237,7 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
       {/* ========================================================================= */}
-      <div className="block md:hidden space-y5 -mb-10 -mx-4 -mt-6 bg-sidebar">
+      <div className="block md:hidden space-y5 -mb-10 -mx-4 -mt-6 bg-action-bridge">
 
         {/* 1. Hero Balance / Revenue Card */}
         <div className="bg-background rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3">
@@ -318,25 +318,25 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* 3. Floating Quick Action Capsule Bar (ZEN Style with Tactile Touch Feedback) */}
-        <div className="bg-sidebar text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
+        {/* 3. Floating Quick Action Capsule Bar (ZEN Style with Reusable Utility Classes) */}
+        <div className="bg-action-bridge text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
           <button
             onClick={() => navigate('/pos/register')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
+            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
           >
             <ShoppingCart className="h-3.5 w-3.5 text-primary" />
             Register
           </button>
           <button
             onClick={() => navigate('/inventory/products/new')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
+            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
           >
             <PackagePlus className="h-3.5 w-3.5 text-primary" />
             Product
           </button>
           <button
             onClick={() => navigate('/pos/transactions')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
+            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
           >
             <HistoryIcon className="h-3.5 w-3.5 text-primary" />
             Sales

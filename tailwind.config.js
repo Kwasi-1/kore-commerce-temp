@@ -57,6 +57,13 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         sidebar: "hsl(var(--sidebar-background))",
+        "action-bridge": "hsl(var(--action-bridge))",
+        "action-pill": {
+          DEFAULT: "hsl(var(--action-pill))",
+          hover: "hsl(var(--action-pill-hover))",
+          foreground: "hsl(var(--action-pill-foreground))",
+          border: "hsl(var(--action-pill-border))",
+        },
       },
       borderRadius: {},
       fontFamily: {
