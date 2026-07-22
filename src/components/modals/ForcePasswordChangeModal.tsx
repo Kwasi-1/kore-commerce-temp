@@ -82,9 +82,9 @@ export default function ForcePasswordChangeModal() {
       hideCloseButton={true}
       placement="center"
       backdrop="blur"
-      className=" font-header max-w-md w-full"
+      className=" font-header max-w-md w-full max-h-[99vh]"
     >
-      <ModalContent>
+      <ModalContent className='overflow-y-auto scrollbar-thin'>
         <form onSubmit={handleSubmit}>
           <ModalHeader className="flex flex-col items-center text-center space-y-3 p-6 pb-2 border-b border-border/40">
             <div className="h-12 w-12 rounded-[0.7rem] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
