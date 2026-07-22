@@ -9,7 +9,7 @@ import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
-import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone } from 'lucide-react';
+import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone, History as HistoryIcon } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -201,9 +201,8 @@ export default function Overview() {
       title={`${getGreeting()}, ${userName}`}
       titleClassName='xl:text-[27px]'
       subtitle="Here's what's happening with your store today."
-      // subtitleStyles='hidde md:block lg:text-base lg:mt-1'
       actions={
-        <div className="flex gap-3">
+        <div className="hidden md:flex gap-3">
           <Button
             variant="outline"
             onClick={() => navigate('/inventory/products')}
@@ -223,7 +222,189 @@ export default function Overview() {
       }
       className='custom-header md:mt-2'
     >
-      
+
+      {/* ========================================================================= */}
+      {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
+      {/* ========================================================================= */}
+      <div className="block md:hidden space-y5 pb-10 -mx-4 -mt-6 bg-sidebar">
+
+        {/* 1. Hero Balance / Revenue Card */}
+        <div className="bg-card borde border-border/80 rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Today's Sales Revenue
+            </span>
+            <span className="text-[11px] font-bold bg-primary/20 text-primary-foreground px-2.5 py-0.5 rounded-full capitalize">
+              {plan?.replace('_', ' ')}
+            </span>
+          </div>
+
+          <div className="py-2">
+            <h2 className="text-3xl font-extrabold font-header text-foreground tracking-tight">
+              {isLoading ? <Spinner className="mx-auto my-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
+            </h2>
+          </div>
+
+          {/* 2. Horizontal Metric Carousel */}
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 pt-2 -mx-1 px-1">
+            {/* Orders Metric Card */}
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Orders</span>
+                <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                </div>
+              </div>
+              <span className="text-base font-extrabold text-foreground">
+                {isLoading ? '...' : todaySales.orders}
+              </span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Completed today</p>
+            </div>
+
+            {/* Active Shifts Card */}
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Shifts</span>
+                <div className="p-1 rounded-md bg-blue-500/10 text-blue-500">
+                  <Clock className="h-3.5 w-3.5" />
+                </div>
+              </div>
+              <span className="text-base font-extrabold text-foreground">
+                {isLoading ? '...' : activeShiftsCount}
+              </span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Registers open</p>
+            </div>
+
+            {/* Low Stock Card */}
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Low Stock</span>
+                <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                </div>
+              </div>
+              <span className="text-base font-extrabold text-foreground">
+                {isLoading ? '...' : lowStockProducts.length}
+              </span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Items to reorder</p>
+            </div>
+
+            {/* Ecommerce Card (if enabled) */}
+            {hasEcommerce && (
+              <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Online</span>
+                  <div className="p-1 rounded-md bg-purple-500/10 text-purple-500">
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+                <span className="text-base font-extrabold text-foreground">
+                  {isLoading ? '...' : ecomStats.todayOrders}
+                </span>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Web orders</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3. Floating Quick Action Capsule Bar (ZEN Style) */}
+        <div className="bg-sidebar border border-zinc-800 text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
+          <button
+            onClick={() => navigate('/pos/register')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+          >
+            <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+            Register
+          </button>
+          <button
+            onClick={() => navigate('/inventory/products/new')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+          >
+            <PackagePlus className="h-3.5 w-3.5 text-primary" />
+            + Product
+          </button>
+          <button
+            onClick={() => navigate('/pos/transactions')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all text-white"
+          >
+            <HistoryIcon className="h-3.5 w-3.5 text-primary" />
+            Sales
+          </button>
+        </div>
+
+        {/* 4. Recent Activity Feed Sheet */}
+        <div className="bg-card border border-border/80 rounded-t-2xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+            <button
+              onClick={() => navigate('/pos/transactions')}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              View all &rarr;
+            </button>
+          </div>
+
+          {/* Quick Filters */}
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="px-2.5 py-1 rounded-full bg-primary text-zinc-950 font-bold text-[11px]">
+              All
+            </span>
+            <span
+              onClick={() => navigate('/pos/transactions')}
+              className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-semibold text-[11px] cursor-pointer hover:text-foreground"
+            >
+              POS Sales
+            </span>
+            {hasEcommerce && (
+              <span
+                onClick={() => navigate('/ecommerce/orders')}
+                className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-semibold text-[11px] cursor-pointer hover:text-foreground"
+              >
+                Online
+              </span>
+            )}
+          </div>
+
+          {/* Feed List */}
+          <div className="divide-y divide-border/50 pt-1">
+            {isLoading ? (
+              <div className="py-6 text-center"><Spinner /></div>
+            ) : lowStockProducts.length > 0 ? (
+              lowStockProducts.slice(0, 3).map((prod: any) => (
+                <div
+                  key={prod.id}
+                  onClick={() => navigate(`/inventory/products/${prod.id}/edit`)}
+                  className="py-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground truncate max-w-[170px]">{prod.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">Stock Warning</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md text-[11px]">
+                    {prod.stock_quantity} left
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                No recent critical alerts. Store operations running smoothly!
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP DASHBOARD VIEW (Hidden < md, Block >= md)                        */}
+      {/* ========================================================================= */}
+      <div className="hidden md:block">
+
       {/* POS Module Overview */}
       {hasPos && (
         <div className="mb-6 md:mb-10 mt-1 md:mt-2">
@@ -445,6 +626,8 @@ export default function Overview() {
           </div>
         </div>
       )}
+
+      </div>
 
     </PageLayout>
   );
