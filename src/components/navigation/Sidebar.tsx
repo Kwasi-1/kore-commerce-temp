@@ -1,4 +1,4 @@
-import { useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   MonitorSmartphone,
   History,
-  Clock,
   Package,
   Layers,
   Truck,
@@ -16,22 +15,35 @@ import {
   ClipboardList,
   Users,
   ArrowLeftRight,
-  BarChart3,
   TrendingUp,
   Tag,
   UserSquare2,
   CalendarCheck,
   Settings,
-  Menu,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   LogOut,
   ShoppingBag,
   Globe,
-  BookOpen
+  BookOpen,
+  Store,
+  ChevronsLeft,
+  ChevronsRight,
+  Sliders,
+  CreditCard
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useThemeStore } from '@/store/themeStore';
+
+const decodeHtml = (str: string) => {
+  if (!str) return '';
+  return str
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+};
 
 export default function Sidebar() {
   const tenant = useAuthStore((state) => state.tenant);
@@ -40,20 +52,26 @@ export default function Sidebar() {
   const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'pos_only';
   const modules = getModules(plan);
-  const isDark = useThemeStore((state) => state.isDark);
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isPending, startTransition] = useTransition();
 
+  const rawTenantName = tenant?.name || tenant?.business_name || 'HeadlessPOS';
+  const tenantName = decodeHtml(rawTenantName);
+  const userName = staffUser?.name || `${staffUser?.first_name || ''} ${staffUser?.last_name || ''}`.trim() || 'Store User';
+  const userRole = staffUser?.role || 'Staff';
+
   const navSections = [
     {
       title: 'Dashboard',
+      icon: LayoutDashboard,
       show: !isCashier,
       items: [{ name: 'Overview', to: '/dashboard', icon: LayoutDashboard }],
     },
     {
       title: 'POS',
+      icon: MonitorSmartphone,
       show: modules.pos,
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
@@ -64,6 +82,7 @@ export default function Sidebar() {
     },
     {
       title: 'Inventory',
+      icon: Package,
       show: !isCashier && modules.inventory,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
@@ -76,11 +95,13 @@ export default function Sidebar() {
     },
     {
       title: 'Expenses',
+      icon: Receipt,
       show: !isCashier && modules.expenses,
       items: [{ name: 'Expenses', to: '/expenses', icon: Receipt }],
     },
     {
       title: 'Ecommerce',
+      icon: ShoppingBag,
       show: !isCashier && modules.ecommerce,
       items: [
         { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
@@ -91,11 +112,13 @@ export default function Sidebar() {
     },
     {
       title: 'Staff',
+      icon: Users,
       show: !isCashier && modules.staff,
       items: [{ name: 'Staff', to: '/staff', icon: Users }],
     },
     {
       title: 'Reports',
+      icon: TrendingUp,
       show: !isCashier && modules.reports,
       items: [
         { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
@@ -106,108 +129,268 @@ export default function Sidebar() {
     },
     {
       title: 'Settings',
+      icon: Settings,
       show: !isCashier && modules.settings,
       items: [
         { name: 'Business Profile', to: '/settings/profile', icon: Settings },
-        { name: 'POS Settings', to: '/settings/pos', icon: Receipt },
-        { name: 'Plan & Billing', to: '/settings/plan', icon: Receipt },
+        { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
+        { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },
       ],
     },
   ];
 
+  // Accordion open/close state for sections
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {};
+    navSections.forEach((section) => {
+      const isChildActive = section.items.some((item) => location.pathname.startsWith(item.to));
+      initialState[section.title] = isChildActive || section.title === 'POS' || section.title === 'Inventory';
+    });
+    return initialState;
+  });
+
+  // Automatically expand section when route changes to an item inside it
+  useEffect(() => {
+    navSections.forEach((section) => {
+      const isChildActive = section.items.some((item) => location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to)));
+      if (isChildActive) {
+        setOpenSections((prev) => ({ ...prev, [section.title]: true }));
+      }
+    });
+  }, [location.pathname]);
+
+  const toggleSection = (title: string) => {
+    setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const getUserInitials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <aside
       className={clsx(
-        "h-full bg-sidebar text-white flex-col transition-all duration-300 relative hidden md:flex",
-        isCollapsed ? "w-20" : "w-60"
+        "h-full bg-[#121316] text-white flex-col transition-all duration-300 relative hidden md:flex select-none",
+        isCollapsed ? "w-20" : "w-64"
       )}
     >
       {/* Slim top loading bar during transitions */}
       <div
         className={clsx(
-          "absolute top-0 left-0 right-0 h-[2px] bg-secondary/60 rounded-full transition-opacity duration-300 z-50",
+          "absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-opacity duration-300 z-50",
           isPending ? "opacity-100" : "opacity-0"
         )}
         style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}
       />
-      <div className={clsx("flex items-center justify-between p-6", isCollapsed && "justify-center px-0 mx-auto")}>
-        {!isCollapsed && (
-          <h2 className="text-2xl font-bold tracking-tight text-primary truncate">
-            {tenant?.name || 'HeadlessPOS'}
-          </h2>
-        )}
-        {isCollapsed && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl leading-none shadow-sm cursor-pointer" onClick={() => setIsCollapsed(false)}>
-            {tenant?.name ? tenant.name.charAt(0).toUpperCase() : 'H'}
+
+      {/* --- Top Header / Company Card --- */}
+      <div className="p-3">
+        {!isCollapsed ? (
+          <div className="bg-[#1a1b1e] border border-[#1a1b1e] rounded-xl p-3 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-[0.6rem] bg-primary text-zinc-950 font-black text-base flex items-center justify-center shadow-md shrink-0">
+                {tenantName.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold font-header capitalize text-white truncate tracking-tight">
+                  {tenantName}
+                </span>
+                <span className="text-[11px] font-medium text-zinc-400 capitalize truncate">
+                  {plan?.replace('_', ' ') || 'Company'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsCollapsed(true)}
+              title="Collapse sidebar"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div
+            onClick={() => setIsCollapsed(false)}
+            title="Expand sidebar"
+            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-4"
+          >
+            {tenantName.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
 
-      <nav className={clsx("flex-1 overflow-y-auto px-3 pb-4 space-y-6 scrollbar-hide flex flex-col", isCashier && "justify-center")}>
-        {navSections.map(
-          (section) =>
-            section.show && (
-              <div key={section.title} className={clsx(isCollapsed && "flex flex-col items-center")}>
-                {!isCollapsed && (
-                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {section.title}
-                  </h3>
-                )}
-                <ul className="space-y-2 w-full">
-                  {section.items.map((item) => {
-                    const isActive = location.pathname === item.to;
-                    return (
-                      <li key={item.name} className={clsx(isCollapsed && "flex justify-center w-full")}>
+      {/* --- Navigation List --- */}
+      <nav className={clsx("flex-1 overflow-y-auto px-3 py-2 space-y-2.5 scrollbar-hide flex flex-col", isCashier && "justify-center")}>
+        {navSections.map((section) => {
+          if (!section.show) return null;
+
+          const hasMultipleItems = section.items.length > 1;
+          const isSectionActive = section.items.some(
+            (item) => location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to))
+          );
+          const isOpen = openSections[section.title];
+          const SectionIcon = section.icon;
+
+          if (isCollapsed) {
+            // --- Collapsed State ---
+            return (
+              <div key={section.title} className="flex flex-col items-center gap-1.5 py-1">
+                {section.items.map((item) => {
+                  const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                  const ItemIcon = item.icon;
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => startTransition(() => navigate(item.to))}
+                      title={item.name}
+                      className={clsx(
+                        "min-h-10 min-w-10 p-3 rounded-xl flex items-center justify-center transition-all",
+                        isActive
+                          ? "bg-primary text-zinc-950 shadow-md font-bold"
+                          : "text-zinc-400 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      <ItemIcon className="h-[22px] w-[22px]" />
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          // --- Expanded State ---
+          if (hasMultipleItems) {
+            // Grouped Accordion Section (like POS, Inventory, Ecommerce, Reports, Settings)
+            return (
+              <div key={section.title} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenSections((prev) => ({ ...prev, [section.title]: true }));
+                    if (section.items[0]?.to) {
+                      startTransition(() => navigate(section.items[0].to));
+                    }
+                  }}
+                  className={clsx(
+                    "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-semibold capitalize transition-colors group cursor-pointer",
+                    isSectionActive ? "text-primary font-bold bg-white/5" : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <SectionIcon className={clsx("h-5 w-5 shrink-0 transition-colors", isSectionActive ? "text-primary" : "text-zinc-400 group-hover:text-white")} />
+                    <span className="text-[13px] font-bold capitalize">{section.title}</span>
+                  </div>
+                  <div
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection(section.title);
+                    }}
+                    className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 group-hover:text-white transition-colors"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="h-3.5 w-3.5 transition-transform" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 transition-transform" />
+                    )}
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
+                    {section.items.map((item) => {
+                      const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                      return (
                         <button
+                          key={item.name}
                           onClick={() => startTransition(() => navigate(item.to))}
-                          title={item.name}
                           className={clsx(
-                            'flex items-center rounded-xl transition-colors group',
-                            isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5 w-full',
+                            "relative flex items-center w-full px-3 py-2 rounded-md text-[12px] tracking-wide font-medium transition-all group",
                             isActive
-                              ? 'bg-primary text-[#1a1a1a] dark:text-[#1a1a1a]'
-                              : 'text-gray-300 hover:bg-white/10 hover:text-white dark:hover:bg-white/5 dark:hover:text-white'
+                              ? "text-white font-bold shadow-sm before:absolute before:-left-[13px] before:top-1/2 before:-translate-y-1/2 before:w-[2px] before:h-4 before:bg-primary before:rounded-2xl"
+                              : "text-zinc-400 hover:text-white"
                           )}
                         >
-                          <item.icon className="h-[22px] w-[22px] shrink-0" />
-                          {!isCollapsed && <span className="font-medium text-sm truncate">{item.name}</span>}
+                          <span className="truncate">{item.name}</span>
                         </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )
-        )}
+            );
+          }
+
+          // Single Item Section (like Dashboard -> Overview, Expenses, Staff)
+          const singleItem = section.items[0];
+          const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
+          const SingleIcon = singleItem.icon;
+
+          return (
+            <div key={section.title} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => startTransition(() => navigate(singleItem.to))}
+                className={clsx(
+                  "flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-xs lg:text-sm font-bold capitalize tracking-wider transition-all",
+                  isActive
+                    ? "bg-primary text-zinc-950 font-black shadow-md"
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <SingleIcon className={clsx("h-5 w-5 shrink-0", isActive ? "text-zinc-950" : "text-zinc-400")} />
+                <span className="truncate">{section.title}</span>
+              </button>
+            </div>
+          );
+        })}
       </nav>
 
-      <div className="mt-auto p-4 border-t border-white/10 dark:border-border flex flex-col gap-2">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={clsx(
-            "flex items-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 transition-colors",
-            isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-          )}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {isCollapsed ? <ChevronRight className="h-[22px] w-[22px]" /> : <ChevronLeft className="h-[22px] w-[22px]" />}
-          {!isCollapsed && <span className="font-medium text-sm">Collapse</span>}
-        </button>
+      {/* --- Bottom User Profile Card --- */}
+      <div className="p-3 mt-auto">
+        {!isCollapsed ? (
+          <div className="bg-[#1a1b1e] border border-[#1a1b1e] rounded-xl p-2.5 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0">
+                {getUserInitials(userName)}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-white truncate max-w-[110px]">
+                  {userName}
+                </span>
+                <span className="text-[10px] font-medium text-zinc-400 capitalize truncate">
+                  {userRole}
+                </span>
+              </div>
+            </div>
 
-        <button
-          onClick={() => {
-            logout();
-            window.location.href = '/login';
-          }}
-          className={clsx(
-            "flex items-center rounded-xl text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors",
-            isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-          )}
-          title="Logout"
-        >
-          <LogOut className="h-[22px] w-[22px]" />
-          {!isCollapsed && <span className="font-medium text-sm">Logout</span>}
-        </button>
+            <button
+              onClick={() => {
+                logout();
+                window.location.href = '/login';
+              }}
+              title="Logout"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              logout();
+              window.location.href = '/login';
+            }}
+            title="Logout"
+            className="h-10 w-10 mx-auto rounded-2xl bg-[#1a1b1e] border border-white/5 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+        )}
       </div>
     </aside>
   );
