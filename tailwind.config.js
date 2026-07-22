@@ -62,7 +62,6 @@ export default {
           DEFAULT: "hsl(var(--action-pill))",
           hover: "hsl(var(--action-pill-hover))",
           foreground: "hsl(var(--action-pill-foreground))",
-          border: "hsl(var(--action-pill-border))",
         },
       },
       borderRadius: {},

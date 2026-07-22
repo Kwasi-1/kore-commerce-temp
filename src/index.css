@@ -137,11 +137,11 @@
     --ring: 84 84% 71%;
     --radius: 1rem;
     --sidebar-background: 0 0% 11%;
-    --action-bridge: 225 10% 8%;
+    --action-bridge: 0 0% 11%;
     --action-pill: 0 0% 100% / 0.12;
     --action-pill-hover: 0 0% 100% / 0.22;
     --action-pill-foreground: 0 0% 100%;
-    --action-pill-border: 0 0% 100% / 0.15;
+    /* --action-pill-border: 0 0% 100% / 0.15; */
   }
 
   .dark {
@@ -165,11 +165,11 @@
     --input: 0 0% 16%;
     --ring: 84 84% 71%;
     --sidebar-background: 0 0% 7%;
-    --action-bridge: 240 6% 16%;
-    --action-pill: 240 5% 24%;
+    --action-bridge: 240 6% 11%;
+    --action-pill: 240 5% 20%;
     --action-pill-hover: 240 5% 32%;
     --action-pill-foreground: 0 0% 100%;
-    --action-pill-border: 240 5% 40% / 0.5;
+    /* --action-pill-border: 240 5% 40% / 0.5; */
   }
 
   * {
@@ -359,6 +359,6 @@ input[type="number"] {
   }
 
   .action-pill-button {
-    @apply bg-action-pill text-action-pill-foreground border border-action-pill-border hover:bg-action-pill-hover active:scale-95 transition-all;
+    @apply bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover active:scale-95 transition-all;
   }
 }
