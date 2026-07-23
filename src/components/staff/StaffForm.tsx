@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
-import { Button } from '@nextui-org/react';
+import { Button, Tooltip } from '@nextui-org/react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Eye, EyeOff, RefreshCw, Info, HelpCircle } from 'lucide-react';
 
 interface StaffFormProps {
   initialData?: any;
@@ -10,21 +11,35 @@ interface StaffFormProps {
   onCancel: () => void;
 }
 
+const generateDefaultPassword = () => {
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  return `Staff#${randomNum}`;
+};
+
 export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFormProps) {
   const isEditing = !!initialData;
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     first_name: initialData?.first_name || '',
     last_name: initialData?.last_name || '',
     email: initialData?.email || '',
-    password: '',
+    password: isEditing ? '' : generateDefaultPassword(),
     role: initialData?.role || 'cashier'
   });
 
+  const handleRegeneratePassword = () => {
+    const newPass = generateDefaultPassword();
+    setFormData(prev => ({ ...prev, password: newPass }));
+    toast.success('Generated new initial password');
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name) {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleRoleSelect = (keys: any) => {
@@ -60,7 +75,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card p-6 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
         
         {!isEditing && (
@@ -110,16 +125,68 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
         />
 
         {!isEditing && (
-          <CustomInputTextField
-            label="Initial Password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            placeholder="Secure password"
-            inputProps={{ minLength: 6 }}
-          />
+          <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-end px-0.5">
+              {/* <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-foreground">Initial Password</span>
+                <Tooltip
+                  content={
+                    <div className="px-2 py-1.5 max-w-[230px] text-xs space-y-1">
+                      <p className="font-bold text-foreground">Password Hints:</p>
+                      <ul className="list-disc pl-3 text-muted-foreground text-[11px] space-y-0.5">
+                        <li>Minimum 6 characters required.</li>
+                        <li>Prefilled with a secure default.</li>
+                        <li>Staff can change it anytime after login.</li>
+                      </ul>
+                    </div>
+                  }
+                  placement="top"
+                >
+                  <span className="cursor-pointer text-muted-foreground hover:text-primary transition-colors">
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </span>
+                </Tooltip>
+              </div> */}
+              <button
+                type="button"
+                onClick={handleRegeneratePassword}
+                className="text-[11px] font-semibold text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer"
+                title="Generate new random password"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Randomize
+              </button>
+            </div>
+
+            <CustomInputTextField
+              label="Initial Password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={handleChange}
+              required
+              placeholder="Secure password"
+              inputProps={{ minLength: 6 }}
+              endContent={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-muted-foreground hover:text-foreground p-1 transition-colors focus:outline-none cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              }
+            />
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 font-medium">
+              <Info className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>Share this initial password with the staff member for their first login.</span>
+            </p>
+          </div>
         )}
 
         {isEditing && (

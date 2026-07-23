@@ -259,6 +259,7 @@ interface CustomInputTextFieldProps extends InputHTMLAttributes<HTMLInputElement
 export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
   const {
     type,
+    name,
     label,
     placeholder,
     required = false,
@@ -331,6 +332,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
           {/* Input field */}
           <input
             type={type ?? "text"}
+            name={name || inputProps?.name}
             value={value}
             onChange={onChange}
             onFocus={handleFocus}
@@ -423,6 +425,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
 
         <input
           type={type ?? "text"}
+          name={name || inputProps?.name}
           value={value}
           onChange={onChange}
           onKeyDown={onKeyDown}
