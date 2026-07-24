@@ -647,9 +647,9 @@ export default function CartPanel({
                         className="w-72 p-4 rounded-2xl"
                         align="end"
                       >
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-sm">Edit Discount</h4>
-                          <div className="flex bg-secondary p-0.5 rounded-full">
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-sm font-header">Edit Discount</h4>
+                          <div className="flex bg-secondary p-[3px] rounded-full">
                             <button
                               className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "percentage" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                               onClick={() => {
@@ -1113,9 +1113,9 @@ export default function CartPanel({
                         className="w-72 p-4 rounded-2xl"
                         align="end"
                       >
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <h4 className="font-bold text-sm">Edit Discount</h4>
-                          <div className="flex bg-secondary p-0.5 rounded-full">
+                          <div className="flex bg-secondary p-[3px] rounded-full">
                             <button
                               className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "percentage" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                               onClick={() => {
