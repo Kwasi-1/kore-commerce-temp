@@ -19,13 +19,25 @@ export default function CashierSwitcher() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
+  const getStaffName = (cashier: any) => {
+    if (!cashier) return 'Staff Member';
+    if (cashier.name) return cashier.name;
+    if (cashier.first_name || cashier.last_name) {
+      return `${cashier.first_name || ''} ${cashier.last_name || ''}`.trim();
+    }
+    return cashier.email?.split('@')[0] || 'Staff Member';
+  };
+
   useEffect(() => {
     const fetchCashiers = async () => {
       try {
         const response = await apiClient.get('/tenant/staff');
-        // Filter to only show active staff who could potentially be cashiers
-        // The mock returns a list of staff, some might be owners/managers
-        setCashiers(response.data.success?.data?.staff || []);
+        const rawStaff = response.data.success?.data?.staff || [];
+        const formatted = rawStaff.map((s: any) => ({
+          ...s,
+          name: getStaffName(s)
+        }));
+        setCashiers(formatted);
       } catch (error) {
         console.error('Failed to fetch cashiers:', error);
       }
@@ -42,11 +54,11 @@ export default function CashierSwitcher() {
 
   const handlePinSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    // Mock PIN validation (any 4 digits works for now)
+    const cashierName = getStaffName(selectedCashier);
     if (pin.length >= 4) {
-      toast.success(`Logged in as ${selectedCashier.name}`);
+      toast.success(`Logged in as ${cashierName}`);
       // Log the cashier in
-      login('mock_token', 'mock_refresh', selectedCashier, tenant || { id: 't1', name: 'Default Tenant', plan: 'pro' });
+      login('mock_token', 'mock_refresh', { ...selectedCashier, name: cashierName }, tenant || { id: 't1', name: 'Default Tenant', plan: 'pro' });
       setIsPinModalOpen(false);
     } else {
       toast.error('Invalid PIN');
@@ -54,7 +66,8 @@ export default function CashierSwitcher() {
   };
 
   const getAvatarUrl = (cashier: any) => {
-    return cashier.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cashier.name)}&background=random`;
+    const name = getStaffName(cashier);
+    return cashier.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
   };
 
   const pinModalBody = (
@@ -62,9 +75,9 @@ export default function CashierSwitcher() {
       {selectedCashier && (
         <div className="flex flex-col items-center gap-2">
           <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden border-2 border-border shadow-sm">
-            <img src={getAvatarUrl(selectedCashier)} alt={selectedCashier.name} className="h-full w-full object-cover" />
+            <img src={getAvatarUrl(selectedCashier)} alt={getStaffName(selectedCashier)} className="h-full w-full object-cover" />
           </div>
-          <p className="font-bold text-lg">{selectedCashier.name}</p>
+          <p className="font-bold text-lg">{getStaffName(selectedCashier)}</p>
         </div>
       )}
       
@@ -95,7 +108,7 @@ export default function CashierSwitcher() {
     >
       {cashiers.slice(0, 3).map((cashier, idx) => (
         <div key={cashier.id} className={`h-8 w-8 rounded-full border-2 border-background bg-gray-200 overflow-hidden z-[${3-idx}]`}>
-          <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
+          <img src={getAvatarUrl(cashier)} alt={getStaffName(cashier)} className="h-full w-full object-cover" />
         </div>
       ))}
       {cashiers.length === 0 && (
@@ -125,10 +138,10 @@ export default function CashierSwitcher() {
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden shrink-0 border border-border/50">
-                  <img src={getAvatarUrl(cashier)} alt={cashier.name} className="h-full w-full object-cover" />
+                  <img src={getAvatarUrl(cashier)} alt={getStaffName(cashier)} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[14px] font-bold text-foreground leading-tight">{cashier.name}</span>
+                  <span className="text-[14px] font-bold text-foreground leading-tight">{getStaffName(cashier)}</span>
                   <span className="text-[12px] font-medium text-muted-foreground capitalize">{cashier.role}</span>
                 </div>
               </button>
