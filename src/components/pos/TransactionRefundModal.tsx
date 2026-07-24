@@ -72,34 +72,50 @@ export default function TransactionRefundModal({
       onOpenChange={onClose}
       placement="center"
       size="md"
-      header={<span className="text-lg font-semibold">Process Refund</span>}
+      header={<span className="text-lg font-bold !tracking-tight">Process Refund</span>}
       body={
-        <div className="flex flex-col gap-6 py-4">
-          <div className="flex gap-4">
-            <Button 
-              className="flex-1"
-              variant={refundType === 'full' ? 'default' : 'outline'}
+        <div className="flex flex-col gap-4 py-2">
+          {/* Monochromatic Pill Tabs Container */}
+          <div className="flex bg-secondary p-[3px] rounded-full border border-border/5">
+            <button 
+              type="button"
+              className={`flex-1 text-[13px] font-semibold py-2 rounded-full transition-all ${
+                refundType === 'full' 
+                  ? 'bg-background shadow-sm text-foreground font-bold' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
               onClick={() => setRefundType('full')}
             >
               Full Refund
-            </Button>
-            <Button 
-              className="flex-1"
-              variant={refundType === 'partial' ? 'default' : 'outline'}
+            </button>
+            <button 
+              type="button"
+              className={`flex-1 text-[13px] font-semibold py-2 rounded-full transition-all ${
+                refundType === 'partial' 
+                  ? 'bg-background shadow-sm text-foreground font-bold' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
               onClick={() => setRefundType('partial')}
             >
               Partial Refund
-            </Button>
+            </button>
           </div>
 
           {refundType === 'full' ? (
-            <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm border border-destructive/20">
-              Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={totalAmount} /></strong> will be recorded as refunded.
+            <div className="bg-muted/60 p-4 rounded-lg text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to completely refund this transaction? The total amount of{' '}
+              <span className="font-bold text-foreground">
+                <CurrencyDisplay amount={totalAmount} />
+              </span>{' '}
+              will be recorded as refunded.
             </div>
           ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={totalAmount} /></strong>.
+            <div className="space-y-3">
+              <p className="text-[13px] text-muted-foreground">
+                Enter the custom amount to refund. Maximum allowed is{' '}
+                <span className="font-bold text-foreground">
+                  <CurrencyDisplay amount={totalAmount} />
+                </span>.
               </p>
               <CustomInputTextField
                 type="number"
@@ -115,11 +131,20 @@ export default function TransactionRefundModal({
         </div>
       }
       footer={
-        <div className="flex gap-2 w-full justify-end">
-          <Button variant="ghost" onClick={onClose} disabled={isRefunding}>
+        <div className="flex gap-2.5 w-full justify-end pt-1">
+          <Button 
+            variant="outline" 
+            className="rounded-full px-5 text-xs font-semibold" 
+            onClick={onClose} 
+            disabled={isRefunding}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleIssueRefund} disabled={isRefunding}>
+          <Button 
+            className="rounded-full px-6 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm" 
+            onClick={handleIssueRefund} 
+            disabled={isRefunding}
+          >
             {isRefunding ? 'Processing...' : 'Confirm Refund'}
           </Button>
         </div>
