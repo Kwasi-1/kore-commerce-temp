@@ -23,19 +23,35 @@ export default function TransactionRefundModal({
   const [partialRefundAmount, setPartialRefundAmount] = useState<string>('');
   const [isRefunding, setIsRefunding] = useState(false);
 
+  const getVal = (val: any): number => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') return parseFloat(val) || 0;
+    if (typeof val === 'object') {
+      if (typeof val.parsedValue === 'number') return val.parsedValue;
+      if (typeof val.source === 'string') return parseFloat(val.source) || 0;
+    }
+    return 0;
+  };
+
+  const totalAmount = getVal(
+    receiptData?.totalAmount ?? receiptData?.total ?? receiptData?.summary?.total ?? receiptData?.summary?.totalAmount
+  );
+
   const handleIssueRefund = async () => {
     if (!receiptData) return;
     
     setIsRefunding(true);
     try {
-      const amount = refundType === 'full' ? receiptData.totalAmount : parseFloat(partialRefundAmount);
-      if (isNaN(amount) || amount <= 0 || amount > receiptData.totalAmount) {
+      const amount = refundType === 'full' ? totalAmount : parseFloat(partialRefundAmount);
+      if (isNaN(amount) || amount <= 0 || amount > totalAmount) {
         toast.error("Invalid refund amount");
         setIsRefunding(false);
         return;
       }
 
-      await apiClient.post(`/pos/transactions/${receiptData.id}/refund`, {
+      const txId = receiptData.id || receiptData.transactionId || receiptData.receiptNumber;
+      await apiClient.post(`/pos/transactions/${txId}/refund`, {
         type: refundType,
         amount
       });
@@ -78,12 +94,12 @@ export default function TransactionRefundModal({
 
           {refundType === 'full' ? (
             <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm border border-destructive/20">
-              Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={receiptData?.totalAmount || 0} /></strong> will be recorded as refunded.
+              Are you sure you want to completely refund this transaction? The total amount of <strong><CurrencyDisplay amount={totalAmount} /></strong> will be recorded as refunded.
             </div>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={receiptData?.totalAmount || 0} /></strong>.
+                Enter the custom amount to refund. Maximum allowed is <strong><CurrencyDisplay amount={totalAmount} /></strong>.
               </p>
               <CustomInputTextField
                 type="number"

@@ -12,6 +12,18 @@ interface TransactionSidePanelProps {
   onIssueRefund: () => void;
 }
 
+const getVal = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseFloat(val) || 0;
+  if (typeof val === 'object') {
+    if (typeof val.parsedValue === 'number') return val.parsedValue;
+    if (typeof val.source === 'string') return parseFloat(val.source) || 0;
+    if (typeof val.source === 'number') return val.source;
+  }
+  return 0;
+};
+
 export default function TransactionSidePanel({
   isOpen,
   onClose,
@@ -20,6 +32,16 @@ export default function TransactionSidePanel({
   onIssueRefund
 }: TransactionSidePanelProps) {
   const { formatAmount } = useCurrency();
+
+  const storeName = receiptData?.storeName || receiptData?.tenant?.name || 'VYSION STORE';
+  const cashierName = receiptData?.cashierName || receiptData?.cashier?.name || 'Staff';
+  const paymentMethod = receiptData?.paymentMethod || receiptData?.payment?.method || 'cash';
+  const subtotal = getVal(receiptData?.subtotal ?? receiptData?.summary?.subtotal);
+  const totalAmount = getVal(receiptData?.totalAmount ?? receiptData?.total ?? receiptData?.summary?.total ?? receiptData?.summary?.totalAmount);
+  const amountTendered = getVal(receiptData?.amountTendered ?? receiptData?.payment?.amountTendered);
+  const changeGiven = getVal(receiptData?.changeGiven ?? receiptData?.payment?.changeGiven);
+  const discount = getVal(receiptData?.discount);
+  const tax = receiptData?.tax !== undefined ? getVal(receiptData?.tax) : undefined;
 
   return (
     <CustomModal
@@ -49,7 +71,7 @@ export default function TransactionSidePanel({
               {/* Header */}
               <div className="text-center mb-6">
                 <h1 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900 uppercase">
-                  {receiptData.storeName || 'VYSION STORE'}
+                  {storeName}
                 </h1>
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wide">
                   {receiptData.storeAddress || '123 Commerce St, Accra, Ghana'}
@@ -73,11 +95,11 @@ export default function TransactionSidePanel({
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Cashier:</span>
-                  <span>{receiptData.cashierName || 'Staff'}</span>
+                  <span>{cashierName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Payment:</span>
-                  <span className="uppercase font-semibold text-zinc-900">{receiptData.paymentMethod}</span>
+                  <span className="uppercase font-semibold text-zinc-900">{paymentMethod}</span>
                 </div>
               </div>
 
@@ -89,17 +111,20 @@ export default function TransactionSidePanel({
                   <span className="w-20 text-right">Total</span>
                 </div>
                 <div className="space-y-1.5 text-xs text-zinc-800">
-                  {receiptData.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex items-start">
-                      <span className="flex-1 pr-2 leading-tight font-medium text-left">
-                        {item.productName || item.name}
-                      </span>
-                      <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
-                      <span className="w-20 text-right font-semibold">
-                        {formatAmount(item.subtotal || (item.price * item.quantity))}
-                      </span>
-                    </div>
-                  ))}
+                  {receiptData.items?.map((item: any, i: number) => {
+                    const itemSubtotal = getVal(item.subtotal ?? (getVal(item.unitPrice || item.price) * item.quantity));
+                    return (
+                      <div key={i} className="flex items-start">
+                        <span className="flex-1 pr-2 leading-tight font-medium text-left">
+                          {item.productName || item.name}
+                        </span>
+                        <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                        <span className="w-20 text-right font-semibold">
+                          {formatAmount(itemSubtotal)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -107,35 +132,35 @@ export default function TransactionSidePanel({
               <div className="space-y-1.5 text-xs text-zinc-800">
                 <div className="flex justify-between font-medium">
                   <span>Subtotal</span>
-                  <span>{formatAmount(receiptData.subtotal)}</span>
+                  <span>{formatAmount(subtotal)}</span>
                 </div>
-                {receiptData.discount > 0 && (
+                {discount > 0 && (
                   <div className="flex justify-between font-medium">
                     <span>Discount</span>
-                    <span className="text-emerald-600">-{formatAmount(receiptData.discount)}</span>
+                    <span className="text-emerald-600">-{formatAmount(discount)}</span>
                   </div>
                 )}
-                {receiptData.tax !== undefined && (
+                {tax !== undefined && (
                   <div className="flex justify-between font-medium">
                     <span>Tax (12%)</span>
-                    <span>{formatAmount(receiptData.tax)}</span>
+                    <span>{formatAmount(tax)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
                   <span>Total</span>
-                  <span>GHS {formatAmount(receiptData.totalAmount)}</span>
+                  <span>GHS {formatAmount(totalAmount)}</span>
                 </div>
               </div>
 
-              {receiptData.paymentMethod === 'cash' && receiptData.amountTendered !== undefined && (
+              {paymentMethod === 'cash' && amountTendered > 0 && (
                 <div className="mt-4 pt-3 border-t border-dashed border-zinc-200 space-y-1 text-xs text-zinc-700">
                   <div className="flex justify-between">
                     <span>Tendered:</span>
-                    <span className="font-semibold text-zinc-900">{formatAmount(receiptData.amountTendered)}</span>
+                    <span className="font-semibold text-zinc-900">{formatAmount(amountTendered)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Change:</span>
-                    <span className="font-semibold text-zinc-900">{formatAmount(receiptData.changeGiven)}</span>
+                    <span className="font-semibold text-zinc-900">{formatAmount(changeGiven)}</span>
                   </div>
                 </div>
               )}
