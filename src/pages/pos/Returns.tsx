@@ -114,7 +114,8 @@ export default function Returns() {
   }, [fetchReturns]);
 
   const handleRowClick = (key: any) => {
-    const ret = returns.find(r => r.id === key);
+    const targetId = typeof key === 'string' ? key : key?.id || key?.__record?.id;
+    const ret = returns.find(r => r.id === targetId || r.id === key);
     if (ret) {
       setSelectedReturn(ret);
       setIsDrawerOpen(true);
@@ -156,7 +157,7 @@ export default function Returns() {
     id: r.id,
     date: r.date_created ? format(new Date(r.date_created), 'MMM dd, yyyy h:mm a') : 'N/A',
     id_display: <span className="font-mono text-xs font-semibold">{r.id}</span>,
-    original_ref: <span className="font-mono text-xs font-semibold">{r.original_transaction_ref}</span>,
+    original_ref: <span className="font-mono text-xs font-semibold">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span>,
     items_count: <span className="font-medium">{r.items?.length || 0} items</span>,
     amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={r.total_refund_amount || 0} /></span>,
     status: (
@@ -216,12 +217,7 @@ export default function Returns() {
         {/* Enhanced Table */}
         <EnhancedTableComponent
           columns={columns}
-          rows={rows.map(r => ({
-            ...r,
-            // Override columns mapping for visual display inside the table
-            id: r.id_display,
-            original_ref: r.original_ref
-          }))}
+          rows={rows}
           isLoading={isLoading}
           title="Returns Log"
           showSearch={true}

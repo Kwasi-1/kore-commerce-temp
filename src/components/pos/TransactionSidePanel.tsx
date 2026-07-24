@@ -42,6 +42,7 @@ export default function TransactionSidePanel({
   const changeGiven = getVal(receiptData?.changeGiven ?? receiptData?.payment?.changeGiven);
   const discount = getVal(receiptData?.discount);
   const tax = receiptData?.tax !== undefined ? getVal(receiptData?.tax) : undefined;
+  const isRefunded = receiptData?.status === 'refunded' || receiptData?.orderStatus === 'refunded';
 
   return (
     <CustomModal
@@ -62,7 +63,7 @@ export default function TransactionSidePanel({
               className="bg-white text-black p-6 rounded-xl relative border border-border/20 font-sans text-sm shadow-sm print:p-0 print:w-full print:border-none print:shadow-none"
             >
               {/* Refunded Stamp */}
-              {receiptData.status === 'refunded' && (
+              {isRefunded && (
                 <div className="absolute top-6 right-6 border-4 border-red-600 rounded text-red-600 font-extrabold px-4 py-2 rotate-[-12deg] opacity-75 uppercase tracking-widest text-sm pointer-events-none select-none font-['AtypDisplay']">
                   Refunded
                 </div>
@@ -192,10 +193,10 @@ export default function TransactionSidePanel({
               variant="destructive"
               className="w-full"
               onClick={onIssueRefund}
-              disabled={receiptData.status === 'refunded'}
+              disabled={isRefunded}
             >
               <RefreshCcw className="w-4 h-4 mr-2" />
-              {receiptData.status === 'refunded' ? 'Already Refunded' : 'Issue Refund'}
+              {isRefunded ? 'Already Refunded' : 'Issue Refund'}
             </Button>
           </div>
         ) : null
