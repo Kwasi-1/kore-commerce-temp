@@ -16,6 +16,7 @@ import html2canvas from 'html2canvas';
 
 export default function CreditLedger() {
   const [debtors, setDebtors] = useState<any[]>([]);
+  const [settledThisMonth, setSettledThisMonth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -40,6 +41,8 @@ export default function CreditLedger() {
     try {
       const response = await apiClient.get('/pos/credit-ledger');
       const data = response.data.success?.data?.debtors || [];
+      const settled = response.data.success?.data?.settled_this_month ?? 0;
+      setSettledThisMonth(settled);
       
       // Client-side search
       const filtered = data.filter((c: any) => 
@@ -309,10 +312,8 @@ export default function CreditLedger() {
   const stats = useMemo(() => {
     const totalDebt = debtors.reduce((sum, d) => sum + (d.outstanding_debt || 0), 0);
     const count = debtors.length;
-    // Mock metric for demonstration
-    const settledThisMonth = 4250.00; 
     return { totalDebt, count, settledThisMonth };
-  }, [debtors]);
+  }, [debtors, settledThisMonth]);
 
   const columns = [
     { key: 'avatar', label: '' },
