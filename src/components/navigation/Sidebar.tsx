@@ -202,7 +202,7 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        "h-full bg-[#121316] text-white flex-col transition-all duration-300 relative hidden md:flex select-none",
+        "h-full bg-[#121316] dark:bg-sidebar text-white flex-col transition-all duration-300 relative hidden md:flex select-none",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
@@ -218,7 +218,7 @@ export default function Sidebar() {
       {/* --- Top Header / Company Card --- */}
       <div className="p-3">
         {!isCollapsed ? (
-          <div className="bg-[#1a1b1e] border border-[#1a1b1e] rounded-xl p-3 flex items-center justify-between shadow-sm">
+          <div className="bg-white/[3%] border border-[#1a1b1e] rounded-xl p-3 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-9 w-9 rounded-[0.6rem] bg-primary text-zinc-950 font-black text-base flex items-center justify-center shadow-md shrink-0 overflow-hidden p1">
                 {!logoError ? (
@@ -254,7 +254,7 @@ export default function Sidebar() {
           <div
             onClick={() => setIsCollapsed(false)}
             title="Expand sidebar"
-            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-4 overflow-hidden p1.5"
+            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-3 overflow-hidden p1.5"
           >
             {!logoError ? (
               <img
@@ -435,7 +435,7 @@ export default function Sidebar() {
       {/* --- Bottom User Profile Card --- */}
       <div className="p-3 mt-auto">
         {!isCollapsed ? (
-          <div className="bg-[#1a1b1e] border border-[#1a1b1e] rounded-xl p-2.5 flex items-center justify-between shadow-sm">
+          <div className="bg-white/[4%] border border-[#1a1b1e] rounded-xl p-2.5 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0">
                 {getUserInitials(userName)}
