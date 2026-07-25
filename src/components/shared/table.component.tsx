@@ -229,10 +229,16 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                   <div
                     key={rowId}
                     className={cn(
-                      "px-2 py-4 rounded-md relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200 text-[13px]"
+                      "px-2 py-4 rounded-md relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200 text-[13px]",
+                      onclick && "cursor-pointer hover:border-primary/40"
                     )}
                     onClick={() => {
-                      toggleExpanded(rowId);
+                      if (bottomContentOnMoblile) {
+                        toggleExpanded(rowId);
+                      }
+                      if (onclick) {
+                        onclick(rowId);
+                      }
                     }}
                   >
                     <div className={cn(mobileHeadersClassname, "w-full")}>
@@ -254,11 +260,10 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
                       })}
                     </div>
 
-                    {/* bottom Contente */}
-
-                    {isExpanded && (
+                    {/* bottom Content */}
+                    {isExpanded && bottomContentOnMoblile && (
                       <div className="bg-muted mt-4 p-3 rounded-lg border border-border/50">
-                        {bottomContentOnMoblile && bottomContentOnMoblile(row)}
+                        {bottomContentOnMoblile(row)}
                       </div>
                     )}
                   </div>
