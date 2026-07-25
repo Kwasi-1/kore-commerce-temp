@@ -26,6 +26,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
     last_name: initialData?.last_name || '',
     email: initialData?.email || '',
     password: isEditing ? '' : generateDefaultPassword(),
+    pos_pin: '1234',
     role: initialData?.role || 'cashier'
   });
 
@@ -185,6 +186,25 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
             <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 font-medium">
               <Info className="h-3.5 w-3.5 text-amber-500 shrink-0" />
               <span>Share this initial password with the staff member for their first login.</span>
+            </p>
+          </div>
+        )}
+
+        {!isEditing && (
+          <div className="space-y-1">
+            <CustomInputTextField
+              label="4-Digit POS Access PIN"
+              name="pos_pin"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={4}
+              value={formData.pos_pin}
+              onChange={handleChange}
+              placeholder="1234"
+            />
+            <p className="text-[11px] text-muted-foreground font-medium">
+              Default is <strong>1234</strong>. Staff will be prompted to set a personal PIN on first terminal unlock.
             </p>
           </div>
         )}

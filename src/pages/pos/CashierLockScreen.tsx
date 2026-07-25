@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
 
+import SetPinModal from '@/components/pos/SetPinModal';
+import toast from 'react-hot-toast';
+
 const COLORS = [
   'bg-amber-500',
   'bg-purple-500',
@@ -37,6 +40,8 @@ export default function CashierLockScreen() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isError, setIsError] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSetPinOpen, setIsSetPinOpen] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -131,29 +136,76 @@ export default function CashierLockScreen() {
     }
   };
 
-  const handleVerifyPin = (fullPin: string) => {
-    // Verify PIN: accept 4 digits or any PIN entered
-    if (fullPin.length === 4) {
-      login(
-        'cashier-token',
-        'cashier-refresh',
-        {
-          id: selectedCashier!.id,
-          name: selectedCashier!.name,
-          role: selectedCashier!.role,
-        },
-        tenant || {
-          id: 'tenant-1',
-          name: 'Vysion Store',
-          plan: 'pos_only',
-        }
-      );
-      navigate('/pos/register');
-    } else {
+  const handleVerifyPin = async (fullPin: string) => {
+    if (!selectedCashier) return;
+    setIsVerifying(true);
+    setIsError(false);
+
+    try {
+      const response = await apiClient.post('/pos/auth/verify-pin', {
+        staff_id: selectedCashier.id,
+        pin: fullPin,
+      });
+
+      const data = response.data.success?.data || {};
+      const isDefault = data.is_default_pin;
+
+      if (isDefault) {
+        // Staff is using default PIN 1234 — force personal PIN setup modal
+        setIsSetPinOpen(true);
+      } else {
+        // PIN verified — log in staff with real server-issued JWT tokens
+        toast.success(`Welcome back, ${selectedCashier.name}`);
+        const currentToken = useAuthStore.getState().token;
+        const currentRefresh = useAuthStore.getState().refreshToken;
+
+        login(
+          data.access_token || currentToken || '',
+          data.refresh_token || currentRefresh || '',
+          data.staff || {
+            id: selectedCashier.id,
+            name: selectedCashier.name,
+            role: selectedCashier.role,
+          },
+          data.tenant || tenant || {
+            id: 'tenant-1',
+            name: 'Vysion Store',
+            plan: 'pos_only',
+          }
+        );
+        navigate('/pos/register');
+      }
+    } catch (error: any) {
+      console.error('Verify PIN failed:', error);
       setIsError(true);
       setPin(['', '', '', '']);
       inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
     }
+  };
+
+  const handleSetPinSuccess = (resData: any) => {
+    setIsSetPinOpen(false);
+    toast.success(`Logged in as ${selectedCashier?.name}`);
+    const currentToken = useAuthStore.getState().token;
+    const currentRefresh = useAuthStore.getState().refreshToken;
+
+    login(
+      resData?.access_token || currentToken || '',
+      resData?.refresh_token || currentRefresh || '',
+      resData?.staff || {
+        id: selectedCashier!.id,
+        name: selectedCashier!.name,
+        role: selectedCashier!.role,
+      },
+      resData?.tenant || tenant || {
+        id: 'tenant-1',
+        name: 'Vysion Store',
+        plan: 'pos_only',
+      }
+    );
+    navigate('/pos/register');
   };
 
   const handleSelectCashier = (cashier: CashierProfile) => {
@@ -311,6 +363,18 @@ export default function CashierLockScreen() {
         </div>
         
       </div>
+
+      {/* Set Personal PIN Modal (Triggered on default 1234 PIN unlock) */}
+      <SetPinModal
+        isOpen={isSetPinOpen}
+        staff={selectedCashier}
+        onSuccess={handleSetPinSuccess}
+        onCancel={() => {
+          setIsSetPinOpen(false);
+          setPin(['', '', '', '']);
+          inputRefs.current[0]?.focus();
+        }}
+      />
     </div>
   );
 }

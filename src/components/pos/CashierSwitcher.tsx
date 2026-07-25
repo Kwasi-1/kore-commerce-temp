@@ -57,8 +57,9 @@ export default function CashierSwitcher() {
     const cashierName = getStaffName(selectedCashier);
     if (pin.length >= 4) {
       toast.success(`Logged in as ${cashierName}`);
-      // Log the cashier in
-      login('mock_token', 'mock_refresh', { ...selectedCashier, name: cashierName }, tenant || { id: 't1', name: 'Default Tenant', plan: 'pro' });
+      const currentToken = useAuthStore.getState().token;
+      const currentRefresh = useAuthStore.getState().refreshToken;
+      login(currentToken || '', currentRefresh || '', { ...selectedCashier, name: cashierName }, tenant || { id: 't1', name: 'Default Tenant', plan: 'pro' });
       setIsPinModalOpen(false);
     } else {
       toast.error('Invalid PIN');
