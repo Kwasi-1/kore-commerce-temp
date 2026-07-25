@@ -15,6 +15,7 @@ import {
   Printer, 
   FileText, 
   CheckCircle,
+  CheckCircle2,
   AlertTriangle,
   Clock,
   ArrowRightLeft,
@@ -251,82 +252,86 @@ export default function Returns() {
           placement="right"
           size="md"
           header={
-            <div className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">Return Detail Record</span>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <RotateCcw className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold tracking-tight text-foreground">Return Detail Record</h3>
+                <p className="text-xs text-muted-foreground font-mono">
+                  #{selectedReturn?.id?.slice(0, 8)?.toUpperCase() || '—'}
+                </p>
+              </div>
             </div>
           }
           body={
             <div className="flex-1 overflow-y-auto px-1 py-4 text-left">
               {selectedReturn ? (
                 <div className="space-y-6">
-                  {/* Stamp Overview */}
-                  <div className="text-center pb-6 border-b border-border/50">
-                    <div className={`mx-auto h-12 w-12 rounded-full flex items-center justify-center mb-3 ${
-                      selectedReturn.status === 'approved'
-                        ? 'bg-green-500/10 text-green-600'
-                        : selectedReturn.status === 'rejected'
-                          ? 'bg-red-500/10 text-red-600'
-                          : 'bg-amber-500/10 text-amber-600'
-                    }`}>
-                      <RotateCcw className="h-6 w-6" />
+                  {/* Hero Summary Card */}
+                  <div className="bg-gradient-to-b from-muted/60 to-muted/20 p-5 rounded-2xl border border-border/60 flex flex-col items-center text-center relative overflow-hidden shadow-xs">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">
+                      Refund Amount Issued
+                    </span>
+                    <div className="text-3xl font-extrabold text-foreground font tracking-tight my-1">
+                      <CurrencyDisplay amount={selectedReturn.total_refund_amount} />
                     </div>
-                    <h3 className="text-lg font-bold font-mono uppercase tracking-tight">{selectedReturn.id}</h3>
-                    <p className="text-muted-foreground text-xs">
-                      Orig. Receipt: <span className="font-mono font-semibold">{selectedReturn.original_transaction_ref}</span>
-                    </p>
-
-                    <div className="mt-4 bg-muted/40 p-4.5 rounded-xl border border-border inline-block w-full max-w-[280px]">
-                      <p className="text-[10px] font-semibold text-muted-foreground mb-0.5 uppercase tracking-wider">Refund Amount Issued</p>
-                      <p className="text-2xl font-extrabold text-foreground tracking-tight">
-                        {formatGHS(selectedReturn.total_refund_amount)}
-                      </p>
-                      <span className={`capitalize text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-2.5 border ${
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`capitalize text-[11px] font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-2xs ${
                         selectedReturn.status === 'approved'
                           ? 'bg-green-500/10 text-green-600 border-green-500/20'
                           : selectedReturn.status === 'rejected'
                             ? 'bg-red-500/10 text-red-600 border-red-500/20'
                             : 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse'
                       }`}>
+                        {selectedReturn.status === 'approved' && <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {selectedReturn.status === 'rejected' && <XCircle className="h-3.5 w-3.5" />}
+                        {selectedReturn.status === 'pending' && <Clock className="h-3.5 w-3.5" />}
                         {selectedReturn.status}
                       </span>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-border/40 w-full flex justify-between items-center text-xs text-muted-foreground font-mono">
+                      <span>Orig Receipt: <strong className="text-foreground">{selectedReturn.original_transaction_ref || '—'}</strong></span>
+                      <span>Return ID: <strong className="text-foreground">{selectedReturn.id}</strong></span>
                     </div>
                   </div>
 
                   {/* Return Information Details */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 border-b pb-1.5">
-                      <FileText className="h-4 w-4" /> Return Info
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
+                      <FileText className="h-3.5 w-3.5 text-primary" /> Return Details
                     </h4>
                     
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Reason</span>
-                        <span className="font-semibold">{reasonLabels[selectedReturn.reason] || selectedReturn.reason}</span>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Reason</span>
+                        <span className="font-semibold text-foreground">{reasonLabels[selectedReturn.reason] || selectedReturn.reason || 'Other'}</span>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Refund Method</span>
-                        <span className="font-semibold capitalize">{selectedReturn.refund_method.replace('_', ' ')}</span>
+                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Refund Method</span>
+                        <span className="font-semibold capitalize text-foreground">{selectedReturn.refund_method?.replace('_', ' ') || 'Cash'}</span>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Initiated By</span>
-                        <span className="font-semibold">{selectedReturn.initiated_by_name}</span>
+                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Initiated By</span>
+                        <span className="font-semibold text-foreground">{selectedReturn.initiated_by_name || 'Staff'}</span>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Created Date</span>
-                        <span className="font-semibold">
+                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Created Date</span>
+                        <span className="font-semibold text-foreground">
                           {selectedReturn.date_created ? format(new Date(selectedReturn.date_created), 'MMM dd, yyyy h:mm a') : '—'}
                         </span>
                       </div>
                       {selectedReturn.status === 'approved' && (
                         <>
-                          <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase">Authorized By</span>
-                            <span className="font-semibold">{selectedReturn.approved_by_name}</span>
+                          <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Authorized By</span>
+                            <span className="font-semibold text-foreground">{selectedReturn.approved_by_name || 'System Admin'}</span>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase">Approved At</span>
-                            <span className="font-semibold">
+                          <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Approved At</span>
+                            <span className="font-semibold text-foreground">
                               {selectedReturn.approved_at ? format(new Date(selectedReturn.approved_at), 'MMM dd, yyyy h:mm a') : '—'}
                             </span>
                           </div>
@@ -335,55 +340,72 @@ export default function Returns() {
                     </div>
 
                     {selectedReturn.notes && (
-                      <div className="bg-muted/30 p-3 rounded-xl border mt-2">
-                        <span className="text-muted-foreground block text-[9px] font-bold uppercase tracking-wider mb-1">Notes / Rejection Remarks</span>
+                      <div className="bg-muted/40 p-3.5 rounded-xl border border-border/60 mt-2">
+                        <span className="text-muted-foreground block text-[10px] font-bold uppercase tracking-wider mb-1">Notes / Remarks</span>
                         <p className="text-xs leading-relaxed font-medium text-foreground">{selectedReturn.notes}</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Items list */}
+                  {/* Returned Items Table */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 border-b pb-1.5">
-                      <History className="h-4 w-4" /> Returned Items
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
+                      <History className="h-3.5 w-3.5 text-primary" /> Returned Items
                     </h4>
 
-                    <div className="border rounded-xl overflow-hidden bg-card text-xs">
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-card text-xs shadow-2xs">
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="bg-muted text-muted-foreground text-[9px] uppercase border-b">
-                            <th className="p-2.5">Item</th>
-                            <th className="p-2.5 text-center">Qty</th>
-                            <th className="p-2.5 text-right">Price</th>
-                            <th className="p-2.5 text-center">Condition</th>
+                          <tr className="bg-muted/60 text-muted-foreground text-[10px] uppercase border-b border-border/60 font-bold">
+                            <th className="p-3">Item</th>
+                            <th className="p-3 text-center">Qty</th>
+                            <th className="p-3 text-right">Price</th>
+                            <th className="p-3 text-center">Condition</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {selectedReturn.items?.map((item, idx) => (
-                            <tr key={idx} className="border-b last:border-none">
-                              <td className="p-2.5">
-                                <p className="font-bold capitalize text-foreground">{item.product_name}</p>
-                                <span className="text-[9px] text-muted-foreground font-mono">{item.packaging_tier_name || 'Unit'}</span>
-                              </td>
-                              <td className="p-2.5 text-center font-medium text-muted-foreground">{item.quantity}</td>
-                              <td className="p-2.5 text-right font-semibold">{formatGHS(item.unit_price)}</td>
-                              <td className="p-2.5 text-center">
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded capitalize ${
-                                  item.condition === 'sellable'
-                                    ? 'bg-green-500/10 text-green-600 border border-green-500/10'
-                                    : 'bg-red-500/10 text-red-600 border border-red-500/10'
-                                }`}>
-                                  {item.condition}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                        <tbody className="divide-y divide-border/40">
+                          {selectedReturn.items?.map((item, idx) => {
+                            const itemName = item.product_name && item.product_name !== 'Unit' 
+                              ? item.product_name 
+                              : item.packaging_tier_name && item.packaging_tier_name !== 'Unit'
+                                ? item.packaging_tier_name
+                                : 'Returned Item';
+                            
+                            return (
+                              <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                                <td className="p-3">
+                                  <p className="font-semibold text-foreground capitalize">{itemName}</p>
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    {item.packaging_tier_name || 'Unit'}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-center font-medium text-foreground">{item.quantity}</td>
+                                <td className="p-3 text-right font-semibold text-foreground">
+                                  <CurrencyDisplay amount={item.unit_price} />
+                                </td>
+                                <td className="p-3 text-center">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize inline-flex items-center gap-1 border ${
+                                    item.condition === 'sellable'
+                                      ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                                      : 'bg-red-500/10 text-red-600 border-red-500/20'
+                                  }`}>
+                                    {item.condition === 'sellable' ? (
+                                      <CheckCircle2 className="h-3 w-3" />
+                                    ) : (
+                                      <AlertTriangle className="h-3 w-3" />
+                                    )}
+                                    {item.condition}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   </div>
 
-                  {/* Receipt block for printing */}
+                  {/* Printable Receipt Hidden Container */}
                   <div className="hidden">
                     <div 
                       id="drawer-return-receipt-print"
@@ -426,7 +448,7 @@ export default function Returns() {
                           {selectedReturn.items?.map((item, i) => (
                             <div key={i} className="flex items-start text-[10px]">
                               <div className="flex-1 pr-1 capitalize">
-                                <p className="font-medium leading-none text-zinc-900">{item.product_name}</p>
+                                <p className="font-medium leading-none text-zinc-900">{item.product_name || 'Item'}</p>
                                 <span className="text-[8px] text-zinc-400 capitalize font-mono">Condition: {item.condition}</span>
                               </div>
                               <span className="w-12 text-center text-zinc-500">{item.quantity}</span>
@@ -451,10 +473,10 @@ export default function Returns() {
 
                   {/* Reprint Receipt Action */}
                   {selectedReturn.status === 'approved' && (
-                    <div className="pt-4 border-t border-border flex justify-end">
+                    <div className="pt-4 border-t border-border/40 flex justify-end">
                       <Button 
                         onClick={handlePrintReceipt}
-                        className="w-full bg-primary hover:bg-primary/95 text-white rounded-xl h-10 gap-1.5 text-xs font-semibold"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl h-10 gap-2 text-xs shadow-xs transition-all"
                       >
                         <Printer className="h-4 w-4" /> Reprint Refund Receipt
                       </Button>
