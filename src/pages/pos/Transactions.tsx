@@ -323,14 +323,18 @@ export default function Transactions() {
             value={isLoading ? "..." : <CurrencyDisplay amount={stats.total} />}
             subvalue={
               stats.refundTotal > 0 ? (
-                <span className="text-[11px] text-muted-foreground font-medium flex gap-x-2.5 items-center">
+                <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-2">
                   <span>
-                  Gross: <CurrencyDisplay amount={stats.grossTotal} /> 
+                    Gross: <CurrencyDisplay amount={stats.grossTotal} symbolClassName="mr-1 font-medium text-muted-foreground" />
                   </span>
-                  &bull; 
-                  <span>Refunded:{" "}
+                  <span>&bull;</span>
+                  <span>
+                    Refunded:{" "}
                     <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                      <CurrencyDisplay amount={stats.refundTotal} />
+                      <CurrencyDisplay
+                        amount={stats.refundTotal}
+                        symbolClassName="mr-1 text-rose-600 dark:text-rose-400 font-semibold"
+                      />
                     </span>
                   </span>
                 </span>
@@ -355,7 +359,7 @@ export default function Transactions() {
                       </span>
                     </div>
                     <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.cashTotal} />
+                      <CurrencyDisplay amount={stats.cashTotal} showStyling={false}/>
                     </span>
                   </div>
                   <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
@@ -380,7 +384,7 @@ export default function Transactions() {
                       </span>
                     </div>
                     <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.momoTotal} />
+                      <CurrencyDisplay amount={stats.momoTotal} showStyling={false} />
                     </span>
                   </div>
                   <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
@@ -405,7 +409,7 @@ export default function Transactions() {
                       </span>
                     </div>
                     <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.cardTotal} />
+                      <CurrencyDisplay amount={stats.cardTotal} showStyling={false}/>
                     </span>
                   </div>
                   <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
@@ -425,7 +429,7 @@ export default function Transactions() {
                         </span>
                       </div>
                       <span className="text-rose-600 dark:text-rose-400 font-bold text-[11px] md:text-xs">
-                        -<CurrencyDisplay amount={stats.refundTotal} />
+                        -<CurrencyDisplay amount={stats.refundTotal} symbolClassName="mr-1" />
                       </span>
                     </div>
                   </div>
@@ -454,7 +458,7 @@ export default function Transactions() {
               value={isLoading ? "..." : cashierStats[0]?.name || "N/A"}
               subvalue={
                 cashierStats[0]
-                  ? `GHS ${cashierStats[0].total.toFixed(2)}`
+                  ?  <CurrencyDisplay amount={cashierStats[0].total} showStyling={false}/>
                   : undefined
               }
               toggleIcon={
@@ -497,7 +501,7 @@ export default function Transactions() {
                               {c.name}
                             </span>
                             <span className="text-foreground text-[11px] md:text-xs">
-                              <CurrencyDisplay amount={c.total} />
+                              <CurrencyDisplay amount={c.total} showStyling={false} />
                             </span>
                           </div>
                           <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
