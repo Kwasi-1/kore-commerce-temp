@@ -11,6 +11,8 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useShift } from '@/hooks/useShift';
 import { Icon } from '@iconify/react';
 
+import PaymentModal from '@/components/pos/PaymentModal';
+
 interface CartToast {
   id: string;
   productName: string;
@@ -31,6 +33,16 @@ export default function Register() {
   const [isOpeningShift, setIsOpeningShift] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [snapPoint, setSnapPoint] = useState<number | string | null>(0.85);
+
+  // Top-level Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<'cash' | 'mobile_money' | 'card'>('card');
+
+  const handleOpenPaymentModal = (method?: 'cash' | 'mobile_money' | 'card') => {
+    if (method) setDefaultPaymentMethod(method);
+    setIsMobileCartOpen(false); // Close mobile drawer so PaymentModal is the single active overlay
+    setIsPaymentModalOpen(true);
+  };
 
   // Desktop Collapsible Cart State
   const { panelState, setPanelState } = useCartStore();
@@ -156,6 +168,7 @@ export default function Register() {
             panelState={panelState} 
             onStateChange={setPanelState} 
             onHandleClick={handleDragHandleClick}
+            onOpenPaymentModal={handleOpenPaymentModal}
           />
           
           {/* Cart Block Overlay */}
@@ -253,7 +266,7 @@ export default function Register() {
       >
         <DrawerContent className="bg-background h-full max-h-[100vh] outline-none">
           <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
-            <CartPanel isMobileView={true} />
+            <CartPanel isMobileView={true} onOpenPaymentModal={handleOpenPaymentModal} />
 
             {/* Cart Block Overlay (Mobile) */}
             {false && !isLoading && !currentShift && (
@@ -287,6 +300,12 @@ export default function Register() {
         onOpenChange={setIsShiftModalOpen} 
         onOpenShift={handleOpenShift}
         isOpening={isOpeningShift}
+      />
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        defaultMethod={defaultPaymentMethod}
       />
     </div>
   );

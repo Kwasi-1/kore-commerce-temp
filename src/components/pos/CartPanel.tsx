@@ -93,13 +93,15 @@ interface CartPanelProps {
   panelState?: "collapsed" | "default" | "expanded";
   onStateChange?: (state: "collapsed" | "default" | "expanded") => void;
   onHandleClick?: () => void;
+  onOpenPaymentModal?: (method?: "cash" | "mobile_money" | "card") => void;
 }
 
 export default function CartPanel({ 
   isMobileView = false,
   panelState = 'default',
   onStateChange,
-  onHandleClick
+  onHandleClick,
+  onOpenPaymentModal
 }: CartPanelProps) {
   const {
     items,
@@ -122,6 +124,15 @@ export default function CartPanel({
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<
     "cash" | "mobile_money" | "card"
   >("card");
+
+  const handleOpenPayment = (method?: "cash" | "mobile_money" | "card") => {
+    const selMethod = method || defaultPaymentMethod;
+    if (onOpenPaymentModal) {
+      onOpenPaymentModal(selMethod);
+    } else {
+      setIsPaymentModalOpen(true);
+    }
+  };
 
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -800,7 +811,7 @@ export default function CartPanel({
 
               {/* Complete Transaction */}
               <Button
-                onClick={() => setIsPaymentModalOpen(true)}
+                onClick={() => handleOpenPayment()}
                 disabled={items.length === 0}
                 className="w-full py-4 font-bold text-[16px] rounded-full h-auto"
               >
@@ -1265,7 +1276,7 @@ export default function CartPanel({
 
               {/* Complete Transaction */}
               <Button
-                onClick={() => setIsPaymentModalOpen(true)}
+                onClick={() => handleOpenPayment()}
                 disabled={items.length === 0}
                 className="w-full py-4 font-bold text-[16px] rounded-full h-auto"
               >
