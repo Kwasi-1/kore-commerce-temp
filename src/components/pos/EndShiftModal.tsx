@@ -7,7 +7,7 @@ import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { useShift } from '@/hooks/useShift';
 import apiClient from '@/api/client';
-import { Clock, Activity, CreditCard, Smartphone, Banknote, ShieldAlert } from 'lucide-react';
+import { Clock, Activity, CreditCard, Smartphone, Banknote, ShieldAlert, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../ui/spinner';
@@ -75,11 +75,6 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
   const handleEndShift = async () => {
     if (actualCashStr === '') {
       toast.error('Please enter the actual cash amount in drawer.');
-      return;
-    }
-
-    if (hasDiscrepancy && !notes.trim()) {
-      toast.error('Please provide a note for the cash discrepancy.');
       return;
     }
 
@@ -154,12 +149,13 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                  </div>
               </div>
               
-              <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-md mt-1">
-                <div className="flex justify-between items-center">
-                   <span className="text-sm font-bold text-emerald-600 flex items-center gap-2"><Banknote className="h-4 w-4" /> Expected Cash</span>
-                   <span className="text-lg font-bold text-emerald-600">
-                     {isLoadingSummary ? <Spinner/> : <CurrencyDisplay amount={expectedCash} />}
-                   </span>
+              <div className="bg-muted/40 border border-border/60 p-4 rounded-xl mt-1 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+                   <Banknote className="h-4 w-4 text-primary" />
+                   <span>Expected Cash</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-background px-3 py-1 rounded-full border border-border/60 shadow-xs">
+                  <EyeOff className="h-3.5 w-3.5" /> Blind Recon
                 </div>
               </div>
             </div>
@@ -173,7 +169,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
               <div className="flex flex-col gap-1 mt-1">
                 <CustomInputTextField
                   type="number"
-                  label="Actual Cash in Drawer"
+                  label="Actual Cash in Drawer *"
                   labelPlacement="outside"
                   placeholder="0.00"
                   value={actualCashStr}
@@ -182,41 +178,20 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground font-medium pl-1">
-                  Count the physical cash in your till and enter the total amount.
+                  Count physical cash in till and enter total. Expected cash is hidden for blind audit.
                 </p>
               </div>
 
-              {/* Discrepancy Display */}
-              {debouncedCashStr !== '' && (
-                <div className={`p-4 rounded-md border ${
-                    discrepancy === 0 ? 'bg-green-500/10 border-green-500/30 text-green-600' :
-                    discrepancy > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-600' :
-                    'bg-red-500/10 border-red-500/30 text-red-600'
-                  }`}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold uppercase">Status</span>
-                    <span className="text-sm font-bold">
-                      {discrepancy === 0 ? 'Balanced' : discrepancy > 0 ? 'Over' : 'Short'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold">Difference</span>
-                    <span className="text-xl font-black">
-                      {discrepancy > 0 ? '+' : ''}<CurrencyDisplay amount={discrepancy} />
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Notes Field (Required if discrepancy) */}
-              <div className={`transition-all duration-300 ${hasDiscrepancy && debouncedCashStr !== '' ? 'opacity-100 max-h-32' : 'opacity-50 max-h-32'}`}>
+              {/* Notes Field */}
+              <div className="flex flex-col gap-1.5">
                 <Textarea
-                  label={`Discrepancy Note ${hasDiscrepancy ? '*' : ''}`}
+                  label="Closing Notes (Optional)"
                   labelPlacement="outside"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Reason for overage/shortage..."
+                  placeholder="Add any specific context or remarks for this shift..."
                   textareaClassName="bg-background focus:ring-primary/50"
+                  rows={3}
                 />
               </div>
             </div>
@@ -230,7 +205,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
             </Button>
             <Button 
               onClick={handleEndShift} 
-              disabled={isSubmitting || actualCashStr === '' || (hasDiscrepancy && !notes.trim())}
+              disabled={isSubmitting || actualCashStr === ''}
               className="rounded-full font-bold px-8 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20"
             >
               {isSubmitting ? 'Ending Shift...' : 'Confirm & End Shift'}
