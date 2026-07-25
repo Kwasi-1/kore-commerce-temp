@@ -45,15 +45,16 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
   };
 
   const shift = reportData?.shift;
+  const isShiftOpen = shift?.status === 'open';
   const recon = reportData?.cash_reconciliation;
   const pb = reportData?.payment_breakdown || {};
   const movements = reportData?.cash_movements || [];
 
   const openedAt = shift?.opened_at ? format(new Date(shift.opened_at), 'PPP p') : '—';
-  const closedAt = shift?.closed_at ? format(new Date(shift.closed_at), 'PPP p') : 'Open Shift';
+  const closedAt = shift?.closed_at ? format(new Date(shift.closed_at), 'PPP p') : 'Active Open Shift';
 
   const variance = recon?.variance ?? shift?.variance ?? 0;
-  const isBalanced = variance === 0 && shift?.status !== 'open';
+  const isBalanced = variance === 0 && !isShiftOpen;
   const isShort = variance < 0;
   const isOver = variance > 0;
 
@@ -69,8 +70,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">End of Shift Z-Report</h3>
-              <p className="text-xs font-semibold text-muted-foreground">Official Shift Closure & Till Audit</p>
+              <h3 className="text-xl font-bold">
+                {isShiftOpen ? 'Mid-Shift X-Report' : 'End of Shift Z-Report'}
+              </h3>
+              <p className="text-xs font-semibold text-muted-foreground">
+                {isShiftOpen ? 'Unclosed Live Shift Snapshot' : 'Official Shift Closure & Till Audit'}
+              </p>
             </div>
           </div>
         </div>
@@ -83,7 +88,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             </div>
           ) : !reportData ? (
             <div className="text-center py-8 text-muted-foreground font-medium">
-              No Z-Report data available for this shift.
+              No report data available for this shift.
             </div>
           ) : (
             <div className="space-y-6 printable-z-report">
@@ -96,8 +101,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                   <div className="flex justify-center items-center gap-1 text-primary font-black text-lg uppercase tracking-wider">
                     <Store className="h-5 w-5" /> HeadlessPOS
                   </div>
-                  <h2 className="font-extrabold text-xl tracking-tight uppercase">Z-REPORT</h2>
-                  <p className="text-xs text-muted-foreground font-semibold">Till Reconciliation & Sales Audit</p>
+                  <h2 className="font-extrabold text-xl tracking-tight uppercase">
+                    {isShiftOpen ? 'X-REPORT' : 'Z-REPORT'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-semibold">
+                    {isShiftOpen ? 'Mid-Shift Sales Snapshot (Unclosed)' : 'Till Reconciliation & Final Audit'}
+                  </p>
                 </div>
 
                 {/* Meta Information */}
@@ -241,7 +250,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 )}
 
                 <div className="text-center text-[10px] text-muted-foreground font-semibold pt-4 border-t border-dashed border-border">
-                  Z-Report Generated • HeadlessPOS Platform Audit
+                  {isShiftOpen ? 'X-Report Generated • Live Mid-Shift Snapshot' : 'Z-Report Generated • Final HeadlessPOS Till Audit'}
                 </div>
 
               </div>
@@ -260,7 +269,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             disabled={!reportData}
             className="rounded-full font-bold px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 flex items-center gap-2"
           >
-            <Printer className="h-4 w-4" /> Print Z-Report
+            <Printer className="h-4 w-4" /> {isShiftOpen ? 'Print X-Report' : 'Print Z-Report'}
           </Button>
         </div>
       }

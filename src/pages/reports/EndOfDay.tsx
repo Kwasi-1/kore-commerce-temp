@@ -187,7 +187,7 @@ export default function EndOfDay() {
                 <th className="px-5 py-3 text-right">Actual Counted</th>
                 <th className="px-5 py-3 text-right">Variance</th>
                 <th className="px-5 py-3">Discrepancy Note</th>
-                <th className="px-5 py-3 text-center">Z-Report</th>
+                <th className="px-5 py-3 text-center">Audit Report</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60 font-medium">
@@ -248,7 +248,7 @@ export default function EndOfDay() {
                           </span>
                         ) : (
                           <span className={isShort ? 'text-red-500 font-extrabold' : 'text-blue-500 font-extrabold'}>
-                            {isOver ? '+' : ''}<CurrencyDisplay amount={variance} />
+                            {isOver ? '+' : ''}<CurrencyDisplay amount={variance} showStyling={false}/>
                           </span>
                         )}
                       </td>
@@ -266,9 +266,9 @@ export default function EndOfDay() {
                             setSelectedZReportShiftId(shift.id);
                             setIsZReportOpen(true);
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
                         >
-                          <FileText className="h-3.5 w-3.5" /> Z-Report
+                          <FileText className="h-3.5 w-3.5" /> {shift.status === 'open' ? 'X-Report' : 'Z-Report'}
                         </button>
                       </td>
                     </tr>
@@ -349,7 +349,7 @@ export default function EndOfDay() {
                         {exp.reason}
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-destructive">
-                        -<CurrencyDisplay amount={exp.amount} />
+                        -<CurrencyDisplay amount={exp.amount} showStyling={false}/>
                       </td>
                     </tr>
                   ))
