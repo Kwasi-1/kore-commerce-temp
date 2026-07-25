@@ -271,7 +271,7 @@ export default function Sidebar() {
       </div>
 
       {/* --- Navigation List --- */}
-      <nav className={clsx("flex-1 overflow-y-auto px-3 py-2 space-y-2.5 scrollbar-hide flex flex-col", isCashier && "justify-center")}>
+      <nav className={clsx("flex-1 overflow-y-auto px-3 py-2 space-y-2.5 scrollbar-hide flex flex-col", isCashier && "justifycenter")}>
         {navSections.map((section) => {
           if (!section.show) return null;
 
