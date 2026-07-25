@@ -126,7 +126,7 @@ export default function CashierSwitcher() {
           <PopoverTrigger asChild>
             {triggerButton}
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-2 rounded-xl border-border/60 shadow-lg">
+          <PopoverContent className="w-64 p-2 rounded-2xl border-border/60 shadow-lg">
           <div className="mb-2 px-2 pt-1 pb-2 border-b border-border/40">
             <h4 className="font-semibold text-sm text-foreground">Select Cashier</h4>
           </div>

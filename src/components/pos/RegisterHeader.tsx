@@ -17,6 +17,7 @@ import CashierSwitcher from './CashierSwitcher';
 import NewCashierModal from './NewCashierModal';
 import SavedTransactionsHeader from './SavedTransactionsHeader';
 import EndShiftModal from './EndShiftModal';
+import CashMovementModal from './CashMovementModal';
 import { useShift } from '@/hooks/useShift';
 import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
@@ -27,6 +28,7 @@ interface RegisterHeaderProps {
 
 export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps) {
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
+  const [isCashMovementOpen, setIsCashMovementOpen] = useState(false);
   const { currentShift } = useShift();
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -162,6 +164,19 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         </DropdownMenu>
         
         {/* End / Start Shift Button */}
+        {/* Cash In / Out (Drawer Movement) Button */}
+        {currentShift && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsCashMovementOpen(true)}
+            className="hidden md:flex rounded-full text-muted-foreground hover:text-foreground border-border/80 transition-colors h-8 w-8 md:h-10 md:w-10"
+            title="Log Petty Cash / Paid In / Paid Out"
+          >
+            <Icon icon="solar:wallet-money-bold" className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
+          </Button>
+        )}
+
         <Button 
           variant="ghost" 
           size="icon" 
@@ -222,6 +237,10 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <Power className="h-4 w-4" />
               {currentShift ? 'End Shift & Recon' : 'Start Shift'}
             </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium rounded-xl" onClick={() => setIsCashMovementOpen(true)}>
+              <Icon icon="solar:wallet-money-bold" className="h-4 w-4 text-amber-500" />
+              Log Cash In / Out
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={toggleTheme}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}
@@ -235,6 +254,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
       </div>
 
       <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
+      <CashMovementModal isOpen={isCashMovementOpen} onClose={() => setIsCashMovementOpen(false)} />
     </header>
   );
 }
