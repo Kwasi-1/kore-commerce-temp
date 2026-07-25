@@ -24,7 +24,16 @@ export function useShift() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/pos/shifts/current');
-      setCurrentShift(response.data.success?.data?.shift || null);
+      const data = response.data.success?.data;
+      setCurrentShift(data?.shift || null);
+
+      // Server auto-closed a stale previous-day shift — notify the cashier
+      if (data?.stale_shift_closed) {
+        toast('Your previous shift was auto-closed. Please open a new shift to continue.', {
+          icon: '⚠️',
+          duration: 6000,
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch current shift:', error);
       setCurrentShift(null);

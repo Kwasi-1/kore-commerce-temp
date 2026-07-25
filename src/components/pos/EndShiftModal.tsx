@@ -59,7 +59,6 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
 
   const activeShift = shiftSummary || currentShift;
   const expectedCash = activeShift?.current_expected_cash ?? activeShift?.expected_cash ?? activeShift?.opening_float ?? 0;
-  const shiftStartTime = activeShift?.opened_at ? new Date(activeShift.opened_at) : new Date();
 
   const totalTransactions = activeShift?.total_transactions ?? 0;
   const cardAmount = activeShift?.payment_breakdown?.card?.total ?? 0;
@@ -95,7 +94,13 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
     }
   };
 
-  const formattedStartTime = shiftStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatShiftTime = (isoString: string | null | undefined) => {
+    if (!isoString) return '--:--';
+    const d = new Date(isoString);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formattedStartTime = formatShiftTime(activeShift?.opened_at);
   const formattedEndTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
