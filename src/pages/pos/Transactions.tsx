@@ -161,8 +161,21 @@ export default function Transactions() {
     const netTransactions = transactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
+    const refundedTransactions = transactions.filter(
+      (t) => t.status === "refunded",
+    );
+
     const total = netTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
-    const count = netTransactions.length;
+    const refundTotal = refundedTransactions.reduce(
+      (sum, t) => sum + (t.total || 0),
+      0,
+    );
+    const grossTotal = total + refundTotal;
+
+    const completedCount = netTransactions.length;
+    const refundedCount = refundedTransactions.length;
+    const count = completedCount;
+
     const avg = count > 0 ? total / count : 0;
     const cashTotal = netTransactions
       .filter((t) => t.payment_method === "cash")
@@ -180,6 +193,10 @@ export default function Transactions() {
 
     return {
       total,
+      grossTotal,
+      refundTotal,
+      completedCount,
+      refundedCount,
       count,
       avg,
       cashTotal,
@@ -304,6 +321,21 @@ export default function Transactions() {
           <DashboardCard
             title={isCashier ? "My Sales" : "Total Sales"}
             value={isLoading ? "..." : <CurrencyDisplay amount={stats.total} />}
+            subvalue={
+              stats.refundTotal > 0 ? (
+                <span className="text-[11px] text-muted-foreground font-medium flex gap-x-2.5 items-center">
+                  <span>
+                  Gross: <CurrencyDisplay amount={stats.grossTotal} /> 
+                  </span>
+                  &bull; 
+                  <span>Refunded:{" "}
+                    <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                      <CurrencyDisplay amount={stats.refundTotal} />
+                    </span>
+                  </span>
+                </span>
+              ) : undefined
+            }
             isActive={Array.from(paymentFilter as Set<string>)[0] === "all"}
             onClick={() => handleSelectPaymentFilter("all")}
             collapsibleContent={
@@ -383,12 +415,32 @@ export default function Transactions() {
                     />
                   </div>
                 </div>
+                {stats.refundTotal > 0 && (
+                  <div className="flex flex-col gap-1 p-1.5 rounded bg-rose-500/10 border border-rose-500/15">
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-rose-500" />
+                        <span className="text-rose-600 dark:text-rose-400 font-medium text-[11px] md:text-xs">
+                          Refunded
+                        </span>
+                      </div>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold text-[11px] md:text-xs">
+                        -<CurrencyDisplay amount={stats.refundTotal} />
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             }
           />
           <DashboardCard
             title={isCashier ? "My Transactions" : "Transactions"}
-            value={isLoading ? "..." : stats.count.toString()}
+            value={isLoading ? "..." : stats.completedCount.toString()}
+            subvalue={
+              stats.refundedCount > 0
+                ? `${stats.completedCount} completed • ${stats.refundedCount} refunded`
+                : undefined
+            }
           />
           {isCashier ? (
             <DashboardCard
