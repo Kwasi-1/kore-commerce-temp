@@ -35,7 +35,7 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
@@ -44,8 +44,22 @@ const DrawerContent = React.forwardRef<
         "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[16px] border bg-background",
         className
       )}
+      onPointerDownOutside={(e) => {
+        const target = e.target as HTMLElement;
+        if (
+          target?.closest('[data-overlay-container]') ||
+          target?.closest('[role="dialog"]') ||
+          target?.closest('.nextui-modal')
+        ) {
+          e.preventDefault();
+        }
+        if (onPointerDownOutside) {
+          onPointerDownOutside(e);
+        }
+      }}
       {...props}
     >
+      <DrawerPrimitive.Title className="sr-only">Mobile Cart Drawer</DrawerPrimitive.Title>
       <div className="mx-auto mt-3 mb-2 h-2 w-[95px] rounded-full bg-muted" />
       {children}
     </DrawerPrimitive.Content>

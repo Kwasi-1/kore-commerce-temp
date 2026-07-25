@@ -149,7 +149,7 @@ const NewModal = extendVariants(Modal, {
       },
       right: {
         wrapper: "justify-end items-stretch sm:items-stretch",
-        base: "mx-2 my-2 sm:mx-4 sm:my-4 h-[calc(100dvh-1rem)] sm:h-[calc(100dvh-2rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-1.5rem)] overflow-y-auto scrollbar-hide w-[calc(100vw-1rem)] sm:w-auto min-w-0 sm:min-w-[450px] rounded-2xl",
+        base: "mx-2 my-2 sm:mx-3.5 sm:my-3 h-[calc(100dvh-1rem)] sm:h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-1.5rem)] overflow-y-auto scrollbar-hide w-[calc(100vw-1rem)] sm:w-auto min-w-0 sm:min-w-[450px] rounded-2xl",
       },
     },
   },
