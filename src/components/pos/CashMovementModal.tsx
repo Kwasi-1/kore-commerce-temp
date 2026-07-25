@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import CustomModal from '@/components/modals/modal';
-import { CustomInputTextField } from '@/components/shared/text-field';
+import {
+  CustomInputTextField,
+  CustomSelectField,
+  CustomTextareaField,
+} from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { ArrowDownLeft, ArrowUpRight, DollarSign } from 'lucide-react';
@@ -37,7 +40,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
     }
 
     if (!reason.trim()) {
-      toast.error('Please provide a reason or note for this movement.');
+      toast.error('Please provide a reason or description for this movement.');
       return;
     }
 
@@ -79,7 +82,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
             <DollarSign className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold">Drawer Cash Movement</h3>
+            <h3 className="text-xl font-bold text-foreground !tracking-tight">Drawer Cash Movement</h3>
             <p className="text-xs font-semibold text-muted-foreground">
               Log petty cash expenses (Paid Out) or float additions (Paid In)
             </p>
@@ -87,19 +90,19 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
         </div>
       }
       body={
-        <div className="flex flex-col gap-5 pt-4">
+        <div className="flex flex-col gap-5 pt-3">
           {/* Movement Type Toggle */}
-          <div className="grid grid-cols-2 gap-3 p-1.5 bg-muted/60 rounded-xl border border-border/60">
+          <div className="grid grid-cols-2 p-1 bg-muted/40 rounded-full border border-border/50">
             <button
               type="button"
               onClick={() => {
                 setMovementType('paid_out');
                 setCategory('supplies');
               }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
                 movementType === 'paid_out'
-                  ? 'bg-card text-destructive shadow-sm border border-destructive/20'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground font-medium'
               }`}
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -112,10 +115,10 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
                 setMovementType('paid_in');
                 setCategory('float_topup');
               }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
                 movementType === 'paid_in'
-                  ? 'bg-card text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/20'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground font-medium'
               }`}
             >
               <ArrowDownLeft className="h-4 w-4" />
@@ -126,45 +129,42 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           {/* Amount Field */}
           <CustomInputTextField
             type="number"
-            label="Amount (GHS) *"
+            label="Amount (GHS)"
+            required
             labelPlacement="outside"
             placeholder="0.00"
             value={amountStr}
             onChange={(e: any) => setAmountStr(e.target.value)}
-            className="h-12 text-base font-bold"
+            height="h-12"
             autoFocus
           />
 
           {/* Category Selector */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Category *
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-border bg-background font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomSelectField
+            label="Category"
+            required
+            labelPlacement="outside"
+            placeholder="Select Category"
+            options={CATEGORIES}
+            value={category}
+            inputProps={{
+              onChange: (e: any) => setCategory(e.target.value),
+            }}
+          />
 
           {/* Reason / Notes */}
-          <Textarea
-            label="Reason / Description *"
+          <CustomTextareaField
+            label="Reason / Description"
+            required
             labelPlacement="outside"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e: any) => setReason(e.target.value)}
             placeholder={
               movementType === 'paid_out'
                 ? 'e.g. Receipt paper roll, Electricity token, Lunch allowance...'
                 : 'e.g. Added GHS 100 extra cash float to drawer...'
             }
-            textareaClassName="bg-background focus:ring-primary/50"
+            rows={3}
           />
         </div>
       }
@@ -176,11 +176,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !amountStr || !reason.trim()}
-            className={`rounded-full font-bold px-8 shadow-lg ${
-              movementType === 'paid_out'
-                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-destructive/20'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
-            }`}
+            className="rounded-full font-bold px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
           >
             {isSubmitting ? 'Recording...' : movementType === 'paid_out' ? 'Log Paid Out' : 'Add Paid In'}
           </Button>
