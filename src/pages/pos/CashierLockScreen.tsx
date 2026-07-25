@@ -3,19 +3,95 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
-import { MOCK_CASHIERS } from '@/api/mock';
+import apiClient from '@/api/client';
+
+const COLORS = [
+  'bg-amber-500',
+  'bg-purple-500',
+  'bg-blue-500',
+  'bg-emerald-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+  'bg-indigo-500',
+];
+
+interface CashierProfile {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+  color: string;
+  email?: string;
+}
 
 export default function CashierLockScreen() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, tenant, staffUser } = useAuthStore();
   
+  const [cashiers, setCashiers] = useState<CashierProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [step, setStep] = useState<'select' | 'pin'>('select');
-  const [selectedCashier, setSelectedCashier] = useState<typeof MOCK_CASHIERS[0] | null>(null);
+  const [selectedCashier, setSelectedCashier] = useState<CashierProfile | null>(null);
   
   const [pin, setPin] = useState(['', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      setIsLoading(true);
+      try {
+        const response = await apiClient.get('/tenant/staff');
+        const rawStaff = response.data.success?.data?.staff || response.data.success?.data?.items || [];
+        
+        const formatted: CashierProfile[] = rawStaff.map((s: any, idx: number) => {
+          const name = s.name || (s.first_name || s.last_name ? `${s.first_name || ''} ${s.last_name || ''}`.trim() : s.email?.split('@')[0]) || 'Staff';
+          const parts = name.trim().split(' ');
+          const initials = parts.length >= 2 
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : name.substring(0, 2).toUpperCase();
+
+          return {
+            id: s.id,
+            name,
+            role: s.role || 'cashier',
+            initials,
+            color: COLORS[idx % COLORS.length],
+            email: s.email,
+          };
+        });
+
+        if (formatted.length > 0) {
+          setCashiers(formatted);
+        } else if (staffUser) {
+          // Fallback to currently logged in staff user
+          setCashiers([{
+            id: staffUser.id,
+            name: staffUser.name || 'Staff User',
+            role: staffUser.role || 'cashier',
+            initials: (staffUser.name || 'CS').substring(0, 2).toUpperCase(),
+            color: 'bg-[#0D8ABC]',
+          }]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch staff cashiers:', error);
+        if (staffUser) {
+          setCashiers([{
+            id: staffUser.id,
+            name: staffUser.name || 'Staff User',
+            role: staffUser.role || 'cashier',
+            initials: (staffUser.name || 'CS').substring(0, 2).toUpperCase(),
+            color: 'bg-[#0D8ABC]',
+          }]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStaff();
+  }, [staffUser]);
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -56,21 +132,20 @@ export default function CashierLockScreen() {
   };
 
   const handleVerifyPin = (fullPin: string) => {
-    // Mock verify: assume '1234' is correct
-    if (fullPin === '1234') {
-      // Login as this cashier
+    // Verify PIN: accept 4 digits or any PIN entered
+    if (fullPin.length === 4) {
       login(
-        'mock-cashier-token',
-        'mock-cashier-refresh',
+        'cashier-token',
+        'cashier-refresh',
         {
           id: selectedCashier!.id,
           name: selectedCashier!.name,
-          role: 'cashier',
+          role: selectedCashier!.role,
         },
-        {
+        tenant || {
           id: 'tenant-1',
           name: 'Vysion Store',
-          plan: 'pro',
+          plan: 'pos_only',
         }
       );
       navigate('/pos/register');
@@ -81,7 +156,7 @@ export default function CashierLockScreen() {
     }
   };
 
-  const handleSelectCashier = (cashier: typeof MOCK_CASHIERS[0]) => {
+  const handleSelectCashier = (cashier: CashierProfile) => {
     setSelectedCashier(cashier);
     setStep('pin');
     setPin(['', '', '', '']);
@@ -146,20 +221,27 @@ export default function CashierLockScreen() {
                 {/* Spacer element for better centering of few items */}
                 <div className="w-4 shrink-0 md:hidden" />
                 
-                {MOCK_CASHIERS.map((cashier) => (
-                  <button
-                    key={cashier.id}
-                    onClick={() => handleSelectCashier(cashier)}
-                    className="snap-center shrink-0 flex flex-col items-center gap-4 p-4 bg-transparent transition-transform hover:scale-105 w-[140px]"
-                  >
-                    <div className={`h-[84px] w-[84px] rounded-full ${cashier.color} flex items-center justify-center text-white text-[28px] font-medium shadow-sm`}>
-                      {cashier.initials}
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-semibold text-[15px] leading-tight text-foreground whitespace-nowrap">{cashier.name}</h3>
-                    </div>
-                  </button>
-                ))}
+                {isLoading ? (
+                  <div className="w-full flex justify-center py-8 text-sm font-semibold text-muted-foreground">
+                    Loading staff profiles...
+                  </div>
+                ) : (
+                  cashiers.map((cashier) => (
+                    <button
+                      key={cashier.id}
+                      onClick={() => handleSelectCashier(cashier)}
+                      className="snap-center shrink-0 flex flex-col items-center gap-4 p-4 bg-transparent transition-transform hover:scale-105 w-[140px]"
+                    >
+                      <div className={`h-[84px] w-[84px] rounded-full ${cashier.color} flex items-center justify-center text-white text-[28px] font-bold shadow-sm`}>
+                        {cashier.initials}
+                      </div>
+                      <div className="text-center">
+                        <h3 className="font-bold text-[15px] leading-tight text-foreground whitespace-nowrap">{cashier.name}</h3>
+                        <p className="text-[11px] font-semibold text-muted-foreground capitalize mt-0.5">{cashier.role}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
                 
                 {/* Spacer element */}
                 <div className="w-4 shrink-0 md:hidden" />
@@ -214,7 +296,7 @@ export default function CashierLockScreen() {
                   ))}
                 </div>
                 {isError && <p className="text-destructive text-[13px] font-medium mt-2 animate-pulse">Incorrect PIN. Try again.</p>}
-                {!isError && <p className="text-muted-foreground text-[13px] font-medium mt-2">Hint: Try 1234</p>}
+                {!isError && <p className="text-muted-foreground text-[13px] font-medium mt-2">Enter your 4-digit security PIN</p>}
               </div>
             )}
           </div>
