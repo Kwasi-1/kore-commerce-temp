@@ -136,7 +136,7 @@ export default function Register() {
     <div className="flex flex-col h-full bg-background p-3 pt-5 md:p-6 overflow-hidden relative">
       
       {/* Extracted Header Component */}
-      <RegisterHeader />
+      <RegisterHeader onOpenShiftModal={() => setIsShiftModalOpen(true)} />
 
       {/* Main Content: Split View */}
       <div className="flex flex-1 gap-6 min-h-0 relative">

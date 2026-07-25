@@ -52,10 +52,11 @@ export function useShift() {
     }
   };
 
-  const closeShift = async (closingCount: number) => {
+  const closeShift = async (closingCount: number, notes?: string) => {
     try {
       const response = await apiClient.post('/pos/shifts/close', {
         closing_count: closingCount,
+        notes: notes,
       });
       const closedShift = response.data.success.data.shift;
       setCurrentShift(null);

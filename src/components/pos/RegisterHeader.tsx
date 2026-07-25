@@ -17,11 +17,17 @@ import CashierSwitcher from './CashierSwitcher';
 import NewCashierModal from './NewCashierModal';
 import SavedTransactionsHeader from './SavedTransactionsHeader';
 import EndShiftModal from './EndShiftModal';
+import { useShift } from '@/hooks/useShift';
 import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
 
-export default function RegisterHeader() {
+interface RegisterHeaderProps {
+  onOpenShiftModal?: () => void;
+}
+
+export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps) {
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
+  const { currentShift } = useShift();
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
@@ -48,7 +54,7 @@ export default function RegisterHeader() {
       
       <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
         <SavedTransactionsHeader />
-        <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="hidden md:flex relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
           <Bell className="h-4 w-4 md:h-5 md:w-5" />
           <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2  rounded-full bg-red-500"></span>
         </Button>
@@ -155,15 +161,29 @@ export default function RegisterHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
         
-        {/* End Shift Button */}
+        {/* End / Start Shift Button */}
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => setIsEndShiftOpen(true)}
-          className="hidden md:flex rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
-          title="End Shift"
+          onClick={() => {
+            if (currentShift) {
+              setIsEndShiftOpen(true);
+            } else if (onOpenShiftModal) {
+              onOpenShiftModal();
+            }
+          }}
+          className={`hidden md:flex rounded-full transition-colors ${
+            currentShift 
+              ? 'text-destructive hover:bg-destructive/10 hover:text-destructive' 
+              : 'text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700'
+          }`}
+          title={currentShift ? "End Shift & Recon" : "Start Shift"}
         >
-          <Power className="h-4 w-4 md:h-5 md:w-5" />
+          {currentShift ? (
+            <Power className="h-4 w-4 md:h-5 md:w-5" />
+          ) : (
+            <Icon icon="solar:play-circle-bold" className="h-5 w-5" />
+          )}
         </Button>
 
         {/* Cashier Switcher */}
@@ -192,6 +212,16 @@ export default function RegisterHeader() {
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
             {/* <DropdownMenuSeparator /> */}
+            <DropdownMenuItem className=" md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={() => {
+              if (currentShift) {
+                setIsEndShiftOpen(true);
+              } else if (onOpenShiftModal) {
+                onOpenShiftModal();
+              }
+            }}>
+              <Power className="h-4 w-4" />
+              {currentShift ? 'End Shift & Recon' : 'Start Shift'}
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={toggleTheme}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}
