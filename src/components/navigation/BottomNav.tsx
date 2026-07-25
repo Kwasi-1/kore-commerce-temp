@@ -21,6 +21,13 @@ import {
   BookOpen,
   ArrowLeftRight,
   LogOut,
+  Bell,
+  ShoppingBag,
+  Globe,
+  UserSquare2,
+  Sliders,
+  CreditCard,
+  ClipboardList,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
@@ -61,9 +68,19 @@ export default function BottomNav() {
   // Routes already pinned in the bottom nav — exclude these from the drawer
   const pinnedRoutes = new Set(primaryLinks.map(l => l.to));
 
-  // All sections for the drawer — fully dynamic, excluding already-pinned routes
+  // All sections for the drawer — fully matching Sidebar.tsx navSections
   const drawerSections = isCashier
     ? [
+        {
+          title: 'POS',
+          show: true,
+          items: [
+            { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
+            { name: 'Transactions', to: '/pos/transactions', icon: History },
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
+            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
+          ].filter(item => !pinnedRoutes.has(item.to)),
+        },
         {
           title: 'Account',
           show: true,
@@ -74,11 +91,20 @@ export default function BottomNav() {
       ]
     : [
         {
+          title: 'Dashboard',
+          show: true,
+          items: [
+            { name: 'Overview', to: '/dashboard', icon: LayoutDashboard },
+          ].filter(item => !pinnedRoutes.has(item.to)),
+        },
+        {
           title: 'POS',
           show: modules.pos,
           items: [
             { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
             { name: 'Transactions', to: '/pos/transactions', icon: History },
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
+            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
           ].filter(item => !pinnedRoutes.has(item.to)),
         },
         {
@@ -86,6 +112,7 @@ export default function BottomNav() {
           show: modules.inventory,
           items: [
             { name: 'Products', to: '/inventory/products', icon: Package },
+            { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
             { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
             { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
             { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
@@ -93,12 +120,35 @@ export default function BottomNav() {
           ].filter(item => !pinnedRoutes.has(item.to)),
         },
         {
-          title: 'Business',
-          show: modules.expenses || modules.staff,
+          title: 'Expenses',
+          show: modules.expenses,
           items: [
-            { name: 'Expenses', to: '/expenses', icon: Receipt, show: modules.expenses },
-            { name: 'Staff', to: '/staff', icon: Users, show: modules.staff },
-          ].filter(i => i.show !== false && !pinnedRoutes.has(i.to)),
+            { name: 'Expenses', to: '/expenses', icon: Receipt },
+          ].filter(item => !pinnedRoutes.has(item.to)),
+        },
+        {
+          title: 'Ecommerce',
+          show: modules.ecommerce,
+          items: [
+            { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
+            { name: 'Customers', to: '/ecommerce/customers', icon: Users },
+            { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe },
+            { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag },
+          ].filter(item => !pinnedRoutes.has(item.to)),
+        },
+        {
+          title: 'Notifications',
+          show: true,
+          items: [
+            { name: 'Activity Log', to: '/notifications', icon: Bell },
+          ].filter(item => !pinnedRoutes.has(item.to)),
+        },
+        {
+          title: 'Staff',
+          show: modules.staff,
+          items: [
+            { name: 'Staff', to: '/staff', icon: Users },
+          ].filter(item => !pinnedRoutes.has(item.to)),
         },
         {
           title: 'Reports',
@@ -106,7 +156,7 @@ export default function BottomNav() {
           items: [
             { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
             { name: 'Products', to: '/reports/products', icon: Tag },
-            { name: 'Cashiers', to: '/reports/cashiers', icon: Users },
+            { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2 },
             { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck },
           ].filter(item => !pinnedRoutes.has(item.to)),
         },
@@ -115,7 +165,8 @@ export default function BottomNav() {
           show: modules.settings,
           items: [
             { name: 'Business Profile', to: '/settings/profile', icon: Settings },
-            { name: 'Plan & Billing', to: '/settings/plan', icon: Receipt },
+            { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
+            { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },
           ].filter(item => !pinnedRoutes.has(item.to)),
         },
       ].filter(section => section.show && section.items.length > 0);
@@ -149,7 +200,7 @@ export default function BottomNav() {
                   isActive ? "w-8 bg-primary" : "w-0 bg-transparent"
                 )}
               />
-              {/* Icon + label wrapper with optional bg */}
+              {/* Icon + label wrapper */}
               <span
                 className={clsx(
                   "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 h-[70%] justify-center",
