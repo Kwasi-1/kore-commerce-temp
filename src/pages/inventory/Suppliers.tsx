@@ -8,6 +8,8 @@ import SupplierForm from '@/components/inventory/SupplierForm';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
+import { CurrencyDisplay } from '@/hooks';
+
 export default function Suppliers() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,29 +82,38 @@ export default function Suppliers() {
     { key: 'contact_person', label: 'Contact Person' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
+    { key: 'outstanding_debt', label: 'Outstanding Debt' },
     { key: 'status', label: 'Status' }
   ];
 
-  const rows = suppliers.map((s: any) => ({
-    id: s.id,
-    name: <span className="font-semibold text-foreground">{s.name}</span>,
-    contact_person: s.contact_person || '—',
-    email: s.email ? <a href={`mailto:${s.email}`} className="text-blue-500 hover:underline">{s.email}</a> : '—',
-    phone: s.phone || '—',
-    status: (
-      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-        s.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
-        : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
-      }`}>
-        {s.is_active ? 'Active' : 'Inactive'}
-      </span>
-    ),
-    rowActions: [
-      { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
-      { key: 'delete', label: 'Deactivate', icon: 'mdi:trash', className: 'text-danger' }
-    ],
-    __record: s
-  }));
+  const rows = suppliers.map((s: any) => {
+    const debtAmount = s.total_debt ?? s.outstanding_balance ?? 0;
+    return {
+      id: s.id,
+      name: <span className="font-semibold text-foreground">{s.name}</span>,
+      contact_person: s.contact_person || '—',
+      email: s.email ? <a href={`mailto:${s.email}`} className="text-blue-500 hover:underline">{s.email}</a> : '—',
+      phone: s.phone || '—',
+      outstanding_debt: (
+        <span className={`font-bold text-xs ${debtAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+          {debtAmount > 0 ? <CurrencyDisplay amount={debtAmount} showStyling={false} /> : '—'}
+        </span>
+      ),
+      status: (
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+          s.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
+          : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
+        }`}>
+          {s.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+      rowActions: [
+        { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
+        { key: 'delete', label: 'Deactivate', icon: 'mdi:trash', className: 'text-danger' }
+      ],
+      __record: s
+    };
+  });
 
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'edit') handleEdit(row.__record);

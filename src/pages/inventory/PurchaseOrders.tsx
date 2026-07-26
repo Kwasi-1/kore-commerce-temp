@@ -85,7 +85,7 @@ export default function PurchaseOrders() {
       reference: <span className="font-semibold text-foreground">{po.reference_number}</span>,
       supplier: po.supplier ? po.supplier.name : 'Unknown Supplier',
       date: new Date(po.date_created).toLocaleDateString(),
-      total: <span className="font-medium"><CurrencyDisplay amount={po.total_amount || 0} /></span>,
+      total: <span className="font-medium"><CurrencyDisplay amount={po.total_amount || 0} showStyling={false} /></span>,
       type: po.is_credit_purchase ? (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400">
           <CreditCard className="h-3 w-3" />
@@ -97,7 +97,7 @@ export default function PurchaseOrders() {
           )}
         </span>
       ) : (
-        <span className="text-xs text-muted-foreground">Cash</span>
+        <span className="text-xs text-muted-foreground font-semibold">Cash</span>
       ),
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
@@ -115,20 +115,16 @@ export default function PurchaseOrders() {
   });
 
   const handleRowActionClick = (actionKey: string, row: any) => {
-    if (actionKey === 'receive') {
-      handleReceive(row.id);
-    }
+    if (actionKey === 'receive') handleReceive(row.id);
   };
 
   return (
-    <PageLayout title="Purchase Orders" constrainHeight={true}>
+    <PageLayout title="Purchase Orders">
       <EnhancedTableComponent
         columns={columns}
         rows={rows}
         isLoading={isLoading}
-        title="Purchase Orders History"
-        
-        showSearch={false} // Backend endpoint doesn't implement search parameter
+        title="All Orders"
         
         showFilter={true}
         filterLabel="Status"
@@ -137,7 +133,7 @@ export default function PurchaseOrders() {
           { uid: 'draft', name: 'Draft' },
           { uid: 'ordered', name: 'Ordered' },
           { uid: 'received', name: 'Received' },
-          { uid: 'cancelled', name: 'Cancelled' }
+          { uid: 'cancelled', name: 'Cancelled' },
         ]}
         filterValue={statusFilter}
         onFilterChange={(keys: any) => setStatusFilter(keys)}

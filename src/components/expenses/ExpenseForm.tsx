@@ -10,14 +10,16 @@ interface ExpenseFormProps {
 }
 
 const CATEGORIES = [
+  { label: 'Store Supplies', value: 'supplies' },
+  { label: 'Utilities & Bills', value: 'utilities' },
+  { label: 'Food & Meals', value: 'food' },
+  { label: 'Transport & Logistics', value: 'transport' },
+  { label: 'Float Top-up', value: 'float_topup' },
   { label: 'Rent', value: 'rent' },
-  { label: 'Utilities', value: 'utilities' },
   { label: 'Salaries', value: 'salaries' },
   { label: 'Marketing', value: 'marketing' },
   { label: 'Maintenance', value: 'maintenance' },
-  { label: 'Supplies', value: 'supplies' },
-  { label: 'Software', value: 'software' },
-  { label: 'Taxes', value: 'taxes' },
+  { label: 'Miscellaneous', value: 'miscellaneous' },
   { label: 'Other', value: 'other' }
 ];
 

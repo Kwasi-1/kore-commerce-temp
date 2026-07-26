@@ -310,8 +310,8 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
   const totalPoValue = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
-      <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide pr-2">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 py-6 md:p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide">
 
         {/* ── PO Header ─────────────────────────────────────────────────── */}
         <div className="space-y-4">

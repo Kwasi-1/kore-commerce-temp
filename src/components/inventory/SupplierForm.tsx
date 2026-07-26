@@ -54,8 +54,8 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white p-6 space-y-6">
-      <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full py-4 px-1 space-y-6">
+      <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
         <CustomInputTextField
           label="Supplier / Company Name"
           name="name"
@@ -95,11 +95,11 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
         </div>
 
         <CustomInputTextField
-          label="Tax ID / TIN"
+          label="Tax ID / TIN (Optional)"
           name="tax_id"
           value={formData.tax_id}
           onChange={handleChange}
-          placeholder="Optional Tax ID"
+          placeholder="Optional GRA Tax ID or TIN"
         />
 
         <CustomTextareaField

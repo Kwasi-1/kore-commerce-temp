@@ -99,12 +99,13 @@ export default function EndOfDay() {
           value={dateFilter}
           onChange={(val) => setDateFilter(val)}
           defaultDate="today"
+          showLabelOnMobile={true}
         />
       }
     >
       
       {!hasClosedShifts && !isLoading && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl border border-yellow-200 dark:border-yellow-900/30 mb-6 flex items-center justify-between shadow-sm">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl borde border-yellow-200 dark:border-yellow-900/30 mb-6 flex items-center justify-between shadowsm">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400" />
             <div>
@@ -211,7 +212,7 @@ export default function EndOfDay() {
                         <span>{shift.cashier_name || 'Cashier'}</span>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold ${
                           shift.status === 'closed' 
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
                             : shift.status === 'force_closed'

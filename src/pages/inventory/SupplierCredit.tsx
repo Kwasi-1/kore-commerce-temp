@@ -315,13 +315,13 @@ export default function SupplierCredit() {
       id: s.id,
       name: <span className="font-semibold text-foreground">{s.supplier_name}</span>,
       po_ref: <span className="font-mono text-xs font-semibold">{s.purchase_order_ref}</span>,
-      total: formatGHS(s.total_amount),
-      paid: formatGHS(s.amount_paid),
+      total: <CurrencyDisplay amount={s.total_amount} showStyling={false} />,
+      paid: <CurrencyDisplay amount={s.amount_paid} showStyling={false} />,
       balance: (
         <span className={`font-bold ${
           s.status === 'settled' ? 'text-green-500' : isOverdue ? 'text-destructive' : 'text-foreground'
         }`}>
-          {formatGHS(s.balance_remaining)}
+          <CurrencyDisplay amount={s.balance_remaining} showStyling={false} />
         </span>
       ),
       status: (
@@ -393,7 +393,7 @@ export default function SupplierCredit() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Outstanding Owed"
-            value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} />}
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} showStyling={false} />}
             className="border border-border"
             action={<Coins className="text-muted-foreground/50 h-5 w-5" />}
           />
