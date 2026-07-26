@@ -37,7 +37,7 @@ export default function BottomNav() {
   const staffUser = useAuthStore((state) => state.staffUser);
   const isCashier = staffUser?.role === 'cashier';
   const logout = useAuthStore((state) => state.logout);
-  const plan = tenant?.plan || 'pos_only';
+  const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const navigate = useNavigate();
   const location = useLocation();

@@ -5,19 +5,28 @@ import { Button } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
+import { useFeaturesStore } from '@/store/featuresStore';
+import { getPlanLabel } from '@/utils/permissions';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Lock } from 'lucide-react';
+
 
 export default function POSSettings() {
   const { posSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
   const { staffUser, tenant, setTenant } = useAuthStore();
+  const { posSettings: featureSettings, plan, updatePOSSettings: updateFeaturePOSSettings, loadFeatures } = useFeaturesStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingFeatures, setIsSavingFeatures] = useState(false);
   const [expiryEnabled, setExpiryEnabled] = useState(false);
-  
+
   const [localSettings, setLocalSettings] = useState(posSettings);
+  const [localFeatures, setLocalFeatures] = useState(featureSettings);
+
 
   useEffect(() => {
     fetchSettings();
+    loadFeatures();
     // Fetch track_expiry_enabled from settings
     apiClient.get('/tenant/settings').then(res => {
       const isEnabled = res.data.success?.data?.store?.track_expiry_enabled || false;
@@ -31,6 +40,30 @@ export default function POSSettings() {
   useEffect(() => {
     setLocalSettings(posSettings);
   }, [posSettings]);
+
+  useEffect(() => {
+    setLocalFeatures(featureSettings);
+  }, [featureSettings]);
+
+  const handleSaveFeatures = async () => {
+    setIsSavingFeatures(true);
+    try {
+      const res = await apiClient.put('/tenant/features/pos', localFeatures);
+      const updated = res.data.success?.data?.pos_settings || {};
+      updateFeaturePOSSettings(updated);
+      const blocked = res.data.success?.data?.blocked || [];
+      if (blocked.length > 0) {
+        toast.error(`${blocked.length} setting(s) require a higher plan. Others saved.`);
+      } else {
+        toast.success('POS feature settings updated!');
+      }
+    } catch (err) {
+      toast.error('Failed to save POS feature settings');
+    } finally {
+      setIsSavingFeatures(false);
+    }
+  };
+
 
   const handleToggleExpiry = async (val: boolean) => {
     try {
@@ -73,7 +106,235 @@ export default function POSSettings() {
   return (
     <PageLayout title="POS Settings">
       <div className="max-w-4xl space-y-8">
-        
+
+        {/* ── POS Micro-Features Section ─────────────────────────────────── */}
+        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
+          <h2 className="text-xl font-bold mb-1 text-foreground">POS Features</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Configure which features are active during checkout. Some features require a higher plan.
+            You are on the <span className="font-semibold text-foreground capitalize">{getPlanLabel(plan)}</span> plan.
+          </p>
+
+          <div className="space-y-5">
+
+            {/* Tax */}
+            {(() => {
+              const locked = !['standard', 'business'].includes(plan);
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">VAT / Tax on Transactions</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Add a tax line to every sale. Enter the rate (e.g. 0.15 for 15% Ghana VAT).
+                      {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
+                    </p>
+                    {!locked && localFeatures.pos_tax_enabled && (
+                      <div className="flex gap-3 mt-3">
+                        <div className="flex-1">
+                          <CustomInputTextField
+                            label="Tax Rate (e.g. 0.15 for 15%)"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={String(localFeatures.pos_tax_rate)}
+                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_tax_rate: parseFloat(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <CustomInputTextField
+                            label="Tax Label (e.g. VAT, NHIL+GETFund)"
+                            value={localFeatures.pos_tax_label}
+                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_tax_label: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_tax_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_tax_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Credit Sales */}
+            {(() => {
+              const locked = !['standard', 'business'].includes(plan);
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Credit Sales (Sell on Credit)</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Allow cashiers to complete sales on credit. The balance is tracked in the Credit Ledger.
+                      {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_credit_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_credit_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Discounts */}
+            {(() => {
+              const locked = !['standard', 'business'].includes(plan);
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Item Discounts</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Allow cashiers to apply percentage or fixed discounts on individual items.
+                      {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_discounts_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_discounts_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Split Payment */}
+            {(() => {
+              const locked = !['standard', 'business'].includes(plan);
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Split Payment</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Allow customers to pay using multiple payment methods (e.g. part cash, part mobile money).
+                      {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_split_payment_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_split_payment_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Wholesale Pricing */}
+            {(() => {
+              const locked = plan !== 'business';
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Wholesale Pricing Mode</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Show a wholesale price toggle in the register, allowing cashiers to switch between retail and wholesale pricing.
+                      {locked && <span className="block text-amber-500 mt-1">Requires Business plan.</span>}
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_wholesale_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_wholesale_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Service Charge */}
+            {(() => {
+              const locked = plan !== 'business';
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Service Charge</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Add a service charge percentage to all sales (e.g. 10% for restaurants).
+                      {locked && <span className="block text-amber-500 mt-1">Requires Business plan.</span>}
+                    </p>
+                    {!locked && localFeatures.pos_service_charge_enabled && (
+                      <div className="flex gap-3 mt-3">
+                        <div className="flex-1">
+                          <CustomInputTextField
+                            label="Rate (e.g. 0.10 for 10%)"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={String(localFeatures.pos_service_charge_rate)}
+                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_service_charge_rate: parseFloat(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <CustomInputTextField
+                            label="Label (e.g. Service Charge)"
+                            value={localFeatures.pos_service_charge_label}
+                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_service_charge_label: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : localFeatures.pos_service_charge_enabled}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_service_charge_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+          </div>
+
+          <div className="pt-6">
+            <Button
+              type="button"
+              onPress={handleSaveFeatures}
+              isLoading={isSavingFeatures}
+              className="bg-foreground text-background font-bold px-8 h-12 rounded-full"
+            >
+              Save Feature Settings
+            </Button>
+          </div>
+        </section>
+
         <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
           <h2 className="text-xl font-bold mb-1 text-foreground">Checkout & Printing</h2>
           <p className="text-sm text-muted-foreground mb-6">Manage how receipts are printed and credit sales are handled during checkout.</p>

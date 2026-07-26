@@ -1,0 +1,290 @@
+# Feature Modules & POS Micro-Features System
+
+## Background
+
+You already have the skeleton for this:
+- A `ModuleRoute` component that gates pages based on `tenant.plan` (`pos_only`, `ecommerce_only`, `full_suite`)
+- A `TenantPlan` enum on the backend
+
+The problem: the current system is **too coarse** (3 plan strings) and has **no micro-feature support** inside pages (tax, credit, wholesale, discounts, etc.). The plan also doesn't match your real pricing tiers (Starter, Standard, Business, Ecom Only).
+
+---
+
+## The Industry Standard Approach
+
+**Square, Toast, Lightspeed** all use a **two-layer feature system**:
+
+```
+Layer 1 — Module Access (Page-level gating)
+  → "Can this tenant even open this page?"
+  → Controlled by Plan + Add-ons
+  → Example: Credit Ledger page only visible on Standard+
+
+Layer 2 — Micro-Feature Flags (In-page behavior)
+  → "What features are active inside this page?"
+  → Controlled by Tenant Settings (independent of plan)
+  → Example: Tax toggle in the POS register, wholesale pricing mode
+```
+
+The backend returns **one unified features object** at login. The frontend stores it and uses it everywhere.
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Q1**: Should POS micro-features (tax rate, credit mode, wholesale) be **owner-configurable** in Settings, or should they be locked per-plan and require an upgrade?
+> - **Recommended**: Owner-configurable settings, but only unlocked at a certain plan tier.
+> - Example: Tax is available on Standard+, but the owner turns it on/off in POS Settings.
+
+> [!IMPORTANT]
+> **Q2**: The current `TenantPlan` enum (`pos_only`, `ecommerce_only`, `full_suite`) doesn't match your pricing image (Starter, Standard, Business, Ecom Only). Should we rename the enum values?
+> - **Recommended**: Yes — rename to match pricing: `starter`, `standard`, `business`, `ecom_only`.
+> - This is a **DB migration** change. Doable with a simple `ALTER TYPE`.
+
+---
+
+## Proposed Plan & Feature Tier Map
+
+### Layer 1 — Module Access per Plan
+
+| Route / Module | Starter | Standard | Business | Ecom Only |
+|---|:---:|:---:|:---:|:---:|
+| `/pos/register` | ✅ | ✅ | ✅ | ❌ |
+| `/pos/transactions` | ✅ | ✅ | ✅ | ❌ |
+| `/pos/credit-ledger` | ❌ | ✅ | ✅ | ❌ |
+| `/pos/returns` | ❌ | ✅ | ✅ | ❌ |
+| `/inventory/products` | ✅ | ✅ | ✅ | ✅ |
+| `/inventory/stock` | ✅ | ✅ | ✅ | ✅ |
+| `/inventory/suppliers` | ❌ | ✅ | ✅ | ❌ |
+| `/inventory/purchase-orders` | ❌ | ✅ | ✅ | ❌ |
+| `/inventory/stock-reconciliation` | ❌ | ✅ | ✅ | ❌ |
+| `/inventory/adjustments` | ❌ | ✅ | ✅ | ❌ |
+| `/inventory/supplier-credit` | ❌ | ✅ | ✅ | ❌ |
+| `/expenses` | ❌ | ✅ | ✅ | ❌ |
+| `/staff` | ❌ | ✅ | ✅ | ❌ |
+| `/reports/sales` | ✅ | ✅ | ✅ | ✅ |
+| `/reports/end-of-day` | ❌ | ✅ | ✅ | ❌ |
+| `/reports/products` | ❌ | ✅ | ✅ | ✅ |
+| `/reports/cashiers` | ❌ | ✅ | ✅ | ❌ |
+| `/ecommerce/*` | ❌ | ❌ | ✅ | ✅ |
+| `/dashboard` | ✅ | ✅ | ✅ | ✅ |
+
+---
+
+### Layer 2 — POS Micro-Features (Tenant Settings)
+
+These are **toggles the owner controls** in POS Settings. Each has a minimum plan requirement.
+
+| Feature Key | What It Does | Min Plan | Default |
+|---|---|---|---|
+| `pos_tax_enabled` | Show tax line on transactions | Standard | `false` |
+| `pos_tax_rate` | Tax percentage (e.g. 0.15 for 15% VAT) | Standard | `0` |
+| `pos_tax_label` | Label shown on receipt (e.g. "VAT", "NHIL+GETFund") | Standard | `"Tax"` |
+| `pos_credit_enabled` | Allow "Sell on Credit" in register | Standard | `false` |
+| `pos_wholesale_enabled` | Show wholesale price toggle in register | Business | `false` |
+| `pos_discounts_enabled` | Allow cashier to apply item discounts | Standard | `true` |
+| `pos_service_charge_enabled` | Add service charge % to total | Business | `false` |
+| `pos_service_charge_rate` | Service charge % | Business | `0` |
+| `pos_split_payment_enabled` | Allow payment across multiple methods | Standard | `false` |
+| `pos_notes_enabled` | Allow cashier to add order notes | Starter | `true` |
+| `pos_barcode_scan_enabled` | Enable barcode scanner input | Starter | `true` |
+| `pos_customer_required` | Force cashier to link customer to sale | Business | `false` |
+| `pos_price_override_enabled` | Allow cashier to manually override price | Business | `false` |
+
+---
+
+## Technical Architecture
+
+### Backend Changes
+
+#### 1. Update `TenantPlan` Enum (migration)
+```
+pos_only → starter
+ecommerce_only → ecom_only
+full_suite → business
++ new: standard
+```
+
+#### 2. Add POS settings columns to `Tenant` model (or a new `TenantPOSSettings` table)
+Recommended: A separate `tenant_pos_settings` table — keeps `Tenant` clean.
+
+```python
+class TenantPOSSettings(db.Model):
+    tenant_id      # FK to tenants
+    pos_tax_enabled        # Boolean
+    pos_tax_rate           # Numeric(5,4)
+    pos_tax_label          # String
+    pos_credit_enabled     # Boolean
+    pos_wholesale_enabled  # Boolean
+    pos_discounts_enabled  # Boolean
+    pos_service_charge_enabled  # Boolean
+    pos_service_charge_rate     # Numeric(5,4)
+    pos_split_payment_enabled   # Boolean
+    pos_notes_enabled      # Boolean
+    pos_customer_required  # Boolean
+    pos_price_override_enabled  # Boolean
+```
+
+#### 3. New endpoint: `GET /api/v1/tenant/features`
+Returns the full feature payload at login or on-demand:
+```json
+{
+  "plan": "standard",
+  "modules": ["pos", "inventory_advanced", "reports_basic", "staff", "expenses", "credit_ledger"],
+  "pos_settings": {
+    "pos_tax_enabled": true,
+    "pos_tax_rate": 0.15,
+    "pos_tax_label": "VAT",
+    "pos_credit_enabled": true,
+    "pos_wholesale_enabled": false,
+    "pos_discounts_enabled": true,
+    "pos_split_payment_enabled": true,
+    ...
+  }
+}
+```
+
+This endpoint is called **once at login** and stored in the frontend.
+
+#### 4. Server-side enforcement on sensitive routes
+Even if the frontend hides buttons, the server **must also validate**:
+- `POST /pos/transactions` → check `pos_tax_enabled` when tax is applied
+- `POST /pos/credit-sales` → check `pos_credit_enabled`
+- etc.
+
+This prevents API abuse by savvy users bypassing the UI.
+
+---
+
+### Frontend Changes
+
+#### 1. New `featuresStore.ts` (Zustand)
+```typescript
+interface FeaturesState {
+  plan: string;
+  modules: string[];          // e.g. ['pos', 'credit_ledger', 'inventory_advanced']
+  posSettings: POSSettings;   // micro-feature flags
+  isLoaded: boolean;
+  loadFeatures: () => Promise<void>;
+  hasModule: (key: string) => boolean;
+  hasSetting: (key: keyof POSSettings) => boolean;
+}
+```
+
+#### 2. `useFeature(key)` hook
+```typescript
+const taxEnabled = useFeature('pos_tax_enabled');
+// returns boolean
+```
+
+#### 3. Update `ModuleRoute.tsx` → use `featuresStore`
+Current `ModuleRoute` hardcodes plan string checks. Replace with:
+```typescript
+const hasModule = useFeaturesStore(s => s.hasModule);
+if (!hasModule(requiredModule)) return <UpgradeWall module={requiredModule} />;
+```
+
+#### 4. `<UpgradeWall>` component (instead of silent redirect)
+When a user hits a locked module/page, show a beautiful locked screen:
+- Module name, what it does
+- Which plan unlocks it
+- "Upgrade Plan" CTA button → `/settings/plan`
+
+Much better UX than a silent redirect + toast error (current behavior).
+
+#### 5. POS Register & CartPanel — read from `featuresStore`
+```tsx
+const { pos_tax_enabled, pos_tax_rate, pos_credit_enabled, pos_wholesale_enabled } = useFeaturesStore(s => s.posSettings);
+
+// In CartPanel total calculation:
+const tax = pos_tax_enabled ? subtotal * pos_tax_rate : 0;
+const grandTotal = subtotal + tax + serviceCharge - discount;
+```
+
+#### 6. Sidebar & BottomNav — auto-hide locked items
+Instead of showing all menu items and redirecting locked ones:
+- Module-locked items get a 🔒 lock icon overlay
+- Clicking them opens the `UpgradeWall` inline
+
+---
+
+## Edge Cases & Error Handling
+
+| Scenario | How to Handle |
+|---|---|
+| Feature fetch fails at login | Fail-safe to **most restrictive** (Starter) — never crash the app |
+| Mid-session plan upgrade | Server responds with 200+new features; frontend re-fetches features on next page load |
+| Mid-session plan downgrade | Server enforces at API level; frontend shows 403 → `UpgradeWall`; next login refreshes state |
+| Cashier tries to use credit (disabled) | Button is hidden in UI + server returns 403 if attempted via API |
+| Stale feature cache | Re-fetch features every 30min or on tab focus |
+| Add-on trial expires during session | Server returns 402 on protected endpoints; frontend catches 402 and shows `UpgradeWall` |
+| Network error fetching features | Show cached last-known state (from localStorage); banner: "Feature status may be outdated" |
+| Owner changes POS settings | Broadcast update to all open tabs via `localStorage` event or re-fetch |
+
+---
+
+## Proposed Changes
+
+### Backend
+
+#### [MODIFY] [tenants.py](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion labs/vysion-tech commerce/vysion-tech-commerce-server/models/tenants.py)
+- Rename `TenantPlan` values: `starter`, `standard`, `business`, `ecom_only`
+- Add plan-to-modules mapping method `get_modules()`
+
+#### [NEW] `models/tenant_settings.py`
+- `TenantPOSSettings` model with all micro-feature columns
+- Auto-created (with defaults) when a new tenant is provisioned
+
+#### [NEW] `routes/tenant/features.py`
+- `GET /api/v1/tenant/features` → returns `{ plan, modules[], pos_settings{} }`
+- `PUT /api/v1/tenant/features/pos-settings` → owner updates POS micro-settings
+
+#### [MODIFY] `routes/pos/transactions.py` (and credit, wholesale routes)
+- Add server-side `pos_setting_required('pos_tax_enabled')` checks
+
+---
+
+### Frontend
+
+#### [NEW] `src/store/featuresStore.ts`
+- Zustand store: `plan`, `modules[]`, `posSettings{}`
+- `hasModule(key)`, `hasSetting(key)` methods
+- `loadFeatures()` → calls `GET /tenant/features`
+
+#### [NEW] `src/hooks/useFeature.ts`
+- Simple hook: `useFeature(key: string) → boolean`
+
+#### [MODIFY] [ModuleRoute.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion labs/vysion-tech commerce/headlesspos-admin/src/components/shared/ModuleRoute.tsx)
+- Use `featuresStore.hasModule()` instead of hardcoded plan checks
+- Render `<UpgradeWall>` instead of redirecting
+
+#### [NEW] `src/components/shared/UpgradeWall.tsx`
+- Beautiful locked-module screen with plan details and CTA
+
+#### [MODIFY] [CartPanel.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion labs/vysion-tech commerce/headlesspos-admin/src/components/pos/CartPanel.tsx)
+- Read `pos_tax_enabled`, `pos_tax_rate`, `pos_tax_label` from `featuresStore`
+- Add tax line to totals calculation and receipt breakdown
+
+#### [MODIFY] [Register.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion labs/vysion-tech commerce/headlesspos-admin/src/pages/pos/register/Register.tsx)
+- Show/hide "Sell on Credit" button based on `pos_credit_enabled`
+- Show/hide wholesale price toggle based on `pos_wholesale_enabled`
+- Show/hide discount button based on `pos_discounts_enabled`
+
+#### [MODIFY] `Sidebar.tsx` + `BottomNav.tsx`
+- Filter nav items based on `hasModule()` — show lock icon on locked items
+
+#### [MODIFY] `App.tsx`
+- Wrap all routes with `<ModuleRoute requiredModule="...">` consistently
+- Load `featuresStore` after login
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. Login as Starter tenant → confirm Credit Ledger, Expenses, Staff pages show `UpgradeWall`
+2. Enable tax in POS Settings → confirm tax line appears in CartPanel totals
+3. Toggle credit sales ON → confirm "Sell on Credit" button appears in Register
+4. Attempt API call to credit endpoint with credit disabled → confirm 403 response
+5. Downgrade plan → confirm locked pages on next login

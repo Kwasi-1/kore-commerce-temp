@@ -121,32 +121,33 @@ function AppRoutes() {
         <Route path="/settings/plan" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PlanBilling /></ProtectedRoute>} />
 
         {/* POS Dashboard Views */}
-        <Route path="/pos/transactions" element={<Transactions />} />
-        <Route path="/pos/credit-ledger" element={<CreditLedger />} />
-        <Route path="/pos/returns" element={<Returns />} />
+        <Route path="/pos/transactions" element={<ModuleRoute requiredModule="pos"><Transactions /></ModuleRoute>} />
+        <Route path="/pos/credit-ledger" element={<ModuleRoute requiredModule="credit_ledger"><CreditLedger /></ModuleRoute>} />
+        <Route path="/pos/returns" element={<ModuleRoute requiredModule="returns"><Returns /></ModuleRoute>} />
 
         {/* Inventory */}
         <Route path="/inventory/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Products /></ProtectedRoute>} />
         <Route path="/inventory/products/new" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductFormPage /></ProtectedRoute>} />
         <Route path="/inventory/products/:id/edit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductFormPage /></ProtectedRoute>} />
-        <Route path="/inventory/suppliers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Suppliers /></ProtectedRoute>} />
-        <Route path="/inventory/purchase-orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PurchaseOrders /></ProtectedRoute>} />
+        <Route path="/inventory/suppliers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="suppliers"><Suppliers /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/inventory/purchase-orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="purchase_orders"><PurchaseOrders /></ModuleRoute></ProtectedRoute>} />
         <Route path="/inventory/stock" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockManagement /></ProtectedRoute>} />
-        <Route path="/inventory/stock-reconciliation" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockReconciliation /></ProtectedRoute>} />
-        <Route path="/inventory/stock-upload/audit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockAuditScreen /></ProtectedRoute>} />
-        <Route path="/inventory/adjustments" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StockAdjustments /></ProtectedRoute>} />
-        <Route path="/inventory/supplier-credit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><SupplierCredit /></ProtectedRoute>} />
+        <Route path="/inventory/stock-reconciliation" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="stock_reconciliation"><StockReconciliation /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/inventory/stock-upload/audit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="adjustments"><StockAuditScreen /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/inventory/adjustments" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="adjustments"><StockAdjustments /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/inventory/supplier-credit" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="supplier_credit"><SupplierCredit /></ModuleRoute></ProtectedRoute>} />
 
         {/* Operations & Notifications */}
-        <Route path="/staff" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><StaffManagement /></ProtectedRoute>} />
-        <Route path="/expenses" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Expenses /></ProtectedRoute>} />
+        <Route path="/staff" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="staff"><StaffManagement /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="expenses"><Expenses /></ModuleRoute></ProtectedRoute>} />
         <Route path="/notifications" element={<Notifications />} />
 
         {/* Reports */}
         <Route path="/reports/sales" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><SalesSummary /></ProtectedRoute>} />
-        <Route path="/reports/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ProductReport /></ProtectedRoute>} />
-        <Route path="/reports/cashiers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><CashierReport /></ProtectedRoute>} />
-        <Route path="/reports/end-of-day" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><EndOfDay /></ProtectedRoute>} />
+        <Route path="/reports/products" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="reports_advanced"><ProductReport /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/reports/cashiers" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="reports_advanced"><CashierReport /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/reports/end-of-day" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="reports_advanced"><EndOfDay /></ModuleRoute></ProtectedRoute>} />
+
 
         {/* Ecommerce */}
         <Route path="/ecommerce/orders" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="ecommerce"><OnlineOrders /></ModuleRoute></ProtectedRoute>} />

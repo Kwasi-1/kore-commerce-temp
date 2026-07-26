@@ -2,7 +2,9 @@ import { useState, useEffect, useTransition } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
+
 import koreLogo from '@/assets/images/kore.png';
 import {
   LayoutDashboard,
@@ -31,8 +33,10 @@ import {
   ChevronsLeft,
   Sliders,
   CreditCard,
+  Lock,
   Bell
 } from 'lucide-react';
+
 import clsx from 'clsx';
 
 const decodeHtml = (str: string) => {
@@ -50,7 +54,9 @@ interface NavItem {
   to: string;
   icon: any;
   badge?: number | string;
+  moduleKey?: string;  // if set, shows a lock icon when hasModule(moduleKey) is false
 }
+
 
 interface NavSection {
   title: string;
@@ -66,8 +72,10 @@ export default function Sidebar() {
   const staffUser = useAuthStore((state) => state.staffUser);
   const isCashier = staffUser?.role === 'cashier';
   const logout = useAuthStore((state) => state.logout);
-  const plan = tenant?.plan || 'pos_only';
+  const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
+  const hasModule = useFeaturesStore((s) => s.hasModule);
+
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,10 +102,11 @@ export default function Sidebar() {
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'Transactions', to: '/pos/transactions', icon: History },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
-        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
+        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
+        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
       ],
     },
+
     {
       title: 'Inventory',
       icon: Package,
@@ -105,13 +114,14 @@ export default function Sidebar() {
       badge: 4,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
-        { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
+        { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
         { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: 4 },
-        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
-        { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
-        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge },
+        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers, moduleKey: 'stock_reconciliation' },
+        { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
+        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
       ],
     },
+
     {
       title: 'Expenses',
       icon: Receipt,
@@ -365,6 +375,7 @@ export default function Sidebar() {
                     <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
                       {section.items.map((item) => {
                         const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                        const isLocked = item.moduleKey ? !hasModule(item.moduleKey) : false;
                         return (
                           <button
                             key={item.name}
@@ -373,15 +384,19 @@ export default function Sidebar() {
                               "relative flex items-center justify-between w-full px-3 py-2 rounded-md text-[12px] tracking-wide font-medium transition-all group",
                               isActive
                                 ? "text-white font-bold shadow-sm before:absolute before:-left-[13px] before:top-1/2 before:-translate-y-1/2 before:w-[2px] before:h-4 before:bg-primary before:rounded-2xl"
+                                : isLocked
+                                ? "text-zinc-600 hover:text-zinc-400"
                                 : "text-zinc-400 hover:text-white"
                             )}
                           >
                             <span className="truncate">{item.name}</span>
-                            {item.badge && (
+                            {isLocked ? (
+                              <Lock className="h-3 w-3 text-zinc-600 shrink-0" />
+                            ) : item.badge ? (
                               <span className="bg-primary text-zinc-950 font-black text-[9px] px-[5px] py-[1px] rounded">
                                 {item.badge}
                               </span>
-                            )}
+                            ) : null}
                           </button>
                         );
                       })}

@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
       staffUser: null,
       tenant: null,
       isFirstLogin: false,
+
       login: (token, refreshToken, staff, tenant, isFirstLogin = false) => {
         const enrichedUser: StaffUser = {
           ...staff,
@@ -47,9 +48,21 @@ export const useAuthStore = create<AuthState>()(
           name: tenant.name || tenant.business_name || 'My Business',
         };
         set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin });
+
+        // Load feature flags immediately after login (async — non-blocking)
+        import('@/store/featuresStore').then(({ useFeaturesStore }) => {
+          useFeaturesStore.getState().loadFeatures();
+        });
       },
-      logout: () =>
-        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false }),
+
+      logout: () => {
+        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false });
+        // Reset features store on logout so stale plan data doesn't persist
+        import('@/store/featuresStore').then(({ useFeaturesStore }) => {
+          useFeaturesStore.getState().reset();
+        });
+      },
+
       setTenant: (tenant) => set({ tenant }),
       completeFirstLogin: () => set({ isFirstLogin: false }),
     }),
