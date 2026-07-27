@@ -71,6 +71,8 @@ interface NavSection {
 export default function Sidebar() {
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
+  const graceInfo = useAuthStore((state) => state.graceInfo);
+  const inGracePeriod = Boolean(graceInfo && graceInfo.active);
   const isCashier = staffUser?.role === 'cashier';
   const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'starter';
@@ -282,12 +284,21 @@ export default function Sidebar() {
       </div>
 
       {/* --- Navigation List --- */}
-      <nav className={clsx("flex-1 overflow-y-auto px-3 py-2 space-y-2.5 scrollbar-hide flex flex-col", isCashier && "justifycenter")}>
+      <nav className={clsx("flex-1 overflow-y-auto px-3 py-2 space-y-2.5 scrollbar-hide flex flex-col", isCashier && "justify-center")}>
         {navSections.map((section) => {
           if (!section.show) return null;
 
-          const hasMultipleItems = section.items.length > 1;
-          const isSectionActive = section.items.some(
+          // Filter section items: hide un-owned modules unless tenant is in a Grace Period
+          const visibleItems = section.items.filter((item) => {
+            if (!item.moduleKey) return true;
+            const isUnlocked = hasModule(item.moduleKey);
+            return isUnlocked || inGracePeriod;
+          });
+
+          if (visibleItems.length === 0) return null;
+
+          const hasMultipleItems = visibleItems.length > 1;
+          const isSectionActive = visibleItems.some(
             (item) => location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to))
           );
           const isOpen = openSections[section.title];
@@ -297,8 +308,9 @@ export default function Sidebar() {
             // --- Collapsed State ---
             return (
               <div key={section.title} className="flex flex-col items-center gap-1.5 py-1">
-                {section.items.map((item) => {
+                {visibleItems.map((item) => {
                   const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                  const isLocked = item.moduleKey ? !hasModule(item.moduleKey) : false;
                   const ItemIcon = item.icon;
                   return (
                     <button
@@ -309,15 +321,19 @@ export default function Sidebar() {
                         "relative min-h-10 min-w-10 p-3 rounded-xl flex items-center justify-center transition-all",
                         isActive
                           ? "bg-primary text-zinc-950 shadow-md font-bold"
+                          : isLocked
+                          ? "text-zinc-600 hover:text-zinc-400"
                           : "text-zinc-400 hover:text-white hover:bg-white/10"
                       )}
                     >
                       <ItemIcon className="h-[22px] w-[22px]" />
-                      {item.badge && (
+                      {isLocked ? (
+                        <Lock className="absolute -top-1 -right-1 h-3.5 w-3.5 text-zinc-500 bg-zinc-900 rounded-full p-0.5" />
+                      ) : item.badge ? (
                         <span className="absolute -top-1 -right-1 bg-primary text-zinc-950 font-black text-[9px] h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center ring-2 ring-[#121316]">
                           {item.badge}
                         </span>
-                      )}
+                      ) : null}
                     </button>
                   );
                 })}
@@ -335,8 +351,8 @@ export default function Sidebar() {
                     type="button"
                     onClick={() => {
                       setOpenSections((prev) => ({ ...prev, [section.title]: true }));
-                      if (section.items[0]?.to) {
-                        startTransition(() => navigate(section.items[0].to));
+                      if (visibleItems[0]?.to) {
+                        startTransition(() => navigate(visibleItems[0].to));
                       }
                     }}
                     className={clsx(
@@ -374,7 +390,7 @@ export default function Sidebar() {
 
                   {isOpen && (
                     <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
-                      {section.items.map((item) => {
+                      {visibleItems.map((item) => {
                         const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
                         const isLocked = item.moduleKey ? !hasModule(item.moduleKey) : false;
                         return (
@@ -407,7 +423,8 @@ export default function Sidebar() {
               ) : (
                 // Single Item Section (like Dashboard -> Overview, Expenses, Notifications, Staff)
                 (() => {
-                  const singleItem = section.items[0];
+                  const singleItem = visibleItems[0];
+                  if (!singleItem) return null;
                   const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
                   const SingleIcon = singleItem.icon;
 
@@ -438,11 +455,6 @@ export default function Sidebar() {
                   );
                 })()
               )}
-
-              {/* Section Divider */}
-              {/* {section.hasDividerAfter && (
-                <div className="border-t border-white/5 mt-4 mx-2" />
-              )} */}
             </div>
           );
         })}

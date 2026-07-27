@@ -1,6 +1,7 @@
 import { useTransition, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
 import {
   LayoutDashboard,
@@ -28,6 +29,7 @@ import {
   Sliders,
   CreditCard,
   ClipboardList,
+  Lock,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
@@ -35,6 +37,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/rea
 export default function BottomNav() {
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
+  const graceInfo = useAuthStore((state) => state.graceInfo);
+  const inGracePeriod = Boolean(graceInfo && graceInfo.active);
+  const hasModule = useFeaturesStore((s) => s.hasModule);
   const isCashier = staffUser?.role === 'cashier';
   const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'starter';
@@ -54,9 +59,9 @@ export default function BottomNav() {
     ? [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
         { name: 'History', to: '/pos/transactions', icon: History },
-        { name: 'Credit', to: '/pos/credit-ledger', icon: BookOpen },
-        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
-      ]
+        { name: 'Credit', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
+        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
+      ].filter(item => !item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)
     : [
         { name: 'Overview', to: '/dashboard', icon: LayoutDashboard, show: true },
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, show: modules.pos },
@@ -77,9 +82,9 @@ export default function BottomNav() {
           items: [
             { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
             { name: 'Transactions', to: '/pos/transactions', icon: History },
-            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
-            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
+            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
+          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
         },
         {
           title: 'Account',
@@ -103,21 +108,21 @@ export default function BottomNav() {
           items: [
             { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
             { name: 'Transactions', to: '/pos/transactions', icon: History },
-            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen },
-            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
+            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
+          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
         },
         {
           title: 'Inventory',
           show: modules.inventory,
           items: [
             { name: 'Products', to: '/inventory/products', icon: Package },
-            { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList },
+            { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
             { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
-            { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers },
-            { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck },
-            { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers, moduleKey: 'stock_reconciliation' },
+            { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
+            { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
+          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
         },
         {
           title: 'Expenses',
@@ -253,6 +258,8 @@ export default function BottomNav() {
                       <div className="flex flex-col gap-1">
                         {section.items.map((item) => {
                           const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+                          const itemWithKey = item as { moduleKey?: string };
+                          const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
                           return (
                             <button
                               key={item.name}
@@ -260,7 +267,9 @@ export default function BottomNav() {
                               className={clsx(
                                 "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
                                 isActive
-                                  ? "bg-primary/10 text-primary"
+                                  ? "bg-sidebar text-background font-bold shadow-sm"
+                                  : isLocked
+                                  ? "text-muted-foreground/50 hover:bg-muted/50"
                                   : "text-foreground/70 hover:bg-muted hover:text-foreground"
                               )}
                             >
@@ -268,7 +277,11 @@ export default function BottomNav() {
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.name}</span>
                               </div>
-                              <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                              {isLocked ? (
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                              )}
                             </button>
                           );
                         })}
