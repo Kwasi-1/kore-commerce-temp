@@ -158,6 +158,7 @@ export default function CashierLockScreen() {
         toast.success(`Welcome back, ${selectedCashier.name}`);
         const currentToken = useAuthStore.getState().token;
         const currentRefresh = useAuthStore.getState().refreshToken;
+        const currentGraceInfo = useAuthStore.getState().graceInfo;
 
         login(
           data.access_token || currentToken || '',
@@ -170,8 +171,10 @@ export default function CashierLockScreen() {
           data.tenant || tenant || {
             id: 'tenant-1',
             name: 'Vysion Store',
-            plan: 'pos_only',
-          }
+            plan: 'starter',
+          },
+          false,
+          data.grace_info || currentGraceInfo
         );
         navigate('/pos/register');
       }
@@ -190,6 +193,7 @@ export default function CashierLockScreen() {
     toast.success(`Logged in as ${selectedCashier?.name}`);
     const currentToken = useAuthStore.getState().token;
     const currentRefresh = useAuthStore.getState().refreshToken;
+    const currentGraceInfo = useAuthStore.getState().graceInfo;
 
     login(
       resData?.access_token || currentToken || '',
@@ -202,8 +206,10 @@ export default function CashierLockScreen() {
       resData?.tenant || tenant || {
         id: 'tenant-1',
         name: 'Vysion Store',
-        plan: 'pos_only',
-      }
+        plan: 'starter',
+      },
+      false,
+      resData?.grace_info || currentGraceInfo
     );
     navigate('/pos/register');
   };

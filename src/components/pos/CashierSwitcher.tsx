@@ -59,7 +59,15 @@ export default function CashierSwitcher() {
       toast.success(`Logged in as ${cashierName}`);
       const currentToken = useAuthStore.getState().token;
       const currentRefresh = useAuthStore.getState().refreshToken;
-      login(currentToken || '', currentRefresh || '', { ...selectedCashier, name: cashierName }, tenant || { id: 't1', name: 'Default Tenant', plan: 'pro' });
+      const currentGraceInfo = useAuthStore.getState().graceInfo;
+      login(
+        currentToken || '',
+        currentRefresh || '',
+        { ...selectedCashier, name: cashierName },
+        tenant || { id: 't1', name: 'Default Tenant', plan: 'starter' },
+        false,
+        currentGraceInfo
+      );
       setIsPinModalOpen(false);
     } else {
       toast.error('Invalid PIN');

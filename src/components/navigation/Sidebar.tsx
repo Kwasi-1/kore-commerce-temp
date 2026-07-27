@@ -4,6 +4,7 @@ import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
+import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
 
 import koreLogo from '@/assets/images/kore.png';
 import {
@@ -446,6 +447,8 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      {/* Grace Period Warning Banner */}
+      {!isCollapsed && <PlanGraceBanner />}
 
       {/* --- Bottom User Profile Card --- */}
       <div className="p-3 mt-auto">

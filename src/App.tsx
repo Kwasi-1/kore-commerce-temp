@@ -11,6 +11,8 @@ import POSLayout from '@/layouts/POSLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import ProductFormPage from '@/pages/inventory/ProductFormPage';
 import SupplierCredit from '@/pages/inventory/SupplierCredit';
+import PlanGraceModal from '@/components/shared/PlanGraceModal';
+import PlanBlockedWall from '@/components/shared/PlanBlockedWall';
 
 // Pages — lazy for code splitting. Chunks are prefetched by role after login.
 const Login = lazy(() => import('@/pages/Login'));
@@ -168,6 +170,8 @@ function AppRoutes() {
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <PlanBlockedWall />
+      <PlanGraceModal />
       <AppRoutes />
     </Suspense>
   );

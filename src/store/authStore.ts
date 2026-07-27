@@ -17,16 +17,25 @@ interface Tenant {
   track_expiry_enabled?: boolean;
 }
 
+export interface GraceInfo {
+  active: boolean;
+  days_remaining: number;
+  expires_at: string;
+  plan_limit_reached: boolean;
+}
+
 interface AuthState {
   token: string | null;
   refreshToken: string | null;
   staffUser: StaffUser | null;
   tenant: Tenant | null;
+  graceInfo: GraceInfo | null;
   isFirstLogin: boolean;
-  login: (token: string, refreshToken: string, staffUser: any, tenant: Tenant, isFirstLogin?: boolean) => void;
+  login: (token: string, refreshToken: string, staffUser: any, tenant: Tenant, isFirstLogin?: boolean, graceInfo?: GraceInfo | null) => void;
   logout: () => void;
   setTenant: (tenant: Tenant) => void;
   completeFirstLogin: () => void;
+  setGraceInfo: (graceInfo: GraceInfo | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,9 +45,10 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       staffUser: null,
       tenant: null,
+      graceInfo: null,
       isFirstLogin: false,
 
-      login: (token, refreshToken, staff, tenant, isFirstLogin = false) => {
+      login: (token, refreshToken, staff, tenant, isFirstLogin = false, graceInfo = null) => {
         const enrichedUser: StaffUser = {
           ...staff,
           name: staff.name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || 'Admin User'
@@ -47,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
           ...tenant,
           name: tenant.name || tenant.business_name || 'My Business',
         };
-        set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin });
+        set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin, graceInfo });
 
         // Load feature flags immediately after login (async — non-blocking)
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
@@ -56,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false });
+        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false, graceInfo: null });
         // Reset features store on logout so stale plan data doesn't persist
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
           useFeaturesStore.getState().reset();
@@ -64,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setTenant: (tenant) => set({ tenant }),
+      setGraceInfo: (graceInfo) => set({ graceInfo }),
       completeFirstLogin: () => set({ isFirstLogin: false }),
     }),
     {
