@@ -1,8 +1,9 @@
 import React from "react";
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useModuleContext } from '@/components/shared/ModuleRoute';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, User, ArrowLeft } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, User, ArrowLeft, Clock, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,8 +45,9 @@ export default function PageLayout({
   backUrl,
   onBackClick,
 }: PageLayoutProps) {
-  const { staffUser, logout } = useAuthStore();
+  const { staffUser, graceInfo, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
+  const { isGraceAccess } = useModuleContext();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -84,13 +86,37 @@ export default function PageLayout({
               </div>
             </div>
 
-            {/* Right side: Actions (Desktop) + Profile Pill */}
-            <div className="flex items-center gap-3 shrink-0">
+            {/* Right side: Actions (Desktop) + Grace Pill + Profile Pill */}
+            <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
               {/* Inline filter slot (Desktop only) */}
               {filterSlot && <div className="hidden md:block shrink-0">{filterSlot}</div>}
 
               {/* Inline actions (Desktop only) */}
               {actions && <div className="hidden md:flex items-center gap-3">{actions}</div>}
+
+              {/* Grace Period Warning Pill — rendered ONLY when accessing a route via grace period */}
+              {isGraceAccess && graceInfo && (
+                <button
+                  onClick={() => navigate('/settings/plan')}
+                  title={`Access expires on ${graceInfo.expires_at || 'soon'}. Click to manage plan.`}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs md:text-sm font-semibold transition-all shrink-0 cursor-pointer shadow-sm",
+                    graceInfo.days_remaining <= 3
+                      ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20"
+                      : graceInfo.days_remaining <= 7
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                      : "bg-muted/80 border-border text-foreground hover:bg-muted"
+                  )}
+                >
+                  {graceInfo.days_remaining <= 3 ? (
+                    <ShieldAlert className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                  ) : (
+                    <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  )}
+                  <span className="hidden sm:inline">Grace Period:</span>
+                  <span className="font-bold">{graceInfo.days_remaining}d left</span>
+                </button>
+              )}
 
               {/* Profile Pill container */}
               <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0 bg-card">
