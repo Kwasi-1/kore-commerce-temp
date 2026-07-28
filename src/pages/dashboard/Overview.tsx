@@ -21,15 +21,19 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
+import { getModules } from '@/utils/permissions';
+import { useFeaturesStore } from '@/store/featuresStore';
+
 export default function Overview() {
   const navigate = useNavigate();
   const { formatAmount } = useCurrency();
   const { staffUser, tenant } = useAuthStore();
-  const plan = tenant?.plan || 'pos_only';
+  const plan = tenant?.plan || 'starter';
+  const modules = getModules(plan);
+  const hasModule = useFeaturesStore((s) => s.hasModule);
   
-  // Use a simple check instead of getModules to avoid dependency issues if it's not exported perfectly
-  const hasPos = ['pos_only', 'full_suite'].includes(plan);
-  const hasEcommerce = ['ecommerce_only', 'full_suite'].includes(plan);
+  const hasPos = modules.pos || hasModule('pos');
+  const hasEcommerce = modules.ecommerce || hasModule('ecommerce');
   
   const [isLoading, setIsLoading] = useState(true);
   
@@ -210,7 +214,7 @@ export default function Overview() {
   return (
     <PageLayout
       title={`${getGreeting()}, ${userName}`}
-      titleClassName='xl:text-[27px] text-wrap'
+      titleClassName='xl:text-[27px] textwrap leading-[1]'
       subtitle="Here's what's happening with your store today."
       actions={
         <div className="hidden md:flex gap-3">
