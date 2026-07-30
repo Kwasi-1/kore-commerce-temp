@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { useMemo } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
@@ -108,7 +108,7 @@ const rangeModeSelections: QuickSelection[] = [
 
 function formatDisplay(date: Date | null) {
   if (!date) {
-    return "â€”";
+    return "—";
   }
 
   return date.toLocaleDateString("en-US", {
@@ -224,7 +224,7 @@ export function DateRangePicker({
   const displayValue = hasValue
     ? currentMode === "single"
       ? formatDisplay(selectedRange!.startDate)
-      : `${formatDisplay(selectedRange!.startDate)} â†’ ${formatDisplay(selectedRange!.endDate)}`
+      : `${formatDisplay(selectedRange!.startDate)} → ${formatDisplay(selectedRange!.endDate)}`
     : "No date selected";
 
   const inputLabel =
@@ -248,7 +248,7 @@ export function DateRangePicker({
         <Popover.Trigger asChild>
           <button
             type="button"
-            className="flex min-h-[2.5rem] w-full items-center justify-between border border-input bg-background px-3 py-2 text-left text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex min-h-[2.5rem] w-full items-center justify-between border border-input bg-background px-3 py-2 text-left text-sm rounded-xl ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all"
           >
             {showInsideLabel ? (
               <div className="flex-1 text-left">
