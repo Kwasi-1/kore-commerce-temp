@@ -45,7 +45,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
   };
 
   const shift = reportData?.shift;
-  const isShiftOpen = shift?.status === 'open';
+  const isShiftOpen = shift?.status === 'OPEN' || shift?.status === 'open'; // handle both cases defensively
   const recon = reportData?.cash_reconciliation;
   const pb = reportData?.payment_breakdown || {};
   const movements = reportData?.cash_movements || [];

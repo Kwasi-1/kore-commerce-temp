@@ -25,7 +25,7 @@ import ZReportModal from '@/components/pos/ZReportModal';
 export default function EndOfDay() {
   const { formatGHS } = useCurrency();
   const tenant = useAuthStore((state) => state.tenant);
-  const isPosOnly = tenant?.plan === 'pos_only';
+  const isPosOnly = tenant?.plan === 'starter' || tenant?.plan === 'standard';
 
   const [eodData, setEodData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,11 +68,14 @@ export default function EndOfDay() {
     fetchEOD(dateFilter);
   }, [dateFilter]);
 
-  const totalSales = eodData?.total_sales || 0;
+  // Helper: API interceptor wraps Decimal fields in {source, parsedValue} — unwrap safely
+  const parseVal = (v: any): number => (v && typeof v === 'object' && 'parsedValue' in v ? v.parsedValue : (v ?? 0));
+
+  const totalSales = parseVal(eodData?.total_sales);
   const expenseRecords = eodData?.expenses?.records || [];
-  const totalExpenses = eodData?.expenses?.total || 0;
+  const totalExpenses = parseVal(eodData?.expenses?.total);
   const netRevenue = totalSales - totalExpenses;
-  const avgOrderValue = eodData?.average_order_value || 0;
+  const avgOrderValue = parseVal(eodData?.average_order_value);
 
   const pb = eodData?.payment_breakdown || {};
   const paymentBreakdownChartData = [
@@ -105,7 +108,7 @@ export default function EndOfDay() {
     >
       
       {!hasClosedShifts && !isLoading && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl borde border-yellow-200 dark:border-yellow-900/30 mb-6 flex items-center justify-between shadowsm">
+        <div className="hidden bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl borde border-yellow-200 dark:border-yellow-900/30 mb-6 flex items-center justify-between shadowsm">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400" />
             <div>
@@ -194,13 +197,26 @@ export default function EndOfDay() {
             <tbody className="divide-y divide-border/60 font-medium">
               {shiftRecords.length > 0 ? (
                 shiftRecords.map((shift: any) => {
-                  const isClosed = shift.status === 'closed' || shift.status === 'force_closed';
-                  const variance = shift.variance ?? 0;
+                  // API returns uppercase: 'OPEN', 'CLOSED', 'FORCE_CLOSED'
+                  const status = (shift.status || '').toUpperCase();
+                  const isClosed = status === 'CLOSED' || status === 'FORCE_CLOSED';
+                  const rawVariance = parseVal(shift.variance);
+                  const variance = rawVariance ?? 0;
                   const isOver = variance > 0;
                   const isShort = variance < 0;
                   const isBalanced = variance === 0 && isClosed;
 
-                  const openedAtFormatted = shift.opened_at ? format(new Date(shift.opened_at), 'hh:mm a') : '—';
+                  // Show date prefix when shift is not from today (multi-day range view)
+                  const openedDate = shift.opened_at ? new Date(shift.opened_at) : null;
+                  const today = new Date();
+                  const isToday = openedDate ? (
+                    openedDate.getFullYear() === today.getFullYear() &&
+                    openedDate.getMonth() === today.getMonth() &&
+                    openedDate.getDate() === today.getDate()
+                  ) : true;
+                  const datePrefix = openedDate && !isToday ? format(openedDate, 'MMM d · ') : '';
+
+                  const openedAtFormatted = openedDate ? `${datePrefix}${format(openedDate, 'hh:mm a')}` : '—';
                   const closedAtFormatted = shift.closed_at ? format(new Date(shift.closed_at), 'hh:mm a') : 'Open';
 
                   return (
@@ -213,16 +229,16 @@ export default function EndOfDay() {
                       </td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold ${
-                          shift.status === 'closed' 
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                            : shift.status === 'force_closed'
-                            ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
-                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                          status === 'CLOSED'
+                            ? 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                            : status === 'FORCE_CLOSED'
+                            ? 'bg-purple-500/5 text-purple-600 dark:text-purple-400'
+                            : 'bg-amber-500/5 text-amber-600 dark:text-amber-400'
                         }`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${
-                            shift.status === 'closed' ? 'bg-emerald-500' : shift.status === 'force_closed' ? 'bg-purple-500' : 'bg-amber-500 animate-pulse'
+                            status === 'CLOSED' ? 'bg-emerald-500' : status === 'FORCE_CLOSED' ? 'bg-purple-500' : 'bg-amber-500 animate-pulse'
                           }`} />
-                          {shift.status === 'closed' ? 'Closed' : shift.status === 'force_closed' ? 'Auto-Closed' : 'Active Shift'}
+                          {status === 'CLOSED' ? 'Closed' : status === 'FORCE_CLOSED' ? 'Auto-Closed' : 'Active Shift'}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-xs text-muted-foreground">
@@ -232,13 +248,13 @@ export default function EndOfDay() {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right font-semibold">
-                        <CurrencyDisplay amount={shift.opening_float || 0} />
+                        <CurrencyDisplay amount={parseVal(shift.opening_float)} />
                       </td>
                       <td className="px-5 py-4 text-right font-semibold">
-                        {isClosed ? <CurrencyDisplay amount={shift.expected_cash || 0} /> : '—'}
+                        {isClosed ? <CurrencyDisplay amount={parseVal(shift.expected_cash)} /> : '—'}
                       </td>
                       <td className="px-5 py-4 text-right font-bold text-foreground">
-                        {isClosed && shift.closing_count !== null && shift.closing_count !== undefined ? <CurrencyDisplay amount={shift.closing_count} /> : '—'}
+                        {isClosed && shift.closing_count !== null && shift.closing_count !== undefined ? <CurrencyDisplay amount={parseVal(shift.closing_count)} /> : '—'}
                       </td>
                       <td className="px-5 py-4 text-right font-bold">
                         {!isClosed ? (
@@ -267,9 +283,9 @@ export default function EndOfDay() {
                             setSelectedZReportShiftId(shift.id);
                             setIsZReportOpen(true);
                           }}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/20 hover:bg-primary/20 text-muted-foreground text-xs font-bold transition-all"
                         >
-                          <FileText className="h-3.5 w-3.5" /> {shift.status === 'open' ? 'X-Report' : 'Z-Report'}
+                          <FileText className="h-3.5 w-3.5" /> {status === 'OPEN' ? 'X-Report' : 'Z-Report'}
                         </button>
                       </td>
                     </tr>
@@ -327,7 +343,7 @@ export default function EndOfDay() {
               <h3 className="text-base font-bold text-foreground">Logged Operational Expenses</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Petty cash and store payouts</p>
             </div>
-            <span className={`"bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-md borde border-red-500/20 flex items-center gap-1" ${totalExpenses == 0 && "bg-muted/60 text-foreground/60 border-none"}`}>
+            <span className={`bg-red-300/10 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-md borde border-red-500/20 flex items-center gap-1 ${totalExpenses == 0 && "bg-muted/60 text-foreground/60 border-none"}`}>
               Total: <CurrencyDisplay amount={totalExpenses} showStyling={false} />
             </span>
           </div>
