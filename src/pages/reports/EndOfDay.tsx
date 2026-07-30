@@ -161,7 +161,7 @@ export default function EndOfDay() {
 
       {/* Closed Shifts Audit Log */}
       <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden mb-6 shadow-sm">
-        <div className="p-5 border-b border-border/80 flex items-center justify-between">
+        <div className="p-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <UserCheck className="h-5 w-5" />
@@ -171,14 +171,14 @@ export default function EndOfDay() {
               <p className="text-xs text-muted-foreground">Individual shift closures, floats, expected cash, and till variances</p>
             </div>
           </div>
-          <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-full border border-border/50">
+          <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-md border border-border/50">
             {shiftRecords.length} {shiftRecords.length === 1 ? 'Shift Record' : 'Shift Records'}
           </span>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider border-b border-border/60">
+            <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-3">Cashier</th>
                 <th className="px-5 py-3">Shift Status</th>
@@ -322,18 +322,18 @@ export default function EndOfDay() {
 
         {/* Expenses Table */}
         <div className="lg:col-span-2 bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden flex flex-col shadow-sm">
-          <div className="p-5 border-b border-border/80 flex justify-between items-center">
+          <div className="p-5 flex justify-between items-center">
             <div>
               <h3 className="text-base font-bold text-foreground">Logged Operational Expenses</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Petty cash and store payouts</p>
             </div>
-            <span className="bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full border border-red-500/20 flex items-center gap-1">
+            <span className={`"bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-md borde border-red-500/20 flex items-center gap-1" ${totalExpenses == 0 && "bg-muted/60 text-foreground/60 border-none"}`}>
               Total: <CurrencyDisplay amount={totalExpenses} showStyling={false} />
             </span>
           </div>
           <div className="flex-1 overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider border-b border-border/60">
+              <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3">Category</th>
                   <th className="px-6 py-3">Cashier / Reason</th>
