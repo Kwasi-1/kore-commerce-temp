@@ -12,6 +12,16 @@ export default function PlanGraceModal() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    const handleOpen = () => {
+      if (graceInfo) {
+        setIsOpen(true);
+      }
+    };
+    window.addEventListener('open-plan-grace-modal', handleOpen);
+    return () => window.removeEventListener('open-plan-grace-modal', handleOpen);
+  }, [graceInfo]);
+
+  useEffect(() => {
     if (!graceInfo || !graceInfo.active || tenant?.plan !== 'starter') {
       setIsOpen(false);
       return;
