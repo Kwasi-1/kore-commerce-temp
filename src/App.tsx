@@ -61,7 +61,7 @@ function PageLoader() {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <div className="h-10 w-10 rounded-full border-4 border-muted border-t-primary animate-spin" />
-        <p className="text-sm text-muted-foreground font-medium tracking-wide">Loading…</p>
+        <p className="text-sm text-muted-foreground font-medium tracking-wide font-header uppercase">Loading…</p>
       </div>
     </div>
   );

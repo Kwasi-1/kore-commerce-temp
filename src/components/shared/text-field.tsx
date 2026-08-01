@@ -86,7 +86,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   className={cn(
     "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
     shouldFloat
-      ? "top-1.5 text-[10px] font-normal max-w-[85%] leading-tight"
+      ? "top-2 text-sm scale-75 font-normal leading-tight"
       : "top-1/2 -translate-y-1/2 text-sm ml-2 text-muted-foreground",
   )}
 >
@@ -128,7 +128,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             classNames={{
               trigger: cn(
   `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg text-[12px] min-h-[56px] h-[56px]`,
-  shouldFloat ? "pt-7 pb-1" : "py-3",  // ← pt-7 pushes value down further
+  shouldFloat ? "pt-6 pb-2" : "py-3",  // ← pt-7 pushes value down further
   "px-3",
   className,
   error && "border-red-400",
@@ -644,7 +644,7 @@ export const CustomTextareaField = ({
               "w-full bg-background border border-input rounded-lg resize-none",
               startContent ? "pl-9 pr-3" : "px-3",
               shouldFloat ? "pt-6 pb-2" : "py-4",
-              "focus:border-foreground/40 focus:ring-0 focus:ring-foreground/10 focus:outline-none",
+              "focus:border-foreground/40 focus:ring-0 outline-none ring-0 focus:ring-foreground/10 focus:outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "transition-all duration-200",
               height,

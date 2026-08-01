@@ -66,7 +66,7 @@ export default {
       },
       borderRadius: {},
       fontFamily: {
-        sans: ["NeueHaasDisplay", "system-ui", "sans-serif"],
+        sans: ["NeueHaasDisplay", "DMSans", "sans-serif"],
         header: ["AtypDisplay", "DMSans", "sans-serif"],
       },
       fontSize: {

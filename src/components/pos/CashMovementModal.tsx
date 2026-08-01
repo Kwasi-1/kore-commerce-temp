@@ -79,32 +79,38 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
     <CustomModal
       isOpen={isOpen}
       onOpenChange={onClose}
-      size="lg"
+      size={isShiftRequired ? "lg" : "md"}
       header={
-        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <DollarSign className="h-5 w-5" />
+        <div className="pb-2 border-b border-border/50">
+          {isShiftRequired ? (
+          <div className="flex items-center gap-3">
+            <div>
+              <h3 className="text-xl font-bold text-foreground !tracking-tighter pt-1">Drawer Cash Movement</h3>
+              <p className="text-xs font-semibold text-muted-foreground leading-[2]">
+                Log petty cash expenses (Paid Out) or float additions (Paid In)
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-foreground !tracking-tight">Drawer Cash Movement</h3>
-            <p className="text-xs font-semibold text-muted-foreground">
-              Log petty cash expenses (Paid Out) or float additions (Paid In)
-            </p>
-          </div>
+          ) : (
+            <div className="mb-2">
+              <h4 className="text-md lg:text-lg !tracking-tight font-bold text-foreground">Log Petty Cash Expense (Paid Out)</h4>
+              <p className="text-xs text-muted-foreground leading-[2]">Record cash taken out of the drawer for shop expenses</p>
+            </div>
+          )}
         </div>
       }
       body={
-        <div className="flex flex-col gap-5 pt-3">
+        <div className="flex flex-col gap-4">
           {/* Movement Type Toggle */}
-          {isShiftRequired ? (
-            <div className="grid grid-cols-2 p-1 bg-muted/40 rounded-full border border-border/50">
+          {isShiftRequired && (
+            <div className="grid grid-cols-2 p-1 bg-muted/40 rounded-full">
               <button
                 type="button"
                 onClick={() => {
                   setMovementType('paid_out');
                   setCategory('supplies');
                 }}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-[12px] font-bold transition-all duration-200 ${
                   movementType === 'paid_out'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground font-medium'
@@ -120,7 +126,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
                   setMovementType('paid_in');
                   setCategory('float_topup');
                 }}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-[12px] font-bold transition-all duration-200 ${
                   movementType === 'paid_in'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground font-medium'
@@ -130,16 +136,6 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
                 Paid In (Float Top-up)
               </button>
             </div>
-          ) : (
-            <div className="p-3 bg-muted/30 rounded-2xl border border-border/50 flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-                <ArrowUpRight className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Log Petty Cash Expense (Paid Out)</h4>
-                <p className="text-xs text-muted-foreground">Record cash taken out of the drawer for shop expenses</p>
-              </div>
-            </div>
           )}
 
           {/* Amount Field */}
@@ -147,7 +143,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
             type="number"
             label="Amount (GHS)"
             required
-            labelPlacement="outside"
+            // labelPlacement="outside"
             placeholder="0.00"
             value={amountStr}
             onChange={(e: any) => setAmountStr(e.target.value)}
@@ -159,7 +155,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           <CustomSelectField
             label="Category"
             required
-            labelPlacement="outside"
+            // labelPlacement="outside"
             placeholder="Select Category"
             options={CATEGORIES}
             value={category}
@@ -172,7 +168,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           <CustomTextareaField
             label="Reason / Description"
             required
-            labelPlacement="outside"
+            // labelPlacement="outside"
             value={reason}
             onChange={(e: any) => setReason(e.target.value)}
             placeholder={
@@ -192,7 +188,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !amountStr || !reason.trim()}
-            className="rounded-full font-bold px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+            className="rounded-full font-bold px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
           >
             {isSubmitting ? 'Recording...' : movementType === 'paid_out' ? 'Log Paid Out' : 'Add Paid In'}
           </Button>
