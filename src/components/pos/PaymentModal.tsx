@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown } from 'lucide-react';
@@ -19,7 +20,6 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
   const { items, total, subtotal, discount, clearCart } = useCartStore();
-  const tax = subtotal * 0.12;
 
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
@@ -40,10 +40,33 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
   const { posSettings } = useSettingsStore();
+  const { posSettings: featureSettings } = useFeaturesStore();
+
+  // Derive tax from featuresStore
+  const taxRate = featureSettings.pos_tax_enabled ? (featureSettings.pos_tax_rate || 0) : 0;
+  const tax = subtotal * taxRate;
+  const taxLabel = featureSettings.pos_tax_label || 'Tax';
+  const taxPercent = Math.round(taxRate * 100);
+
+  // Enabled payment methods
+  const ALL_TABS = [
+    { id: 'cash', label: 'Cash' },
+    { id: 'mobile_money', label: 'MoMo' },
+    { id: 'card', label: 'Card' },
+  ] as const;
+  const enabledMethods = featureSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'];
+  const paymentTabs = ALL_TABS.filter(t => enabledMethods.includes(t.id));
+
+  // Resolve default tab: prefer defaultMethod if enabled, else cash if enabled, else first enabled
+  const resolveDefault = (preferred: string): 'cash' | 'mobile_money' | 'card' => {
+    if (enabledMethods.includes(preferred)) return preferred as any;
+    if (enabledMethods.includes('cash')) return 'cash';
+    return (enabledMethods[0] as any) || 'cash';
+  };
 
   useEffect(() => {
     if (isOpen) {
-      setActiveTab(defaultMethod);
+      setActiveTab(resolveDefault(defaultMethod));
       setAmountTenderedStr('');
       setMomoNumber('');
       setIsCreditSale(false);
@@ -201,10 +224,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} /></span>
             </div>
           )}
+          {featureSettings.pos_tax_enabled && taxRate > 0 && (
           <div className="flex justify-between font-medium">
-            <span>Tax (12%)</span>
+            <span>{taxLabel} ({taxPercent}%)</span>
             <span><CurrencyDisplay amount={displayTax} /></span>
           </div>
+          )}
           <div className="flex justify-between font-bold text-base pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
             <span>Total</span>
             <span><CurrencyDisplay amount={displayTotal} /></span>
@@ -248,10 +273,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} /></span>
             </div>
           )}
+          {featureSettings.pos_tax_enabled && taxRate > 0 && (
           <div className="flex justify-between">
-            <span>Tax (12%)</span>
+            <span>{taxLabel} ({taxPercent}%)</span>
             <span className="text-foreground"><CurrencyDisplay amount={displayTax} /></span>
           </div>
+          )}
         </div>
 
         <div className="flex justify-between items-baseline pt-2 mt-2 border-t border-border/50">
@@ -294,7 +321,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide space-y-6">
-        {/* Credit Toggle Section (Moved to top) */}
+        {/* Credit Toggle Section — only shown when pos_credit_enabled */}
+        {featureSettings.pos_credit_enabled && (
         <div>
           <div
             className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
@@ -336,16 +364,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
             </div>
           )}
         </div>
+        )}
 
         {/* Show Payment Methods ONLY if not credit sale */}
-        {!isCreditSale && (
+        {!isCreditSale && paymentTabs.length > 0 && (
           <>
             <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
-              {[
-                { id: 'cash', label: 'Cash' },
-                { id: 'mobile_money', label: 'MoMo' },
-                { id: 'card', label: 'Card' }
-              ].map(tab => (
+              {paymentTabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}

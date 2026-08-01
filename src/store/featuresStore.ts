@@ -24,6 +24,7 @@ export interface POSSettings {
   pos_service_charge_rate: number;
   pos_service_charge_label: string;
   pos_split_payment_enabled: boolean;
+  pos_payment_methods: string[];   // e.g. ["cash", "mobile_money", "card"]
   pos_notes_enabled: boolean;
   pos_customer_required: boolean;
   pos_price_override_enabled: boolean;
@@ -42,6 +43,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_service_charge_rate: 0,
   pos_service_charge_label: 'Service Charge',
   pos_split_payment_enabled: false,
+  pos_payment_methods: ['cash', 'mobile_money', 'card'],
   pos_notes_enabled: true,
   pos_customer_required: false,
   pos_price_override_enabled: false,

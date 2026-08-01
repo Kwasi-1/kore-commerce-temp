@@ -1,10 +1,19 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useLayoutStore } from '@/store/layoutStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 export default function DashboardLayout() {
   const { isSidebarCollapsed } = useLayoutStore();
+  const { loadFeatures } = useFeaturesStore();
+
+  // Silently refresh features in background on layout mount (SWR pattern).
+  // The cached value is used instantly; the fresh fetch updates Zustand + localStorage.
+  useEffect(() => {
+    loadFeatures();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   return (
     <div className="flex h-screen w-full transition-colors duration-200 overflow-hidden">
@@ -16,7 +25,7 @@ export default function DashboardLayout() {
 
         {/* Main Content Area Container */}
         <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 p-0 md:py-2 md:pr-2 ${isSidebarCollapsed ? 'md:pl-0' : 'md:pl-0'}`}>
-          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner borde border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 ${isSidebarCollapsed ? 'rounded-none  md:rounded-[1.25rem] lg:rounded-[1.15rem]' : 'rounded-none md:rounded-[1.1rem]'}`}>
+          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner borde border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 ${isSidebarCollapsed ? 'rounded-none  md:rounded-[1.25rem] lg:rounded-[1.15rem]' : 'rounded-none md:rounded-[1.0rem]'}`}>
             <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-2 md:py-0 scrollbar-hide">
               <Outlet />
             </main>

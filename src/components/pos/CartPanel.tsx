@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/api/client";
 import { Icon } from "@iconify/react";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 interface PackagingTier {
   id: string;
@@ -118,12 +119,20 @@ export default function CartPanel({
   } = useCartStore();
 
   const { showProductImages, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
+  const { posSettings } = useFeaturesStore();
+
+  // Derive the initial default payment method from settings: prefer cash if enabled
+  const getInitialMethod = (): "cash" | "mobile_money" | "card" => {
+    const methods = posSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'];
+    if (methods.includes('cash')) return 'cash';
+    return (methods[0] as "cash" | "mobile_money" | "card") || 'cash';
+  };
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<
     "cash" | "mobile_money" | "card"
-  >("card");
+  >(getInitialMethod);
 
   const handleOpenPayment = (method?: "cash" | "mobile_money" | "card") => {
     const selMethod = method || defaultPaymentMethod;
@@ -139,11 +148,7 @@ export default function CartPanel({
   const expandedScrollRef = useRef<HTMLDivElement>(null);
   const prevPanelStateRef = useRef(panelState);
 
-  const PAYMENT_METHODS = {
-    card: {
-      label: "Credit Card",
-      icon: <PaymentMethodVisual method="card" size="sm" />,
-    },
+  const ALL_PAYMENT_METHODS = {
     cash: {
       label: "Cash",
       icon: <PaymentMethodVisual method="cash" size="sm" />,
@@ -152,9 +157,20 @@ export default function CartPanel({
       label: "Mobile Money",
       icon: <PaymentMethodVisual method="mobile_money" size="sm" />,
     },
-  };
+    card: {
+      label: "Credit Card",
+      icon: <PaymentMethodVisual method="card" size="sm" />,
+    },
+  } as const;
 
-  const selectedPaymentMethod = PAYMENT_METHODS[defaultPaymentMethod];
+  // Filter to only tenant-enabled methods
+  const enabledMethods = (posSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'])
+    .filter((m): m is keyof typeof ALL_PAYMENT_METHODS => m in ALL_PAYMENT_METHODS);
+  const PAYMENT_METHODS = Object.fromEntries(
+    enabledMethods.map(k => [k, ALL_PAYMENT_METHODS[k]])
+  ) as Partial<typeof ALL_PAYMENT_METHODS>;
+
+  const selectedPaymentMethod = PAYMENT_METHODS[defaultPaymentMethod] ?? Object.values(PAYMENT_METHODS)[0]!
 
   // Expanded Overlay live search states & logic
   const [expandedSearchTerm, setExpandedSearchTerm] = useState('');
@@ -280,8 +296,12 @@ export default function CartPanel({
     }
   }, [subtotal, activePromo, setDiscount]);
 
-  const taxRate = 0.12;
+  // Tax derived from featuresStore (respects pos_tax_enabled toggle)
+  const taxEnabled = posSettings.pos_tax_enabled;
+  const taxRate = taxEnabled ? (posSettings.pos_tax_rate || 0) : 0;
+  const taxLabel = posSettings.pos_tax_label || 'Tax';
   const taxAmount = subtotal * taxRate;
+  const taxPercent = Math.round(taxRate * 100);
   const calculatedTotal = subtotal + taxAmount - discount;
 
   const handleAddDiscountClick = () => {
@@ -729,14 +749,16 @@ export default function CartPanel({
                       <CurrencyDisplay amount={subtotal} />
                     </span>
                   </div>
+                  {taxEnabled && taxRate > 0 && (
                   <div className="flex justify-between text-[14px]">
                     <span className="text-muted-foreground font-medium">
-                      Tax (12%)
+                      {taxLabel} ({taxPercent}%)
                     </span>
                     <span className="text-foreground font-semibold">
                       <CurrencyDisplay amount={taxAmount} />
                     </span>
                   </div>
+                  )}
                   <div className="flex justify-between text-[14px]">
                     <span className="text-muted-foreground font-medium">
                       Discount
@@ -754,7 +776,7 @@ export default function CartPanel({
                 </div>
               </div>
 
-              {!activePromo && (
+              {!activePromo && posSettings.pos_discounts_enabled && (
                 <div className="flex items-center justify-end px-2 -my-2">
                   <Button
                     variant="link"
@@ -1196,14 +1218,17 @@ export default function CartPanel({
                       <CurrencyDisplay amount={subtotal} />
                     </span>
                   </div>
+                  {/* Tax — only shown when pos_tax_enabled */}
+                  {taxEnabled && taxRate > 0 && (
                   <div className="flex justify-between text-[14px]">
                     <span className="text-muted-foreground font-medium">
-                      Tax (12%)
+                      {taxLabel} ({taxPercent}%)
                     </span>
                     <span className="text-foreground font-semibold">
                       <CurrencyDisplay amount={taxAmount} />
                     </span>
                   </div>
+                  )}
                   <div className="flex justify-between text-[14px]">
                     <span className="text-muted-foreground font-medium">
                       Discount
@@ -1221,7 +1246,8 @@ export default function CartPanel({
                 </div>
               </div>
 
-              {!activePromo && (
+              {/* Add Discount button — only shown when pos_discounts_enabled */}
+              {!activePromo && posSettings.pos_discounts_enabled && (
                 <div className="flex items-center justify-end px-2 -my-2">
                   <Button
                     variant="link"

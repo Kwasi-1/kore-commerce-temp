@@ -45,17 +45,33 @@ export default function POSSettings() {
     setLocalFeatures(featureSettings);
   }, [featureSettings]);
 
+  // Track dirty state for both sections
+  const isFeaturesDirty = JSON.stringify(localFeatures) !== JSON.stringify(featureSettings);
+  const isSettingsDirty = JSON.stringify(localSettings) !== JSON.stringify(posSettings);
+
   const handleSaveFeatures = async () => {
     setIsSavingFeatures(true);
     try {
-      const res = await apiClient.put('/tenant/features/pos', localFeatures);
+      // Only send fields that actually changed (avoids false "blocked" counts for locked-plan settings)
+      const changedFields = Object.fromEntries(
+        Object.entries(localFeatures).filter(([key, val]) =>
+          JSON.stringify(val) !== JSON.stringify(featureSettings[key as keyof typeof featureSettings])
+        )
+      );
+
+      const res = await apiClient.put('/tenant/features/pos', changedFields);
       const updated = res.data.success?.data?.pos_settings || {};
       updateFeaturePOSSettings(updated);
-      const blocked = res.data.success?.data?.blocked || [];
-      if (blocked.length > 0) {
-        toast.error(`${blocked.length} setting(s) require a higher plan. Others saved.`);
+
+      const savedKeys: string[] = res.data.success?.data?.updated || [];
+      const blocked: string[] = res.data.success?.data?.blocked || [];
+
+      if (savedKeys.length === 0 && blocked.length > 0) {
+        toast.error('These features require a higher plan to unlock.');
+      } else if (blocked.length > 0) {
+        toast.success('Settings saved! Some features require a plan upgrade.');
       } else {
-        toast.success('POS feature settings updated!');
+        toast.success('POS feature settings saved!');
       }
     } catch (err) {
       toast.error('Failed to save POS feature settings');
@@ -133,6 +149,53 @@ export default function POSSettings() {
             </div>
 
             <div className="border-t border-border/50" />
+
+            {/* Payment Methods */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h4 className="font-bold text-foreground text-[15px]">Accepted Payment Methods</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  Choose which payment methods appear in the register. Cash is always the default and cannot be fully removed.
+                </p>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {[
+                    { id: 'cash', label: 'Cash', icon: '💵' },
+                    { id: 'mobile_money', label: 'Mobile Money (MoMo)', icon: '📱' },
+                    { id: 'card', label: 'Card / POS Terminal', icon: '💳' },
+                  ].map(method => {
+                    const enabled = (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id);
+                    const isCash = method.id === 'cash';
+                    const toggle = () => {
+                      const current: string[] = localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
+                      if (enabled) {
+                        if (isCash) return; // Cash cannot be removed
+                        const next = current.filter(m => m !== method.id);
+                        setLocalFeatures(p => ({ ...p, pos_payment_methods: next.length ? next : ['cash'] }));
+                      } else {
+                        setLocalFeatures(p => ({ ...p, pos_payment_methods: [...current, method.id] }));
+                      }
+                    };
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={toggle}
+                        disabled={isCash}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${
+                          enabled
+                            ? 'bg-foreground text-background border-foreground'
+                            : 'bg-background text-muted-foreground border-border hover:border-foreground/40'
+                        } ${isCash ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'}`}
+                      >
+                        <span>{method.icon}</span>
+                        {method.label}
+                        {isCash && <span className="text-[10px] opacity-70 ml-1">(default)</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {/* Tax */}
             {(() => {
@@ -345,9 +408,10 @@ export default function POSSettings() {
               type="button"
               onPress={handleSaveFeatures}
               isLoading={isSavingFeatures}
-              className="bg-foreground text-background font-bold px-8 h-12 rounded-full"
+              isDisabled={!isFeaturesDirty || isSavingFeatures}
+              className="bg-foreground text-background font-bold px-8 h-12 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Save Feature Settings
+              {isFeaturesDirty ? 'Save Feature Settings' : 'No Changes'}
             </Button>
           </div>
         </section>
@@ -440,9 +504,10 @@ export default function POSSettings() {
               <Button 
                 type="submit" 
                 isLoading={isSaving}
-                className="bg-foreground text-background font-bold px-8 h-12 rounded-full"
+                isDisabled={!isSettingsDirty || isSaving}
+                className="bg-foreground text-background font-bold px-8 h-12 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Save Settings
+                {isSettingsDirty ? 'Save Settings' : 'No Changes'}
               </Button>
             </div>
           </form>
