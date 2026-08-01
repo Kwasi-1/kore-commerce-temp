@@ -28,6 +28,7 @@ export interface POSSettings {
   pos_customer_required: boolean;
   pos_price_override_enabled: boolean;
   pos_barcode_scan_enabled: boolean;
+  pos_shift_management_enabled: boolean;
 }
 
 const DEFAULT_POS_SETTINGS: POSSettings = {
@@ -45,6 +46,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_customer_required: false,
   pos_price_override_enabled: false,
   pos_barcode_scan_enabled: true,
+  pos_shift_management_enabled: false,
 };
 
 // Fallback modules for each plan (mirrors backend PLAN_MODULES)

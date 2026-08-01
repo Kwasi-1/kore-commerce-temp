@@ -25,18 +25,72 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
     }
 
     if (isOpen && shiftId) {
-      const fetchZReport = async () => {
-        setIsLoading(true);
-        try {
-          const res = await apiClient.get(`/pos/shifts/${shiftId}/z-report`);
-          setReportData(res.data.success?.data?.z_report || null);
-        } catch (err) {
-          console.error('Failed to fetch Z-Report:', err);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchZReport();
+      if (shiftId.startsWith('daily-')) {
+        const fetchDailyZReport = async () => {
+          setIsLoading(true);
+          try {
+            const dateStr = shiftId.replace('daily-', '');
+            const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+            const res = await apiClient.get(`/tenant/reports/end-of-day?date=${formattedDate}`);
+            const eod = res.data.success?.data?.summary;
+            const pb = eod?.payment_breakdown || {};
+            const exp = eod?.expenses?.records || [];
+            const paidInRecs = eod?.paid_in?.records || [];
+            const totalCashSales = pb.cash || 0;
+            const totalPaidIn = eod?.paid_in?.total || 0;
+            const totalPaidOut = eod?.expenses?.total || 0;
+            const expectedCash = totalCashSales + totalPaidIn - totalPaidOut;
+
+            setReportData({
+              shift: {
+                id: shiftId,
+                status: 'CLOSED',
+                cashier_name: 'Calendar Day Summary',
+                opened_at: `${formattedDate}T00:00:00Z`,
+                closed_at: `${formattedDate}T23:59:59Z`,
+                opening_float: 0,
+                closing_cash: expectedCash,
+                expected_cash: expectedCash,
+                variance: 0,
+              },
+              summary: {
+                gross_sales: eod?.total_sales || 0,
+                total_transactions: (eod?.pos?.transactions || 0) + (eod?.ecommerce?.transactions || 0),
+                net_sales: (eod?.total_sales || 0) - totalPaidOut,
+              },
+              payment_breakdown: pb,
+              cash_reconciliation: {
+                opening_float: 0,
+                cash_sales: totalCashSales,
+                paid_in: totalPaidIn,
+                paid_out: totalPaidOut,
+                expected_cash: expectedCash,
+                closing_count: expectedCash,
+                variance: 0,
+              },
+              cash_movements: [...paidInRecs, ...exp],
+            });
+          } catch (err) {
+            console.error('Failed to fetch Daily Z-Report:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        fetchDailyZReport();
+      } else {
+        const fetchZReport = async () => {
+          setIsLoading(true);
+          try {
+            const res = await apiClient.get(`/pos/shifts/${shiftId}/z-report`);
+            setReportData(res.data.success?.data?.z_report || null);
+          } catch (err) {
+            console.error('Failed to fetch Z-Report:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        fetchZReport();
+      }
     }
   }, [isOpen, shiftId, initialReportData]);
 

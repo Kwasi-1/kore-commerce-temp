@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
 import { useShift } from '@/hooks/useShift';
+import { useFeaturesStore } from '@/store/featuresStore';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import ProductCard, { Product, PackagingTier } from './ProductCard';
@@ -73,6 +74,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   const addItem = useCartStore((state) => state.addItem);
   const { currentShift } = useShift();
+  const { posSettings } = useFeaturesStore();
+  const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
 
   useEffect(() => {
     fetchProducts();
@@ -180,8 +183,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   };
 
   const handleAddToCart = (product: Product, selectedTier?: PackagingTier) => {
-    // TEMPORARILY DISABLED SHIFT CHECK FOR TESTING
-    if (!currentShift) {
+    if (isShiftRequired && !currentShift) {
       toast.error('You must start a shift first before adding items to the cart!');
       return;
     }

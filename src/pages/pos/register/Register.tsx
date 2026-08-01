@@ -5,6 +5,7 @@ import RegisterHeader from '@/components/pos/RegisterHeader';
 import ShiftModal from '@/components/pos/ShiftModal';
 import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
@@ -115,12 +116,15 @@ export default function Register() {
     }
   };
 
+  const { posSettings } = useFeaturesStore();
+  const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
+
   useEffect(() => {
-    // If the user is logged in, finished loading shift data, and there's no open shift
-    if (staffUser && !isLoading && !currentShift) {
+    // Only auto-open shift modal if shift enforcement is required for this tenant
+    if (isShiftRequired && staffUser && !isLoading && !currentShift) {
       setIsShiftModalOpen(true);
     }
-  }, [staffUser, isLoading, currentShift]);
+  }, [isShiftRequired, staffUser, isLoading, currentShift]);
 
   const handleOpenShift = async (float: number) => {
     setIsOpeningShift(true);
@@ -171,8 +175,8 @@ export default function Register() {
             onOpenPaymentModal={handleOpenPaymentModal}
           />
           
-          {/* Cart Block Overlay */}
-          { !isLoading && !currentShift && (
+          {/* Cart Block Overlay — only shown if shift is required and shift is closed */}
+          { !isLoading && !currentShift && isShiftRequired && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
               <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">

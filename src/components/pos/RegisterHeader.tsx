@@ -19,6 +19,7 @@ import SavedTransactionsHeader from './SavedTransactionsHeader';
 import EndShiftModal from './EndShiftModal';
 import CashMovementModal from './CashMovementModal';
 import { useShift } from '@/hooks/useShift';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
 
@@ -30,6 +31,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const [isCashMovementOpen, setIsCashMovementOpen] = useState(false);
   const { currentShift } = useShift();
+  const { posSettings } = useFeaturesStore();
+  const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
@@ -165,7 +168,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         
         {/* End / Start Shift Button */}
         {/* Cash In / Out (Drawer Movement) Button */}
-        {currentShift && (
+        {(currentShift || !isShiftRequired) && (
           <Button
             variant="outline"
             size="icon"
@@ -177,29 +180,31 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
           </Button>
         )}
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => {
-            if (currentShift) {
-              setIsEndShiftOpen(true);
-            } else if (onOpenShiftModal) {
-              onOpenShiftModal();
-            }
-          }}
-          className={`hidden md:flex rounded-full transition-colors ${
-            currentShift 
-              ? 'text-destructive hover:bg-destructive/10 hover:text-destructive' 
-              : 'text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700'
-          }`}
-          title={currentShift ? "End Shift & Recon" : "Start Shift"}
-        >
-          {currentShift ? (
-            <Power className="h-4 w-4 md:h-5 md:w-5" />
-          ) : (
-            <Icon icon="solar:play-circle-bold" className="h-5 w-5" />
-          )}
-        </Button>
+        {isShiftRequired && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              if (currentShift) {
+                setIsEndShiftOpen(true);
+              } else if (onOpenShiftModal) {
+                onOpenShiftModal();
+              }
+            }}
+            className={`hidden md:flex rounded-full transition-colors ${
+              currentShift 
+                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive' 
+                : 'text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700'
+            }`}
+            title={currentShift ? "End Shift & Recon" : "Start Shift"}
+          >
+            {currentShift ? (
+              <Power className="h-4 w-4 md:h-5 md:w-5" />
+            ) : (
+              <Icon icon="solar:play-circle-bold" className="h-5 w-5" />
+            )}
+          </Button>
+        )}
 
         {/* Cashier Switcher */}
         <div className='hidden md:flex'>
@@ -227,16 +232,18 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
             {/* <DropdownMenuSeparator /> */}
-            <DropdownMenuItem className=" md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={() => {
-              if (currentShift) {
-                setIsEndShiftOpen(true);
-              } else if (onOpenShiftModal) {
-                onOpenShiftModal();
-              }
-            }}>
-              <Power className="h-4 w-4" />
-              {currentShift ? 'End Shift & Recon' : 'Start Shift'}
-            </DropdownMenuItem>
+            {isShiftRequired && (
+              <DropdownMenuItem className=" md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl" onClick={() => {
+                if (currentShift) {
+                  setIsEndShiftOpen(true);
+                } else if (onOpenShiftModal) {
+                  onOpenShiftModal();
+                }
+              }}>
+                <Power className="h-4 w-4" />
+                {currentShift ? 'End Shift & Recon' : 'Start Shift'}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium rounded-xl" onClick={() => setIsCashMovementOpen(true)}>
               <Icon icon="solar:wallet-money-bold" className="h-4 w-4 text-amber-500" />
               Log Cash In / Out

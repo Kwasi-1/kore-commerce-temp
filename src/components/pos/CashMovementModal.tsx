@@ -8,7 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { ArrowDownLeft, ArrowUpRight, DollarSign } from 'lucide-react';
+import { useFeaturesStore } from '@/store/featuresStore';
+import { ArrowUpRight, ArrowDownLeft, DollarSign } from 'lucide-react';
 
 interface CashMovementModalProps {
   isOpen: boolean;
@@ -26,6 +27,9 @@ const CATEGORIES = [
 ];
 
 export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMovementModalProps) {
+  const { posSettings } = useFeaturesStore();
+  const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
+
   const [movementType, setMovementType] = useState<'paid_out' | 'paid_in'>('paid_out');
   const [category, setCategory] = useState('supplies');
   const [amountStr, setAmountStr] = useState('');
@@ -92,39 +96,51 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
       body={
         <div className="flex flex-col gap-5 pt-3">
           {/* Movement Type Toggle */}
-          <div className="grid grid-cols-2 p-1 bg-muted/40 rounded-full border border-border/50">
-            <button
-              type="button"
-              onClick={() => {
-                setMovementType('paid_out');
-                setCategory('supplies');
-              }}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
-                movementType === 'paid_out'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground font-medium'
-              }`}
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              Paid Out (Expense)
-            </button>
+          {isShiftRequired ? (
+            <div className="grid grid-cols-2 p-1 bg-muted/40 rounded-full border border-border/50">
+              <button
+                type="button"
+                onClick={() => {
+                  setMovementType('paid_out');
+                  setCategory('supplies');
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
+                  movementType === 'paid_out'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                <ArrowUpRight className="h-4 w-4 text-rose-500" />
+                Paid Out (Expense)
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setMovementType('paid_in');
-                setCategory('float_topup');
-              }}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
-                movementType === 'paid_in'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground font-medium'
-              }`}
-            >
-              <ArrowDownLeft className="h-4 w-4" />
-              Paid In (Float Top-up)
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMovementType('paid_in');
+                  setCategory('float_topup');
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-200 ${
+                  movementType === 'paid_in'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+                Paid In (Float Top-up)
+              </button>
+            </div>
+          ) : (
+            <div className="p-3 bg-muted/30 rounded-2xl border border-border/50 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                <ArrowUpRight className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Log Petty Cash Expense (Paid Out)</h4>
+                <p className="text-xs text-muted-foreground">Record cash taken out of the drawer for shop expenses</p>
+              </div>
+            </div>
+          )}
 
           {/* Amount Field */}
           <CustomInputTextField

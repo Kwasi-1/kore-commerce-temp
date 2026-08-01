@@ -117,6 +117,23 @@ export default function POSSettings() {
 
           <div className="space-y-5">
 
+            {/* Shift Management & Cash Float Enforcement */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Enforce Shift Opening & Cash Float</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  Require cashiers to open shifts and record starting cash float before making sales. When turned OFF, register opens immediately for instant checkouts.
+                </p>
+              </div>
+              <Switch
+                isSelected={Boolean(localFeatures.pos_shift_management_enabled)}
+                onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_shift_management_enabled: val }))}
+                color="primary"
+              />
+            </div>
+
+            <div className="border-t border-border/50" />
+
             {/* Tax */}
             {(() => {
               const locked = !['standard', 'business'].includes(plan);
