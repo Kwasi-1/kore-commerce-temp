@@ -361,15 +361,15 @@ export default function SupplierCredit() {
   };
 
   return (
-    <PageLayout title="Suppliers">
+    <PageLayout title="Suppliers" constrainHeight={true}>
       {/* Tab Switcher */}
       {showCreditTab && (
-        <div className="flex border-b border-border mb-6">
+        <div className="flex border-b border-border mb-4">
           <button
             onClick={() => navigate('/inventory/suppliers')}
             className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
               location.pathname === '/inventory/suppliers'
-                ? "border-primary text-primary"
+                ? "border-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -379,7 +379,7 @@ export default function SupplierCredit() {
             onClick={() => navigate('/inventory/supplier-credit')}
             className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
               location.pathname === '/inventory/supplier-credit'
-                ? "border-primary text-primary"
+                ? "border-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -388,7 +388,7 @@ export default function SupplierCredit() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6 relative">
+      <div className="flex flex-col gap-5 relative flex-1">
         {/* Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <DashboardCard

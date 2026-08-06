@@ -297,7 +297,7 @@ export default function StockAdjustments() {
 
   return (
     <PageLayout title="Stock Adjustments" actions={
-        <Button onClick={() => setIsDrawerOpen(true)} className="rounded-full bg-muted flex items-center gap-1.5 h-11 text-sm font-semibold">
+        <Button onClick={() => setIsDrawerOpen(true)} className="bg-muted rounded-xl flex items-center gap-1.5 h-11 text-sm font-semibold">
           <Plus className="h-4 w-4" />
           <span className="hidden md:block">New Adjustment</span>
         </Button>
@@ -318,7 +318,7 @@ export default function StockAdjustments() {
             )
           }
           className="border border-border"
-          valueStyle="text-amber-500 xl:text-2xl"
+          // valueStyle="text-amber-500 xl:text-2xl"
           action={<Clock className="h-5 w-5 text-amber-500" />}
         />
         <DashboardCard
@@ -334,7 +334,7 @@ export default function StockAdjustments() {
             )
           }
           className="border border-border"
-          valueStyle={`text-${totalWrittenOffMonth > 0 ? "destructive" : "success"} xl:text-2xl`}
+          valueStyle={`text-${totalWrittenOffMonth > 0 ? "destructive" : "foreground"} xl:text-2xl`}
           action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
         />
         <DashboardCard

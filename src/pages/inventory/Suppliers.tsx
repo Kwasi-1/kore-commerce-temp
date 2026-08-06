@@ -121,10 +121,10 @@ export default function Suppliers() {
   };
 
   return (
-    <PageLayout title="Suppliers">
+    <PageLayout title="Suppliers" constrainHeight={true}>
       {/* Tab Switcher */}
       {showCreditTab && (
-        <div className="flex border-b border-border mb-6">
+        <div className="flex border-b border-border mb-4">
           <button
             onClick={() => navigate('/inventory/suppliers')}
             className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${

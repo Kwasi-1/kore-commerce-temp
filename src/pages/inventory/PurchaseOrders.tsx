@@ -119,7 +119,7 @@ export default function PurchaseOrders() {
   };
 
   return (
-    <PageLayout title="Purchase Orders">
+    <PageLayout title="Purchase Orders" constrainHeight={true}>
       <EnhancedTableComponent
         columns={columns}
         rows={rows}

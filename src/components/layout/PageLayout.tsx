@@ -163,7 +163,7 @@ export default function PageLayout({
             </div>
           </div>
           {subtitle && (
-            <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 ${subtitleStyles}`}>{subtitle}</p>
+            <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl ${subtitleStyles}`}>{subtitle}</p>
           )}
 
           {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop) */}

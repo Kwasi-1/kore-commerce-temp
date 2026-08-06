@@ -121,45 +121,37 @@ export default function StockReconciliation() {
   const countedItems = Object.keys(physicalCounts).length;
 
   return (
-    <PageLayout title="Stock Reconciliation">
-      <div className="flex flex-col gap-4">
-        
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">Audit & Reconcile</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Conduct a physical inventory count. Enter the actual counted quantities below, and the system will automatically calculate the variance and adjust the database to match reality.
-            </p>
-          </div>
-          <Button 
-            onPress={handleReconcile}
-            isLoading={isSaving}
-            isDisabled={countedItems === 0}
-            variant={countedItems > 0 ? 'solid' : 'bordered'}
-            color={countedItems > 0 ? 'primary' : 'default'}
-            className={`font-bold px-6 h-12 ${
-              countedItems > 0 
-                ? 'border-1' 
-                : 'border-1'
-            }`}            startContent={!isSaving && <CheckSquare className="w-4 h-4" />}
-          >
-            Apply Reconciliation ({countedItems})
-          </Button>
-        </div>
+    <PageLayout 
+      title="Stock Reconciliation" 
+      subtitle="Conduct a physical inventory count. Enter the actual counted quantities below, and the system will automatically calculate the variance and adjust the database to match reality."
+      actions={
+        <Button 
+          onPress={handleReconcile}
+          isLoading={isSaving}
+          isDisabled={countedItems === 0}
+          variant={countedItems > 0 ? 'solid' : 'bordered'}
+          color={countedItems > 0 ? 'primary' : 'default'}
+          className={`font-bold px-6 h-12 ${
+            countedItems > 0 
+              ? 'border-1' 
+              : 'border-1'
+          }`}
+          startContent={!isSaving && <CheckSquare className="w-4 h-4" />}
+        >
+          Apply Reconciliation ({countedItems})
+        </Button>
+      }
+       constrainHeight={true}
+    >        
 
-        <EnhancedTableComponent
-          columns={columns}
-          rows={rows}
-          isLoading={isLoading}
-          showSearch={true}
-          showFilter={false}
-          mobileFriendly={true}
-        />
-
-      </div>
+      <EnhancedTableComponent
+        columns={columns}
+        rows={rows}
+        isLoading={isLoading}
+        showSearch={true}
+        showFilter={false}
+        mobileFriendly={true}
+      />
     </PageLayout>
   );
 }

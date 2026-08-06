@@ -122,29 +122,27 @@ export default function StockManagement() {
   const hasChanges = Object.keys(stockChanges).length > 0;
 
   return (
-    <PageLayout title="Stock Management" constrainHeight={true}>
+    <PageLayout 
+      title="Stock Management" 
+      subtitle="Quickly adjust physical stock levels across all your inventory." 
+      actions={
+        <Button 
+          onPress={handleSaveChanges}
+          isLoading={isSaving}
+          isDisabled={!hasChanges}
+          className={`font-bold px-6 ${
+            hasChanges 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
+          }`}
+          startContent={!isSaving && <Save className="w-4 h-4" />}
+        >
+          Save Changes ({Object.keys(stockChanges).length})
+        </Button>
+      } 
+      constrainHeight={true}
+    >
       <div className="flex flex-col flex-1 min-h-0 relative h-full md:h-full gap-4">
-        
-        <div className="flex justify-between items-end mb-2">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Bulk Stock Updates</h2>
-            <p className="text-sm text-muted-foreground">Quickly adjust physical stock levels across all your inventory.</p>
-          </div>
-          <Button 
-            onPress={handleSaveChanges}
-            isLoading={isSaving}
-            isDisabled={!hasChanges}
-            className={`font-bold px-6 ${
-              hasChanges 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
-            }`}
-            startContent={!isSaving && <Save className="w-4 h-4" />}
-          >
-            Save Changes ({Object.keys(stockChanges).length})
-          </Button>
-        </div>
-
         <EnhancedTableComponent
           columns={columns}
           rows={rows}
