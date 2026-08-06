@@ -393,7 +393,7 @@ export default function SupplierCredit() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Outstanding Owed"
-            value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} showStyling={false} />}
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} />}
             className="border border-border"
             action={<Coins className="text-muted-foreground/50 h-5 w-5" />}
           />
