@@ -487,13 +487,70 @@ export function setupMockApi() {
     { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, last_login: new Date().toISOString() },
   ];
 
-let mockTenant = {
+  let mockTenant = {
     id: 't1',
     name: 'HeadlessPOS Demo Store',
     currency: 'GHS',
-    plan: 'full_suite',
+    plan: 'business',
     track_expiry_enabled: false
   };
+
+  let mockPOSFeatureSettings = {
+    pos_tax_enabled: false,
+    pos_tax_rate: 0.15,
+    pos_tax_label: 'VAT',
+    pos_credit_enabled: true,
+    pos_wholesale_enabled: true,
+    pos_discounts_enabled: true,
+    pos_service_charge_enabled: false,
+    pos_service_charge_rate: 0.10,
+    pos_service_charge_label: 'Service Charge',
+    pos_split_payment_enabled: true,
+    pos_payment_methods: ['cash', 'mobile_money', 'card'],
+    pos_notes_enabled: true,
+    pos_customer_required: false,
+    pos_price_override_enabled: false,
+    pos_barcode_scan_enabled: true,
+    pos_shift_management_enabled: true,
+  };
+
+  // -----------------------------------------------------
+  // TENANT FEATURES & GATING
+  // -----------------------------------------------------
+
+  mock.onGet(/\/tenant\/features$/).reply(200, {
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        plan: 'business',
+        modules: [
+          'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
+          'suppliers', 'purchase_orders', 'supplier_credit', 'stock_reconciliation',
+          'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
+          'ecommerce', 'payroll', 'settings',
+        ],
+        pos_settings: mockPOSFeatureSettings
+      }
+    }
+  });
+
+  mock.onPut(/\/tenant\/features\/pos$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    mockPOSFeatureSettings = { ...mockPOSFeatureSettings, ...body };
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        message: 'POS feature settings updated',
+        data: {
+          pos_settings: mockPOSFeatureSettings,
+          updated: Object.keys(body),
+          blocked: []
+        }
+      }
+    }];
+  });
 
   mock.onGet('/tenant/staff').reply(200, {
     success: true,
@@ -527,6 +584,66 @@ let mockTenant = {
       staff: user,
       tenant: mockTenant
     }];
+  });
+
+  // Verify PIN (for cashier lock screen & quick auth)
+  mock.onPost('/pos/auth/verify-pin').reply((config) => {
+    const { staff_id, pin } = JSON.parse(config.data || '{}');
+    const user = mockStaff.find(s => s.id === staff_id) || mockStaff[0];
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          access_token: 'mock-staff-jwt',
+          refresh_token: 'mock-staff-refresh',
+          staff: user,
+          is_default_pin: pin === '1234'
+        }
+      }
+    }];
+  });
+
+  // Staff CRUD
+  mock.onPost('/tenant/staff').reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newStaff = {
+      id: `u${Date.now()}`,
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.name || 'New Staff',
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      email: data.email || `staff${Date.now()}@store.com`,
+      role: data.role || 'cashier',
+      is_active: true,
+      last_login: new Date().toISOString()
+    };
+    mockStaff.push(newStaff);
+    return [200, { success: { status: 'OK', code: 200, data: { staff: newStaff } } }];
+  });
+
+  mock.onPut(/\/tenant\/staff\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const data = JSON.parse(config.data || '{}');
+    const idx = mockStaff.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockStaff[idx] = { ...mockStaff[idx], ...data, name: `${data.first_name || mockStaff[idx].first_name} ${data.last_name || mockStaff[idx].last_name}` };
+      return [200, { success: { status: 'OK', code: 200, data: { staff: mockStaff[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found' } }];
+  });
+
+  mock.onDelete(/\/tenant\/staff\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const idx = mockStaff.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockStaff.splice(idx, 1);
+      return [200, { success: { status: 'OK', code: 200, message: 'Staff member deleted' } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found' } }];
+  });
+
+  mock.onPost(/\/tenant\/staff\/[^/]+\/set-pin$/).reply(200, {
+    success: { status: 'OK', code: 200, message: 'PIN updated successfully' }
   });
 
   // -----------------------------------------------------
@@ -586,6 +703,75 @@ let mockTenant = {
   // REPORTS / DASHBOARD
   // -----------------------------------------------------
   
+  // End of Day Report
+  mock.onGet(/\/tenant\/reports\/end-of-day/).reply(200, {
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        summary: {
+          total_sales: 12450.50,
+          total_transactions: 84,
+          average_order_value: 148.22,
+          payment_breakdown: {
+            cash: 5200.00,
+            mobile_money: 4250.50,
+            card: 3000.00,
+            credit: 0.00
+          },
+          expenses: {
+            total: 1950.00,
+            count: 2,
+            records: [
+              { id: 'e1', description: 'Electricity Bill', amount: 1500, category: 'utilities', date_created: new Date().toISOString() },
+              { id: 'e2', description: 'Printer Ink', amount: 450, category: 'supplies', date_created: new Date(Date.now() - 2*86400000).toISOString() }
+            ]
+          },
+          top_selling_products: [
+            { name: 'Nike Air Max', quantity_sold: 12, revenue: 10200.00 },
+            { name: 'Adidas Ultraboost', quantity_sold: 8, revenue: 7360.00 },
+            { name: 'Sony WH-1000XM4', quantity_sold: 4, revenue: 16800.00 }
+          ],
+          cashier_summary: [
+            { cashier_name: 'Kofi Annan', sales_count: 50, total_sales: 7500.00 },
+            { cashier_name: 'Ama Serwaa', sales_count: 34, total_sales: 4950.50 }
+          ]
+        }
+      }
+    }
+  });
+
+  // Cashier Report
+  mock.onGet(/\/tenant\/reports\/cashiers/).reply(200, {
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        cashiers: [
+          { id: 'u3', cashier: 'Kofi Annan', transaction_count: 50, total_sales: 7500.00, avg_transaction: 150.00 },
+          { id: 'u2', cashier: 'Ama Serwaa', transaction_count: 34, total_sales: 4950.50, avg_transaction: 145.60 },
+          { id: 'u1', cashier: 'Kwame Mensah', transaction_count: 12, total_sales: 3750.00, avg_transaction: 312.50 }
+        ]
+      }
+    }
+  });
+
+  // Product Report
+  mock.onGet(/\/tenant\/reports\/products/).reply(200, {
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        products: [
+          { id: 'p1', name: 'Nike Air Max', units_sold: 12, revenue: 10200.00, cogs: 6000.00, margin: 41.18 },
+          { id: 'p2', name: 'Adidas Ultraboost', units_sold: 8, revenue: 7360.00, cogs: 4800.00, margin: 34.78 },
+          { id: 'p3', name: 'Apple AirPods Pro', units_sold: 5, revenue: 17500.00, cogs: 14000.00, margin: 20.00 },
+          { id: 'p4', name: 'Sony WH-1000XM4', units_sold: 4, revenue: 16800.00, cogs: 12400.00, margin: 26.19 }
+        ]
+      }
+    }
+  });
+
   // Sales Summary
   mock.onGet(/\/tenant\/reports\/sales/).reply(200, {
     success: {
@@ -1013,32 +1199,111 @@ let mockTenant = {
   // POS & SHIFTS
   // -----------------------------------------------------
   
-  mock.onGet(/\/tenant\/pos\/shifts/).reply(200, {
-    success: {
-      status: 'OK',
-      code: 200,
-      data: {
-        shifts: [
-          { id: 'sh1', status: 'open', opened_at: new Date().toISOString(), opened_by_name: 'Kofi Annan', starting_cash: 500 }
-        ]
-      }
-    }
-  });
+  let currentShift: any = {
+    id: 'sh1',
+    status: 'open',
+    opened_at: new Date(Date.now() - 4 * 3600000).toISOString(),
+    opened_by_id: 'u3',
+    opened_by_name: 'Kofi Annan',
+    starting_cash: 500.00,
+    cash_sales_total: 1200.00,
+    expected_cash_in_drawer: 1700.00
+  };
 
-  mock.onPost('/pos/shifts/open').reply((config) => {
-    const data = JSON.parse(config.data);
+  let shiftMovements: any[] = [
+    { id: 'm1', shift_id: 'sh1', cashier_name: 'Kofi Annan', movement_type: 'PAID_IN', category: 'float_topup', amount: 200.00, reason: 'Morning float top-up', date_created: new Date(Date.now() - 2 * 3600000).toISOString() },
+    { id: 'm2', shift_id: 'sh1', cashier_name: 'Kofi Annan', movement_type: 'PAID_OUT', category: 'supplies', amount: 50.00, reason: 'Office cleaning supplies', date_created: new Date(Date.now() - 3600000).toISOString() }
+  ];
+
+  mock.onGet(/\/pos\/shifts\/current$/).reply(() => {
     return [200, {
       success: {
         status: 'OK',
         code: 200,
         data: {
-          shift: {
-            id: `sh${Math.floor(Math.random() * 1000)}`,
-            status: 'open',
-            opened_at: new Date().toISOString(),
-            starting_cash: data.opening_float || 0
-          }
+          shift: currentShift
         }
+      }
+    }];
+  });
+
+  mock.onGet(/\/pos\/shifts\/current\/movements$/).reply(() => {
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          movements: shiftMovements
+        }
+      }
+    }];
+  });
+
+  mock.onPost(/\/pos\/shifts\/current\/movements$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newMv = {
+      id: `m${Date.now()}`,
+      shift_id: currentShift?.id || 'sh1',
+      cashier_name: 'Kofi Annan',
+      movement_type: data.movement_type || 'PAID_IN',
+      category: data.category || 'float_topup',
+      amount: Number(data.amount) || 0,
+      reason: data.reason || '',
+      date_created: new Date().toISOString()
+    };
+    shiftMovements.push(newMv);
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        message: 'Cash movement recorded successfully',
+        data: { movement: newMv }
+      }
+    }];
+  });
+
+  mock.onGet(/\/tenant\/pos\/shifts/).reply(200, {
+    success: {
+      status: 'OK',
+      code: 200,
+      data: {
+        shifts: currentShift ? [currentShift] : []
+      }
+    }
+  });
+
+  mock.onPost(/\/pos\/shifts\/open$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    currentShift = {
+      id: `sh${Math.floor(Math.random() * 1000)}`,
+      status: 'open',
+      opened_at: new Date().toISOString(),
+      opened_by_id: 'u3',
+      opened_by_name: 'Kofi Annan',
+      starting_cash: Number(data.opening_float) || 0,
+      cash_sales_total: 0.00,
+      expected_cash_in_drawer: Number(data.opening_float) || 0
+    };
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          shift: currentShift
+        }
+      }
+    }];
+  });
+
+  mock.onPost(/\/pos\/shifts\/close$/).reply(() => {
+    const closed = currentShift ? { ...currentShift, status: 'closed', closed_at: new Date().toISOString() } : null;
+    currentShift = null;
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        message: 'Shift closed successfully',
+        data: { shift: closed }
       }
     }];
   });
@@ -1082,6 +1347,22 @@ let mockTenant = {
     }
 
     return [200, { success: { status: 'OK', code: 200, data: { expenses: filtered } } }];
+  });
+
+  mock.onPost(/\/tenant\/expenses$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newExp = {
+      id: `e${Date.now()}`,
+      description: data.description || 'General Expense',
+      amount: Number(data.amount) || 0,
+      category: data.category || 'supplies',
+      date: data.dateIncurred || new Date().toISOString(),
+      dateIncurred: data.dateIncurred || new Date().toISOString(),
+      recordedByName: 'Kwame Mensah',
+      isVoided: false
+    };
+    mockExpenses = [newExp, ...mockExpenses];
+    return [201, { success: { status: 'CREATED', code: 201, data: { expense: newExp } } }];
   });
 
   mock.onPut(/\/tenant\/expenses\/[^/]+\/void/).reply((config) => {
@@ -1735,6 +2016,73 @@ let mockTenant = {
         pagination: { total_items: mockSuppliers.length, total_pages: 1, current_page: 1, per_page: 100 }
       }
     }
+  });
+
+  mock.onPost(/\/tenant\/suppliers$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newSup = {
+      id: `sup${Date.now()}`,
+      name: data.name || 'New Supplier',
+      contact_person: data.contact_person || '',
+      email: data.email || '',
+      phone: data.phone || '',
+      is_active: true,
+      status: 'active'
+    };
+    mockSuppliers.push(newSup);
+    return [201, { success: { status: 'CREATED', code: 201, data: { supplier: newSup } } }];
+  });
+
+  mock.onPut(/\/tenant\/suppliers\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const data = JSON.parse(config.data || '{}');
+    const idx = mockSuppliers.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockSuppliers[idx] = { ...mockSuppliers[idx], ...data };
+      return [200, { success: { status: 'OK', code: 200, data: { supplier: mockSuppliers[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Supplier not found' } }];
+  });
+
+  mock.onDelete(/\/tenant\/suppliers\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const idx = mockSuppliers.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockSuppliers.splice(idx, 1);
+      return [200, { success: { status: 'OK', code: 200, message: 'Supplier deleted' } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Supplier not found' } }];
+  });
+
+  // Customer CRUD mock
+  mock.onPost(/\/tenant\/customers$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newCust = {
+      id: `c${Date.now()}`,
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'New Customer',
+      email: data.email || '',
+      phone: data.phone || '',
+      total_orders: 0,
+      total_spent: 0.00,
+      created_at: new Date().toISOString(),
+      outstanding_debt: 0.00,
+      last_credit_date: null
+    };
+    mockCustomers.push(newCust);
+    return [201, { success: { status: 'CREATED', code: 201, data: { customer: newCust } } }];
+  });
+
+  mock.onPut(/\/tenant\/customers\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const data = JSON.parse(config.data || '{}');
+    const idx = mockCustomers.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      mockCustomers[idx] = { ...mockCustomers[idx], ...data, name: `${data.first_name || mockCustomers[idx].first_name} ${data.last_name || mockCustomers[idx].last_name}` };
+      return [200, { success: { status: 'OK', code: 200, data: { customer: mockCustomers[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Customer not found' } }];
   });
 
   // Parse stock upload mock
