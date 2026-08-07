@@ -1,9 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { ModuleRoute } from '@/components/shared/ModuleRoute';
 import { usePrefetchModules } from '@/hooks/usePrefetchModules';
 import { useAuthStore } from '@/store/authStore';
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
+import { ChunkErrorBoundary } from '@/components/shared/ChunkErrorBoundary';
 
 // Layouts (not lazy — tiny files, always needed)
 import AuthLayout from '@/layouts/AuthLayout';
@@ -14,46 +16,46 @@ import SupplierCredit from '@/pages/inventory/SupplierCredit';
 import PlanGraceModal from '@/components/shared/PlanGraceModal';
 import PlanBlockedWall from '@/components/shared/PlanBlockedWall';
 
-// Pages — lazy for code splitting. Chunks are prefetched by role after login.
-const Login = lazy(() => import('@/pages/Login'));
+// Pages — lazy with auto-retry for code splitting.
+const Login = lazyWithRetry(() => import('@/pages/Login'));
 
-const Register = lazy(() => import('@/pages/pos/register/Register'));
-const Overview = lazy(() => import('@/pages/dashboard/Overview'));
-const BusinessProfile = lazy(() => import('@/pages/settings/BusinessProfile'));
-const POSSettings = lazy(() => import('@/pages/settings/POSSettings'));
-const PlanBilling = lazy(() => import('@/pages/settings/PlanBilling'));
+const Register = lazyWithRetry(() => import('@/pages/pos/register/Register'));
+const Overview = lazyWithRetry(() => import('@/pages/dashboard/Overview'));
+const BusinessProfile = lazyWithRetry(() => import('@/pages/settings/BusinessProfile'));
+const POSSettings = lazyWithRetry(() => import('@/pages/settings/POSSettings'));
+const PlanBilling = lazyWithRetry(() => import('@/pages/settings/PlanBilling'));
 
 // POS
-const Transactions = lazy(() => import('@/pages/pos/Transactions'));
-const CreditLedger = lazy(() => import('@/pages/pos/CreditLedger'));
-const CashierLockScreen = lazy(() => import('@/pages/pos/CashierLockScreen'));
-const Returns = lazy(() => import('@/pages/pos/Returns'));
+const Transactions = lazyWithRetry(() => import('@/pages/pos/Transactions'));
+const CreditLedger = lazyWithRetry(() => import('@/pages/pos/CreditLedger'));
+const CashierLockScreen = lazyWithRetry(() => import('@/pages/pos/CashierLockScreen'));
+const Returns = lazyWithRetry(() => import('@/pages/pos/Returns'));
 
 // Inventory
-const Products = lazy(() => import('@/pages/inventory/Products'));
-const Suppliers = lazy(() => import('@/pages/inventory/Suppliers'));
-const PurchaseOrders = lazy(() => import('@/pages/inventory/PurchaseOrders'));
-const StockManagement = lazy(() => import('@/pages/inventory/StockManagement'));
-const StockReconciliation = lazy(() => import('@/pages/inventory/StockReconciliation'));
-const StockAuditScreen = lazy(() => import('@/pages/inventory/StockAuditScreen'));
-const StockAdjustments = lazy(() => import('@/pages/inventory/StockAdjustments'));
+const Products = lazyWithRetry(() => import('@/pages/inventory/Products'));
+const Suppliers = lazyWithRetry(() => import('@/pages/inventory/Suppliers'));
+const PurchaseOrders = lazyWithRetry(() => import('@/pages/inventory/PurchaseOrders'));
+const StockManagement = lazyWithRetry(() => import('@/pages/inventory/StockManagement'));
+const StockReconciliation = lazyWithRetry(() => import('@/pages/inventory/StockReconciliation'));
+const StockAuditScreen = lazyWithRetry(() => import('@/pages/inventory/StockAuditScreen'));
+const StockAdjustments = lazyWithRetry(() => import('@/pages/inventory/StockAdjustments'));
 
 // Staff, Expenses & Notifications
-const StaffManagement = lazy(() => import('@/pages/staff/StaffManagement'));
-const Expenses = lazy(() => import('@/pages/expenses/Expenses'));
-const Notifications = lazy(() => import('@/pages/notifications/Notifications'));
+const StaffManagement = lazyWithRetry(() => import('@/pages/staff/StaffManagement'));
+const Expenses = lazyWithRetry(() => import('@/pages/expenses/Expenses'));
+const Notifications = lazyWithRetry(() => import('@/pages/notifications/Notifications'));
 
 // Ecommerce
-const OnlineOrders = lazy(() => import('@/pages/ecommerce/OnlineOrders'));
-const Customers = lazy(() => import('@/pages/ecommerce/Customers'));
-const StorefrontSettings = lazy(() => import('@/pages/ecommerce/StorefrontSettings'));
-const Discounts = lazy(() => import('@/pages/ecommerce/Discounts'));
+const OnlineOrders = lazyWithRetry(() => import('@/pages/ecommerce/OnlineOrders'));
+const Customers = lazyWithRetry(() => import('@/pages/ecommerce/Customers'));
+const StorefrontSettings = lazyWithRetry(() => import('@/pages/ecommerce/StorefrontSettings'));
+const Discounts = lazyWithRetry(() => import('@/pages/ecommerce/Discounts'));
 
 // Reports
-const SalesSummary = lazy(() => import('@/pages/reports/SalesSummary'));
-const ProductReport = lazy(() => import('@/pages/reports/ProductReport'));
-const CashierReport = lazy(() => import('@/pages/reports/CashierReport'));
-const EndOfDay = lazy(() => import('@/pages/reports/EndOfDay'));
+const SalesSummary = lazyWithRetry(() => import('@/pages/reports/SalesSummary'));
+const ProductReport = lazyWithRetry(() => import('@/pages/reports/ProductReport'));
+const CashierReport = lazyWithRetry(() => import('@/pages/reports/CashierReport'));
+const EndOfDay = lazyWithRetry(() => import('@/pages/reports/EndOfDay'));
 
 /** Minimal full-screen spinner shown only on the very first chunk load */
 function PageLoader() {
@@ -169,10 +171,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <PlanBlockedWall />
-      <PlanGraceModal />
-      <AppRoutes />
-    </Suspense>
+    <ChunkErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <PlanBlockedWall />
+        <PlanGraceModal />
+        <AppRoutes />
+      </Suspense>
+    </ChunkErrorBoundary>
   );
 }
