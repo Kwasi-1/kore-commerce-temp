@@ -76,8 +76,8 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card p-6 space-y-6">
-      <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-2">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card pb-4 p-2 space-y-6">
+      <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
         
         {!isEditing && (
           <>
@@ -176,7 +176,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
                   title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-primary" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
                     <Eye className="h-4 w-4" />
                   )}
