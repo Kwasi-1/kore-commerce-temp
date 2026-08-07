@@ -1,7 +1,7 @@
 import { useTransition, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useFeaturesStore } from '@/store/featuresStore';
+import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
 import {
   LayoutDashboard,
@@ -48,6 +48,9 @@ export default function BottomNav() {
   const location = useLocation();
   const [isPending, startTransition] = useTransition();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const previousPlanModules = getPlanModules((graceInfo as any)?.previous_plan || 'standard');
+  const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
   const handleNavigation = (to: string) => {
     setIsDrawerOpen(false);
@@ -126,7 +129,7 @@ export default function BottomNav() {
         },
         {
           title: 'Inventory',
-          show: modules.inventory,
+          show: modules.inventory || hasGraceModule('inventory_basic'),
           items: [
             { name: 'Products', to: '/inventory/products', icon: Package },
             { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
@@ -134,24 +137,24 @@ export default function BottomNav() {
             { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers, moduleKey: 'stock_reconciliation' },
             { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
             { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
-          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Expenses',
-          show: modules.expenses,
+          show: modules.expenses || hasGraceModule('expenses'),
           items: [
-            { name: 'Expenses', to: '/expenses', icon: Receipt },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses' },
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Ecommerce',
-          show: modules.ecommerce,
+          show: modules.ecommerce || hasGraceModule('ecommerce'),
           items: [
-            { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag },
-            { name: 'Customers', to: '/ecommerce/customers', icon: Users },
-            { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe },
-            { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, moduleKey: 'ecommerce' },
+            { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce' },
+            { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce' },
+            { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce' },
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Notifications',
@@ -162,20 +165,20 @@ export default function BottomNav() {
         },
         {
           title: 'Staff',
-          show: modules.staff,
+          show: modules.staff || hasGraceModule('staff'),
           items: [
-            { name: 'Staff', to: '/staff', icon: Users },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Staff', to: '/staff', icon: Users, moduleKey: 'staff' },
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Reports',
-          show: modules.reports,
+          show: modules.reports || hasGraceModule('reports_basic'),
           items: [
             { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
-            { name: 'Products', to: '/reports/products', icon: Tag },
-            { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2 },
-            { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck },
-          ].filter(item => !pinnedRoutes.has(item.to)),
+            { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced' },
+            { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced' },
+            { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced' },
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Settings',

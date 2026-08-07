@@ -65,7 +65,7 @@ export default function PlanGraceModal() {
           <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center text-center gap-3">
           <div className="h-10 w-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
             {days_remaining <= 3 ? (
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -74,10 +74,10 @@ export default function PlanGraceModal() {
             )}
           </div>
           <div>
-            <h3 className="font-header font-bold text-lg text-foreground">
+            <h3 className="font-header font-bold text-lg tracking-[-0.015rem] text-foreground">
               Subscription Grace Period Active
             </h3>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[13px] md:text-sm text-muted-foreground">
               {days_remaining} {days_remaining === 1 ? 'day' : 'days'} remaining until multi-user lock
             </span>
           </div>

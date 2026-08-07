@@ -54,7 +54,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
 };
 
 // Fallback modules for each plan (mirrors backend PLAN_MODULES)
-const PLAN_MODULES: Record<string, string[]> = {
+export const PLAN_MODULES: Record<string, string[]> = {
   starter:   ['pos', 'inventory_basic', 'reports_basic', 'settings'],
   standard:  [
     'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
@@ -81,6 +81,11 @@ const PLAN_MODULES: Record<string, string[]> = {
     'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
     'ecommerce', 'payroll', 'settings',
   ],
+};
+
+export const getPlanModules = (planName?: string): string[] => {
+  if (!planName) return PLAN_MODULES.starter;
+  return PLAN_MODULES[planName] || PLAN_MODULES.starter;
 };
 
 interface FeaturesState {

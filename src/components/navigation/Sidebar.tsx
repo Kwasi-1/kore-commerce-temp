@@ -2,7 +2,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
-import { useFeaturesStore } from '@/store/featuresStore';
+import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
 import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
 
@@ -91,6 +91,9 @@ export default function Sidebar() {
   const userName = staffUser?.name || `${staffUser?.first_name || ''} ${staffUser?.last_name || ''}`.trim() || 'Store User';
   const userRole = staffUser?.role || 'Staff';
 
+  const previousPlanModules = getPlanModules((graceInfo as any)?.previous_plan || 'standard');
+  const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
+
   const navSections: NavSection[] = [
     {
       title: 'Dashboard',
@@ -114,7 +117,7 @@ export default function Sidebar() {
     {
       title: 'Inventory',
       icon: Package,
-      show: !isCashier && modules.inventory,
+      show: !isCashier && (modules.inventory || hasGraceModule('inventory_basic')),
       badge: 4,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
@@ -129,20 +132,20 @@ export default function Sidebar() {
     {
       title: 'Expenses',
       icon: Receipt,
-      show: !isCashier && modules.expenses,
-      items: [{ name: 'Expenses', to: '/expenses', icon: Receipt }],
+      show: !isCashier && (modules.expenses || hasGraceModule('expenses')),
+      items: [{ name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses' }],
     },
     {
       title: 'Ecommerce',
       icon: ShoppingBag,
-      show: !isCashier && modules.ecommerce,
+      show: !isCashier && (modules.ecommerce || hasGraceModule('ecommerce')),
       badge: 2,
       hasDividerAfter: true,
       items: [
-        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: 2 },
-        { name: 'Customers', to: '/ecommerce/customers', icon: Users },
-        { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe },
-        { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag },
+        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: 2, moduleKey: 'ecommerce' },
+        { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce' },
+        { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce' },
+        { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce' },
       ],
     },
     {
@@ -155,25 +158,25 @@ export default function Sidebar() {
     {
       title: 'Staff',
       icon: Users,
-      show: !isCashier && modules.staff,
-      items: [{ name: 'Staff', to: '/staff', icon: Users }],
+      show: !isCashier && (modules.staff || hasGraceModule('staff')),
+      items: [{ name: 'Staff', to: '/staff', icon: Users, moduleKey: 'staff' }],
     },
     {
       title: 'Reports',
       icon: TrendingUp,
-      show: !isCashier && modules.reports,
+      show: !isCashier && (modules.reports || hasGraceModule('reports_basic')),
       hasDividerAfter: true,
       items: [
         { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
-        { name: 'Products', to: '/reports/products', icon: Tag },
-        { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2 },
-        { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck },
+        { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced' },
+        { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced' },
+        { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced' },
       ],
     },
     {
       title: 'Settings',
       icon: Settings,
-      show: !isCashier && modules.settings,
+      show: !isCashier,
       items: [
         { name: 'Business Profile', to: '/settings/profile', icon: Settings },
         { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
@@ -431,6 +434,7 @@ export default function Sidebar() {
                   const singleItem = visibleItems[0];
                   if (!singleItem) return null;
                   const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
+                  const isLocked = singleItem.moduleKey ? !hasModule(singleItem.moduleKey) : false;
                   const SingleIcon = singleItem.icon;
 
                   return (
@@ -441,21 +445,27 @@ export default function Sidebar() {
                         "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs lg:text-sm font-bold capitalize tracking-wider transition-all",
                         isActive
                           ? "bg-primary text-zinc-950 font-black shadow-md"
+                          : isLocked
+                          ? "text-zinc-600 hover:text-zinc-400"
                           : "text-zinc-400 hover:text-white hover:bg-white/5"
                       )}
                     >
                       <div className="flex items-center gap-2.5">
-                        <SingleIcon className={clsx("h-5 w-5 shrink-0", isActive ? "text-zinc-950" : "text-zinc-400")} />
+                        <SingleIcon className={clsx("h-5 w-5 shrink-0", isActive ? "text-zinc-950" : isLocked ? "text-zinc-600" : "text-zinc-400")} />
                         <span className="truncate">{section.title}</span>
                       </div>
-                      {section.badge && (
-                        <span className={clsx(
-                          "font-black text-[10px] px-1.5 py-0.5 rounded-md",
-                          isActive ? "bg-zinc-950 text-primary" : "bg-primary text-zinc-950"
-                        )}>
-                          {section.badge}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isLocked ? (
+                          <Lock className="h-3.5 w-3.5 text-zinc-600 shrink-0" />
+                        ) : section.badge ? (
+                          <span className={clsx(
+                            "font-black text-[10px] px-1.5 py-0.5 rounded-md",
+                            isActive ? "bg-zinc-950 text-primary" : "bg-primary text-zinc-950"
+                          )}>
+                            {section.badge}
+                          </span>
+                        ) : null}
+                      </div>
                     </button>
                   );
                 })()

@@ -10,7 +10,7 @@
  *   </ModuleRoute>
  */
 import React, { createContext, useContext, useEffect } from 'react';
-import { useFeaturesStore } from '@/store/featuresStore';
+import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import { Navigate } from 'react-router-dom';
 import { UpgradeWall } from '@/components/shared/UpgradeWall';
@@ -55,14 +55,20 @@ export const ModuleRoute: React.FC<ModuleRouteProps> = ({ children, requiredModu
     return null;
   }
 
-  const isUnlocked = hasModule(requiredModule) || inGracePeriod;
+  const hasDirectModule = hasModule(requiredModule);
+
+  // If in a grace period, check if the module was part of the tenant's previous plan or standard plan
+  const previousPlan = (graceInfo as any)?.previous_plan || 'standard';
+  const previousPlanModules = getPlanModules(previousPlan);
+  const isGraceModuleAllowed = inGracePeriod && previousPlanModules.includes(requiredModule);
+
+  const isUnlocked = hasDirectModule || isGraceModuleAllowed;
 
   if (!isUnlocked) {
     return <UpgradeWall module={requiredModule} />;
   }
 
-  // Active grace access: route is unlocked via active grace period rather than plan module ownership
-  const isGraceAccess = inGracePeriod && !hasModule(requiredModule);
+  const isGraceAccess = inGracePeriod && !hasDirectModule;
 
   return (
     <ModuleContext.Provider value={{ requiredModule, isGraceAccess }}>
