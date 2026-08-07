@@ -185,20 +185,20 @@ export default function Expenses() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <DashboardCard
             title="Total Expenses"
-            value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} showStyling={false} />}
+            value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
           />
           {topCategories.map((item: any) => (
             <DashboardCard
               key={item.category}
               title={`${item.category?.replace(/_/g, ' ')} Expenses`}
-              value={<CurrencyDisplay amount={item.total_amount} showStyling={false} />}
+              value={<CurrencyDisplay amount={item.total_amount} />}
               className="border border-border capitalize"
             />
           ))}
           {topCategories.length === 0 && !isLoading && (
             <DashboardCard
               title="No category data"
-              value={<CurrencyDisplay amount={0} showStyling={false} />}
+              value={<CurrencyDisplay amount={0} />}
               className="border border-border"
             />
           )}
