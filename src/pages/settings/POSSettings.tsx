@@ -275,7 +275,7 @@ export default function POSSettings() {
                     />
                   </div>
 
-                  {!locked && (
+                  {!locked && localFeatures.pos_credit_enabled === false && (
                     <div className="flex items-start justify-between gap-4 pl-4 border-l-2 border-border/60 mt-3 pt-1">
                       <div>
                         <h5 className="font-semibold text-foreground text-sm">Show Credit Ledger in Navigation</h5>
