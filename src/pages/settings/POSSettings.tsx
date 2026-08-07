@@ -246,27 +246,50 @@ export default function POSSettings() {
 
             <div className="border-t border-border/50" />
 
-            {/* Credit Sales */}
+            {/* Credit Sales & Credit Ledger Navigation */}
             {(() => {
               const locked = !['standard', 'business'].includes(plan);
               return (
-                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-foreground text-[15px]">Credit Sales (Sell on Credit)</h4>
-                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                <div className={`space-y-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-foreground text-[15px]">Credit Sales (Sell on Credit)</h4>
+                        {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                      </div>
+                      <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                        Allow cashiers to complete sales on credit at checkout. The balance is tracked in the Credit Ledger.
+                        {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
+                      </p>
                     </div>
-                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
-                      Allow cashiers to complete sales on credit. The balance is tracked in the Credit Ledger.
-                      {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
-                    </p>
+                    <Switch
+                      isSelected={locked ? false : localFeatures.pos_credit_enabled}
+                      isDisabled={locked}
+                      onValueChange={(val) => setLocalFeatures(p => ({
+                        ...p,
+                        pos_credit_enabled: val,
+                        // Auto-enable Credit Ledger in navigation if credit sales is turned ON
+                        ...(val ? { pos_credit_ledger_enabled: true } : {})
+                      }))}
+                      color="primary"
+                    />
                   </div>
-                  <Switch
-                    isSelected={locked ? false : localFeatures.pos_credit_enabled}
-                    isDisabled={locked}
-                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_credit_enabled: val }))}
-                    color="primary"
-                  />
+
+                  {!locked && (
+                    <div className="flex items-start justify-between gap-4 pl-4 border-l-2 border-border/60 mt-3 pt-1">
+                      <div>
+                        <h5 className="font-semibold text-foreground text-sm">Show Credit Ledger in Navigation</h5>
+                        <p className="text-xs text-muted-foreground mt-0.5 max-w-[380px]">
+                          Display the Credit Ledger page in the sidebar menu to track customer balances and collect debt repayments.
+                        </p>
+                      </div>
+                      <Switch
+                        isSelected={localFeatures.pos_credit_ledger_enabled ?? true}
+                        onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_credit_ledger_enabled: val }))}
+                        color="primary"
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })()}

@@ -9,12 +9,14 @@ import DebtSettlementModal from '@/components/pos/DebtSettlementModal';
 import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Wallet, History, AlertCircle, Download } from 'lucide-react';
+import { Wallet, History, AlertCircle, Download, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 export default function CreditLedger() {
+  const { posSettings } = useFeaturesStore();
   const [debtors, setDebtors] = useState<any[]>([]);
   const [settledThisMonth, setSettledThisMonth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -340,6 +342,13 @@ export default function CreditLedger() {
   return (
     <PageLayout title="Credit Ledger" constrainHeight={true}>
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+        {!posSettings.pos_credit_enabled && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium shrink-0">
+            <Info className="w-4 h-4 shrink-0" />
+            <span>New credit sales are currently disabled in POS Settings. You can still view and collect payments for existing customer debts below.</span>
+          </div>
+        )}
+
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard

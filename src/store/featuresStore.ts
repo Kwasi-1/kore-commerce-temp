@@ -18,6 +18,7 @@ export interface POSSettings {
   pos_tax_rate: number;             // 0.15 = 15%
   pos_tax_label: string;            // "VAT", "Tax", "NHIL+GETFund"
   pos_credit_enabled: boolean;
+  pos_credit_ledger_enabled: boolean;
   pos_wholesale_enabled: boolean;
   pos_discounts_enabled: boolean;
   pos_service_charge_enabled: boolean;
@@ -37,6 +38,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_tax_rate: 0,
   pos_tax_label: 'Tax',
   pos_credit_enabled: false,
+  pos_credit_ledger_enabled: true,
   pos_wholesale_enabled: false,
   pos_discounts_enabled: true,
   pos_service_charge_enabled: false,

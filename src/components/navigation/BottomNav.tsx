@@ -54,6 +54,18 @@ export default function BottomNav() {
     startTransition(() => navigate(to));
   };
 
+  const { posSettings } = useFeaturesStore();
+
+  const isModuleVisible = (moduleKey?: string) => {
+    if (!moduleKey) return true;
+    const isUnlocked = hasModule(moduleKey);
+    if (moduleKey === 'credit_ledger') {
+      const ledgerEnabled = posSettings?.pos_credit_ledger_enabled ?? true;
+      return (isUnlocked && ledgerEnabled) || inGracePeriod;
+    }
+    return isUnlocked || inGracePeriod;
+  };
+
   // Primary bottom nav links — pick the most important 4 based on role & plan
   const primaryLinks = isCashier
     ? [
@@ -61,7 +73,7 @@ export default function BottomNav() {
         { name: 'History', to: '/pos/transactions', icon: History },
         { name: 'Credit', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
         { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-      ].filter(item => !item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)
+      ].filter(item => isModuleVisible(item.moduleKey))
     : [
         { name: 'Overview', to: '/dashboard', icon: LayoutDashboard, show: true },
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, show: modules.pos },
@@ -84,7 +96,7 @@ export default function BottomNav() {
             { name: 'Transactions', to: '/pos/transactions', icon: History },
             { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
             { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Account',
@@ -110,7 +122,7 @@ export default function BottomNav() {
             { name: 'Transactions', to: '/pos/transactions', icon: History },
             { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
             { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-          ].filter(item => !pinnedRoutes.has(item.to) && (!item.moduleKey || hasModule(item.moduleKey) || inGracePeriod)),
+          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Inventory',

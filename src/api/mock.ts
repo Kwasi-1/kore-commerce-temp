@@ -500,6 +500,7 @@ export function setupMockApi() {
     pos_tax_rate: 0.15,
     pos_tax_label: 'VAT',
     pos_credit_enabled: true,
+    pos_credit_ledger_enabled: true,
     pos_wholesale_enabled: true,
     pos_discounts_enabled: true,
     pos_service_charge_enabled: false,

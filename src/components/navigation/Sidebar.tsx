@@ -78,6 +78,7 @@ export default function Sidebar() {
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const hasModule = useFeaturesStore((s) => s.hasModule);
+  const posSettings = useFeaturesStore((s) => s.posSettings);
 
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
   const navigate = useNavigate();
@@ -292,6 +293,10 @@ export default function Sidebar() {
           const visibleItems = section.items.filter((item) => {
             if (!item.moduleKey) return true;
             const isUnlocked = hasModule(item.moduleKey);
+            if (item.moduleKey === 'credit_ledger') {
+              const ledgerEnabled = posSettings?.pos_credit_ledger_enabled ?? true;
+              return (isUnlocked && ledgerEnabled) || inGracePeriod;
+            }
             return isUnlocked || inGracePeriod;
           });
 
