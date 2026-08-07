@@ -481,10 +481,10 @@ export function setupMockApi() {
   // AUTH & STAFF
   // -----------------------------------------------------
   
-  const mockStaff = [
-    { id: 'u1', name: 'Kwame Mensah', first_name: 'Kwame', last_name: 'Mensah', email: 'owner@store.com', role: 'owner', is_active: true, last_login: new Date().toISOString() },
-    { id: 'u2', name: 'Ama Serwaa', first_name: 'Ama', last_name: 'Serwaa', email: 'ama@store.com', role: 'manager', is_active: true, last_login: new Date().toISOString() },
-    { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, last_login: new Date().toISOString() },
+  let mockStaff: any[] = [
+    { id: 'u1', name: 'Kwame Mensah', first_name: 'Kwame', last_name: 'Mensah', email: 'owner@store.com', role: 'owner', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
+    { id: 'u2', name: 'Ama Serwaa', first_name: 'Ama', last_name: 'Serwaa', email: 'ama@store.com', role: 'manager', is_active: true, pos_pin: '2222', last_login: new Date().toISOString() },
+    { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
   ];
 
   let mockTenant = {
@@ -2351,6 +2351,84 @@ export function setupMockApi() {
       return [200, { success: { status: 'OK', code: 200, data: { customer: mockCustomers[idx] } } }];
     }
     return [404, { error: { status: 'NOT_FOUND', message: 'Customer not found' } }];
+  });
+
+  // ── Staff Management Mock ───────────────────────────────────────────
+  // GET /tenant/staff
+  mock.onGet(/\/tenant\/staff/).reply((config) => {
+    const url = config.url || '';
+    if (url.includes('/role') || url.includes('/set-pin')) return [404, {}];
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          staff: mockStaff,
+          total: mockStaff.length
+        }
+      }
+    }];
+  });
+
+  // POST /tenant/staff
+  mock.onPost(/\/tenant\/staff$/).reply((config) => {
+    const data = JSON.parse(config.data || '{}');
+    const newStaff = {
+      id: `st${Date.now()}`,
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'New Staff',
+      email: data.email || '',
+      role: data.role || 'cashier',
+      is_active: true,
+      pos_pin: data.pos_pin || '1234',
+      last_login: null
+    };
+    mockStaff.push(newStaff);
+    return [201, {
+      success: {
+        status: 'CREATED',
+        code: 201,
+        data: { staff: newStaff }
+      }
+    }];
+  });
+
+  // PUT /tenant/staff/:id/role
+  mock.onPut(/\/tenant\/staff\/[^/]+\/role$/).reply((config) => {
+    const urlParts = (config.url || '').split('/');
+    const id = urlParts[urlParts.length - 2];
+    const data = JSON.parse(config.data || '{}');
+    const idx = mockStaff.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockStaff[idx].role = data.role || mockStaff[idx].role;
+      return [200, { success: { status: 'OK', code: 200, message: 'Role updated', data: { staff: mockStaff[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found', code: 404 } }];
+  });
+
+  // POST /tenant/staff/:id/set-pin
+  mock.onPost(/\/tenant\/staff\/[^/]+\/set-pin$/).reply((config) => {
+    const urlParts = (config.url || '').split('/');
+    const id = urlParts[urlParts.length - 2];
+    const data = JSON.parse(config.data || '{}');
+    const idx = mockStaff.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockStaff[idx].pos_pin = data.pin;
+      return [200, { success: { status: 'OK', code: 200, message: 'PIN set successfully', data: {} } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found', code: 404 } }];
+  });
+
+  // DELETE /tenant/staff/:id
+  mock.onDelete(/\/tenant\/staff\/[^/]+$/).reply((config) => {
+    const id = (config.url || '').split('/').pop();
+    const idx = mockStaff.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      mockStaff[idx].is_active = false;
+      return [200, { success: { status: 'OK', code: 200, message: 'Staff member deactivated', data: {} } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found', code: 404 } }];
   });
 
   // Parse stock upload mock
