@@ -1376,17 +1376,229 @@ export function setupMockApi() {
   });
   
   // POS Transactions
-  let mockTransactions = [
-    { id: 'tx1', receiptNumber: 'RCP-0001', dateCreated: new Date().toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'cash', totalAmount: 850.00, status: 'completed' },
-    { id: 'tx2', receiptNumber: 'RCP-0002', dateCreated: new Date(Date.now() - 2*3600000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'mobile_money', totalAmount: 1200.00, status: 'completed' },
-    { id: 'tx3', receiptNumber: 'RCP-0003', dateCreated: new Date(Date.now() - 5*3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'card', totalAmount: 4200.00, status: 'completed' },
-    { id: 'tx4', receiptNumber: 'RCP-0004', dateCreated: new Date(Date.now() - 86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 380.00, status: 'completed' },
-    { id: 'tx5', receiptNumber: 'RCP-0005', dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 920.00, status: 'completed' },
-    { id: 'tx6', receiptNumber: 'RCP-0006', dateCreated: new Date(Date.now() - 2*86400000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'card', totalAmount: 3500.00, status: 'completed' },
-    { id: 'tx7', receiptNumber: 'RCP-0007', dateCreated: new Date(Date.now() - 2*86400000 - 1800000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'cash', totalAmount: 120.00, status: 'completed' },
-    { id: 'tx8', receiptNumber: 'RCP-0008', dateCreated: new Date(Date.now() - 3*86400000).toISOString(), cashierName: 'Kofi Annan', paymentMethod: 'mobile_money', totalAmount: 650.00, status: 'completed' },
-    { id: 'tx9', receiptNumber: 'RCP-0009', dateCreated: new Date(Date.now() - 3*86400000 - 7200000).toISOString(), cashierName: 'Kwame Mensah', paymentMethod: 'cash', totalAmount: 250.00, status: 'completed' },
-    { id: 'tx10', receiptNumber: 'RCP-0010', dateCreated: new Date(Date.now() - 4*86400000).toISOString(), cashierName: 'Ama Serwaa', paymentMethod: 'card', totalAmount: 5500.00, status: 'completed' },
+  let mockTransactions: any[] = [
+    {
+      id: 'tx1',
+      receiptNumber: 'RCP-0001',
+      receipt_number: 'RCP-0001',
+      orderNumber: 'RCP-0001',
+      dateCreated: new Date().toISOString(),
+      date_created: new Date().toISOString(),
+      date: new Date().toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 850.00,
+      total_amount: 850.00,
+      total: 850.00,
+      subtotal: 850.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Nike Air Max', name: 'Nike Air Max', quantity: 1, qty: 1, unitPrice: 850.00, price: 850.00, subtotal: 850.00 }
+      ]
+    },
+    {
+      id: 'tx2',
+      receiptNumber: 'RCP-0002',
+      receipt_number: 'RCP-0002',
+      orderNumber: 'RCP-0002',
+      dateCreated: new Date(Date.now() - 2 * 3600000).toISOString(),
+      date_created: new Date(Date.now() - 2 * 3600000).toISOString(),
+      date: new Date(Date.now() - 2 * 3600000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 1200.00,
+      total_amount: 1200.00,
+      total: 1200.00,
+      subtotal: 1200.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 },
+        { productName: 'Leather Wallet', name: 'Leather Wallet', quantity: 1, qty: 1, unitPrice: 280.00, price: 280.00, subtotal: 280.00 }
+      ]
+    },
+    {
+      id: 'tx3',
+      receiptNumber: 'RCP-0003',
+      receipt_number: 'RCP-0003',
+      orderNumber: 'RCP-0003',
+      dateCreated: new Date(Date.now() - 5 * 3600000).toISOString(),
+      date_created: new Date(Date.now() - 5 * 3600000).toISOString(),
+      date: new Date(Date.now() - 5 * 3600000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 4200.00,
+      total_amount: 4200.00,
+      total: 4200.00,
+      subtotal: 4200.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Sony WH-1000XM4', name: 'Sony WH-1000XM4', quantity: 1, qty: 1, unitPrice: 4200.00, price: 4200.00, subtotal: 4200.00 }
+      ]
+    },
+    {
+      id: 'tx4',
+      receiptNumber: 'RCP-0004',
+      receipt_number: 'RCP-0004',
+      orderNumber: 'RCP-0004',
+      dateCreated: new Date(Date.now() - 86400000).toISOString(),
+      date_created: new Date(Date.now() - 86400000).toISOString(),
+      date: new Date(Date.now() - 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 380.00,
+      total_amount: 380.00,
+      total: 380.00,
+      subtotal: 380.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Sunglasses Classic', name: 'Sunglasses Classic', quantity: 1, qty: 1, unitPrice: 380.00, price: 380.00, subtotal: 380.00 }
+      ]
+    },
+    {
+      id: 'tx5',
+      receiptNumber: 'RCP-0005',
+      receipt_number: 'RCP-0005',
+      orderNumber: 'RCP-0005',
+      dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(),
+      date_created: new Date(Date.now() - 86400000 - 3600000).toISOString(),
+      date: new Date(Date.now() - 86400000 - 3600000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 920.00,
+      total_amount: 920.00,
+      total: 920.00,
+      subtotal: 920.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 }
+      ]
+    },
+    {
+      id: 'tx6',
+      receiptNumber: 'RCP-0006',
+      receipt_number: 'RCP-0006',
+      orderNumber: 'RCP-0006',
+      dateCreated: new Date(Date.now() - 2 * 86400000).toISOString(),
+      date_created: new Date(Date.now() - 2 * 86400000).toISOString(),
+      date: new Date(Date.now() - 2 * 86400000).toISOString(),
+      cashierName: 'Kwame Mensah',
+      cashier_name: 'Kwame Mensah',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 3500.00,
+      total_amount: 3500.00,
+      total: 3500.00,
+      subtotal: 3500.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Apple AirPods Pro', name: 'Apple AirPods Pro', quantity: 1, qty: 1, unitPrice: 3500.00, price: 3500.00, subtotal: 3500.00 }
+      ]
+    },
+    {
+      id: 'tx7',
+      receiptNumber: 'RCP-0007',
+      receipt_number: 'RCP-0007',
+      orderNumber: 'RCP-0007',
+      dateCreated: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
+      date_created: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
+      date: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 120.00,
+      total_amount: 120.00,
+      total: 120.00,
+      subtotal: 120.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Basic White Tee', name: 'Basic White Tee', quantity: 1, qty: 1, unitPrice: 120.00, price: 120.00, subtotal: 120.00 }
+      ]
+    },
+    {
+      id: 'tx8',
+      receiptNumber: 'RCP-0008',
+      receipt_number: 'RCP-0008',
+      orderNumber: 'RCP-0008',
+      dateCreated: new Date(Date.now() - 3 * 86400000).toISOString(),
+      date_created: new Date(Date.now() - 3 * 86400000).toISOString(),
+      date: new Date(Date.now() - 3 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 650.00,
+      total_amount: 650.00,
+      total: 650.00,
+      subtotal: 650.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Leather Wallet', name: 'Leather Wallet', quantity: 2, qty: 2, unitPrice: 250.00, price: 250.00, subtotal: 500.00 },
+        { productName: 'Basic White Tee', name: 'Basic White Tee', quantity: 1, qty: 1, unitPrice: 150.00, price: 150.00, subtotal: 150.00 }
+      ]
+    },
+    {
+      id: 'tx9',
+      receiptNumber: 'RCP-0009',
+      receipt_number: 'RCP-0009',
+      orderNumber: 'RCP-0009',
+      dateCreated: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
+      date_created: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
+      date: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
+      cashierName: 'Kwame Mensah',
+      cashier_name: 'Kwame Mensah',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 250.00,
+      total_amount: 250.00,
+      total: 250.00,
+      subtotal: 250.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Leather Wallet', name: 'Leather Wallet', quantity: 1, qty: 1, unitPrice: 250.00, price: 250.00, subtotal: 250.00 }
+      ]
+    },
+    {
+      id: 'tx10',
+      receiptNumber: 'RCP-0010',
+      receipt_number: 'RCP-0010',
+      orderNumber: 'RCP-0010',
+      dateCreated: new Date(Date.now() - 4 * 86400000).toISOString(),
+      date_created: new Date(Date.now() - 4 * 86400000).toISOString(),
+      date: new Date(Date.now() - 4 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 5500.00,
+      total_amount: 5500.00,
+      total: 5500.00,
+      subtotal: 5500.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Samsung Galaxy Tab', name: 'Samsung Galaxy Tab', quantity: 1, qty: 1, unitPrice: 5500.00, price: 5500.00, subtotal: 5500.00 }
+      ]
+    },
   ];
 
   mock.onGet(/\/pos\/transactions\/[^/]+\/receipt/).reply((config) => {
@@ -1395,7 +1607,37 @@ export function setupMockApi() {
     const id = urlParts[urlParts.length - 2];
     const tx = mockTransactions.find(t => t.id === id);
     if (tx) {
-      return [200, { success: { status: 'OK', code: 200, data: { receipt: { ...tx, items: [{ name: 'Sample Product', qty: 1, price: tx.totalAmount }], tenant_name: 'HeadlessPOS Demo Store' } } } }];
+      return [200, {
+        success: {
+          status: 'OK',
+          code: 200,
+          data: {
+            receipt: {
+              ...tx,
+              receiptNumber: tx.receiptNumber || tx.receipt_number || tx.orderNumber,
+              date: tx.date || tx.date_created || tx.dateCreated,
+              cashierName: tx.cashierName || tx.cashier_name,
+              paymentMethod: tx.paymentMethod || tx.payment_method,
+              subtotal: tx.subtotal || tx.totalAmount || tx.total,
+              totalAmount: tx.totalAmount || tx.total || tx.total_amount,
+              total: tx.total || tx.totalAmount || tx.total_amount,
+              discount: tx.discount || 0,
+              storeName: 'HeadlessPOS Demo Store',
+              storeAddress: '123 Commerce St, Accra, Ghana',
+              storePhone: '+233 24 123 4567',
+              items: (tx.items || []).map((item: any) => ({
+                productName: item.productName || item.name || 'Sample Product',
+                name: item.name || item.productName || 'Sample Product',
+                quantity: item.quantity ?? item.qty ?? 1,
+                qty: item.qty ?? item.quantity ?? 1,
+                unitPrice: item.unitPrice ?? item.price ?? tx.totalAmount,
+                price: item.price ?? item.unitPrice ?? tx.totalAmount,
+                subtotal: item.subtotal ?? ((item.unitPrice ?? item.price ?? tx.totalAmount) * (item.quantity ?? item.qty ?? 1))
+              }))
+            }
+          }
+        }
+      }];
     }
     return [404, { error: { status: 'NOT_FOUND', message: 'Receipt not found', code: 404 } }];
   });
@@ -1409,10 +1651,12 @@ export function setupMockApi() {
     
     if (txIndex !== -1) {
       const tx = mockTransactions[txIndex];
+      const refundAmt = type === 'full' ? tx.totalAmount : amount;
       if (type === 'full' || amount >= tx.totalAmount) {
-        mockTransactions[txIndex] = { ...tx, status: 'refunded', totalAmount: 0 };
+        mockTransactions[txIndex] = { ...tx, status: 'refunded', totalAmount: 0, total_amount: 0, total: 0 };
       } else {
-        mockTransactions[txIndex] = { ...tx, status: 'partially_refunded', totalAmount: tx.totalAmount - amount };
+        const newTotal = tx.totalAmount - amount;
+        mockTransactions[txIndex] = { ...tx, status: 'partially_refunded', totalAmount: newTotal, total_amount: newTotal, total: newTotal };
       }
       return [200, { success: { status: 'OK', code: 200, message: 'Refund processed', data: {} } }];
     }
@@ -1427,23 +1671,25 @@ export function setupMockApi() {
     const method = searchParams.get('payment_method') || '';
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
-
     const cashierName = searchParams.get('cashier_name');
 
     let filtered = [...mockTransactions];
     if (method) {
-      filtered = filtered.filter(t => t.paymentMethod === method);
+      filtered = filtered.filter(t => t.paymentMethod === method || t.payment_method === method);
     }
 
     if (cashierName) {
-      filtered = filtered.filter(t => t.cashierName?.toLowerCase() === cashierName.toLowerCase());
+      filtered = filtered.filter(t =>
+        t.cashierName?.toLowerCase() === cashierName.toLowerCase() ||
+        t.cashier_name?.toLowerCase() === cashierName.toLowerCase()
+      );
     }
     
     if (startDate && endDate) {
       const start = new Date(startDate).getTime();
       const end = new Date(endDate).getTime();
       filtered = filtered.filter(t => {
-        const tTime = new Date(t.dateCreated).getTime();
+        const tTime = new Date(t.date_created || t.dateCreated || t.date).getTime();
         return tTime >= start && tTime <= end;
       });
     }
@@ -1472,30 +1718,51 @@ export function setupMockApi() {
       }
     });
 
+    const totalCalc = payload.total_amount || items.reduce((sum: number, i: any) => sum + ((i.unit_price || i.price || 0) * (i.quantity || i.qty || 1)), 0);
+    const formattedItems = items.map((i: any) => {
+      let name = 'Unknown Item';
+      for (const p of mockProducts) {
+        const v = p.variants?.find((v: any) => v.id === i.variant_id);
+        if (v) {
+          const attrStr = Object.values(v.variant_attributes || {}).join(' / ');
+          name = attrStr ? `${p.name} · ${attrStr}` : p.name;
+          break;
+        }
+      }
+      const itemPrice = i.unit_price || i.price || 0;
+      const itemQty = i.quantity || i.qty || 1;
+      return {
+        productName: name,
+        name: name,
+        quantity: itemQty,
+        qty: itemQty,
+        unitPrice: itemPrice,
+        price: itemPrice,
+        subtotal: itemPrice * itemQty
+      };
+    });
+
+    const nowIso = new Date().toISOString();
+
     const newTx = {
       id: newTxId,
       receiptNumber,
-      dateCreated: new Date().toISOString(),
+      receipt_number: receiptNumber,
+      orderNumber: receiptNumber,
+      dateCreated: nowIso,
+      date_created: nowIso,
+      date: nowIso,
       cashierName: payload.cashier_name || 'Kofi Annan',
+      cashier_name: payload.cashier_name || 'Kofi Annan',
       paymentMethod: payload.payment_method || 'cash',
-      totalAmount: payload.total_amount || items.reduce((sum: number, i: any) => sum + (i.unit_price * i.quantity), 0),
+      payment_method: payload.payment_method || 'cash',
+      totalAmount: totalCalc,
+      total_amount: totalCalc,
+      total: totalCalc,
+      subtotal: totalCalc,
+      discount: payload.discount || 0,
       status: 'completed',
-      items: items.map((i: any) => {
-        let name = 'Unknown Item';
-        for (const p of mockProducts) {
-          const v = p.variants.find((v: any) => v.id === i.variant_id);
-          if (v) {
-            const attrStr = Object.values(v.variant_attributes || {}).join(' / ');
-            name = attrStr ? `${p.name} · ${attrStr}` : p.name;
-            break;
-          }
-        }
-        return {
-          name,
-          qty: i.quantity,
-          price: i.unit_price
-        };
-      })
+      items: formattedItems
     };
 
     mockTransactions = [newTx, ...mockTransactions];
