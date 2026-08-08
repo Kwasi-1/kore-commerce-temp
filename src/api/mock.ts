@@ -1313,18 +1313,32 @@ export function setupMockApi() {
   // EXPENSES
   // -----------------------------------------------------
   
-  mock.onGet(/\/tenant\/expenses\/summary/).reply(200, {
-    success: {
-      status: 'OK',
-      code: 200,
-      data: {
-        summary: [
-          { category: 'utilities', total_amount: 1500 },
-          { category: 'supplies', total_amount: 450 },
-          { category: 'maintenance', total_amount: 200 }
-        ]
+  mock.onGet(/\/tenant\/expenses\/summary/).reply(() => {
+    const valid = mockExpenses.filter((e: any) => !e.isVoided);
+    const catMap: Record<string, number> = {};
+    let total = 0;
+
+    valid.forEach((e: any) => {
+      const amt = Number(e.amount || 0);
+      catMap[e.category] = (catMap[e.category] || 0) + amt;
+      total += amt;
+    });
+
+    const summaryList = Object.entries(catMap).map(([category, total_amount]) => ({
+      category,
+      total_amount
+    }));
+
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          summary: summaryList,
+          total: total
+        }
       }
-    }
+    }];
   });
 
   let mockExpenses = [

@@ -373,26 +373,29 @@ export default function Expenses() {
       {activeTab === 'log' ? (
         <>
           {/* Sleek Compact Metric Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-3 rounded-xl bg-card/60 border border-border/60 text-xs shadow-2xs">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground uppercase tracking-wider font-semibold text-[11px]">
-                {dateFilter.active === 'today' ? "Today's Total" : dateFilter.active === 'this_month' ? "This Month's Total" : "Period Total"}:
-              </span>
-              <span className="text-lg font-bold text-foreground">
-                {isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
-              </span>
+          <div className="mb-4 lg:mb-5">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <DashboardCard
+                title="Total Expenses"
+                value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
+              />
+              {topCategories.map((item: any) => (
+                <DashboardCard
+                  key={item.category}
+                  title={`${item.category?.replace(/_/g, ' ')} Expenses`}
+                  value={<CurrencyDisplay amount={item.total_amount} />}
+                  className="border border-border capitalize"
+                />
+              ))}
+              {topCategories.length === 0 && !isLoading && (
+                <DashboardCard
+                  title="No category data"
+                  value={<CurrencyDisplay amount={0} />}
+                  className="border border-border"
+                />
+              )}
             </div>
-
-            {topCategories.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                {topCategories.map((item: any) => (
-                  <span key={item.category} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/40 text-foreground">
-                    <span className="capitalize text-muted-foreground">{item.category?.replace(/_/g, ' ')}:</span>
-                    <span className="font-semibold text-sm"><CurrencyDisplay amount={item.total_amount} showStyling={false} /></span>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           <EnhancedTableComponent
