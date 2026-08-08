@@ -225,7 +225,7 @@ export default function PayrollManagement() {
           value={
             isLoading ? '...' : lastDisbursal ? format(new Date(lastDisbursal), 'MMM dd, yyyy') : 'No runs yet'
           }
-          valueStyle={!lastDisbursal && 'lg:text-lg xl:text-lg'}
+          valueStyle={!isLoading && 'lg:text-lg xl:text-lg font-header tracking'}
         />
       </div>
 
