@@ -3,6 +3,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
+import RecurringExpenseForm from '@/components/expenses/RecurringExpenseForm';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import { CurrencyDisplay } from '@/hooks';
@@ -10,16 +11,26 @@ import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Receipt, Repeat, Play, Pause, Pencil, Trash2, Plus, CheckCircle2, Clock } from 'lucide-react';
+import clsx from 'clsx';
 
 export default function Expenses() {
   const { staffUser } = useAuthStore();
   const isManagerOrOwner = staffUser?.role === 'manager' || staffUser?.role === 'owner';
 
+  // Active Tab: 'log' vs 'recurring'
+  const [activeTab, setActiveTab] = useState<'log' | 'recurring'>('log');
+
+  // Expense Log state
   const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters
+  // Recurring Expenses state
+  const [recurringList, setRecurringList] = useState<any[]>([]);
+  const [isLoadingRecurring, setIsLoadingRecurring] = useState(false);
+
+  // Filters for Expense Log
   const [categoryFilter, setCategoryFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
@@ -28,8 +39,10 @@ export default function Expenses() {
     end_date: endOfMonth(new Date()),
   });
 
-  // Form Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Modals state
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [editingRecurring, setEditingRecurring] = useState<any>(null);
 
   const fetchExpenses = useCallback(async () => {
     setIsLoading(true);
@@ -37,14 +50,12 @@ export default function Expenses() {
       const startIso = dateFilter.start_date ? dateFilter.start_date.toISOString() : '';
       const endIso = dateFilter.end_date ? dateFilter.end_date.toISOString() : '';
 
-      // 1. Fetch Summary for selected date range
       const summaryParams = new URLSearchParams();
       if (startIso) summaryParams.set('start_date', startIso);
       if (endIso) summaryParams.set('end_date', endIso);
       const summaryRes = await apiClient.get(`/tenant/expenses/summary?${summaryParams.toString()}`);
       setSummary(summaryRes.data.success?.data || summaryRes.data.data || {});
 
-      // 2. Fetch Expenses List with filters
       const catArr = categoryFilter === 'all' ? ['all'] : Array.from(categoryFilter);
       const listParams = new URLSearchParams({ limit: '100' });
       if (catArr[0] !== 'all') listParams.set('category', catArr[0] as string);
@@ -54,7 +65,6 @@ export default function Expenses() {
       const listRes = await apiClient.get(`/tenant/expenses?${listParams.toString()}`);
       let data = listRes.data.success?.data?.expenses || listRes.data.data?.expenses || [];
 
-      // Client-side search filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         data = data.filter((e: any) =>
@@ -73,14 +83,38 @@ export default function Expenses() {
     }
   }, [categoryFilter, searchQuery, dateFilter]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => fetchExpenses(), 300);
-    return () => clearTimeout(timer);
-  }, [fetchExpenses]);
+  const fetchRecurringExpenses = useCallback(async () => {
+    setIsLoadingRecurring(true);
+    try {
+      const res = await apiClient.get('/tenant/expenses/recurring');
+      const data = res.data.success?.data?.recurring_expenses || res.data.data?.recurring_expenses || [];
+      setRecurringList(data);
+    } catch (error) {
+      console.error('Failed to fetch recurring expenses:', error);
+      toast.error('Failed to load recurring expense schedules');
+    } finally {
+      setIsLoadingRecurring(false);
+    }
+  }, []);
 
-  const handleFormSuccess = () => {
-    setIsModalOpen(false);
+  useEffect(() => {
+    if (activeTab === 'log') {
+      const timer = setTimeout(() => fetchExpenses(), 300);
+      return () => clearTimeout(timer);
+    } else {
+      fetchRecurringExpenses();
+    }
+  }, [activeTab, fetchExpenses, fetchRecurringExpenses]);
+
+  const handleLogFormSuccess = () => {
+    setIsLogModalOpen(false);
     fetchExpenses();
+  };
+
+  const handleRecurringFormSuccess = () => {
+    setIsRecurringModalOpen(false);
+    setEditingRecurring(null);
+    fetchRecurringExpenses();
   };
 
   const handleVoid = async (expenseId: string) => {
@@ -89,7 +123,7 @@ export default function Expenses() {
     }
 
     try {
-      await apiClient.put(`/tenant/expenses/${expenseId}/void`);
+      await apiClient.post(`/tenant/expenses/${expenseId}/void`);
       toast.success('Expense voided successfully');
       fetchExpenses();
     } catch (error: any) {
@@ -98,7 +132,45 @@ export default function Expenses() {
     }
   };
 
-  const columns = [
+  const handlePostNow = async (ruleId: string) => {
+    try {
+      await apiClient.post(`/tenant/expenses/recurring/${ruleId}/post-now`);
+      toast.success('Expense posted to log successfully');
+      fetchRecurringExpenses();
+    } catch (error: any) {
+      console.error('Post now error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to post expense');
+    }
+  };
+
+  const handleToggleRecurringStatus = async (ruleId: string) => {
+    try {
+      await apiClient.post(`/tenant/expenses/recurring/${ruleId}/toggle-status`);
+      toast.success('Schedule status updated');
+      fetchRecurringExpenses();
+    } catch (error: any) {
+      console.error('Toggle status error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to update schedule status');
+    }
+  };
+
+  const handleDeleteRecurring = async (ruleId: string) => {
+    if (!window.confirm('Are you sure you want to delete this recurring schedule? Historical logs will not be affected.')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/tenant/expenses/recurring/${ruleId}`);
+      toast.success('Recurring schedule deleted');
+      fetchRecurringExpenses();
+    } catch (error: any) {
+      console.error('Delete recurring schedule error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to delete schedule');
+    }
+  };
+
+  // Expense Log Table Definition
+  const columnsLog = [
     { key: 'date', label: 'Date' },
     { key: 'category', label: 'Category' },
     { key: 'description', label: 'Description' },
@@ -108,13 +180,14 @@ export default function Expenses() {
     { key: 'status', label: 'Status' }
   ];
 
-  const rows = expenses.map((exp: any) => {
+  const rowsLog = expenses.map((exp: any) => {
     const rowActions = [];
     if (isManagerOrOwner && !exp.isVoided && !exp.is_pos_movement) {
       rowActions.push({ key: 'void', label: 'Void Expense', icon: 'mdi:cancel', className: 'text-danger' });
     }
 
     const isTillMovement = exp.is_pos_movement || exp.source === 'pos_till' || exp.category === 'float_topup';
+    const isAutoRecurring = exp.source === 'Auto-Recurring';
     const dateRaw = exp.dateIncurred || exp.date || exp.date_created;
 
     return {
@@ -128,12 +201,16 @@ export default function Expenses() {
       description: <span className="text-muted-foreground max-w-xs truncate block">{exp.description || exp.reason || '—'}</span>,
       amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={exp.amount} showStyling={false} /></span>,
       source: (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+        <span className={clsx(
+          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border',
           isTillMovement
-            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-        }`}>
-          {isTillMovement ? 'POS Till' : 'Backoffice'}
+            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+            : isAutoRecurring
+            ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+        )}>
+          {isAutoRecurring && <Repeat className="h-3 w-3" />}
+          {isTillMovement ? 'POS Till' : isAutoRecurring ? 'Auto-Recurring' : 'Backoffice'}
         </span>
       ),
       recorded_by: exp.recordedByName || exp.logged_by_name || 'Unknown',
@@ -150,8 +227,91 @@ export default function Expenses() {
     };
   });
 
-  const handleRowActionClick = (actionKey: string, row: any) => {
+  // Recurring Schedules Table Definition
+  const columnsRecurring = [
+    { key: 'description', label: 'Description' },
+    { key: 'category', label: 'Category' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'frequency', label: 'Frequency' },
+    { key: 'auto_post', label: 'Posting Mode' },
+    { key: 'next_due', label: 'Next Due Date' },
+    { key: 'status', label: 'Status' }
+  ];
+
+  const rowsRecurring = recurringList.map((rec: any) => {
+    const isPaused = rec.status === 'paused';
+    const autoPost = rec.autoPost ?? rec.auto_post ?? true;
+    const nextDueRaw = rec.nextDueDate || rec.next_due_date || rec.startDate;
+
+    const rowActions = [
+      { key: 'post_now', label: 'Post Entry Now', icon: 'mdi:play-circle-outline' },
+      { key: 'toggle_status', label: isPaused ? 'Resume Schedule' : 'Pause Schedule', icon: isPaused ? 'mdi:play' : 'mdi:pause' },
+      { key: 'edit', label: 'Edit Schedule', icon: 'mdi:pencil-outline' },
+      { key: 'delete', label: 'Delete Schedule', icon: 'mdi:trash-can-outline', className: 'text-danger' }
+    ];
+
+    return {
+      id: rec.id,
+      description: (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">{rec.description}</span>
+          <span className="text-xs text-muted-foreground capitalize">Via {rec.paymentMethod?.replace(/_/g, ' ') || 'Cash'}</span>
+        </div>
+      ),
+      category: (
+        <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-foreground">
+          {rec.category?.replace(/_/g, ' ')}
+        </span>
+      ),
+      amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={rec.amount} showStyling={false} /></span>,
+      frequency: (
+        <span className="capitalize text-xs font-semibold text-foreground px-2 py-1 rounded bg-muted/40 border border-border/50">
+          {rec.frequency?.replace(/_/g, ' ')}
+        </span>
+      ),
+      auto_post: (
+        <span className={clsx(
+          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold',
+          autoPost
+            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+        )}>
+          {autoPost ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+          {autoPost ? 'Auto-Post' : 'Prompt Review'}
+        </span>
+      ),
+      next_due: (
+        <span className="text-xs font-medium text-muted-foreground">
+          {nextDueRaw ? format(new Date(nextDueRaw), 'MMM dd, yyyy') : '—'}
+        </span>
+      ),
+      status: (
+        <span className={clsx(
+          'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold capitalize',
+          isPaused
+            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+        )}>
+          {rec.status}
+        </span>
+      ),
+      rowActions,
+      __record: rec
+    };
+  });
+
+  const handleRowActionClickLog = (actionKey: string, row: any) => {
     if (actionKey === 'void') handleVoid(row.id);
+  };
+
+  const handleRowActionClickRecurring = (actionKey: string, row: any) => {
+    if (actionKey === 'post_now') handlePostNow(row.id);
+    if (actionKey === 'toggle_status') handleToggleRecurringStatus(row.id);
+    if (actionKey === 'edit') {
+      setEditingRecurring(row.__record);
+      setIsRecurringModalOpen(true);
+    }
+    if (actionKey === 'delete') handleDeleteRecurring(row.id);
   };
 
   // Build dynamic summary cards from merged summary list
@@ -166,88 +326,146 @@ export default function Expenses() {
     <PageLayout
       title="Expenses"
       actions={
-        <CustomOnlyDateFilterComponent
-          defaultDate="this_month"
-          value={dateFilter}
-          onChange={setDateFilter}
-          align="end"
-          showLabelOnMobile={true}
-        />
+        activeTab === 'log' ? (
+          <CustomOnlyDateFilterComponent
+            defaultDate="this_month"
+            value={dateFilter}
+            onChange={setDateFilter}
+            align="end"
+            showLabelOnMobile={true}
+          />
+        ) : null
       }
       constrainHeight={true}
     >
-
-      {/* Summary Cards */}
-      <div className="mb-4 lg:mb-6">
-        <h3 className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          {dateFilter.active === 'today' ? "Today's Summary" : dateFilter.active === 'this_month' ? "This Month's Summary" : "Period Summary"}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <DashboardCard
-            title="Total Expenses"
-            value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
-          />
-          {topCategories.map((item: any) => (
-            <DashboardCard
-              key={item.category}
-              title={`${item.category?.replace(/_/g, ' ')} Expenses`}
-              value={<CurrencyDisplay amount={item.total_amount} />}
-              className="border border-border capitalize"
-            />
-          ))}
-          {topCategories.length === 0 && !isLoading && (
-            <DashboardCard
-              title="No category data"
-              value={<CurrencyDisplay amount={0} />}
-              className="border border-border"
-            />
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 mb-4 border-b border-border/60 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('log')}
+          className={clsx(
+            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer',
+            activeTab === 'log'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           )}
-        </div>
+        >
+          <Receipt className="h-4 w-4" />
+          Expense Log
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('recurring')}
+          className={clsx(
+            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer',
+            activeTab === 'recurring'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          )}
+        >
+          <Repeat className="h-4 w-4" />
+          Recurring Schedules
+        </button>
       </div>
 
-      <EnhancedTableComponent
-        columns={columns}
-        rows={rows}
-        isLoading={isLoading}
-        title="Expense Log"
+      {activeTab === 'log' ? (
+        <>
+          {/* Summary Cards */}
+          <div className="mb-4 lg:mb-5">
+            <h3 className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              {dateFilter.active === 'today' ? "Today's Summary" : dateFilter.active === 'this_month' ? "This Month's Summary" : "Period Summary"}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <DashboardCard
+                title="Total Expenses"
+                value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
+              />
+              {topCategories.map((item: any) => (
+                <DashboardCard
+                  key={item.category}
+                  title={`${item.category?.replace(/_/g, ' ')} Expenses`}
+                  value={<CurrencyDisplay amount={item.total_amount} />}
+                  className="border border-border capitalize"
+                />
+              ))}
+              {topCategories.length === 0 && !isLoading && (
+                <DashboardCard
+                  title="No category data"
+                  value={<CurrencyDisplay amount={0} />}
+                  className="border border-border"
+                />
+              )}
+            </div>
+          </div>
 
-        showSearch={true}
-        searchPlaceholder="Search by description or category..."
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+          <EnhancedTableComponent
+            columns={columnsLog}
+            rows={rowsLog}
+            isLoading={isLoading}
+            title="Expense Log"
 
-        showFilter={true}
-        filterLabel="Category"
-        filterOptions={[
-          { uid: 'all', name: 'All Categories' },
-          { uid: 'supplies', name: 'Store Supplies' },
-          { uid: 'utilities', name: 'Utilities & Bills' },
-          { uid: 'food', name: 'Food & Meals' },
-          { uid: 'transport', name: 'Transport & Logistics' },
-          { uid: 'float_topup', name: 'Float Top-up' },
-          { uid: 'rent', name: 'Rent' },
-          { uid: 'salaries', name: 'Salaries' },
-          { uid: 'marketing', name: 'Marketing' },
-          { uid: 'maintenance', name: 'Maintenance' },
-          { uid: 'miscellaneous', name: 'Miscellaneous' },
-          { uid: 'other', name: 'Other' },
-        ]}
-        filterValue={categoryFilter}
-        onFilterChange={(keys: any) => setCategoryFilter(keys)}
+            showSearch={true}
+            searchPlaceholder="Search by description or category..."
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
 
-        showAddButton={true}
-        addButtonText="Log Expense"
-        addButtonIcon="ph:plus-bold"
-        onAddButtonClick={() => setIsModalOpen(true)}
-        onRefresh={fetchExpenses}
-        onRowActionClick={handleRowActionClick}
+            showFilter={true}
+            filterLabel="Category"
+            filterOptions={[
+              { uid: 'all', name: 'All Categories' },
+              { uid: 'supplies', name: 'Store Supplies' },
+              { uid: 'utilities', name: 'Utilities & Bills' },
+              { uid: 'food', name: 'Food & Meals' },
+              { uid: 'transport', name: 'Transport & Logistics' },
+              { uid: 'float_topup', name: 'Float Top-up' },
+              { uid: 'rent', name: 'Rent' },
+              { uid: 'salaries', name: 'Salaries' },
+              { uid: 'marketing', name: 'Marketing' },
+              { uid: 'maintenance', name: 'Maintenance' },
+              { uid: 'miscellaneous', name: 'Miscellaneous' },
+              { uid: 'other', name: 'Other' },
+            ]}
+            filterValue={categoryFilter}
+            onFilterChange={(keys: any) => setCategoryFilter(keys)}
 
-        mobileFriendly={true}
-      />
+            showAddButton={true}
+            addButtonText="Log Expense"
+            addButtonIcon="ph:plus-bold"
+            onAddButtonClick={() => setIsLogModalOpen(true)}
+            onRefresh={fetchExpenses}
+            onRowActionClick={handleRowActionClickLog}
 
+            mobileFriendly={true}
+          />
+        </>
+      ) : (
+        <EnhancedTableComponent
+          columns={columnsRecurring}
+          rows={rowsRecurring}
+          isLoading={isLoadingRecurring}
+          title="Recurring Schedules"
+
+          showSearch={false}
+          showFilter={false}
+
+          showAddButton={true}
+          addButtonText="Add Recurring Schedule"
+          addButtonIcon="ph:plus-bold"
+          onAddButtonClick={() => {
+            setEditingRecurring(null);
+            setIsRecurringModalOpen(true);
+          }}
+          onRefresh={fetchRecurringExpenses}
+          onRowActionClick={handleRowActionClickRecurring}
+
+          mobileFriendly={true}
+        />
+      )}
+
+      {/* Modal 1: Log Expense */}
       <CustomModal
-        isOpen={isModalOpen}
-        onOpenChange={() => setIsModalOpen(!isModalOpen)}
+        isOpen={isLogModalOpen}
+        onOpenChange={() => setIsLogModalOpen(!isLogModalOpen)}
         placement="right"
         size="lg"
         classNames={{ base: "sm:w-[500px]" }}
@@ -259,12 +477,39 @@ export default function Expenses() {
         }
         body={
           <ExpenseForm
-            onSuccess={handleFormSuccess}
-            onCancel={() => setIsModalOpen(false)}
+            onSuccess={handleLogFormSuccess}
+            onCancel={() => setIsLogModalOpen(false)}
           />
         }
       />
 
+      {/* Modal 2: Recurring Expense Schedule */}
+      <CustomModal
+        isOpen={isRecurringModalOpen}
+        onOpenChange={() => {
+          setIsRecurringModalOpen(!isRecurringModalOpen);
+          if (isRecurringModalOpen) setEditingRecurring(null);
+        }}
+        placement="right"
+        size="lg"
+        classNames={{ base: "sm:w-[500px]" }}
+        header={
+          <div className="pt-4 px-2">
+            <h2 className="text-xl font-bold">{editingRecurring ? 'Edit Recurring Schedule' : 'Create Recurring Schedule'}</h2>
+            <p className="text-sm text-muted-foreground font-normal">Schedule automated or prompt-based recurring financial outlays.</p>
+          </div>
+        }
+        body={
+          <RecurringExpenseForm
+            initialData={editingRecurring}
+            onSuccess={handleRecurringFormSuccess}
+            onCancel={() => {
+              setIsRecurringModalOpen(false);
+              setEditingRecurring(null);
+            }}
+          />
+        }
+      />
     </PageLayout>
   );
 }

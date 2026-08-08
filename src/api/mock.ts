@@ -1337,7 +1337,152 @@ export function setupMockApi() {
     { id: 'e7', description: 'QuickBooks Subscription', amount: 320, category: 'software', date: new Date(Date.now() - 15*86400000).toISOString(), dateIncurred: new Date(Date.now() - 15*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
   ] as any[];
 
-  mock.onGet(/\/tenant\/expenses/).reply((config) => {
+  let mockRecurringExpenses: any[] = [
+    {
+      id: 'rec1',
+      description: 'Monthly Store Rent',
+      category: 'rent',
+      amount: 5500.00,
+      frequency: 'monthly',
+      paymentMethod: 'bank_transfer',
+      autoPost: true,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      nextDueDate: new Date(Date.now() + 86400000 * 23).toISOString(),
+      lastPostedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+      recordedByName: 'Kwame Mensah'
+    },
+    {
+      id: 'rec2',
+      description: 'Electricity Bill',
+      category: 'utilities',
+      amount: 1500.00,
+      frequency: 'monthly',
+      paymentMethod: 'mobile_money',
+      autoPost: false,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      nextDueDate: new Date(Date.now() + 86400000 * 15).toISOString(),
+      lastPostedAt: new Date().toISOString(),
+      recordedByName: 'Kwame Mensah'
+    },
+    {
+      id: 'rec3',
+      description: 'High-speed Fiber Internet',
+      category: 'utilities',
+      amount: 400.00,
+      frequency: 'monthly',
+      paymentMethod: 'mobile_money',
+      autoPost: true,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      nextDueDate: new Date(Date.now() + 86400000 * 10).toISOString(),
+      lastPostedAt: null,
+      recordedByName: 'Ama Serwaa'
+    }
+  ];
+
+  // GET /tenant/expenses/recurring
+  mock.onGet(/\/tenant\/expenses\/recurring$/).reply((config) => {
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          recurring_expenses: mockRecurringExpenses,
+          total: mockRecurringExpenses.length
+        }
+      }
+    }];
+  });
+
+  // POST /tenant/expenses/recurring
+  mock.onPost(/\/tenant\/expenses\/recurring$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const newRule = {
+      id: `rec${Date.now()}`,
+      description: body.description || 'New Recurring Rule',
+      category: body.category || 'utilities',
+      amount: parseFloat(body.amount || 0),
+      frequency: body.frequency || 'monthly',
+      paymentMethod: body.payment_method || 'cash',
+      autoPost: body.auto_post ?? true,
+      status: 'active',
+      startDate: body.startDate || new Date().toISOString(),
+      nextDueDate: body.startDate || new Date().toISOString(),
+      lastPostedAt: null,
+      recordedByName: 'Kwame Mensah'
+    };
+    mockRecurringExpenses.unshift(newRule);
+    return [201, { success: { status: 'CREATED', code: 201, data: { recurring_expense: newRule } } }];
+  });
+
+  // PUT /tenant/expenses/recurring/:id
+  mock.onPut(/\/tenant\/expenses\/recurring\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const body = JSON.parse(config.data || '{}');
+    const idx = mockRecurringExpenses.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      mockRecurringExpenses[idx] = {
+        ...mockRecurringExpenses[idx],
+        ...body,
+        paymentMethod: body.payment_method || mockRecurringExpenses[idx].paymentMethod,
+        autoPost: body.auto_post !== undefined ? body.auto_post : mockRecurringExpenses[idx].autoPost,
+      };
+      return [200, { success: { status: 'OK', code: 200, data: { recurring_expense: mockRecurringExpenses[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
+  });
+
+  // POST /tenant/expenses/recurring/:id/toggle-status
+  mock.onPost(/\/tenant\/expenses\/recurring\/[^/]+\/toggle-status$/).reply((config) => {
+    const parts = (config.url || '').split('/');
+    const id = parts[parts.length - 2];
+    const idx = mockRecurringExpenses.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      mockRecurringExpenses[idx].status = mockRecurringExpenses[idx].status === 'active' ? 'paused' : 'active';
+      return [200, { success: { status: 'OK', code: 200, data: { recurring_expense: mockRecurringExpenses[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
+  });
+
+  // POST /tenant/expenses/recurring/:id/post-now
+  mock.onPost(/\/tenant\/expenses\/recurring\/[^/]+\/post-now$/).reply((config) => {
+    const parts = (config.url || '').split('/');
+    const id = parts[parts.length - 2];
+    const rule = mockRecurringExpenses.find(r => r.id === id);
+    if (rule) {
+      const now = new Date().toISOString();
+      rule.lastPostedAt = now;
+      const newExp = {
+        id: `e${Date.now()}`,
+        description: rule.description,
+        category: rule.category,
+        amount: rule.amount,
+        date: now,
+        dateIncurred: now,
+        source: 'Auto-Recurring',
+        recordedByName: rule.recordedByName || 'System',
+        isVoided: false
+      };
+      mockExpenses.unshift(newExp);
+      return [200, { success: { status: 'OK', code: 200, message: 'Expense posted to log', data: { expense: newExp } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
+  });
+
+  // DELETE /tenant/expenses/recurring/:id
+  mock.onDelete(/\/tenant\/expenses\/recurring\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const idx = mockRecurringExpenses.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      mockRecurringExpenses.splice(idx, 1);
+      return [200, { success: { status: 'OK', code: 200, message: 'Schedule deleted' } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
+  });
+
+  mock.onGet(/\/tenant\/expenses$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
     const category = searchParams.get('category') || '';
@@ -1367,6 +1512,16 @@ export function setupMockApi() {
   });
 
   mock.onPut(/\/tenant\/expenses\/[^/]+\/void/).reply((config) => {
+    const id = config.url?.split('/')[3];
+    const idx = mockExpenses.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      mockExpenses[idx].isVoided = true;
+      return [200, { success: { status: 'OK', code: 200, message: 'Expense voided', data: {} } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Expense not found', code: 404 } }];
+  });
+
+  mock.onPost(/\/tenant\/expenses\/[^/]+\/void/).reply((config) => {
     const id = config.url?.split('/')[3];
     const idx = mockExpenses.findIndex(e => e.id === id);
     if (idx !== -1) {
@@ -2430,6 +2585,8 @@ export function setupMockApi() {
     }
     return [404, { error: { status: 'NOT_FOUND', message: 'Staff member not found', code: 404 } }];
   });
+
+  // ── Stock Upload Parse Mock ─────────────────────────────────────────
 
   // Parse stock upload mock
   mock.onPost('/tenant/stock/parse-upload').reply((config) => {
