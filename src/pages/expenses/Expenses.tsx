@@ -326,83 +326,80 @@ export default function Expenses() {
     <PageLayout
       title="Expenses"
       actions={
-        activeTab === 'log' ? (
-          <CustomOnlyDateFilterComponent
-            defaultDate="this_month"
-            value={dateFilter}
-            onChange={setDateFilter}
-            align="end"
-            showLabelOnMobile={true}
-          />
-        ) : null
+        <div className="flex items-center gap-3">
+          {/* Segmented View Switcher */}
+          <div className="inline-flex items-center bg-muted/80 p-[3px] rounded-lg borde border-border/60 text-[12px] font-medium">
+            <button
+              type="button"
+              onClick={() => setActiveTab('log')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer font-semibold',
+                activeTab === 'log'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {/* <Receipt className="h-3.5 w-3.5" /> */}
+              Expense Log
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('recurring')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer font-semibold',
+                activeTab === 'recurring'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {/* <Repeat className="h-3.5 w-3.5" /> */}
+              Recurring Schedules
+            </button>
+          </div>
+
+          {activeTab === 'log' && (
+            <CustomOnlyDateFilterComponent
+              defaultDate="this_month"
+              value={dateFilter}
+              onChange={setDateFilter}
+              align="end"
+              showLabelOnMobile={true}
+            />
+          )}
+        </div>
       }
       constrainHeight={true}
     >
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 mb-4 border-b border-border/60 pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab('log')}
-          className={clsx(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer',
-            activeTab === 'log'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-          )}
-        >
-          <Receipt className="h-4 w-4" />
-          Expense Log
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('recurring')}
-          className={clsx(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer',
-            activeTab === 'recurring'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-          )}
-        >
-          <Repeat className="h-4 w-4" />
-          Recurring Schedules
-        </button>
-      </div>
-
       {activeTab === 'log' ? (
         <>
-          {/* Summary Cards */}
-          <div className="mb-4 lg:mb-5">
-            <h3 className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              {dateFilter.active === 'today' ? "Today's Summary" : dateFilter.active === 'this_month' ? "This Month's Summary" : "Period Summary"}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              <DashboardCard
-                title="Total Expenses"
-                value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
-              />
-              {topCategories.map((item: any) => (
-                <DashboardCard
-                  key={item.category}
-                  title={`${item.category?.replace(/_/g, ' ')} Expenses`}
-                  value={<CurrencyDisplay amount={item.total_amount} />}
-                  className="border border-border capitalize"
-                />
-              ))}
-              {topCategories.length === 0 && !isLoading && (
-                <DashboardCard
-                  title="No category data"
-                  value={<CurrencyDisplay amount={0} />}
-                  className="border border-border"
-                />
-              )}
+          {/* Sleek Compact Metric Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-3 rounded-xl bg-card/60 border border-border/60 text-xs shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground uppercase tracking-wider font-semibold text-[11px]">
+                {dateFilter.active === 'today' ? "Today's Total" : dateFilter.active === 'this_month' ? "This Month's Total" : "Period Total"}:
+              </span>
+              <span className="text-base font-bold text-foreground">
+                {isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}
+              </span>
             </div>
+
+            {topCategories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {topCategories.map((item: any) => (
+                  <span key={item.category} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/40 text-foreground">
+                    <span className="capitalize text-muted-foreground">{item.category?.replace(/_/g, ' ')}:</span>
+                    <span className="font-semibold"><CurrencyDisplay amount={item.total_amount} showStyling={false} /></span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <EnhancedTableComponent
             columns={columnsLog}
             rows={rowsLog}
             isLoading={isLoading}
-            title="Expense Log"
+            title=""
 
             showSearch={true}
             searchPlaceholder="Search by description or category..."
@@ -443,7 +440,7 @@ export default function Expenses() {
           columns={columnsRecurring}
           rows={rowsRecurring}
           isLoading={isLoadingRecurring}
-          title="Recurring Schedules"
+          title=""
 
           showSearch={false}
           showFilter={false}

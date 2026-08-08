@@ -1383,7 +1383,7 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/expenses/recurring
-  mock.onGet(/\/tenant\/expenses\/recurring$/).reply((config) => {
+  mock.onGet(/\/tenant\/expenses\/recurring(?:\?.*)?$/).reply((config) => {
     return [200, {
       success: {
         status: 'OK',
@@ -1482,17 +1482,17 @@ export function setupMockApi() {
     return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
   });
 
-  mock.onGet(/\/tenant\/expenses$/).reply((config) => {
+  mock.onGet(/\/tenant\/expenses(?:\?.*)?$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
     const category = searchParams.get('category') || '';
 
     let filtered = [...mockExpenses];
-    if (category) {
+    if (category && category !== 'all') {
       filtered = filtered.filter(e => e.category === category);
     }
 
-    return [200, { success: { status: 'OK', code: 200, data: { expenses: filtered } } }];
+    return [200, { success: { status: 'OK', code: 200, data: { expenses: filtered, total: filtered.length } } }];
   });
 
   mock.onPost(/\/tenant\/expenses$/).reply((config) => {
