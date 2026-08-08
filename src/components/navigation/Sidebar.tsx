@@ -35,7 +35,8 @@ import {
   Sliders,
   CreditCard,
   Lock,
-  Bell
+  Bell,
+  Banknote
 } from 'lucide-react';
 
 import clsx from 'clsx';
@@ -159,7 +160,10 @@ export default function Sidebar() {
       title: 'Staff',
       icon: Users,
       show: !isCashier && (modules.staff || hasGraceModule('staff')),
-      items: [{ name: 'Staff', to: '/staff', icon: Users, moduleKey: 'staff' }],
+      items: [
+        { name: 'Staff Management', to: '/staff', icon: Users, moduleKey: 'staff' },
+        { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'staff' }
+      ],
     },
     {
       title: 'Reports',

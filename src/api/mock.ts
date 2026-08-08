@@ -1496,6 +1496,195 @@ export function setupMockApi() {
     return [404, { error: { status: 'NOT_FOUND', message: 'Recurring schedule not found' } }];
   });
 
+  // ── Payroll & Salary Mock ─────────────────────────────────────────
+  let mockPayrollProfiles: any[] = [
+    {
+      id: 'prof1',
+      staff_id: 'st1',
+      full_name: 'Kwame Mensah',
+      role_title: 'Store Manager',
+      is_off_platform: false,
+      compensation_type: 'monthly_salary',
+      base_amount: 3500.00,
+      payment_method: 'bank_transfer',
+      bank_or_momo_name: 'GCB Bank',
+      account_number: '1234567890',
+    },
+    {
+      id: 'prof2',
+      staff_id: 'st2',
+      full_name: 'Ama Serwaa',
+      role_title: 'Head Cashier',
+      is_off_platform: false,
+      compensation_type: 'monthly_salary',
+      base_amount: 2800.00,
+      payment_method: 'mobile_money',
+      bank_or_momo_name: 'MTN Mobile Money',
+      account_number: '0241112233',
+    },
+    {
+      id: 'prof3',
+      staff_id: 'st3',
+      full_name: 'Kofi Annan',
+      role_title: 'Inventory Officer',
+      is_off_platform: false,
+      compensation_type: 'monthly_salary',
+      base_amount: 2500.00,
+      payment_method: 'mobile_money',
+      bank_or_momo_name: 'MTN Mobile Money',
+      account_number: '0244445566',
+    },
+    {
+      id: 'prof4',
+      staff_id: 'off1',
+      full_name: 'Yaw Osei',
+      role_title: 'Janitor & Cleaner',
+      is_off_platform: true,
+      compensation_type: 'monthly_salary',
+      base_amount: 1200.00,
+      payment_method: 'cash',
+      bank_or_momo_name: '',
+      account_number: '',
+    },
+  ];
+
+  let mockPayrollDisbursals: any[] = [
+    {
+      id: 'disb1',
+      pay_period: 'July 2026',
+      staff_name: 'Kwame Mensah',
+      amount: 3500.00,
+      payment_method: 'bank_transfer',
+      is_off_platform: false,
+      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+    },
+    {
+      id: 'disb2',
+      pay_period: 'July 2026',
+      staff_name: 'Ama Serwaa',
+      amount: 2800.00,
+      payment_method: 'mobile_money',
+      is_off_platform: false,
+      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+    },
+    {
+      id: 'disb3',
+      pay_period: 'July 2026',
+      staff_name: 'Yaw Osei',
+      amount: 1200.00,
+      payment_method: 'cash',
+      is_off_platform: true,
+      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+    },
+  ];
+
+  // GET /tenant/payroll
+  mock.onGet(/\/tenant\/payroll(?:\?.*)?$/).reply((config) => {
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          profiles: mockPayrollProfiles,
+          disbursals: mockPayrollDisbursals,
+        }
+      }
+    }];
+  });
+
+  // POST /tenant/payroll/disburse
+  mock.onPost(/\/tenant\/payroll\/disburse$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const payPeriod = body.pay_period || 'Current Month';
+    const disbursalDate = body.disbursal_date ? new Date(body.disbursal_date).toISOString() : new Date().toISOString();
+    const items = body.items || [];
+
+    const newDisbursals: any[] = [];
+    items.forEach((item: any) => {
+      const disb = {
+        id: `disb${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        pay_period: payPeriod,
+        staff_name: item.staff_name || 'Staff Member',
+        amount: Number(item.amount || 0),
+        payment_method: item.payment_method || 'cash',
+        is_off_platform: Boolean(item.is_off_platform),
+        date_paid: disbursalDate,
+      };
+      newDisbursals.push(disb);
+      mockPayrollDisbursals.unshift(disb);
+
+      // Auto-post salary expense to Expense Log
+      const salaryExp = {
+        id: `e${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        description: `Salary: ${item.staff_name} (${payPeriod})`,
+        category: 'salaries',
+        amount: Number(item.amount || 0),
+        date: disbursalDate,
+        dateIncurred: disbursalDate,
+        source: 'Payroll',
+        recordedByName: 'Kwame Mensah',
+        isVoided: false,
+      };
+      mockExpenses.unshift(salaryExp);
+    });
+
+    return [200, { success: { status: 'OK', code: 200, message: 'Payroll disbursed & logged', data: { disbursed: newDisbursals } } }];
+  });
+
+  // POST /tenant/payroll/profile
+  mock.onPost(/\/tenant\/payroll\/profile$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const newProf = {
+      id: `prof${Date.now()}`,
+      staff_id: body.staff_id || '',
+      full_name: body.full_name || 'Staff Member',
+      role_title: body.role_title || 'Staff',
+      is_off_platform: Boolean(body.is_off_platform),
+      compensation_type: body.compensation_type || 'monthly_salary',
+      base_amount: parseFloat(body.base_amount || 0),
+      payment_method: body.payment_method || 'cash',
+      bank_or_momo_name: body.bank_or_momo_name || '',
+      account_number: body.account_number || '',
+    };
+    mockPayrollProfiles.unshift(newProf);
+    return [201, { success: { status: 'CREATED', code: 201, data: { profile: newProf } } }];
+  });
+
+  // PUT /tenant/payroll/profile/:id
+  mock.onPut(/\/tenant\/payroll\/profile\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const body = JSON.parse(config.data || '{}');
+    const idx = mockPayrollProfiles.findIndex((p) => p.id === id);
+    if (idx !== -1) {
+      mockPayrollProfiles[idx] = {
+        ...mockPayrollProfiles[idx],
+        ...body,
+        base_amount: parseFloat(body.base_amount ?? mockPayrollProfiles[idx].base_amount),
+      };
+      return [200, { success: { status: 'OK', code: 200, data: { profile: mockPayrollProfiles[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Salary profile not found' } }];
+  });
+
+  // POST /tenant/payroll/off-platform-staff
+  mock.onPost(/\/tenant\/payroll\/off-platform-staff$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const newProf = {
+      id: `prof${Date.now()}`,
+      staff_id: `off_${Date.now()}`,
+      full_name: body.full_name || 'External Staff',
+      role_title: body.role_title || 'Contractor',
+      is_off_platform: true,
+      compensation_type: 'monthly_salary',
+      base_amount: parseFloat(body.base_salary || 0),
+      payment_method: body.payment_method || 'cash',
+      bank_or_momo_name: body.bank_or_momo_name || '',
+      account_number: body.account_number || '',
+    };
+    mockPayrollProfiles.unshift(newProf);
+    return [201, { success: { status: 'CREATED', code: 201, data: { profile: newProf } } }];
+  });
+
   mock.onGet(/\/tenant\/expenses(?:\?.*)?$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
