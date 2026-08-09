@@ -30,6 +30,7 @@ import {
   CreditCard,
   ClipboardList,
   Lock,
+  Banknote,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
@@ -168,6 +169,7 @@ export default function BottomNav() {
           show: modules.staff || hasGraceModule('staff'),
           items: [
             { name: 'Staff', to: '/staff', icon: Users, moduleKey: 'staff' },
+            { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'staff' },
           ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
         },
         {
