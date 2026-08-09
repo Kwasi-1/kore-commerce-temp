@@ -9,21 +9,26 @@ import { format } from 'date-fns';
 
 interface ProcessPayrollModalProps {
   profiles: any[];
+  initialSelectedId?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 export default function ProcessPayrollModal({
   profiles,
+  initialSelectedId,
   onSuccess,
   onCancel,
 }: ProcessPayrollModalProps) {
   const [loading, setLoading] = useState(false);
   const [payPeriod, setPayPeriod] = useState(format(new Date(), 'MMMM yyyy'));
   const [disbursalDate, setDisbursalDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>(
-    profiles.map((p) => p.id)
-  );
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>(() => {
+    if (initialSelectedId) {
+      return [initialSelectedId];
+    }
+    return profiles.map((p) => p.id);
+  });
 
   const toggleSelectStaff = (id: string) => {
     if (selectedStaffIds.includes(id)) {

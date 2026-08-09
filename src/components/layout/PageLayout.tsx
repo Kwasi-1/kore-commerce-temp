@@ -100,7 +100,7 @@ export default function PageLayout({
                   onClick={() => window.dispatchEvent(new CustomEvent('open-plan-grace-modal'))}
                   title={`Access expires on ${graceInfo.expires_at || 'soon'}. Click to view grace period details.`}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs md:text-[13px] font-semibold transition-all shrink-0 cursor-pointer shadow-sm",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md borde text-xs md:text-[13px] font-semibold transition-all shrink-0 cursor-pointer shadow-sm",
                     graceInfo.days_remaining <= 3
                       ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20"
                       : graceInfo.days_remaining <= 7

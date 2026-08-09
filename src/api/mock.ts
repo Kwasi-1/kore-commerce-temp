@@ -1580,13 +1580,25 @@ export function setupMockApi() {
 
   // GET /tenant/payroll
   mock.onGet(/\/tenant\/payroll(?:\?.*)?$/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const month = searchParams.get('month') || '';
+
+    let filteredDisbursals = [...mockPayrollDisbursals];
+    if (month && month !== 'all' && month !== 'All Months') {
+      filteredDisbursals = filteredDisbursals.filter((d) => {
+        const period = d.pay_period || d.period || '';
+        return period.toLowerCase() === month.toLowerCase();
+      });
+    }
+
     return [200, {
       success: {
         status: 'OK',
         code: 200,
         data: {
           profiles: mockPayrollProfiles,
-          disbursals: mockPayrollDisbursals,
+          disbursals: filteredDisbursals,
         }
       }
     }];
