@@ -2,21 +2,16 @@ import React, { useState } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { CurrencyDisplay } from '@/hooks';
 import { Button } from '@/components/ui/button';
-import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
 import { format } from 'date-fns';
 import {
-  Calendar,
-  User,
   Pencil,
   RotateCcw,
   CheckCircle2,
-  AlertCircle,
   FileText,
   XCircle,
 } from 'lucide-react';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
-import apiClient from '@/api/client';
-import toast from 'react-hot-toast';
+import DisburalLineActions from '@/components/staff/DisburalLineActions';
 
 interface PayrollRunDetailsDrawerProps {
   isOpen: boolean;
@@ -24,12 +19,6 @@ interface PayrollRunDetailsDrawerProps {
   run: any;
   onRefresh: () => void;
 }
-
-const PAYMENT_METHODS = [
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'mobile_money', label: 'Mobile Money' },
-  { value: 'cash', label: 'Cash' },
-];
 
 export default function PayrollRunDetailsDrawer({
   isOpen,
@@ -39,77 +28,10 @@ export default function PayrollRunDetailsDrawer({
 }: PayrollRunDetailsDrawerProps) {
   const [editingLine, setEditingLine] = useState<any>(null);
   const [reversingLine, setReversingLine] = useState<any>(null);
-  const [actionReason, setActionReason] = useState<string>('');
-  const [editAmount, setEditAmount] = useState<string>('');
-  const [editMethod, setEditMethod] = useState<string>('bank_transfer');
-  const [editNote, setEditNote] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!run) return null;
 
   const items = run.items || [];
-
-  const handleOpenEdit = (item: any) => {
-    setEditingLine(item);
-    setEditAmount(item.amount?.toString() || '');
-    setEditMethod(item.payment_method || 'bank_transfer');
-    setEditNote(item.note || '');
-    setActionReason('');
-  };
-
-  const handleOpenReverse = (item: any) => {
-    setReversingLine(item);
-    setActionReason('');
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingLine) return;
-    if (parseFloat(editAmount) !== parseFloat(editingLine.amount) && !actionReason.trim()) {
-      toast.error('Reason is required when modifying payout amount');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await apiClient.put(`/tenant/payroll/disbursal/${editingLine.id}`, {
-        amount: parseFloat(editAmount),
-        payment_method: editMethod,
-        note: editNote,
-        reason: actionReason,
-      });
-      toast.success('Disbursal line updated');
-      setEditingLine(null);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Update disbursal line error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to update line item');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleConfirmReverse = async () => {
-    if (!reversingLine) return;
-    if (!actionReason.trim()) {
-      toast.error('Please enter a reason for reversing this payment');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await apiClient.post(`/tenant/payroll/disbursal/${reversingLine.id}/reverse`, {
-        reason: actionReason,
-      });
-      toast.success('Payment line reversed & expense voided');
-      setReversingLine(null);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Reverse line error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to reverse line item');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const columns = [
     { key: 'recipient', label: 'Recipient' },
@@ -130,13 +52,9 @@ export default function PayrollRunDetailsDrawer({
             {item.staff_name || item.recipient_name}
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
-            {item.is_off_platform ? (
+            {item.is_off_platform && (
               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-400/10 text-purple-600 dark:text-purple-400">
-                External Staff
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground hidden">
-                Platform Staff
+                External
               </span>
             )}
             {item.note && <span className="text-[10px] text-muted-foreground italic">({item.note})</span>}
@@ -174,7 +92,7 @@ export default function PayrollRunDetailsDrawer({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleOpenEdit(item)}
+            onClick={() => setEditingLine(item)}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
             title="Edit Line"
           >
@@ -183,7 +101,7 @@ export default function PayrollRunDetailsDrawer({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleOpenReverse(item)}
+            onClick={() => setReversingLine(item)}
             className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
             title="Reverse Line"
           >
@@ -203,13 +121,14 @@ export default function PayrollRunDetailsDrawer({
         onOpenChange={onClose}
         placement="right"
         size="lg"
-        classNames={{ base: "sm:w-[560px]" }}
+        classNames={{ base: 'sm:w-[560px]' }}
         header={
           <div className="pt-3 px-2 border-b border-border pb-3 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-foreground">{run.pay_period} Payroll Run</h2>
               <p className="text-xs text-muted-foreground font-normal">
-                Disbursed on {run.disbursal_date ? format(new Date(run.disbursal_date), 'MMM dd, yyyy') : '—'} by {run.created_by_name || 'System'}
+                Disbursed on {run.disbursal_date ? format(new Date(run.disbursal_date), 'MMM dd, yyyy') : '—'} by{' '}
+                {run.created_by_name || 'System'}
               </p>
             </div>
             {run.status === 'logged' ? (
@@ -228,12 +147,15 @@ export default function PayrollRunDetailsDrawer({
             {/* Aggregate Active Total Banner */}
             <div className="p-4 rounded-md bg-card border border-border flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Net Active Payout</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Net Active Payout
+                </span>
                 <div className="text-2xl font-extrabold text-foreground mt-0.5">
                   <CurrencyDisplay amount={run.total_amount || 0} />
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">
-                  {run.recipients_count} Active Recipients ({run.platform_count} Platform • {run.external_count} External)
+                  {run.recipients_count} Active Recipients ({run.platform_count} Platform •{' '}
+                  {run.external_count} External)
                 </span>
               </div>
             </div>
@@ -263,101 +185,13 @@ export default function PayrollRunDetailsDrawer({
         }
       />
 
-      {/* Modal: Edit Line Item */}
-      <CustomModal
-        isOpen={Boolean(editingLine)}
-        onOpenChange={() => setEditingLine(null)}
-        placement="center"
-        size="md"
-        header={
-          <div className="pt-2">
-            <h3 className="text-lg font-bold">Edit Payout Line — {editingLine?.staff_name}</h3>
-            <p className="text-xs text-muted-foreground">Modify payout amount, payment method, or note.</p>
-          </div>
-        }
-        body={
-          <div className="space-y-4 pb-4">
-            <CustomInputTextField
-              label="New Amount"
-              type="number"
-              step="0.01"
-              value={editAmount}
-              onChange={(e) => setEditAmount(e.target.value)}
-              required
-            />
-
-            <CustomSelectField
-              label="Payment Method"
-              options={PAYMENT_METHODS}
-              value={editMethod}
-              inputProps={{
-                onChange: (e) => setEditMethod(e.target.value),
-              }}
-            />
-
-            <CustomInputTextField
-              label="Note (Optional)"
-              value={editNote}
-              onChange={(e) => setEditNote(e.target.value)}
-              placeholder="e.g. Adjusted bonus"
-            />
-
-            <CustomInputTextField
-              label="Reason for Modification *"
-              value={actionReason}
-              onChange={(e) => setActionReason(e.target.value)}
-              placeholder="e.g. Overtime calculation error"
-              required={parseFloat(editAmount) !== parseFloat(editingLine?.amount || 0)}
-            />
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-border">
-              <Button variant="outline" onClick={() => setEditingLine(null)} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        }
-      />
-
-      {/* Modal: Reverse Line Item */}
-      <CustomModal
-        isOpen={Boolean(reversingLine)}
-        onOpenChange={() => setReversingLine(null)}
-        placement="center"
-        size="md"
-        header={
-          <div className="pt-2">
-            <h3 className="text-lg font-bold text-rose-600">Reverse Payment — {reversingLine?.staff_name}</h3>
-            <p className="text-xs text-muted-foreground">Void this payment line and deduct amount from payroll run total.</p>
-          </div>
-        }
-        body={
-          <div className="space-y-4 pb-4">
-            <div className="p-3 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">
-              This will set status to <strong>Voided</strong>, deduct <CurrencyDisplay amount={reversingLine?.amount || 0} showStyling={false} /> from this run, and void the linked Expense Log entry.
-            </div>
-
-            <CustomInputTextField
-              label="Reversal Reason *"
-              value={actionReason}
-              onChange={(e) => setActionReason(e.target.value)}
-              placeholder="e.g. MoMo transfer failed or sent in error"
-              required
-            />
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-border">
-              <Button variant="outline" onClick={() => setReversingLine(null)} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleConfirmReverse} disabled={isSubmitting}>
-                {isSubmitting ? 'Reversing...' : 'Confirm Reversal'}
-              </Button>
-            </div>
-          </div>
-        }
+      {/* Shared Edit & Reverse modals */}
+      <DisburalLineActions
+        editingLine={editingLine}
+        reversingLine={reversingLine}
+        onCloseEdit={() => setEditingLine(null)}
+        onCloseReverse={() => setReversingLine(null)}
+        onSuccess={onRefresh}
       />
     </>
   );

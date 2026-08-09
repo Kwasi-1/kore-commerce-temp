@@ -136,7 +136,11 @@ export default function PayrollManagement() {
       __record: d,
     }));
 
-    const combined = [...runRows, ...singleRows];
+    const combined = [...runRows, ...singleRows].sort((a, b) => {
+      const timeA = a.disbursal_date ? new Date(a.disbursal_date).getTime() : 0;
+      const timeB = b.disbursal_date ? new Date(b.disbursal_date).getTime() : 0;
+      return timeB - timeA;
+    });
 
     // Filter by Date Range client-side fallback
     if (dateFilter.active === 'all_time' || (!dateFilter.start_date && !dateFilter.end_date)) {
@@ -678,6 +682,7 @@ export default function PayrollManagement() {
           setSelectedDisbursal(null);
         }}
         disbursal={selectedDisbursal}
+        onSuccess={fetchPayrollData}
       />
 
       {/* Drawer 2: Batch Payroll Run Details Drawer */}

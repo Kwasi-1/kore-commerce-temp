@@ -281,7 +281,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-xl dark:border-border/50",
+  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-b-xl rounded-t-md dark:border-border/50",
 
   // Additional
   additionalModals,
@@ -919,7 +919,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     variant="flat"
                     isDisabled={currentPage === 1}
                     onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="border border-border rounded-md"
+                    className="border border-border rounded-full bg-transparent"
                   >
                     <Icon icon="ph:caret-left" className="text-base" />
                   </Button>
@@ -929,13 +929,13 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                         key={page}
                         isIconOnly
                         size="sm"
-                        variant={currentPage === page ? "solid" : "flat"}
-                        color={currentPage === page ? "primary" : "default"}
+                        variant={currentPage === page ? "flat" : "flat"}
+                        // color={currentPage === page ? "muted" : "default"}
                         onPress={() => setCurrentPage(page)}
                         className={
                           currentPage !== page
-                            ? "border border-border rounded-md"
-                            : "rounded-md"
+                            ? "border border-border rounded-full bg-transparent"
+                            : "rounded-full border border-foreground/60 bg-transparent"
                         }
                       >
                         {page}
@@ -950,7 +950,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     onPress={() =>
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
-                    className="border border-border rounded-md"
+                    className="border border-border rounded-full bg-transparent"
                   >
                     <Icon icon="ph:caret-right" className="text-base" />
                   </Button>
