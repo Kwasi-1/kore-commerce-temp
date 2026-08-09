@@ -1548,32 +1548,90 @@ export function setupMockApi() {
     },
   ];
 
+  let mockPayrollRuns: any[] = [
+    {
+      id: 'run_july_2026',
+      pay_period: 'July 2026',
+      disbursal_date: new Date(Date.now() - 86400000 * 7).toISOString(),
+      created_by: 'owner1',
+      created_by_name: 'Kwame Mensah',
+      status: 'logged',
+      notes: 'July regular payroll disbursement',
+      total_amount: 7500.00,
+      recipients_count: 3,
+      total_recipients_count: 3,
+      platform_count: 2,
+      external_count: 1,
+      items: [
+        {
+          id: 'disb1',
+          run_id: 'run_july_2026',
+          pay_period: 'July 2026',
+          staff_name: 'Kwame Mensah',
+          amount: 3500.00,
+          payment_method: 'bank_transfer',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+        },
+        {
+          id: 'disb2',
+          run_id: 'run_july_2026',
+          pay_period: 'July 2026',
+          staff_name: 'Ama Serwaa',
+          amount: 2800.00,
+          payment_method: 'mobile_money',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+        },
+        {
+          id: 'disb3',
+          run_id: 'run_july_2026',
+          pay_period: 'July 2026',
+          staff_name: 'Yaw Osei',
+          amount: 1200.00,
+          payment_method: 'cash',
+          is_off_platform: true,
+          status: 'logged',
+          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+        },
+      ],
+    },
+  ];
+
   let mockPayrollDisbursals: any[] = [
     {
       id: 'disb1',
+      run_id: 'run_july_2026',
       pay_period: 'July 2026',
       staff_name: 'Kwame Mensah',
       amount: 3500.00,
       payment_method: 'bank_transfer',
       is_off_platform: false,
+      status: 'logged',
       date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
     },
     {
       id: 'disb2',
+      run_id: 'run_july_2026',
       pay_period: 'July 2026',
       staff_name: 'Ama Serwaa',
       amount: 2800.00,
       payment_method: 'mobile_money',
       is_off_platform: false,
+      status: 'logged',
       date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
     },
     {
       id: 'disb3',
+      run_id: 'run_july_2026',
       pay_period: 'July 2026',
       staff_name: 'Yaw Osei',
       amount: 1200.00,
       payment_method: 'cash',
       is_off_platform: true,
+      status: 'logged',
       date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
     },
   ];
@@ -1585,10 +1643,18 @@ export function setupMockApi() {
     const startDateParam = searchParams.get('start_date');
     const endDateParam = searchParams.get('end_date');
 
+    let filteredRuns = [...mockPayrollRuns];
     let filteredDisbursals = [...mockPayrollDisbursals];
+
     if (startDateParam || endDateParam) {
       const startTime = startDateParam ? new Date(startDateParam).getTime() : 0;
       const endTime = endDateParam ? new Date(endDateParam).getTime() : Infinity;
+
+      filteredRuns = filteredRuns.filter((r) => {
+        if (!r.disbursal_date) return true;
+        const t = new Date(r.disbursal_date).getTime();
+        return t >= startTime && t <= endTime;
+      });
 
       filteredDisbursals = filteredDisbursals.filter((d) => {
         if (!d.date_paid) return true;
@@ -1603,6 +1669,7 @@ export function setupMockApi() {
         code: 200,
         data: {
           profiles: mockPayrollProfiles,
+          runs: filteredRuns,
           disbursals: filteredDisbursals,
         }
       }
@@ -1617,35 +1684,135 @@ export function setupMockApi() {
     const items = body.items || [];
 
     const newDisbursals: any[] = [];
-    items.forEach((item: any) => {
-      const disb = {
-        id: `disb${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        pay_period: payPeriod,
-        staff_name: item.staff_name || 'Staff Member',
-        amount: Number(item.amount || 0),
-        payment_method: item.payment_method || 'cash',
-        is_off_platform: Boolean(item.is_off_platform),
-        date_paid: disbursalDate,
-      };
-      newDisbursals.push(disb);
-      mockPayrollDisbursals.unshift(disb);
+    const runId = items.length > 1 ? `run_${Date.now()}` : null;
 
-      // Auto-post salary expense to Expense Log
-      const salaryExp = {
-        id: `e${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        description: `Salary: ${item.staff_name} (${payPeriod})`,
+    // For batch runs: create ONE aggregate expense entry
+    if (runId) {
+      const totalAmount = items.reduce((acc: number, i: any) => acc + Number(i.amount || 0), 0);
+      const aggregateExp = {
+        id: `e${Date.now()}_payrun`,
+        description: `Payroll Run: ${payPeriod} (${items.length} recipients)`,
         category: 'salaries',
-        amount: Number(item.amount || 0),
+        amount: totalAmount,
         date: disbursalDate,
         dateIncurred: disbursalDate,
         source: 'Payroll',
         recordedByName: 'Kwame Mensah',
         isVoided: false,
       };
-      mockExpenses.unshift(salaryExp);
+      mockExpenses.unshift(aggregateExp);
+    }
+
+    items.forEach((item: any) => {
+      const disb = {
+        id: `disb${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        run_id: runId,
+        pay_period: payPeriod,
+        staff_name: item.staff_name || 'Staff Member',
+        amount: Number(item.amount || 0),
+        payment_method: item.payment_method || 'cash',
+        is_off_platform: Boolean(item.is_off_platform),
+        status: 'logged',
+        note: item.note || '',
+        date_paid: disbursalDate,
+      };
+      newDisbursals.push(disb);
+      mockPayrollDisbursals.unshift(disb);
+
+      // For single off-cycle payouts only: create individual expense entry
+      if (!runId) {
+        const salaryExp = {
+          id: `e${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          description: `Salary: ${item.staff_name} (${payPeriod})`,
+          category: 'salaries',
+          amount: Number(item.amount || 0),
+          date: disbursalDate,
+          dateIncurred: disbursalDate,
+          source: 'Payroll',
+          recordedByName: 'Kwame Mensah',
+          isVoided: false,
+        };
+        mockExpenses.unshift(salaryExp);
+      }
     });
 
-    return [200, { success: { status: 'OK', code: 200, message: 'Payroll disbursed & logged', data: { disbursed: newDisbursals } } }];
+    let newRun: any = null;
+    if (runId) {
+      newRun = {
+        id: runId,
+        pay_period: payPeriod,
+        disbursal_date: disbursalDate,
+        created_by: 'owner1',
+        created_by_name: 'Kwame Mensah',
+        status: 'logged',
+        notes: body.notes || '',
+        total_amount: newDisbursals.reduce((acc, curr) => acc + curr.amount, 0),
+        recipients_count: newDisbursals.length,
+        total_recipients_count: newDisbursals.length,
+        platform_count: newDisbursals.filter((d) => !d.is_off_platform).length,
+        external_count: newDisbursals.filter((d) => d.is_off_platform).length,
+        items: newDisbursals,
+      };
+      mockPayrollRuns.unshift(newRun);
+    }
+
+    return [200, { success: { status: 'OK', code: 200, message: 'Payroll disbursed & logged', data: { run: newRun, disbursed: newDisbursals } } }];
+  });
+
+  // PUT /tenant/payroll/disbursal/:id
+  mock.onPut(/\/tenant\/payroll\/disbursal\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const body = JSON.parse(config.data || '{}');
+    const idx = mockPayrollDisbursals.findIndex((d) => d.id === id);
+    if (idx !== -1) {
+      mockPayrollDisbursals[idx] = {
+        ...mockPayrollDisbursals[idx],
+        ...body,
+        amount: body.amount !== undefined ? parseFloat(body.amount) : mockPayrollDisbursals[idx].amount,
+      };
+
+      // Also update in parent run if exists
+      mockPayrollRuns.forEach((run) => {
+        const itemIdx = run.items?.findIndex((i: any) => i.id === id);
+        if (itemIdx !== undefined && itemIdx !== -1) {
+          run.items[itemIdx] = { ...mockPayrollDisbursals[idx] };
+          run.total_amount = run.items.filter((i: any) => i.status !== 'voided').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+        }
+      });
+
+      return [200, { success: { status: 'OK', code: 200, data: { disbursal: mockPayrollDisbursals[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Disbursal line not found' } }];
+  });
+
+  // POST /tenant/payroll/disbursal/:id/reverse
+  mock.onPost(/\/tenant\/payroll\/disbursal\/[^/]+\/reverse$/).reply((config) => {
+    const parts = config.url?.split('/') || [];
+    const id = parts[parts.length - 2];
+    const body = JSON.parse(config.data || '{}');
+
+    const idx = mockPayrollDisbursals.findIndex((d) => d.id === id);
+    if (idx !== -1) {
+      mockPayrollDisbursals[idx].status = 'voided';
+      mockPayrollDisbursals[idx].reversal_reason = body.reason || 'Reversed by manager';
+      mockPayrollDisbursals[idx].date_voided = new Date().toISOString();
+
+      // Also update parent run
+      mockPayrollRuns.forEach((run) => {
+        const itemIdx = run.items?.findIndex((i: any) => i.id === id);
+        if (itemIdx !== undefined && itemIdx !== -1) {
+          run.items[itemIdx] = { ...mockPayrollDisbursals[idx] };
+          const activeItems = run.items.filter((i: any) => i.status !== 'voided');
+          run.recipients_count = activeItems.length;
+          run.total_amount = activeItems.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+          if (activeItems.length === 0) run.status = 'voided';
+          else run.status = 'partial_voided';
+        }
+      });
+
+      return [200, { success: { status: 'OK', code: 200, data: { disbursal: mockPayrollDisbursals[idx] } } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Disbursal line not found' } }];
   });
 
   // POST /tenant/payroll/profile

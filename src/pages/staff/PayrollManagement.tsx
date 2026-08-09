@@ -9,6 +9,7 @@ import ProcessPayrollModal from '@/components/staff/ProcessPayrollModal';
 import AddOffPlatformStaffModal from '@/components/staff/AddOffPlatformStaffModal';
 import PaySlipDrawer from '@/components/staff/PaySlipDrawer';
 import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDrawer';
+import PayrollRunDetailsDrawer from '@/components/staff/PayrollRunDetailsDrawer';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -19,12 +20,15 @@ import {
   UserPlus,
   CheckCircle2,
   History,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 
 export default function PayrollManagement() {
   const [activeTab, setActiveTab] = useState<'log' | 'profiles'>('log');
+  const [payrollRuns, setPayrollRuns] = useState<any[]>([]);
   const [disbursalLog, setDisbursalLog] = useState<any[]>([]);
   const [salaryProfiles, setSalaryProfiles] = useState<any[]>([]);
   const [staffMembers, setStaffMembers] = useState<any[]>([]);
@@ -50,6 +54,9 @@ export default function PayrollManagement() {
   const [isPaySlipOpen, setIsPaySlipOpen] = useState(false);
   const [selectedDisbursal, setSelectedDisbursal] = useState<any>(null);
 
+  const [isRunDetailsOpen, setIsRunDetailsOpen] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<any>(null);
+
   const [isStaffDetailsOpen, setIsStaffDetailsOpen] = useState(false);
   const [selectedStaffProfile, setSelectedStaffProfile] = useState<any>(null);
 
@@ -73,9 +80,11 @@ export default function PayrollManagement() {
       const payrollRes = await apiClient.get(`/tenant/payroll?${params.toString()}`);
       const payload = payrollRes.data.success?.data || payrollRes.data.data || {};
 
+      const runs = payload.runs || [];
       const log = payload.disbursals || payload.log || [];
       const profiles = payload.profiles || payload.salary_profiles || [];
 
+      setPayrollRuns(runs);
       setDisbursalLog(log);
       setSalaryProfiles(profiles);
     } catch (error) {
@@ -90,22 +99,59 @@ export default function PayrollManagement() {
     fetchPayrollData();
   }, [fetchPayrollData]);
 
-  // Client-side Date Filter fallback for Disbursal Log
-  const filteredDisbursals = React.useMemo(() => {
-    if (!disbursalLog || disbursalLog.length === 0) return [];
+  // Combine Batch Payroll Runs + Single Off-Cycle Disbursals for the Disbursal Log Table
+  const combinedLogRows = React.useMemo(() => {
+    const runIdsWithBatches = new Set(payrollRuns.map((r) => r.id));
+
+    // Single off-cycle disbursals (disbursals with no run_id or not in batch runs)
+    const singleDisbursals = disbursalLog.filter((d) => !d.run_id || !runIdsWithBatches.has(d.run_id));
+
+    // Map Batch Runs into table rows
+    const runRows = payrollRuns.map((r) => ({
+      id: r.id,
+      is_run: true,
+      pay_period: r.pay_period,
+      recipients_text: `${r.recipients_count || 0} Recipients`,
+      platform_count: r.platform_count || 0,
+      external_count: r.external_count || 0,
+      amount: r.total_amount || 0,
+      payment_method: 'Multiple Methods',
+      disbursal_date: r.disbursal_date,
+      status: r.status,
+      total_recipients_count: r.total_recipients_count || r.recipients_count,
+      __record: r,
+    }));
+
+    // Map Single Disbursals into table rows
+    const singleRows = singleDisbursals.map((d) => ({
+      id: d.id,
+      is_run: false,
+      pay_period: d.pay_period || d.period || '—',
+      recipient_name: d.staff_name || d.recipient_name || 'Staff Member',
+      is_off_platform: d.is_off_platform,
+      amount: d.amount || 0,
+      payment_method: d.payment_method || 'cash',
+      disbursal_date: d.date_paid,
+      status: d.status || 'logged',
+      __record: d,
+    }));
+
+    const combined = [...runRows, ...singleRows];
+
+    // Filter by Date Range client-side fallback
     if (dateFilter.active === 'all_time' || (!dateFilter.start_date && !dateFilter.end_date)) {
-      return disbursalLog;
+      return combined;
     }
 
     const startTime = dateFilter.start_date ? new Date(dateFilter.start_date).getTime() : 0;
     const endTime = dateFilter.end_date ? new Date(dateFilter.end_date).getTime() : Infinity;
 
-    return disbursalLog.filter((item: any) => {
-      if (!item.date_paid) return true;
-      const t = new Date(item.date_paid).getTime();
+    return combined.filter((row) => {
+      if (!row.disbursal_date) return true;
+      const t = new Date(row.disbursal_date).getTime();
       return t >= startTime && t <= endTime;
     });
-  }, [disbursalLog, dateFilter]);
+  }, [payrollRuns, disbursalLog, dateFilter]);
 
   // Combine Platform Staff with Salary Profiles for automatic roster sync
   const unifiedProfiles = React.useMemo(() => {
@@ -158,51 +204,73 @@ export default function PayrollManagement() {
 
   const columnsLog = [
     { key: 'period', label: 'Pay Period' },
-    { key: 'recipient', label: 'Staff Recipient' },
-    { key: 'amount', label: 'Amount Paid' },
+    { key: 'recipient', label: 'Recipient / Count' },
+    { key: 'amount', label: 'Total Amount' },
     { key: 'method', label: 'Payment Method' },
     { key: 'date', label: 'Disbursal Date' },
     { key: 'status', label: 'Status' },
   ];
 
-  const rowsLog = filteredDisbursals.map((item: any) => {
+  const rowsLog = combinedLogRows.map((row: any) => {
     const rowActions = [
-      { key: 'view_slip', label: 'View Pay Slip', icon: 'mdi:eye-outline' },
+      { key: 'view_details', label: row.is_run ? 'View Run Breakdown' : 'View Pay Slip', icon: 'mdi:eye-outline' },
     ];
 
     return {
-      id: item.id,
-      period: <span className="font-semibold text-foreground">{item.pay_period || item.period || '—'}</span>,
-      recipient: (
+      id: row.id,
+      period: <span className="font-semibold text-foreground">{row.pay_period}</span>,
+      recipient: row.is_run ? (
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{item.staff_name || item.recipient_name || 'Staff Member'}</span>
+          <span className="font-bold text-foreground">{row.recipients_text}</span>
           <span className="text-xs text-muted-foreground">
-            {item.is_off_platform ? 'External / Contractor' : 'Platform Staff'}
+            {row.platform_count} Platform • {row.external_count} External
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">{row.recipient_name}</span>
+          <span className="text-xs text-muted-foreground">
+            {row.is_off_platform ? 'External / Contractor' : 'Platform Staff'}
           </span>
         </div>
       ),
       amount: (
         <span className="font-bold text-foreground">
-          <CurrencyDisplay amount={item.amount} showStyling={false} />
+          <CurrencyDisplay amount={row.amount} showStyling={false} />
         </span>
       ),
       method: (
         <span className="capitalize text-xs font-semibold text-muted-foreground px-2 py-0.5 rounded bg-muted/60">
-          {item.payment_method?.replace(/_/g, ' ') || 'Cash'}
+          {row.payment_method?.replace(/_/g, ' ') || 'Cash'}
         </span>
       ),
       date: (
         <span className="text-xs text-muted-foreground font-medium">
-          {item.date_paid ? format(new Date(item.date_paid), 'MMM dd, yyyy') : '—'}
+          {row.disbursal_date ? format(new Date(row.disbursal_date), 'MMM dd, yyyy') : '—'}
         </span>
       ),
-      status: (
+      status: row.is_run ? (
+        row.status === 'logged' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-3 w-3" /> Logged
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400">
+            <AlertCircle className="h-3 w-3" /> {row.recipients_text} Logged
+          </span>
+        )
+      ) : row.status === 'voided' ? (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
+          <XCircle className="h-3 w-3" /> Voided
+        </span>
+      ) : (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
           <CheckCircle2 className="h-3 w-3" /> Paid & Logged
         </span>
       ),
       rowActions,
-      __record: item,
+      __record: row.__record,
+      __is_run: row.is_run,
     };
   });
 
@@ -280,9 +348,14 @@ export default function PayrollManagement() {
 
   // Action Click Handlers
   const handleRowActionClickLog = (actionKey: string, row: any) => {
-    if (actionKey === 'view_slip') {
-      setSelectedDisbursal(row.__record);
-      setIsPaySlipOpen(true);
+    if (actionKey === 'view_details') {
+      if (row.__is_run) {
+        setSelectedRun(row.__record);
+        setIsRunDetailsOpen(true);
+      } else {
+        setSelectedDisbursal(row.__record);
+        setIsPaySlipOpen(true);
+      }
     }
   };
 
@@ -304,13 +377,18 @@ export default function PayrollManagement() {
     }
   };
 
-  // Row Click Logic:
-  // Disbursal Log -> Open Pay Slip Drawer
-  // Salary Profiles -> Unconfigured opens setup; Configured opens Employee Details Drawer
+  // Row Click Logic
   const handleLogRowClick = (key: any) => {
-    const found = disbursalLog.find((d) => d.id === key);
-    if (found) {
-      setSelectedDisbursal(found);
+    const foundRun = payrollRuns.find((r) => r.id === key);
+    if (foundRun) {
+      setSelectedRun(foundRun);
+      setIsRunDetailsOpen(true);
+      return;
+    }
+
+    const foundDisbursal = disbursalLog.find((d) => d.id === key);
+    if (foundDisbursal) {
+      setSelectedDisbursal(foundDisbursal);
       setIsPaySlipOpen(true);
     }
   };
@@ -329,12 +407,14 @@ export default function PayrollManagement() {
   };
 
   // KPI Calculations
-  const monthTotalDisbursed = disbursalLog.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  const monthTotalDisbursed = disbursalLog
+    .filter((d) => d.status !== 'voided')
+    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   const platformDisbursed = disbursalLog
-    .filter((d) => !d.is_off_platform)
+    .filter((d) => !d.is_off_platform && d.status !== 'voided')
     .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   const externalDisbursed = disbursalLog
-    .filter((d) => d.is_off_platform)
+    .filter((d) => d.is_off_platform && d.status !== 'voided')
     .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
   const totalMonthlyPayroll = salaryProfiles.reduce((acc, curr) => acc + (Number(curr.base_amount) || 0), 0);
@@ -347,7 +427,7 @@ export default function PayrollManagement() {
 
   const configuredCount = salaryProfiles.length;
   const totalRosterCount = unifiedProfiles.length;
-  const lastDisbursalDate = disbursalLog[0]?.date_paid;
+  const lastDisbursalDate = disbursalLog[0]?.date_paid || payrollRuns[0]?.disbursal_date;
 
   const profileFilterOptions = [
     { name: 'All Roster', uid: 'all' },
@@ -444,7 +524,7 @@ export default function PayrollManagement() {
           isLoading={isLoading}
           title=""
           showSearch={true}
-          searchPlaceholder="Search disbursals by staff name or pay period..."
+          searchPlaceholder="Search disbursals by pay period or recipient..."
           showDateFilter={true}
           dateFilterValue={dateFilter}
           onDateFilterChange={(val) => setDateFilter(val)}
@@ -479,10 +559,6 @@ export default function PayrollManagement() {
           }
           filterOptions={profileFilterOptions}
           filterValue={new Set([profileFilter])}
-          onFilterChange={(keys) => {
-            const selected = Array.from(keys)[0]?.toString() || 'all';
-            setProfileFilter(selected as any);
-          }}
           topActions={[
             {
               title: 'Add External Staff',
@@ -604,7 +680,18 @@ export default function PayrollManagement() {
         disbursal={selectedDisbursal}
       />
 
-      {/* Drawer 2: Staff Payroll Details Drawer */}
+      {/* Drawer 2: Batch Payroll Run Details Drawer */}
+      <PayrollRunDetailsDrawer
+        isOpen={isRunDetailsOpen}
+        onClose={() => {
+          setIsRunDetailsOpen(false);
+          setSelectedRun(null);
+        }}
+        run={selectedRun}
+        onRefresh={fetchPayrollData}
+      />
+
+      {/* Drawer 3: Staff Payroll Details Drawer */}
       <StaffPayrollDetailsDrawer
         isOpen={isStaffDetailsOpen}
         onClose={() => {
