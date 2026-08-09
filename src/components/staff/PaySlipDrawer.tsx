@@ -15,6 +15,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import DisburalLineActions from '@/components/staff/DisburalLineActions';
+import AuditLogPopover from '@/components/staff/AuditLogPopover';
 
 interface PaySlipDrawerProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
   if (!disbursal) return null;
 
   const isVoided = disbursal.status === 'voided';
+  const hasLastEdit = Boolean(disbursal.last_edited_by_name || disbursal.last_edited_at || disbursal.edit_reason);
 
   const handleSuccess = () => {
     onClose();
@@ -49,17 +51,34 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
           <div className="pt-1 px-2 flex items-center justify-between border-b border-border pb-3">
             <div>
               <h2 className="text-xl font-bold text-foreground">Disbursal Pay Slip</h2>
-              <p className="text-xs text-muted-foreground font-normal">Official Salary Disbursal Record</p>
+              <div className="flex flex-col text-xs text-muted-foreground font-normal">
+                <span>
+                  Disbursed by <strong className="text-foreground">{disbursal.created_by_name || 'System Owner'}</strong>
+                </span>
+
+                {/* Only render "Last edited" if touched */}
+                {hasLastEdit && (
+                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                    Last edited by <strong>{disbursal.last_edited_by_name || 'Manager'}</strong> on{' '}
+                    {disbursal.last_edited_at ? format(new Date(disbursal.last_edited_at), 'MMM dd, yyyy - hh:mm a') : 'Recent'}
+                  </span>
+                )}
+              </div>
             </div>
-            {isVoided ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
-                <XCircle className="h-3.5 w-3.5" /> Voided
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-green-300/10 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Disbursed &amp; Logged
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {isVoided ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
+                  <XCircle className="h-3.5 w-3.5" /> Voided
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-green-300/10 text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Disbursed &amp; Logged
+                </span>
+              )}
+
+              {/* Interactive Audit Popover */}
+              <AuditLogPopover item={disbursal} variant="icon" />
+            </div>
           </div>
         }
         body={
@@ -140,6 +159,13 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                     <span className="text-xs text-foreground italic text-right">{disbursal.note}</span>
                   </div>
                 )}
+
+                {disbursal.edit_reason && !isVoided && (
+                  <div className="flex items-start justify-between gap-4 pt-1 border-t border-border/40">
+                    <span className="text-amber-600 dark:text-amber-400 text-xs font-medium shrink-0">Modification Reason</span>
+                    <span className="text-xs text-foreground italic text-right">{disbursal.edit_reason}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -174,9 +200,6 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                 <Button variant="default" size="sm" onClick={() => window.print()} className="gap-1.5">
                   <Printer className="h-3.5 w-3.5" /> Print
                 </Button>
-                {/* <Button size="sm" onClick={onClose}>
-                  Close
-                </Button> */}
               </div>
             </div>
           </div>

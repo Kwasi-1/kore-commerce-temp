@@ -1765,16 +1765,22 @@ export function setupMockApi() {
     const body = JSON.parse(config.data || '{}');
     const idx = mockPayrollDisbursals.findIndex((d) => d.id === id);
     if (idx !== -1) {
+      const now = new Date().toISOString();
       mockPayrollDisbursals[idx] = {
         ...mockPayrollDisbursals[idx],
         ...body,
         amount: body.amount !== undefined ? parseFloat(body.amount) : mockPayrollDisbursals[idx].amount,
+        last_edited_by_name: 'Kwame Mensah',
+        last_edited_at: now,
+        edit_reason: body.reason || mockPayrollDisbursals[idx].edit_reason,
       };
 
       // Also update in parent run if exists
       mockPayrollRuns.forEach((run) => {
         const itemIdx = run.items?.findIndex((i: any) => i.id === id);
         if (itemIdx !== undefined && itemIdx !== -1) {
+          run.last_edited_by_name = 'Kwame Mensah';
+          run.last_edited_at = now;
           run.items[itemIdx] = { ...mockPayrollDisbursals[idx] };
           run.total_amount = run.items.filter((i: any) => i.status !== 'voided').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
         }
@@ -1793,14 +1799,19 @@ export function setupMockApi() {
 
     const idx = mockPayrollDisbursals.findIndex((d) => d.id === id);
     if (idx !== -1) {
+      const now = new Date().toISOString();
       mockPayrollDisbursals[idx].status = 'voided';
       mockPayrollDisbursals[idx].reversal_reason = body.reason || 'Reversed by manager';
-      mockPayrollDisbursals[idx].date_voided = new Date().toISOString();
+      mockPayrollDisbursals[idx].date_voided = now;
+      mockPayrollDisbursals[idx].last_edited_by_name = 'Kwame Mensah';
+      mockPayrollDisbursals[idx].last_edited_at = now;
 
       // Also update parent run
       mockPayrollRuns.forEach((run) => {
         const itemIdx = run.items?.findIndex((i: any) => i.id === id);
         if (itemIdx !== undefined && itemIdx !== -1) {
+          run.last_edited_by_name = 'Kwame Mensah';
+          run.last_edited_at = now;
           run.items[itemIdx] = { ...mockPayrollDisbursals[idx] };
           const activeItems = run.items.filter((i: any) => i.status !== 'voided');
           run.recipients_count = activeItems.length;

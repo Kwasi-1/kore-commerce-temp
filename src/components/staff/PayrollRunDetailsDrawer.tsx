@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DisburalLineActions from '@/components/staff/DisburalLineActions';
+import AuditLogPopover from '@/components/staff/AuditLogPopover';
 
 interface PayrollRunDetailsDrawerProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export default function PayrollRunDetailsDrawer({
 
   const rows = items.map((item: any) => {
     const isVoided = item.status === 'voided';
+    const isEdited = Boolean(item.last_edited_by || item.last_edited_by_name || item.edit_reason);
 
     return {
       id: item.id,
@@ -71,21 +73,21 @@ export default function PayrollRunDetailsDrawer({
           {item.payment_method?.replace(/_/g, ' ') || 'Cash'}
         </span>
       ),
-      status: isVoided ? (
-        <div className="flex flex-col">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-400/10 text-rose-600 dark:text-rose-400">
-            <XCircle className="h-3 w-3" /> Voided
-          </span>
-          {item.reversal_reason && (
-            <span className="text-[10px] text-muted-foreground italic truncate max-w-[120px]" title={item.reversal_reason}>
-              {item.reversal_reason}
+      status: (
+        <div className="flex items-center gap-1.5">
+          {isVoided ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-400/10 text-rose-600 dark:text-rose-400">
+              <XCircle className="h-3 w-3" /> Voided
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-green-400/10 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-3 w-3" /> Logged
             </span>
           )}
+
+          {/* Interactive Popover Audit Badge for modified or voided lines */}
+          <AuditLogPopover item={item} variant="badge" />
         </div>
-      ) : (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-green-400/10 text-green-600 dark:text-green-400">
-          <CheckCircle2 className="h-3 w-3" /> Logged
-        </span>
       ),
       actions: !isVoided ? (
         <div className="flex items-center gap-1">
@@ -114,6 +116,8 @@ export default function PayrollRunDetailsDrawer({
     };
   });
 
+  const hasLastEdit = Boolean(run.last_edited_by_name || run.last_edited_at);
+
   return (
     <>
       <CustomModal
@@ -126,10 +130,20 @@ export default function PayrollRunDetailsDrawer({
           <div className="pt-3 px-2 border-b border-border pb-3 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-foreground">{run.pay_period} Payroll Run</h2>
-              <p className="text-xs text-muted-foreground font-normal">
-                Disbursed on {run.disbursal_date ? format(new Date(run.disbursal_date), 'MMM dd, yyyy') : '—'} by{' '}
-                {run.created_by_name || 'System'}
-              </p>
+              <div className="flex flex-col text-xs text-muted-foreground font-normal">
+                <span>
+                  Disbursed on {run.disbursal_date ? format(new Date(run.disbursal_date), 'MMM dd, yyyy') : '—'} by{' '}
+                  {run.created_by_name || 'System Owner'}
+                </span>
+
+                {/* Only render "Last edited" if run was actually edited */}
+                {hasLastEdit && (
+                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                    Last edited by <strong>{run.last_edited_by_name || 'Manager'}</strong> on{' '}
+                    {run.last_edited_at ? format(new Date(run.last_edited_at), 'MMM dd, yyyy - hh:mm a') : 'Recent'}
+                  </span>
+                )}
+              </div>
             </div>
             {run.status === 'logged' ? (
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-green-400/10 text-green-600 dark:text-green-400">
