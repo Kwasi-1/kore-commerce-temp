@@ -24,6 +24,12 @@ const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
 ];
 
+const COMPENSATION_TYPES = [
+  { value: 'monthly_salary', label: 'Monthly Base Salary' },
+  { value: 'weekly_salary', label: 'Weekly Salary' },
+  { value: 'hourly_rate', label: 'Hourly / Day Rate' },
+];
+
 export default function AddOffPlatformStaffModal({
   onSuccess,
   onCancel,
@@ -33,6 +39,7 @@ export default function AddOffPlatformStaffModal({
     full_name: '',
     phone: '',
     role_title: 'Cleaner / Janitor',
+    compensation_type: 'monthly_salary',
     base_salary: '',
     payment_method: 'mobile_money',
     account_number: '',
@@ -100,17 +107,27 @@ export default function AddOffPlatformStaffModal({
           }}
         />
 
-        <CustomInputTextField
-          label="Base Monthly / Contract Pay"
-          name="base_salary"
-          type="number"
-          step="0.01"
-          value={formData.base_salary}
-          onChange={handleChange}
-          required
-          placeholder="0.00"
+        <CustomSelectField
+          label="Compensation Structure"
+          options={COMPENSATION_TYPES}
+          value={formData.compensation_type}
+          inputProps={{
+            name: 'compensation_type',
+            onChange: (e) => setFormData((prev) => ({ ...prev, compensation_type: e.target.value })),
+          }}
         />
       </div>
+
+      <CustomInputTextField
+        label="Base Compensation Pay"
+        name="base_salary"
+        type="number"
+        step="0.01"
+        value={formData.base_salary}
+        onChange={handleChange}
+        required
+        placeholder="0.00"
+      />
 
       <CustomSelectField
         label="Disbursal Payment Method"

@@ -105,19 +105,19 @@ export default function ProcessPayrollModal({
       {/* Staff Selection List */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <label className="text-xs font-semibold uppercase !tracking-wider text-muted-foreground">
             Select Recipients ({selectedStaffIds.length} of {profiles.length})
           </label>
           <button
             type="button"
             onClick={toggleSelectAll}
-            className="text-xs text-primary font-semibold hover:underline cursor-pointer"
+            className="text-xs text-muted-foreground/50 font-semibold hover:underline cursor-pointer"
           >
             {selectedStaffIds.length === profiles.length ? 'Deselect All' : 'Select All'}
           </button>
         </div>
 
-        <div className="max-h-60 overflow-y-auto border border-border rounded-xl divide-y divide-border/60 bg-muted/20">
+        <div className="max-h-60 overflow-y-auto rounded divide-y divide-border/60 bg-muted/30">
           {profiles.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               No staff salary profiles found. Please configure salary profiles first.
@@ -135,7 +135,7 @@ export default function ProcessPayrollModal({
                     <div
                       className={`h-5 w-5 rounded border flex items-center justify-center transition-colors ${
                         isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
+                          ? 'text-primary-foreground border-primary'
                           : 'border-border bg-background'
                       }`}
                     >
@@ -145,7 +145,7 @@ export default function ProcessPayrollModal({
                       <p className="text-sm font-bold text-foreground">
                         {p.full_name || p.name}
                         {p.is_off_platform && (
-                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-600 dark:text-purple-400 font-semibold">
                             External
                           </span>
                         )}
@@ -166,7 +166,7 @@ export default function ProcessPayrollModal({
       </div>
 
       {/* Summary Total Banner */}
-      <div className="p-3.5 rounded-xl bg-card border border-border/80 flex items-center justify-between">
+      <div className="p-3.5 rounded-md bg-card border border-border/80 flex items-center justify-between">
         <span className="text-sm font-semibold text-muted-foreground">Total Payroll Payout:</span>
         <span className="text-lg font-bold text-foreground">
           <CurrencyDisplay amount={totalPayout} />

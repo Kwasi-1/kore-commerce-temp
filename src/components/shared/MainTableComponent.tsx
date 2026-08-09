@@ -511,7 +511,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                 isIconOnly
                 variant="flat"
                 size="sm"
-                className="border border-border text-muted-foreground hover:text-foreground md:hidden rounded-lg bg-muted/50"
+                className="border border-border text-muted-foreground hover:text-foreground md:hidden rounded-md bg-muted/50"
                 onPress={onRefresh}
                 title="Refresh"
               >
@@ -676,7 +676,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   isIconOnly
                   variant="flat"
                   size="sm"
-                  className="hidden md:inline-flex border border-border text-muted-foreground hover:text-foreground h-[35px] w-[35px]"
+                  className="hidden md:inline-flex border border-border rounded-md bg-muted/60 text-muted-foreground hover:text-foreground h-[35px] w-[35px]"
                   onPress={onRefresh}
                   title="Refresh"
                 >

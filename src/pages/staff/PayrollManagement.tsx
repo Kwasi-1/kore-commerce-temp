@@ -461,13 +461,7 @@ export default function PayrollManagement() {
               className: 'border-1 rounded',
             },
           ]}
-          showAddButton={true}
-          addButtonText="Configure Salary"
-          addButtonIcon="ph:plus-bold"
-          onAddButtonClick={() => {
-            setEditingProfile(null);
-            setIsProfileModalOpen(true);
-          }}
+          showAddButton={false}
           onRefresh={fetchPayrollData}
           onRowActionClick={handleRowActionClickProfiles}
           onclick={handleProfileRowClick}
@@ -486,7 +480,7 @@ export default function PayrollManagement() {
         size="lg"
         classNames={{ base: "sm:w-[520px]" }}
         header={
-          <div className="pt-4 px-2">
+          <div className="pt-3 px-2 border-b border-border pb-3">
             <h2 className="text-xl font-bold">Process Payroll Run</h2>
             <p className="text-sm text-muted-foreground font-normal">Disburse salaries for selected staff and log expenses.</p>
           </div>

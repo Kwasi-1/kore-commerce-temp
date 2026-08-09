@@ -44,9 +44,9 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal }: PaySlipDra
         </div>
       }
       body={
-        <div className="space-y-6 pt-3 pb-4">
+        <div className="space-y-6 pb-4">
           {/* Main Amount Card */}
-          <div className="p-4 rounded-2xl bg-card border border-border flex flex-col items-center justify-center text-center shadow-xs">
+          <div className="p-4 rounded-md bg-card border border-border flex flex-col items-center justify-center text-center shadow-xs">
             <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Net Salary Payout</span>
             <div className="text-3xl font-extrabold text-foreground mt-1">
               <CurrencyDisplay amount={disbursal.amount} />
@@ -60,7 +60,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal }: PaySlipDra
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recipient Details</h3>
             
-            <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-2 text-sm">
+            <div className="p-3.5 bg-muted/30 space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <User className="h-3.5 w-3.5" /> Staff Recipient
@@ -98,7 +98,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal }: PaySlipDra
           </div>
 
           {/* Accounting & Expense Link */}
-          <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+          <div className="p-3.5 rounded-md bg-primary/5 border border-primary/20 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">Accounting Expense Sync:</span>
               <span className="text-xs font-bold text-primary">Posted to Expense Log</span>

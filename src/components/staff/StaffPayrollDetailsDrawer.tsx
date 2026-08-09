@@ -94,16 +94,16 @@ export default function StaffPayrollDetailsDrawer({
               External Staff
             </span>
           ) : (
-            <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-muted/50 text-muted-foreground">
               Platform POS User
             </span>
           )}
         </div>
       }
       body={
-        <div className="space-y-5 pt-3 pb-4">
+        <div className="space-y-4 pb-4">
           {/* Base Salary Card */}
-          <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between shadow-xs">
+          <div className="p-4 rounded-md bg-card border border-border flex items-center justify-between shadow-xs">
             <div>
               <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Base Compensation</span>
               <div className="text-2xl font-extrabold text-foreground mt-0.5">
@@ -144,7 +144,7 @@ export default function StaffPayrollDetailsDrawer({
           </div>
 
           {/* Account Details */}
-          <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-2 text-sm">
+          <div className="p-3.5 rounded-md bg-muted/30 space-y-2 text-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Disbursal Account Info</h3>
             
             <div className="flex items-center justify-between text-xs">
