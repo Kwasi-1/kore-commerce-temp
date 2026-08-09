@@ -133,7 +133,7 @@ export default function DisburalLineActions({
           </div>
         }
         body={
-          <div className="space-y-4 pb-4">
+          <div className="space-y-3 pb-4">
             <CustomInputTextField
               label="New Amount"
               type="number"
