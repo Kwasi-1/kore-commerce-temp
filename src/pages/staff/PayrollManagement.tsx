@@ -89,7 +89,7 @@ export default function PayrollManagement() {
       </span>
     ),
     status: (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400 ">
         <CheckCircle2 className="h-3 w-3" /> Paid & Logged
       </span>
     ),
@@ -114,7 +114,7 @@ export default function PayrollManagement() {
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">{p.full_name || p.name}</span>
           {p.is_off_platform && (
-            <span className="inline-block text-[10px] w-fit font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+            <span className="inline-block text-[10px] w-fit font-bold px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-600 dark:text-purple-400 ">
               External Staff
             </span>
           )}
