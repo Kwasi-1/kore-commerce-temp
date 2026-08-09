@@ -225,7 +225,7 @@ export default function PayrollManagement() {
           value={
             isLoading ? '...' : lastDisbursal ? format(new Date(lastDisbursal), 'MMM dd, yyyy') : 'No runs yet'
           }
-          valueStyle={!isLoading && 'lg:text-lg xl:text-lg font-header tracking'}
+          valueStyle={!isLoading && 'lg:text-lg xl:text-lg font-header tracking-tight'}
         />
       </div>
 
@@ -272,6 +272,7 @@ export default function PayrollManagement() {
       )}
 
       {/* Action to add Off-Platform Staff */}
+      {activeTab === 'profiles' && (
       <div className="mt-4 flex items-center justify-between p-4 rounded-lg bg-card border border-border/80 text-xs">
         <div>
           <p className="font-bold text-foreground text-sm">Managing Cleaners, Security or Off-Platform Contractors?</p>
@@ -287,6 +288,7 @@ export default function PayrollManagement() {
           Add External Staff
         </Button>
       </div>
+      )}
 
       {/* Modal 1: Process Payroll */}
       <CustomModal
