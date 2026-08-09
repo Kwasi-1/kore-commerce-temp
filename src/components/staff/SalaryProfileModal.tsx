@@ -3,6 +3,12 @@ import { CustomInputTextField, CustomSelectField } from '@/components/shared/tex
 import { Button } from '@/components/ui/button';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import {
+  getMoMoNetworkOptions,
+  getBankOptions,
+  saveCustomMoMoNetwork,
+  saveCustomBank,
+} from '@/utils/paymentProviders';
 
 interface SalaryProfileModalProps {
   initialData?: any;
@@ -36,21 +42,77 @@ export default function SalaryProfileModal({
     base_amount: initialData?.base_amount || '',
     payment_method: initialData?.payment_method || 'bank_transfer',
     account_number: initialData?.account_number || '',
-    bank_or_momo_name: initialData?.bank_or_momo_name || '',
+    bank_or_momo_name: initialData?.bank_or_momo_name || 'Ecobank Ghana',
   });
+
+  const [providerSelect, setProviderSelect] = useState<string>(
+    initialData?.bank_or_momo_name || 'Ecobank Ghana'
+  );
+  const [customProviderInput, setCustomProviderInput] = useState<string>('');
+
+  const providerOptions =
+    formData.payment_method === 'bank_transfer' ? getBankOptions() : getMoMoNetworkOptions();
 
   useEffect(() => {
     if (initialData) {
+      const initialBankOrMomo = initialData.bank_or_momo_name || '';
       setFormData({
         staff_id: initialData.staff_id || '',
         compensation_type: initialData.compensation_type || 'monthly_salary',
         base_amount: initialData.base_amount || '',
         payment_method: initialData.payment_method || 'bank_transfer',
         account_number: initialData.account_number || '',
-        bank_or_momo_name: initialData.bank_or_momo_name || '',
+        bank_or_momo_name: initialBankOrMomo,
       });
+
+      // Check if initial provider is in standard options list
+      const options =
+        (initialData.payment_method || 'bank_transfer') === 'bank_transfer'
+          ? getBankOptions()
+          : getMoMoNetworkOptions();
+      const inOptions = options.some((o) => o.value === initialBankOrMomo && o.value !== 'other');
+      if (inOptions) {
+        setProviderSelect(initialBankOrMomo);
+        setCustomProviderInput('');
+      } else if (initialBankOrMomo) {
+        setProviderSelect('other');
+        setCustomProviderInput(initialBankOrMomo);
+      }
     }
   }, [initialData]);
+
+  // Sync provider selection when payment_method changes manually
+  const handlePaymentMethodChange = (method: string) => {
+    setFormData((prev) => ({ ...prev, payment_method: method }));
+    if (method === 'bank_transfer') {
+      const defaultBank = 'Ecobank Ghana';
+      setProviderSelect(defaultBank);
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: defaultBank }));
+    } else if (method === 'mobile_money') {
+      const defaultMoMo = 'MTN Mobile Money';
+      setProviderSelect(defaultMoMo);
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: defaultMoMo }));
+    } else {
+      setProviderSelect('');
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: '' }));
+    }
+    setCustomProviderInput('');
+  };
+
+  const handleProviderSelectChange = (val: string) => {
+    setProviderSelect(val);
+    if (val === 'other') {
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: customProviderInput }));
+    } else {
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: val }));
+    }
+  };
+
+  const handleCustomProviderInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomProviderInput(val);
+    setFormData((prev) => ({ ...prev, bank_or_momo_name: val }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -62,6 +124,15 @@ export default function SalaryProfileModal({
     if (!formData.base_amount || Number(formData.base_amount) <= 0) {
       toast.error('Please enter a valid base salary/rate');
       return;
+    }
+
+    // Save custom provider to local persistence if added via 'other'
+    if (providerSelect === 'other' && customProviderInput.trim()) {
+      if (formData.payment_method === 'bank_transfer') {
+        saveCustomBank(customProviderInput.trim());
+      } else if (formData.payment_method === 'mobile_money') {
+        saveCustomMoMoNetwork(customProviderInput.trim());
+      }
     }
 
     setLoading(true);
@@ -101,7 +172,7 @@ export default function SalaryProfileModal({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 px-2">
       {initialData || targetStaffName ? (
-        <div className="p-3.5 rounded-md bg-muted/40  flex items-center justify-between shadow-2xs">
+        <div className="p-3.5 rounded-md bg-muted/40 flex items-center justify-between shadow-2xs">
           <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Staff Member</span>
           <div className="text-right">
             <span className="font-bold text-sm text-foreground block">{targetStaffName || 'Selected Staff'}</span>
@@ -149,27 +220,41 @@ export default function SalaryProfileModal({
         value={formData.payment_method}
         inputProps={{
           name: 'payment_method',
-          onChange: (e) => setFormData((prev) => ({ ...prev, payment_method: e.target.value })),
+          onChange: (e) => handlePaymentMethodChange(e.target.value),
         }}
       />
 
       {formData.payment_method !== 'cash' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CustomInputTextField
-            label={formData.payment_method === 'bank_transfer' ? 'Bank Name' : 'MoMo Provider (e.g. MTN/Telecel)'}
-            name="bank_or_momo_name"
-            value={formData.bank_or_momo_name}
-            onChange={handleChange}
-            placeholder={formData.payment_method === 'bank_transfer' ? 'e.g. GCB Bank' : 'e.g. MTN Mobile Money'}
-          />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CustomSelectField
+              label={formData.payment_method === 'bank_transfer' ? 'Bank Name' : 'MoMo Network'}
+              options={providerOptions}
+              value={providerSelect}
+              inputProps={{
+                onChange: (e) => handleProviderSelectChange(e.target.value),
+              }}
+            />
 
-          <CustomInputTextField
-            label={formData.payment_method === 'bank_transfer' ? 'Account Number' : 'MoMo Phone Number'}
-            name="account_number"
-            value={formData.account_number}
-            onChange={handleChange}
-            placeholder={formData.payment_method === 'bank_transfer' ? '1234567890' : '0240000000'}
-          />
+            <CustomInputTextField
+              label={formData.payment_method === 'bank_transfer' ? 'Account Number' : 'MoMo Phone Number'}
+              name="account_number"
+              value={formData.account_number}
+              onChange={handleChange}
+              placeholder={formData.payment_method === 'bank_transfer' ? '1234567890' : '0240000000'}
+            />
+          </div>
+
+          {providerSelect === 'other' && (
+            <CustomInputTextField
+              label={formData.payment_method === 'bank_transfer' ? 'Custom Bank Name' : 'Custom MoMo Network Name'}
+              name="custom_provider"
+              value={customProviderInput}
+              onChange={handleCustomProviderInputChange}
+              required
+              placeholder={formData.payment_method === 'bank_transfer' ? 'e.g. Zenith Bank' : 'e.g. ExpressPay'}
+            />
+          )}
         </div>
       )}
 
@@ -178,7 +263,7 @@ export default function SalaryProfileModal({
           Cancel
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : initialData ? 'Update Profile' : 'Save Salary Profile'}
+          {loading ? 'Saving...' : initialData?.id ? 'Update Profile' : 'Save Salary Profile'}
         </Button>
       </div>
     </form>

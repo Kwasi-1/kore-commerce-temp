@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import {
+  getMoMoNetworkOptions,
+  getBankOptions,
+  saveCustomMoMoNetwork,
+  saveCustomBank,
+} from '@/utils/paymentProviders';
 
 interface AddOffPlatformStaffModalProps {
   onSuccess: () => void;
@@ -43,12 +49,48 @@ export default function AddOffPlatformStaffModal({
     base_salary: '',
     payment_method: 'mobile_money',
     account_number: '',
-    bank_or_momo_name: '',
+    bank_or_momo_name: 'MTN Mobile Money',
   });
+
+  const [providerSelect, setProviderSelect] = useState<string>('MTN Mobile Money');
+  const [customProviderInput, setCustomProviderInput] = useState<string>('');
+
+  const providerOptions =
+    formData.payment_method === 'bank_transfer' ? getBankOptions() : getMoMoNetworkOptions();
+
+  // Reset default provider when payment method changes
+  useEffect(() => {
+    if (formData.payment_method === 'bank_transfer') {
+      setProviderSelect('Ecobank Ghana');
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: 'Ecobank Ghana' }));
+    } else if (formData.payment_method === 'mobile_money') {
+      setProviderSelect('MTN Mobile Money');
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: 'MTN Mobile Money' }));
+    } else {
+      setProviderSelect('');
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: '' }));
+    }
+    setCustomProviderInput('');
+  }, [formData.payment_method]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProviderSelectChange = (val: string) => {
+    setProviderSelect(val);
+    if (val === 'other') {
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: customProviderInput }));
+    } else {
+      setFormData((prev) => ({ ...prev, bank_or_momo_name: val }));
+    }
+  };
+
+  const handleCustomProviderInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomProviderInput(val);
+    setFormData((prev) => ({ ...prev, bank_or_momo_name: val }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +102,15 @@ export default function AddOffPlatformStaffModal({
     if (!formData.base_salary || Number(formData.base_salary) <= 0) {
       toast.error('Please enter a valid base pay amount');
       return;
+    }
+
+    // Save custom provider to local persistence if added via 'other'
+    if (providerSelect === 'other' && customProviderInput.trim()) {
+      if (formData.payment_method === 'bank_transfer') {
+        saveCustomBank(customProviderInput.trim());
+      } else if (formData.payment_method === 'mobile_money') {
+        saveCustomMoMoNetwork(customProviderInput.trim());
+      }
     }
 
     setLoading(true);
@@ -140,22 +191,36 @@ export default function AddOffPlatformStaffModal({
       />
 
       {formData.payment_method !== 'cash' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CustomInputTextField
-            label={formData.payment_method === 'bank_transfer' ? 'Bank Name' : 'MoMo Network'}
-            name="bank_or_momo_name"
-            value={formData.bank_or_momo_name}
-            onChange={handleChange}
-            placeholder={formData.payment_method === 'bank_transfer' ? 'e.g. Ecobank' : 'e.g. MTN MoMo'}
-          />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CustomSelectField
+              label={formData.payment_method === 'bank_transfer' ? 'Bank Name' : 'MoMo Network'}
+              options={providerOptions}
+              value={providerSelect}
+              inputProps={{
+                onChange: (e) => handleProviderSelectChange(e.target.value),
+              }}
+            />
 
-          <CustomInputTextField
-            label={formData.payment_method === 'bank_transfer' ? 'Account Number' : 'MoMo Number'}
-            name="account_number"
-            value={formData.account_number}
-            onChange={handleChange}
-            placeholder="0240000000"
-          />
+            <CustomInputTextField
+              label={formData.payment_method === 'bank_transfer' ? 'Account Number' : 'MoMo Number'}
+              name="account_number"
+              value={formData.account_number}
+              onChange={handleChange}
+              placeholder="0240000000"
+            />
+          </div>
+
+          {providerSelect === 'other' && (
+            <CustomInputTextField
+              label={formData.payment_method === 'bank_transfer' ? 'Custom Bank Name' : 'Custom MoMo Network Name'}
+              name="custom_provider"
+              value={customProviderInput}
+              onChange={handleCustomProviderInputChange}
+              required
+              placeholder={formData.payment_method === 'bank_transfer' ? 'e.g. Zenith Bank' : 'e.g. ExpressPay'}
+            />
+          )}
         </div>
       )}
 
