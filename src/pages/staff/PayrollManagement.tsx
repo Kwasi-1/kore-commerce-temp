@@ -520,7 +520,11 @@ export default function PayrollManagement() {
         classNames={{ base: "sm:w-[500px]" }}
         header={
           <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold">{editingProfile?.id ? 'Edit Salary Profile' : 'Configure Salary Profile'}</h2>
+            <h2 className="text-xl font-bold">
+              {editingProfile?.full_name || editingProfile?.name
+                ? `Salary Profile — ${editingProfile.full_name || editingProfile.name}`
+                : 'Configure Salary Profile'}
+            </h2>
             <p className="text-sm text-muted-foreground font-normal">Set base compensation and payment details.</p>
           </div>
         }

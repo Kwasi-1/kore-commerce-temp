@@ -82,14 +82,33 @@ export default function SalaryProfileModal({
     }
   };
 
+  const selectedStaffObj = staffList.find((s) => s.id === formData.staff_id);
+  const targetStaffName =
+    initialData?.full_name ||
+    initialData?.name ||
+    (selectedStaffObj ? `${selectedStaffObj.first_name || ''} ${selectedStaffObj.last_name || ''}`.trim() || selectedStaffObj.name : '');
+  const targetStaffRole =
+    initialData?.role_title ||
+    initialData?.role ||
+    selectedStaffObj?.role ||
+    'Staff';
+
   const staffOptions = staffList.map((s) => ({
     value: s.id,
-    label: `${s.name || s.full_name || s.first_name} (${s.role || 'Staff'})`,
+    label: `${s.name || s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim()} (${s.role || 'Staff'})`,
   }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 px-2">
-      {!initialData && (
+      {initialData || targetStaffName ? (
+        <div className="p-3.5 rounded-md bg-muted/40  flex items-center justify-between shadow-2xs">
+          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Staff Member</span>
+          <div className="text-right">
+            <span className="font-bold text-sm text-foreground block">{targetStaffName || 'Selected Staff'}</span>
+            <span className="text-[11px] font-medium text-muted-foreground capitalize">{targetStaffRole}</span>
+          </div>
+        </div>
+      ) : (
         <CustomSelectField
           label="Select Staff Member"
           options={staffOptions}
