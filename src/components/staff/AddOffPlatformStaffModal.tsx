@@ -93,7 +93,7 @@ export default function AddOffPlatformStaffModal({
         <CustomSelectField
           label="Role / Title"
           options={ROLES}
-          selectedKey={formData.role_title}
+          value={formData.role_title}
           inputProps={{
             name: 'role_title',
             onChange: (e) => setFormData((prev) => ({ ...prev, role_title: e.target.value })),
@@ -115,7 +115,7 @@ export default function AddOffPlatformStaffModal({
       <CustomSelectField
         label="Disbursal Payment Method"
         options={PAYMENT_METHODS}
-        selectedKey={formData.payment_method}
+        value={formData.payment_method}
         inputProps={{
           name: 'payment_method',
           onChange: (e) => setFormData((prev) => ({ ...prev, payment_method: e.target.value })),

@@ -93,7 +93,7 @@ export default function SalaryProfileModal({
         <CustomSelectField
           label="Select Staff Member"
           options={staffOptions}
-          selectedKey={formData.staff_id}
+          value={formData.staff_id}
           inputProps={{
             name: 'staff_id',
             onChange: (e) => setFormData((prev) => ({ ...prev, staff_id: e.target.value })),
@@ -105,7 +105,7 @@ export default function SalaryProfileModal({
         <CustomSelectField
           label="Compensation Structure"
           options={COMPENSATION_TYPES}
-          selectedKey={formData.compensation_type}
+          value={formData.compensation_type}
           inputProps={{
             name: 'compensation_type',
             onChange: (e) => setFormData((prev) => ({ ...prev, compensation_type: e.target.value })),
@@ -127,7 +127,7 @@ export default function SalaryProfileModal({
       <CustomSelectField
         label="Disbursal Payment Method"
         options={PAYMENT_METHODS}
-        selectedKey={formData.payment_method}
+        value={formData.payment_method}
         inputProps={{
           name: 'payment_method',
           onChange: (e) => setFormData((prev) => ({ ...prev, payment_method: e.target.value })),

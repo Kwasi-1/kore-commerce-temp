@@ -7,6 +7,7 @@ import SalaryProfileModal from '@/components/staff/SalaryProfileModal';
 import ProcessPayrollModal from '@/components/staff/ProcessPayrollModal';
 import AddOffPlatformStaffModal from '@/components/staff/AddOffPlatformStaffModal';
 import PaySlipDrawer from '@/components/staff/PaySlipDrawer';
+import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDrawer';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -29,7 +30,7 @@ export default function PayrollManagement() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters state
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [dateFilterRange, setDateFilterRange] = useState<any>({ range: 'this_month' });
   const [profileFilter, setProfileFilter] = useState<'all' | 'platform' | 'external'>('all');
 
   // Modals state
@@ -39,9 +40,12 @@ export default function PayrollManagement() {
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [singleRecipientId, setSingleRecipientId] = useState<string | undefined>(undefined);
 
-  // Pay Slip Drawer state
+  // Drawers state
   const [isPaySlipOpen, setIsPaySlipOpen] = useState(false);
   const [selectedDisbursal, setSelectedDisbursal] = useState<any>(null);
+
+  const [isStaffDetailsOpen, setIsStaffDetailsOpen] = useState(false);
+  const [selectedStaffProfile, setSelectedStaffProfile] = useState<any>(null);
 
   const fetchPayrollData = useCallback(async () => {
     setIsLoading(true);
@@ -103,19 +107,19 @@ export default function PayrollManagement() {
     return merged;
   }, [salaryProfiles, staffMembers, profileFilter]);
 
-  // Filter Disbursal Log by selected month
-  const filteredDisbursals = React.useMemo(() => {
-    if (!selectedMonth || selectedMonth === 'all') return disbursalLog;
-    return disbursalLog.filter((item) => {
-      const period = item.pay_period || item.period || '';
-      if (period.toLowerCase() === selectedMonth.toLowerCase()) return true;
-      if (item.date_paid) {
-        const itemMonth = format(new Date(item.date_paid), 'MMMM yyyy');
-        return itemMonth.toLowerCase() === selectedMonth.toLowerCase();
-      }
-      return false;
-    });
-  }, [disbursalLog, selectedMonth]);
+  // Delete external staff handler
+  const handleDeleteExternalStaff = async (profile: any) => {
+    if (!profile.id || profile.id.startsWith('unconfig_')) return;
+    try {
+      await apiClient.delete(`/tenant/payroll/profile/${profile.id}`);
+      toast.success('Staff profile removed from payroll');
+      setIsStaffDetailsOpen(false);
+      fetchPayrollData();
+    } catch (error) {
+      console.error('Delete profile error:', error);
+      toast.error('Failed to remove staff profile');
+    }
+  };
 
   // -------------------------------------------------------------
   // Table Definitions
@@ -130,7 +134,7 @@ export default function PayrollManagement() {
     { key: 'status', label: 'Status' },
   ];
 
-  const rowsLog = filteredDisbursals.map((item: any) => {
+  const rowsLog = disbursalLog.map((item: any) => {
     const rowActions = [
       { key: 'view_slip', label: 'View Pay Slip', icon: 'mdi:eye-outline' },
     ];
@@ -181,8 +185,9 @@ export default function PayrollManagement() {
 
   const rowsProfiles = unifiedProfiles.map((p: any) => {
     const rowActions = p.is_unconfigured
-      ? [{ key: 'setup_salary', label: 'Setup Salary', icon: 'mdi:plus-circle-outline' }]
+      ? [{ key: 'setup_salary', label: 'Setup Salary Profile', icon: 'mdi:plus-circle-outline' }]
       : [
+          { key: 'view_details', label: 'View Profile & History', icon: 'mdi:account-details-outline' },
           { key: 'pay_now', label: 'Pay Now (Single Disbursal)', icon: 'mdi:cash-send' },
           { key: 'edit', label: 'Edit Salary Profile', icon: 'mdi:pencil-outline' },
         ];
@@ -190,9 +195,11 @@ export default function PayrollManagement() {
     return {
       id: p.id,
       staff: (
-        <div className="flex flex-col">
+        <div className="flex flex-col cursor-pointer">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">{p.full_name || p.name}</span>
+            <span className="font-semibold text-foreground hover:text-primary transition-colors">
+              {p.full_name || p.name}
+            </span>
             {p.is_unconfigured && (
               <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-600 dark:text-amber-400">
                 Unconfigured
@@ -251,8 +258,14 @@ export default function PayrollManagement() {
   const handleRowActionClickProfiles = (actionKey: string, row: any) => {
     const record = row.__record;
 
-    if (actionKey === 'setup_salary' || actionKey === 'edit') {
-      setEditingProfile(record.is_unconfigured ? { staff_id: record.staff_id } : record);
+    if (actionKey === 'setup_salary') {
+      setEditingProfile({ staff_id: record.staff_id, full_name: record.full_name });
+      setIsProfileModalOpen(true);
+    } else if (actionKey === 'view_details') {
+      setSelectedStaffProfile(record);
+      setIsStaffDetailsOpen(true);
+    } else if (actionKey === 'edit') {
+      setEditingProfile(record);
       setIsProfileModalOpen(true);
     } else if (actionKey === 'pay_now') {
       setSingleRecipientId(record.id);
@@ -260,12 +273,36 @@ export default function PayrollManagement() {
     }
   };
 
+  // Row Click Logic:
+  // Disbursal Log -> Open Pay Slip Drawer
+  // Salary Profiles -> Unconfigured opens setup; Configured opens Employee Details Drawer
+  const handleLogRowClick = (key: any) => {
+    const found = disbursalLog.find((d) => d.id === key);
+    if (found) {
+      setSelectedDisbursal(found);
+      setIsPaySlipOpen(true);
+    }
+  };
+
+  const handleProfileRowClick = (key: any) => {
+    const found = unifiedProfiles.find((p) => p.id === key);
+    if (found) {
+      if (found.is_unconfigured) {
+        setEditingProfile({ staff_id: found.staff_id, full_name: found.full_name });
+        setIsProfileModalOpen(true);
+      } else {
+        setSelectedStaffProfile(found);
+        setIsStaffDetailsOpen(true);
+      }
+    }
+  };
+
   // KPI Calculations
-  const monthTotalDisbursed = filteredDisbursals.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const platformDisbursed = filteredDisbursals
+  const monthTotalDisbursed = disbursalLog.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  const platformDisbursed = disbursalLog
     .filter((d) => !d.is_off_platform)
     .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const externalDisbursed = filteredDisbursals
+  const externalDisbursed = disbursalLog
     .filter((d) => d.is_off_platform)
     .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
@@ -280,14 +317,6 @@ export default function PayrollManagement() {
   const configuredCount = salaryProfiles.length;
   const totalRosterCount = unifiedProfiles.length;
   const lastDisbursalDate = disbursalLog[0]?.date_paid;
-
-  // Filter options for MainTableComponent
-  const logFilterOptions = [
-    { name: 'All Months', uid: 'all' },
-    { name: 'August 2026', uid: 'August 2026' },
-    { name: 'July 2026', uid: 'July 2026' },
-    { name: 'June 2026', uid: 'June 2026' },
-  ];
 
   const profileFilterOptions = [
     { name: 'All Roster', uid: 'all' },
@@ -311,7 +340,6 @@ export default function PayrollManagement() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            {/* <History className="h-3.5 w-3.5" /> */}
             Disbursal Log
           </button>
           <button
@@ -324,7 +352,6 @@ export default function PayrollManagement() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            {/* <Users className="h-3.5 w-3.5" /> */}
             Salary Profiles ({totalRosterCount})
           </button>
         </div>
@@ -336,7 +363,7 @@ export default function PayrollManagement() {
         {activeTab === 'log' ? (
           <>
             <DashboardCard
-              title={selectedMonth === 'all' ? 'Total Disbursed' : `Disbursed (${selectedMonth})`}
+              title="Total Disbursed"
               value={isLoading ? '...' : <CurrencyDisplay amount={monthTotalDisbursed} />}
             />
             <DashboardCard
@@ -352,7 +379,7 @@ export default function PayrollManagement() {
               value={
                 isLoading ? '...' : lastDisbursalDate ? format(new Date(lastDisbursalDate), 'MMM dd, yyyy') : 'No runs yet'
               }
-              valueStyle={!isLoading && 'lg:text-lg xl:text-lg font-header tracking-tight'}
+              valueStyle={!isLoading ? 'lg:text-lg xl:text-lg font-header tracking-tight' : ''}
             />
           </>
         ) : (
@@ -372,13 +399,13 @@ export default function PayrollManagement() {
             <DashboardCard
               title="Roster Status"
               value={isLoading ? '...' : `${configuredCount} of ${totalRosterCount} Configured`}
-              valueStyle={!isLoading && 'lg:text-lg xl:text-lg font-header tracking-tight'}
+              valueStyle={!isLoading ? 'lg:text-lg xl:text-lg font-header tracking-tight' : ''}
             />
           </>
         )}
       </div>
 
-      {/* Main Table Component with integrated filters and actions */}
+      {/* Main Table Component with native Date Filter & Live Search */}
       {activeTab === 'log' ? (
         <EnhancedTableComponent
           columns={columnsLog}
@@ -386,15 +413,11 @@ export default function PayrollManagement() {
           isLoading={isLoading}
           title=""
           showSearch={true}
-          searchPlaceholder="Search disbursals..."
-          showFilter={true}
-          filterLabel={selectedMonth === 'all' ? 'Pay Period' : selectedMonth}
-          filterOptions={logFilterOptions}
-          filterValue={new Set([selectedMonth])}
-          onFilterChange={(keys) => {
-            const selected = Array.from(keys)[0]?.toString() || 'all';
-            setSelectedMonth(selected);
-          }}
+          searchPlaceholder="Search disbursals by staff name or pay period..."
+          showDateFilter={true}
+          dateFilterValue={dateFilterRange}
+          onDateFilterChange={(range) => setDateFilterRange(range)}
+          defaultDateFilterRange="this_month"
           showAddButton={true}
           addButtonText="Process Payroll Run"
           addButtonIcon="ph:paper-plane-tilt-bold"
@@ -404,6 +427,7 @@ export default function PayrollManagement() {
           }}
           onRefresh={fetchPayrollData}
           onRowActionClick={handleRowActionClickLog}
+          onclick={handleLogRowClick}
           mobileFriendly={true}
         />
       ) : (
@@ -413,7 +437,7 @@ export default function PayrollManagement() {
           isLoading={isLoading}
           title=""
           showSearch={true}
-          searchPlaceholder="Search staff roster..."
+          searchPlaceholder="Search staff roster by name or role..."
           showFilter={true}
           filterLabel={
             profileFilter === 'all'
@@ -434,7 +458,7 @@ export default function PayrollManagement() {
               icon: 'solar:user-plus-bold',
               variant: 'bordered',
               onPress: () => setIsOffPlatformModalOpen(true),
-              className: "border-1 rounded"
+              className: 'border-1 rounded',
             },
           ]}
           showAddButton={true}
@@ -446,27 +470,10 @@ export default function PayrollManagement() {
           }}
           onRefresh={fetchPayrollData}
           onRowActionClick={handleRowActionClickProfiles}
+          onclick={handleProfileRowClick}
           mobileFriendly={true}
         />
       )}
-
-      {/* Action Banner for Adding Off-Platform Staff (Profiles tab only) */}
-      {/* {activeTab === 'profiles' && (
-        <div className="mt-4 flex items-center justify-between p-4 rounded-lg bg-card border border-border/80 text-xs shadow-xs">
-          <div>
-            <p className="font-bold text-foreground text-sm">Managing Cleaners, Security or Off-Platform Contractors?</p>
-            <p className="text-muted-foreground">Add external staff to payroll without granting them POS login credentials.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsOffPlatformModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-bold transition-all cursor-pointer"
-          >
-            <UserPlus className="h-4 w-4" />
-            Add External Staff
-          </button>
-        </div>
-      )} */}
 
       {/* Modal 1: Process Payroll */}
       <CustomModal
@@ -558,7 +565,7 @@ export default function PayrollManagement() {
         }
       />
 
-      {/* Drawer: Pay Slip View */}
+      {/* Drawer 1: Pay Slip View */}
       <PaySlipDrawer
         isOpen={isPaySlipOpen}
         onClose={() => {
@@ -566,6 +573,26 @@ export default function PayrollManagement() {
           setSelectedDisbursal(null);
         }}
         disbursal={selectedDisbursal}
+      />
+
+      {/* Drawer 2: Staff Payroll Details Drawer */}
+      <StaffPayrollDetailsDrawer
+        isOpen={isStaffDetailsOpen}
+        onClose={() => {
+          setIsStaffDetailsOpen(false);
+          setSelectedStaffProfile(null);
+        }}
+        profile={selectedStaffProfile}
+        disbursalHistory={disbursalLog}
+        onEditProfile={(p) => {
+          setEditingProfile(p);
+          setIsProfileModalOpen(true);
+        }}
+        onSingleDisburse={(p) => {
+          setSingleRecipientId(p.id);
+          setIsProcessModalOpen(true);
+        }}
+        onDeleteProfile={handleDeleteExternalStaff}
       />
     </PageLayout>
   );

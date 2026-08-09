@@ -1678,6 +1678,17 @@ export function setupMockApi() {
     return [404, { error: { status: 'NOT_FOUND', message: 'Salary profile not found' } }];
   });
 
+  // DELETE /tenant/payroll/profile/:id
+  mock.onDelete(/\/tenant\/payroll\/profile\/[^/]+$/).reply((config) => {
+    const id = config.url?.split('/').pop();
+    const idx = mockPayrollProfiles.findIndex((p) => p.id === id);
+    if (idx !== -1) {
+      mockPayrollProfiles.splice(idx, 1);
+      return [200, { success: { status: 'OK', code: 200, message: 'Profile deleted' } }];
+    }
+    return [404, { error: { status: 'NOT_FOUND', message: 'Salary profile not found' } }];
+  });
+
   // POST /tenant/payroll/off-platform-staff
   mock.onPost(/\/tenant\/payroll\/off-platform-staff$/).reply((config) => {
     const body = JSON.parse(config.data || '{}');
