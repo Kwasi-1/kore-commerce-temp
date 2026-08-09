@@ -1582,13 +1582,18 @@ export function setupMockApi() {
   mock.onGet(/\/tenant\/payroll(?:\?.*)?$/).reply((config) => {
     const url = config.url || '';
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
-    const month = searchParams.get('month') || '';
+    const startDateParam = searchParams.get('start_date');
+    const endDateParam = searchParams.get('end_date');
 
     let filteredDisbursals = [...mockPayrollDisbursals];
-    if (month && month !== 'all' && month !== 'All Months') {
+    if (startDateParam || endDateParam) {
+      const startTime = startDateParam ? new Date(startDateParam).getTime() : 0;
+      const endTime = endDateParam ? new Date(endDateParam).getTime() : Infinity;
+
       filteredDisbursals = filteredDisbursals.filter((d) => {
-        const period = d.pay_period || d.period || '';
-        return period.toLowerCase() === month.toLowerCase();
+        if (!d.date_paid) return true;
+        const t = new Date(d.date_paid).getTime();
+        return t >= startTime && t <= endTime;
       });
     }
 

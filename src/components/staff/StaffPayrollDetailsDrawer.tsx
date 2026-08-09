@@ -101,7 +101,7 @@ export default function StaffPayrollDetailsDrawer({
         </div>
       }
       body={
-        <div className="space-y-4 pb-4">
+        <div className="space-y-4 pb-4 !tracking-normal">
           {/* Base Salary Card */}
           <div className="p-4 rounded-md bg-card border border-border flex items-center justify-between shadow-xs">
             <div>

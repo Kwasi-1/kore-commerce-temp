@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import CustomModal from '@/components/modals/modal';
 import DashboardCard from '@/components/ui/dashboard-card';
 import SalaryProfileModal from '@/components/staff/SalaryProfileModal';
@@ -11,7 +12,7 @@ import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDra
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import {
   Banknote,
   Users,
@@ -29,8 +30,13 @@ export default function PayrollManagement() {
   const [staffMembers, setStaffMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters state
-  const [dateFilterRange, setDateFilterRange] = useState<any>({ range: 'this_month' });
+  // Date Filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    active: 'this_month',
+    start_date: startOfMonth(new Date()),
+    end_date: endOfMonth(new Date()),
+  });
+
   const [profileFilter, setProfileFilter] = useState<'all' | 'platform' | 'external'>('all');
 
   // Modals state
@@ -55,8 +61,16 @@ export default function PayrollManagement() {
       const staffData = staffRes.data.success?.data?.staff || staffRes.data.data?.staff || [];
       setStaffMembers(staffData);
 
-      // 2. Fetch Payroll Data (Log and Profiles)
-      const payrollRes = await apiClient.get('/tenant/payroll');
+      // 2. Fetch Payroll Data with Date Range
+      const params = new URLSearchParams();
+      if (dateFilter.start_date) {
+        params.set('start_date', dateFilter.start_date.toISOString());
+      }
+      if (dateFilter.end_date) {
+        params.set('end_date', dateFilter.end_date.toISOString());
+      }
+
+      const payrollRes = await apiClient.get(`/tenant/payroll?${params.toString()}`);
       const payload = payrollRes.data.success?.data || payrollRes.data.data || {};
 
       const log = payload.disbursals || payload.log || [];
@@ -70,11 +84,28 @@ export default function PayrollManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [dateFilter]);
 
   useEffect(() => {
     fetchPayrollData();
   }, [fetchPayrollData]);
+
+  // Client-side Date Filter fallback for Disbursal Log
+  const filteredDisbursals = React.useMemo(() => {
+    if (!disbursalLog || disbursalLog.length === 0) return [];
+    if (dateFilter.active === 'all_time' || (!dateFilter.start_date && !dateFilter.end_date)) {
+      return disbursalLog;
+    }
+
+    const startTime = dateFilter.start_date ? new Date(dateFilter.start_date).getTime() : 0;
+    const endTime = dateFilter.end_date ? new Date(dateFilter.end_date).getTime() : Infinity;
+
+    return disbursalLog.filter((item: any) => {
+      if (!item.date_paid) return true;
+      const t = new Date(item.date_paid).getTime();
+      return t >= startTime && t <= endTime;
+    });
+  }, [disbursalLog, dateFilter]);
 
   // Combine Platform Staff with Salary Profiles for automatic roster sync
   const unifiedProfiles = React.useMemo(() => {
@@ -134,7 +165,7 @@ export default function PayrollManagement() {
     { key: 'status', label: 'Status' },
   ];
 
-  const rowsLog = disbursalLog.map((item: any) => {
+  const rowsLog = filteredDisbursals.map((item: any) => {
     const rowActions = [
       { key: 'view_slip', label: 'View Pay Slip', icon: 'mdi:eye-outline' },
     ];
@@ -415,8 +446,8 @@ export default function PayrollManagement() {
           showSearch={true}
           searchPlaceholder="Search disbursals by staff name or pay period..."
           showDateFilter={true}
-          dateFilterValue={dateFilterRange}
-          onDateFilterChange={(range) => setDateFilterRange(range)}
+          dateFilterValue={dateFilter}
+          onDateFilterChange={(val) => setDateFilter(val)}
           defaultDateFilterRange="this_month"
           showAddButton={true}
           addButtonText="Process Payroll Run"
