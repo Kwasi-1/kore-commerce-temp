@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
@@ -6,6 +7,7 @@ import CustomModal from '@/components/modals/modal';
 import DashboardCard from '@/components/ui/dashboard-card';
 import SalaryProfileModal from '@/components/staff/SalaryProfileModal';
 import ProcessPayrollModal from '@/components/staff/ProcessPayrollModal';
+import MobilePayrollRunModal from '@/components/staff/MobilePayrollRunModal';
 import AddOffPlatformStaffModal from '@/components/staff/AddOffPlatformStaffModal';
 import PaySlipDrawer from '@/components/staff/PaySlipDrawer';
 import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDrawer';
@@ -27,6 +29,21 @@ import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 
 export default function PayrollManagement() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const isRunRoute = location.pathname.startsWith('/staff/payroll/run');
+  const staffIdParam = searchParams.get('staff_id') || undefined;
+
+  const [isMobileView, setIsMobileView] = useState<boolean>(() => window.innerWidth < 1028);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth < 1028);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'log' | 'profiles'>('log');
   const [payrollRuns, setPayrollRuns] = useState<any[]>([]);
   const [disbursalLog, setDisbursalLog] = useState<any[]>([]);
@@ -376,8 +393,7 @@ export default function PayrollManagement() {
       setEditingProfile(record);
       setIsProfileModalOpen(true);
     } else if (actionKey === 'pay_now') {
-      setSingleRecipientId(record.id);
-      setIsProcessModalOpen(true);
+      navigate(`/staff/payroll/run?staff_id=${record.id}`, { state: { profiles: salaryProfiles } });
     }
   };
 
@@ -538,7 +554,7 @@ export default function PayrollManagement() {
           addButtonIcon="ph:paper-plane-tilt-bold"
           onAddButtonClick={() => {
             setSingleRecipientId(undefined);
-            setIsProcessModalOpen(true);
+            navigate('/staff/payroll/run', { state: { profiles: salaryProfiles } });
           }}
           onRefresh={fetchPayrollData}
           onRowActionClick={handleRowActionClickLog}
@@ -580,21 +596,49 @@ export default function PayrollManagement() {
         />
       )}
 
-      {/* Full-Screen Process Payroll Workspace Overlay */}
-      <ProcessPayrollModal
-        isOpen={isProcessModalOpen}
-        onClose={() => {
-          setIsProcessModalOpen(false);
-          setSingleRecipientId(undefined);
-        }}
-        profiles={salaryProfiles}
-        initialSelectedId={singleRecipientId}
-        onSuccess={() => {
-          setIsProcessModalOpen(false);
-          setSingleRecipientId(undefined);
-          fetchPayrollData();
-        }}
-      />
+      {/* Route & State Driven Modal Dispatcher Over Live Payroll Management Page */}
+      {(isRunRoute || isProcessModalOpen) && (
+        isMobileView ? (
+          <MobilePayrollRunModal
+            isOpen={true}
+            onClose={() => {
+              setIsProcessModalOpen(false);
+              setSingleRecipientId(undefined);
+              if (isRunRoute) navigate('/staff/payroll', { replace: true });
+            }}
+            profiles={salaryProfiles}
+            initialSelectedId={staffIdParam || singleRecipientId}
+            onSuccess={() => {
+              fetchPayrollData();
+              setIsProcessModalOpen(false);
+              setSingleRecipientId(undefined);
+              if (isRunRoute) navigate('/staff/payroll', { replace: true });
+            }}
+            onCancel={() => {
+              setIsProcessModalOpen(false);
+              setSingleRecipientId(undefined);
+              if (isRunRoute) navigate('/staff/payroll', { replace: true });
+            }}
+          />
+        ) : (
+          <ProcessPayrollModal
+            isOpen={true}
+            onClose={() => {
+              setIsProcessModalOpen(false);
+              setSingleRecipientId(undefined);
+              if (isRunRoute) navigate('/staff/payroll', { replace: true });
+            }}
+            profiles={salaryProfiles}
+            initialSelectedId={staffIdParam || singleRecipientId}
+            onSuccess={() => {
+              fetchPayrollData();
+              setIsProcessModalOpen(false);
+              setSingleRecipientId(undefined);
+              if (isRunRoute) navigate('/staff/payroll', { replace: true });
+            }}
+          />
+        )
+      )}
 
       {/* Modal 2: Salary Profile */}
       <CustomModal

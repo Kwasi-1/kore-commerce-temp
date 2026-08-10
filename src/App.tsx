@@ -145,6 +145,7 @@ function AppRoutes() {
         {/* Operations & Notifications */}
         <Route path="/staff" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="staff"><StaffManagement /></ModuleRoute></ProtectedRoute>} />
         <Route path="/staff/payroll" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="staff"><PayrollManagement /></ModuleRoute></ProtectedRoute>} />
+        <Route path="/staff/payroll/run" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="staff"><PayrollManagement /></ModuleRoute></ProtectedRoute>} />
         <Route path="/expenses" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><ModuleRoute requiredModule="expenses"><Expenses /></ModuleRoute></ProtectedRoute>} />
         <Route path="/notifications" element={<Notifications />} />
 

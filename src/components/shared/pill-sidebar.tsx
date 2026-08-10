@@ -59,7 +59,7 @@ export function PillSidebar({
               transition-[background-color,border-color,color] duration-200 ease-in-out
               ${btnStyles}`}
           >
-            <span className="font-medium text-[15px]">{opt.label}</span>
+            <span className="font-medium text-[15px] truncate">{opt.label}</span>
             {typeof opt.count === "number" ? (
               <span
                 className={`h-10 w-10 lg:w-12 lg:h-12 ml-3 flex items-center justify-center rounded-full text-xs font-bold
