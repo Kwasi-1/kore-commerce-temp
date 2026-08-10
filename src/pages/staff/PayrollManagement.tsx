@@ -580,20 +580,20 @@ export default function PayrollManagement() {
         />
       )}
 
-      {/* Modal 1: Process Payroll */}
+      {/* Modal 1: Process Payroll Workspace */}
       <CustomModal
         isOpen={isProcessModalOpen}
         onOpenChange={() => {
           setIsProcessModalOpen(!isProcessModalOpen);
           if (isProcessModalOpen) setSingleRecipientId(undefined);
         }}
-        placement="right"
-        size="lg"
-        classNames={{ base: "sm:w-[520px]" }}
+        placement="center"
+        size="full"
+        classNames={{ base: "sm:w-[1150px] lg:max-w-6xl max-h-[92vh] overflow-y-auto" }}
         header={
           <div className="pt-3 px-2 border-b border-border pb-3">
-            <h2 className="text-xl font-bold">Process Payroll Run</h2>
-            <p className="text-sm text-muted-foreground font-normal">Disburse salaries for selected staff and log expenses.</p>
+            <h2 className="text-xl font-bold">Run Regular Payroll</h2>
+            <p className="text-sm text-muted-foreground font-normal">Review gross pay, custom adjustments, and disburse staff salaries.</p>
           </div>
         }
         body={
