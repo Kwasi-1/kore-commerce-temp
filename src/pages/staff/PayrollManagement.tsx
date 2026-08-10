@@ -580,37 +580,20 @@ export default function PayrollManagement() {
         />
       )}
 
-      {/* Modal 1: Process Payroll Workspace */}
-      <CustomModal
+      {/* Full-Screen Process Payroll Workspace Overlay */}
+      <ProcessPayrollModal
         isOpen={isProcessModalOpen}
-        onOpenChange={() => {
-          setIsProcessModalOpen(!isProcessModalOpen);
-          if (isProcessModalOpen) setSingleRecipientId(undefined);
+        onClose={() => {
+          setIsProcessModalOpen(false);
+          setSingleRecipientId(undefined);
         }}
-        placement="center"
-        size="full"
-        classNames={{ base: "sm:w-[1150px] lg:max-w-6xl max-h-[92vh] overflow-y-auto" }}
-        header={
-          <div className="pt-3 px-2 border-b border-border pb-3">
-            <h2 className="text-xl font-bold">Run Regular Payroll</h2>
-            <p className="text-sm text-muted-foreground font-normal">Review gross pay, custom adjustments, and disburse staff salaries.</p>
-          </div>
-        }
-        body={
-          <ProcessPayrollModal
-            profiles={salaryProfiles}
-            initialSelectedId={singleRecipientId}
-            onSuccess={() => {
-              setIsProcessModalOpen(false);
-              setSingleRecipientId(undefined);
-              fetchPayrollData();
-            }}
-            onCancel={() => {
-              setIsProcessModalOpen(false);
-              setSingleRecipientId(undefined);
-            }}
-          />
-        }
+        profiles={salaryProfiles}
+        initialSelectedId={singleRecipientId}
+        onSuccess={() => {
+          setIsProcessModalOpen(false);
+          setSingleRecipientId(undefined);
+          fetchPayrollData();
+        }}
       />
 
       {/* Modal 2: Salary Profile */}

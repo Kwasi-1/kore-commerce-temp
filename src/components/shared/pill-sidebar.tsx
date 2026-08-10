@@ -33,7 +33,7 @@ export function PillSidebar({
         const btnStyles = variant === "primary"
           ? (isActive
               ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-foreground-900 hover:bg-muted/50 border-border")
+              : "bg-background text-foreground-900 hover:bg-muted/20 border-border")
           : (isActive
               ? "bg-foreground text-background border-foreground"
               : "bg-background text-foreground-900 hover:bg-muted/20 border-border");
