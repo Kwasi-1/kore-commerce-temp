@@ -15,7 +15,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import DisburalLineActions from '@/components/staff/DisburalLineActions';
-import AuditLogPopover from '@/components/staff/AuditLogPopover';
+import AuditTrailTimeline from '@/components/staff/AuditTrailTimeline';
 
 interface PaySlipDrawerProps {
   isOpen: boolean;
@@ -33,6 +33,46 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
 
   const isVoided = disbursal.status === 'voided';
   const hasLastEdit = Boolean(disbursal.last_edited_by_name || disbursal.last_edited_at || disbursal.edit_reason);
+  const hasRevisions = isVoided || hasLastEdit || (disbursal.audit_logs && disbursal.audit_logs.some((l: any) => l.action_type !== 'disbursed'));
+
+  // Fallback audit logs if empty
+  const auditLogs = disbursal.audit_logs && disbursal.audit_logs.length > 0
+    ? disbursal.audit_logs
+    : [
+        ...(isVoided
+          ? [
+              {
+                id: 'log_voided',
+                action_type: 'reversed',
+                performed_by_name: disbursal.last_edited_by_name || disbursal.created_by_name || 'Manager',
+                date_created: disbursal.date_voided || disbursal.last_edited_at || disbursal.date_updated,
+                reason: disbursal.reversal_reason || 'Disbursal reversed by manager',
+                old_values: `GHS ${disbursal.amount || 0} (${disbursal.payment_method?.replace(/_/g, ' ')})`,
+                new_values: 'GHS 0.00 (Voided)',
+              },
+            ]
+          : []),
+        ...(hasLastEdit && !isVoided
+          ? [
+              {
+                id: 'log_edit',
+                action_type: 'edited',
+                performed_by_name: disbursal.last_edited_by_name || 'Manager',
+                date_created: disbursal.last_edited_at || disbursal.date_updated,
+                reason: disbursal.edit_reason || 'Payout details updated',
+                new_values: `GHS ${disbursal.amount || 0} (${disbursal.payment_method?.replace(/_/g, ' ')})`,
+              },
+            ]
+          : []),
+        {
+          id: 'log_disbursed',
+          action_type: 'disbursed',
+          performed_by_name: disbursal.created_by_name || 'System Owner',
+          date_created: disbursal.date_paid,
+          new_values: `GHS ${disbursal.amount || 0} (${disbursal.payment_method?.replace(/_/g, ' ')})`,
+          reason: disbursal.note || 'Initial salary disbursal logged',
+        },
+      ];
 
   const handleSuccess = () => {
     onClose();
@@ -75,9 +115,6 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                   <CheckCircle2 className="h-3.5 w-3.5" /> Disbursed &amp; Logged
                 </span>
               )}
-
-              {/* Interactive Audit Popover */}
-              <AuditLogPopover item={disbursal} variant="icon" />
             </div>
           </div>
         }
@@ -85,7 +122,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
           <div className="space-y-3 pb-4">
             {/* Voided banner */}
             {isVoided && (
-              <div className="p-3 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">
+              <div className="p-3 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300 rounded">
                 <strong>Payment Reversed.</strong>{' '}
                 {disbursal.reversal_reason ? (
                   <>Reason: <span className="italic">{disbursal.reversal_reason}</span></>
@@ -114,7 +151,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                 Recipient Details
               </h3>
 
-              <div className="p-3.5 bg-muted/30 space-y-2 text-sm">
+              <div className="p-3.5 bg-muted/30 space-y-2 text-sm rounded-md">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                     <User className="h-3.5 w-3.5" /> Staff Recipient
@@ -159,15 +196,17 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                     <span className="text-xs text-foreground italic text-right">{disbursal.note}</span>
                   </div>
                 )}
-
-                {disbursal.edit_reason && !isVoided && (
-                  <div className="flex items-start justify-between gap-4 pt-1 border-t border-border/40">
-                    <span className="text-amber-600 dark:text-amber-400 text-xs font-medium shrink-0">Modification Reason</span>
-                    <span className="text-xs text-foreground italic text-right">{disbursal.edit_reason}</span>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Collapsible Audit Trail Timeline Accordion (only rendered if revisions exist) */}
+            {hasRevisions && (
+              <AuditTrailTimeline
+                logs={auditLogs}
+                defaultExpanded={true}
+                title="Audit History & Revision Log"
+              />
+            )}
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
@@ -177,7 +216,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs"
+                    className="gap-1.5 text-xs cursor-pointer"
                     onClick={() => setEditingLine(disbursal)}
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit Payout
@@ -185,7 +224,7 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs text-rose-600 border-rose-300 hover:bg-rose-500/10 hover:text-rose-700"
+                    className="gap-1.5 text-xs text-rose-600 border-rose-300 hover:bg-rose-500/10 hover:text-rose-700 cursor-pointer"
                     onClick={() => setReversingLine(disbursal)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Reverse
@@ -195,9 +234,9 @@ export default function PaySlipDrawer({ isOpen, onClose, disbursal, onSuccess }:
                 <div />
               )}
 
-              {/* Right: Print & Close */}
+              {/* Right: Print */}
               <div className="flex items-center gap-2">
-                <Button variant="default" size="sm" onClick={() => window.print()} className="gap-1.5">
+                <Button variant="default" size="sm" onClick={() => window.print()} className="gap-1.5 cursor-pointer">
                   <Printer className="h-3.5 w-3.5" /> Print
                 </Button>
               </div>

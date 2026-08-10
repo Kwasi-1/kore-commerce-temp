@@ -9,10 +9,11 @@ import {
   CheckCircle2,
   FileText,
   XCircle,
+  History,
 } from 'lucide-react';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DisburalLineActions from '@/components/staff/DisburalLineActions';
-import AuditLogPopover from '@/components/staff/AuditLogPopover';
+import AuditTrailTimeline from '@/components/staff/AuditTrailTimeline';
 
 interface PayrollRunDetailsDrawerProps {
   isOpen: boolean;
@@ -29,6 +30,12 @@ export default function PayrollRunDetailsDrawer({
 }: PayrollRunDetailsDrawerProps) {
   const [editingLine, setEditingLine] = useState<any>(null);
   const [reversingLine, setReversingLine] = useState<any>(null);
+  const [activeAuditLine, setActiveAuditLine] = useState<any>(null);
+
+  // Reset selected audit line when drawer closes or run ID changes
+  React.useEffect(() => {
+    setActiveAuditLine(null);
+  }, [isOpen, run?.id]);
 
   if (!run) return null;
 
@@ -45,6 +52,45 @@ export default function PayrollRunDetailsDrawer({
   const rows = items.map((item: any) => {
     const isVoided = item.status === 'voided';
     const isEdited = Boolean(item.last_edited_by || item.last_edited_by_name || item.edit_reason);
+
+    // Build line-item audit logs fallback
+    const itemAuditLogs = item.audit_logs && item.audit_logs.length > 0
+      ? item.audit_logs
+      : [
+          ...(isVoided
+            ? [
+                {
+                  id: 'log_v',
+                  action_type: 'reversed',
+                  performed_by_name: item.last_edited_by_name || 'Manager',
+                  date_created: item.date_voided || item.date_updated,
+                  reason: item.reversal_reason || 'Line reversed',
+                  old_values: `GHS ${item.amount} (${item.payment_method?.replace(/_/g, ' ')})`,
+                  new_values: 'GHS 0.00 (Voided)',
+                },
+              ]
+            : []),
+          ...(isEdited && !isVoided
+            ? [
+                {
+                  id: 'log_e',
+                  action_type: 'edited',
+                  performed_by_name: item.last_edited_by_name || 'Manager',
+                  date_created: item.date_updated,
+                  reason: item.edit_reason || 'Payout modified',
+                  new_values: `GHS ${item.amount} (${item.payment_method?.replace(/_/g, ' ')})`,
+                },
+              ]
+            : []),
+          {
+            id: 'log_d',
+            action_type: 'disbursed',
+            performed_by_name: run.created_by_name || 'System Owner',
+            date_created: item.date_paid || run.disbursal_date,
+            new_values: `GHS ${item.amount} (${item.payment_method?.replace(/_/g, ' ')})`,
+            reason: item.note || 'Disbursed in payroll run',
+          },
+        ];
 
     return {
       id: item.id,
@@ -85,8 +131,22 @@ export default function PayrollRunDetailsDrawer({
             </span>
           )}
 
-          {/* Interactive Popover Audit Badge for modified or voided lines */}
-          <AuditLogPopover item={item} variant="badge" />
+          {/* Clickable Badge to toggle line item audit history */}
+          {(isVoided || isEdited) && (
+            <button
+              type="button"
+              onClick={() => setActiveAuditLine(activeAuditLine?.id === item.id ? null : { ...item, logs: itemAuditLogs })}
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                isVoided
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+              }`}
+              title="Click to toggle audit trail timeline"
+            >
+              <History className="h-3 w-3" />
+              {isVoided ? 'Reversed' : 'Edited'}
+            </button>
+          )}
         </div>
       ),
       actions: !isVoided ? (
@@ -95,7 +155,7 @@ export default function PayrollRunDetailsDrawer({
             size="sm"
             variant="ghost"
             onClick={() => setEditingLine(item)}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
             title="Edit Line"
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -104,7 +164,7 @@ export default function PayrollRunDetailsDrawer({
             size="sm"
             variant="ghost"
             onClick={() => setReversingLine(item)}
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
             title="Reverse Line"
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -195,6 +255,15 @@ export default function PayrollRunDetailsDrawer({
                 mobileFriendly={true}
               />
             </div>
+
+            {/* Collapsible Line Item Audit History Timeline when selected */}
+            {activeAuditLine && (
+              <AuditTrailTimeline
+                logs={activeAuditLine.logs}
+                defaultExpanded={true}
+                title={`Audit Trail — ${activeAuditLine.staff_name || activeAuditLine.recipient_name}`}
+              />
+            )}
           </div>
         }
       />
