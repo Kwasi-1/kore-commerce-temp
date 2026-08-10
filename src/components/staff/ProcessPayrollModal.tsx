@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -195,14 +196,21 @@ export default function ProcessPayrollModal({
       classNames={{
         base: 'w-screen h-screen max-w-full m-0 mx-0 my-0 sm:mx-0 sm:my-0 p-0 rounded-none bg-background flex flex-col overflow-hidden',
         body: 'p-0 flex-1 flex flex-col overflow-hidden',
-        closeButton: 'hidden',
+        header:'pb-2'
+        // closeButton: 'hidden',
       }}
+      header={
+        <div className="pt-2 px-2 border-b border-border pb-4">
+          <h2 className="text-xl font-bold">Run Regular Payroll</h2>
+          <p className="text-sm text-muted-foreground font-normal">Review gross pay, custom adjustments, and disburse staff salaries.</p>
+        </div>
+      }
       body={
         <div className="flex flex-col w-full h-full overflow-hidden">
           {/* ─────────────────────────────────────────────────────────────────────────────
               FULL-SCREEN TOP NAVIGATION HEADER
               ───────────────────────────────────────────────────────────────────────────── */}
-          <div className="h-16 px-6 border-b border-border/80 bg-card flex items-center justify-between shrink-0 shadow-xs">
+          {/* <div className="h-16 px-6 border-b border-border/80 bg-card flex items-center justify-between shrink-0 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg text-primary flex items-center justify-center font-bold">
                 <CreditCard className="h-5 w-5" />
@@ -227,7 +235,7 @@ export default function ProcessPayrollModal({
                 <X className="h-4 w-4" /> Cancel Workspace
               </Button>
             </div>
-          </div>
+          </div> */}
 
           {/* ─────────────────────────────────────────────────────────────────────────────
               MAIN WORKSPACE (LEFT PILL SIDEBAR + RIGHT CONTENT AREA)
@@ -237,7 +245,7 @@ export default function ProcessPayrollModal({
             <div className="lg:w-[20rem] 2xl:w-[22rem] border-r border-border/80 p-5 flex flex-col justify-between shrink-0 overflow-y-auto space-y-6">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                  <span className="text-[11px] font-bold uppercase !tracking-wider text-muted-foreground block">
                     Execution Steps
                   </span>
                   <PillSidebar
@@ -252,7 +260,7 @@ export default function ProcessPayrollModal({
                 {/* Live KPI Summary Card */}
                  {activeStepKey === '1' && (
                 <div className="p-4 space-y-3.5 shadow-xs">
-                  <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider block border-b border-border/60 pb-2">
+                  <span className="text-[11px] uppercase font-bold text-muted-foreground !tracking-wider block border-b border-border/60 pb-2">
                     Live Payroll Summary
                   </span>
 
@@ -329,7 +337,7 @@ export default function ProcessPayrollModal({
 
                   {/* Recipients Table */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
+                    {/* <div className="flex items-center justify-between px-1">
                       <span className="text-xs font-bold uppercase !tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <Users className="h-4 w-4 text-primary" /> Staff Recipient Line Items ({itemStates.length})
                       </span>
@@ -341,19 +349,17 @@ export default function ProcessPayrollModal({
                       >
                         {selectedItems.length === itemStates.length ? 'Deselect All' : 'Select All'}
                       </button>
-                    </div>
+                    </div> */}
 
                     <div className="rounded border border-border/80 overflow-hidden bg-card shadow-xs">
                       <div className="max-h-[calc(100vh-360px)] overflow-y-auto overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
-                          <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                          <thead className="bg-background border-b border-border sticky top-0 z-10">
                             <tr>
                               <th className="p-3.5 font-bold text-muted-foreground w-10 text-center">
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   checked={itemStates.length > 0 && selectedItems.length === itemStates.length}
-                                  onChange={handleToggleSelectAll}
-                                  className="rounded border-border cursor-pointer"
+                                  onCheckedChange={handleToggleSelectAll}
                                 />
                               </th>
                               <th className="p-3.5 font-bold text-muted-foreground min-w-[200px]">Employee / Staff</th>
@@ -383,11 +389,9 @@ export default function ProcessPayrollModal({
                                     }`}
                                   >
                                     <td className="p-3.5 text-center">
-                                      <input
-                                        type="checkbox"
+                                      <Checkbox
                                         checked={item.selected}
-                                        onChange={() => handleToggleSelect(item.profile_id)}
-                                        className="rounded border-border cursor-pointer"
+                                        onCheckedChange={() => handleToggleSelect(item.profile_id)}
                                       />
                                     </td>
 
@@ -470,7 +474,7 @@ export default function ProcessPayrollModal({
 
               {/* STEP 2: PREVIEW & SUBMIT */}
               {activeStepKey === '2' && (
-                <div className="space-y-6">
+                <div className="space-y-5 -mt-3">
                   {/* Execution Summary Card */}
                   <div className="p-6 rounded-xl bg-card border border-border/80 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -487,7 +491,7 @@ export default function ProcessPayrollModal({
                         </p>
                       </div>
 
-                      <span className="px-3.5 py-2 bg-muted text-muted-foreground font-bold text-xs self-start">
+                      <span className="px-3.5 py-2 bg-muted/40 text-muted-foreground font-bold text-xs self-start">
                         {totalRecipients} Selected Recipients
                       </span>
                     </div>
@@ -510,9 +514,9 @@ export default function ProcessPayrollModal({
                     </h4>
 
                     <div className="rounded border border-border/80 overflow-hidden bg-card shadow-xs">
-                      <div className="max-h-[calc(100vh-420px)] overflow-y-auto">
+                      <div className="max-h-[calc(100vh-465px)] overflow-y-auto">
                         <table className="w-full text-left border-collapse text-xs">
-                          <thead className="bg-muted/50 border-b border-border sticky top-0">
+                          <thead className="bg-background border-b border-border sticky top-0">
                             <tr>
                               <th className="p-3.5 font-bold text-muted-foreground">Recipient</th>
                               <th className="p-3.5 font-bold text-muted-foreground">Classification</th>
