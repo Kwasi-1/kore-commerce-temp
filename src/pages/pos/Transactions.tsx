@@ -12,6 +12,7 @@ import TransactionSidePanel from "@/components/pos/TransactionSidePanel";
 import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
 import ReturnModal from "@/components/pos/ReturnModal";
 import { useAuthStore } from "@/store/authStore";
+import { useFeaturesStore } from "@/store/featuresStore";
 import { X } from "lucide-react";
 
 export default function Transactions() {
@@ -157,6 +158,10 @@ export default function Transactions() {
   };
 
   // Summary stats derived from all (unfiltered) transactions — fetched once
+  const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
+  const effectiveMethods = getEffectivePaymentMethods();
+  const isPaystackEnabled = posSettings.pos_paystack_enabled ?? true;
+
   const stats = useMemo(() => {
     const netTransactions = transactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
@@ -180,16 +185,18 @@ export default function Transactions() {
     const cashTotal = netTransactions
       .filter((t) => t.payment_method === "cash")
       .reduce((s, t) => s + (t.total || 0), 0);
-    const momoTotal = netTransactions
+    const momoAutomatedTotal = netTransactions
       .filter((t) => t.payment_method === "mobile_money")
+      .reduce((s, t) => s + (t.total || 0), 0);
+    const momoManualTotal = netTransactions
+      .filter((t) => t.payment_method === "mobile_money_manual")
       .reduce((s, t) => s + (t.total || 0), 0);
     const cardTotal = netTransactions
       .filter((t) => t.payment_method === "card")
       .reduce((s, t) => s + (t.total || 0), 0);
-
-    const cashShare = total > 0 ? (cashTotal / total) * 100 : 0;
-    const momoShare = total > 0 ? (momoTotal / total) * 100 : 0;
-    const cardShare = total > 0 ? (cardTotal / total) * 100 : 0;
+    const creditTotal = netTransactions
+      .filter((t) => t.payment_method === "credit")
+      .reduce((s, t) => s + (t.total || 0), 0);
 
     return {
       total,
@@ -200,13 +207,32 @@ export default function Transactions() {
       count,
       avg,
       cashTotal,
-      momoTotal,
+      momoAutomatedTotal,
+      momoManualTotal,
       cardTotal,
-      cashShare,
-      momoShare,
-      cardShare,
+      creditTotal,
     };
   }, [transactions]);
+
+  const paymentBreakdownList = useMemo(() => {
+    const definitions = [
+      { key: "cash", label: "Cash", color: "bg-green-500", total: stats.cashTotal },
+      { key: "mobile_money", label: "MoMo (Automated)", color: "bg-blue-500", total: stats.momoAutomatedTotal },
+      { key: "mobile_money_manual", label: "MoMo (Manual)", color: "bg-amber-500", total: stats.momoManualTotal },
+      { key: "card", label: "Card", color: "bg-purple-500", total: stats.cardTotal },
+      { key: "credit", label: "Credit Sales", color: "bg-rose-500", total: stats.creditTotal },
+    ];
+
+    return definitions.filter((item) => {
+      // Always include if there are transactions for this method in current view
+      if (item.total > 0) return true;
+
+      // Otherwise filter based on active settings
+      if (item.key === "mobile_money_manual") return !isPaystackEnabled && effectiveMethods.includes("mobile_money");
+      if (item.key === "mobile_money") return isPaystackEnabled && effectiveMethods.includes("mobile_money");
+      return effectiveMethods.includes(item.key);
+    });
+  }, [stats, effectiveMethods, isPaystackEnabled]);
 
   const cashierStats = useMemo(() => {
     const map: Record<string, number> = {};
@@ -266,11 +292,17 @@ export default function Transactions() {
     cashier: t.cashierName || "Unknown",
     payment_method: (
       <div className="flex items-center gap-1.5">
-        <span className="capitalize inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-foreground">
-          {t.payment_method?.replace("_", " ")}
+        <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+          t.payment_method === 'mobile_money_manual'
+            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+            : t.payment_method === 'mobile_money'
+              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              : 'bg-muted text-foreground'
+        }`}>
+          {t.payment_method === 'mobile_money_manual' ? 'MoMo (Manual)' : t.payment_method?.replace("_", " ")}
         </span>
         {t.status === "refunded" && (
-          <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+          <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20">
             Refunded
           </span>
         )}
@@ -344,81 +376,39 @@ export default function Transactions() {
             onClick={() => handleSelectPaymentFilter("all")}
             collapsibleContent={
               <div className="space-y-2 pt-1">
-                <div
-                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === "cash" ? "bg-secondary/40" : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectPaymentFilter("cash");
-                  }}
-                >
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-green-500" />
-                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">
-                        Cash
-                      </span>
-                    </div>
-                    <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.cashTotal} showStyling={false}/>
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                {paymentBreakdownList.map((item) => {
+                  const share = stats.total > 0 ? Math.min(100, Math.round((item.total / stats.total) * 100)) : 0;
+                  const isSelected = Array.from(paymentFilter as Set<string>)[0] === item.key;
+
+                  return (
                     <div
-                      className="bg-green-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${stats.cashShare}%` }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === "mobile_money" ? "bg-secondary/40" : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectPaymentFilter("mobile_money");
-                  }}
-                >
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">
-                        Mobile Money
-                      </span>
+                      key={item.key}
+                      className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${isSelected ? "bg-secondary/40" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectPaymentFilter(item.key);
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${item.color}`} />
+                          <span className="text-muted-foreground font-medium text-[11px] md:text-xs">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-foreground text-[11px] md:text-xs">
+                          <CurrencyDisplay amount={item.total} showStyling={false}/>
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
+                        <div
+                          className={`${item.color} h-full rounded-full transition-all duration-500`}
+                          style={{ width: `${share}%` }}
+                        />
+                      </div>
                     </div>
-                    <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.momoTotal} showStyling={false} />
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
-                    <div
-                      className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${stats.momoShare}%` }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className={`flex flex-col gap-1 cursor-pointer p-1.5 rounded hover:bg-muted-foreground/10 transition-colors ${Array.from(paymentFilter as Set<string>)[0] === "card" ? "bg-secondary/40" : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectPaymentFilter("card");
-                  }}
-                >
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-purple-500" />
-                      <span className="text-muted-foreground font-medium text-[11px] md:text-xs">
-                        Card
-                      </span>
-                    </div>
-                    <span className="text-foreground text-[11px] md:text-xs">
-                      <CurrencyDisplay amount={stats.cardTotal} showStyling={false}/>
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-0.5">
-                    <div
-                      className="bg-purple-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${stats.cardShare}%` }}
-                    />
-                  </div>
-                </div>
+                  );
+                })}
                 {stats.refundTotal > 0 && (
                   <div className="flex flex-col gap-1 p-1.5 rounded bg-rose-500/10 border border-rose-500/15">
                     <div className="flex items-center justify-between text-xs font-semibold">
@@ -550,6 +540,7 @@ export default function Transactions() {
             { uid: "all", name: "All Methods" },
             { uid: "cash", name: "Cash" },
             { uid: "mobile_money", name: "Mobile Money" },
+            { uid: "mobile_money_manual", name: "MoMo (Manual)" },
             { uid: "card", name: "Card" },
           ]}
           filterValue={paymentFilter}

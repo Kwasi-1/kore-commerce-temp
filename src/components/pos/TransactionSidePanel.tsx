@@ -35,7 +35,13 @@ export default function TransactionSidePanel({
 
   const storeName = receiptData?.storeName || receiptData?.tenant?.name || 'VYSION STORE';
   const cashierName = receiptData?.cashierName || receiptData?.cashier?.name || 'Staff';
-  const paymentMethod = receiptData?.paymentMethod || receiptData?.payment?.method || 'cash';
+  const rawPaymentMethod = (receiptData?.paymentMethod || receiptData?.payment?.method || 'cash').toLowerCase();
+  const displayPaymentMethod = rawPaymentMethod === 'mobile_money_manual'
+    ? 'MoMo (Manual)'
+    : rawPaymentMethod === 'mobile_money'
+      ? 'Mobile Money'
+      : rawPaymentMethod.replace('_', ' ');
+  const momoPhone = receiptData?.momoNumber || receiptData?.payment?.momoNumber || receiptData?.momo_number || receiptData?.customer_phone;
   const subtotal = getVal(receiptData?.subtotal ?? receiptData?.summary?.subtotal);
   const totalAmount = getVal(receiptData?.totalAmount ?? receiptData?.total ?? receiptData?.summary?.total ?? receiptData?.summary?.totalAmount);
   const amountTendered = getVal(receiptData?.amountTendered ?? receiptData?.payment?.amountTendered);
@@ -100,8 +106,14 @@ export default function TransactionSidePanel({
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Payment:</span>
-                  <span className="uppercase font-semibold text-zinc-900">{paymentMethod}</span>
+                  <span className="uppercase font-semibold text-zinc-900">{displayPaymentMethod}</span>
                 </div>
+                {momoPhone && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">MoMo Phone:</span>
+                    <span className="font-mono font-bold text-zinc-950">{momoPhone}</span>
+                  </div>
+                )}
               </div>
 
               {/* Items Table */}
@@ -153,7 +165,7 @@ export default function TransactionSidePanel({
                 </div>
               </div>
 
-              {paymentMethod === 'cash' && amountTendered > 0 && (
+              {rawPaymentMethod === 'cash' && amountTendered > 0 && (
                 <div className="mt-4 pt-3 border-t border-dashed border-zinc-200 space-y-1 text-xs text-zinc-700">
                   <div className="flex justify-between">
                     <span>Tendered:</span>

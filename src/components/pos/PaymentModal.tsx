@@ -190,9 +190,19 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <div className="flex justify-between">
             <span className="font-semibold">Payment:</span>
             <span className="uppercase font-semibold text-zinc-900">
-              {isCreditSale ? 'CREDIT' : activeTab.replace('_', ' ')}
+              {isCreditSale
+                ? 'CREDIT'
+                : activeTab === 'mobile_money'
+                  ? (isPaystackEnabled ? 'MOBILE MONEY' : 'MOMO (MANUAL)')
+                  : activeTab.replace('_', ' ')}
             </span>
           </div>
+          {/* {momoNumber && activeTab === 'mobile_money' && (
+            <div className="flex justify-between">
+              <span className="font-semibold">MoMo Phone:</span>
+              <span className="font-mono font-bold text-zinc-950">{momoNumber}</span>
+            </div>
+          )} */}
         </div>
 
         {/* Items */}
