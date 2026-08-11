@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomModal from '@/components/modals/modal';
-import { CustomInputTextField } from '@/components/shared/text-field';
+import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CurrencyDisplay } from '@/hooks';
@@ -24,6 +24,12 @@ import { format } from 'date-fns';
 import { PillSidebar, PillSidebarOption } from '@/components/shared/pill-sidebar';
 
 const DRAFT_STORAGE_KEY = 'vysion_payroll_draft';
+
+const PAYMENT_METHODS = [
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'mobile_money', label: 'Mobile Money' },
+  { value: 'cash', label: 'Cash' },
+];
 
 interface ProcessPayrollModalProps {
   isOpen: boolean;
@@ -439,7 +445,7 @@ export default function ProcessPayrollModal({
                                       </td>
 
                                       <td className="p-3.5">
-                                        <select
+                                        {/* <select
                                           value={item.payment_method}
                                           onChange={(e) => handleUpdateItem(item.profile_id, 'payment_method', e.target.value)}
                                           disabled={!item.selected}
@@ -449,7 +455,19 @@ export default function ProcessPayrollModal({
                                           <option value="mobile_money">Mobile Money</option>
                                           <option value="cash">Cash</option>
                                           <option value="cheque">Cheque</option>
-                                        </select>
+                                        </select> */}
+                                        <CustomSelectField
+                                          options={PAYMENT_METHODS}
+                                          value={item.payment_method}
+                                          inputProps={{
+                                            onChange: (e) =>
+                                              handleUpdateItem(item.profile_id, 'payment_method', e.target.value)
+                                          }}
+                                          labelPlacement='outside'
+                                          className='!text-xs py-0'
+                                          size="sm"
+                                          isDisabled={!item.selected}
+                                        />
                                       </td>
 
                                       <td className="p-3.5">
@@ -598,7 +616,7 @@ export default function ProcessPayrollModal({
                         type="button"
                         onClick={handleFinalSubmit}
                         disabled={loading || selectedItems.length === 0}
-                        className="gap-2 cursor-pointer px-6"
+                        className="gap-2 cursor-pointer px-4"
                       >
                         {loading ? (
                           'Executing Disbursals...'

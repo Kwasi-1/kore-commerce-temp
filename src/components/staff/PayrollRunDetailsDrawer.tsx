@@ -311,9 +311,9 @@ export default function PayrollRunDetailsDrawer({
 
                 {/* Recipients Line-Item Table */}
                 <div>
-                  <h3 className="text-xs font-bold uppercase !tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  {/* <h3 className="text-xs font-bold uppercase !tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5" /> Line Items Breakdown ({items.length})
-                  </h3>
+                  </h3> */}
 
                   <EnhancedTableComponent
                     columns={columns}

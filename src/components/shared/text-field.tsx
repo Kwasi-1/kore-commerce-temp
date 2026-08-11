@@ -48,7 +48,34 @@ interface CustomSelectFieldProps {
   unselectable?: "on" | "off";
   selectedKey?: any;
   searchable?: boolean;
+  size?: "sm" | "md" | "lg";
 }
+
+// Explicit size map — NextUI's own `size` prop only nudges padding,
+// it doesn't reliably control trigger height or item text size.
+const SIZE_STYLES = {
+  sm: {
+    trigger: "min-h-8 h-8 text-xs",
+    value: "text-xs",
+    itemBase: "rounded-md py-1",
+    itemTitle: "text-xs",
+    insideTrigger: "min-h-[44px] h-[44px] text-xs",
+  },
+  md: {
+    trigger: "min-h-10 h-10 text-sm",
+    value: "text-sm",
+    itemBase: "rounded-lg py-1.5",
+    itemTitle: "text-sm",
+    insideTrigger: "min-h-[56px] h-[56px] text-[12px]",
+  },
+  lg: {
+    trigger: "min-h-12 h-12 text-base",
+    value: "text-base",
+    itemBase: "rounded-lg py-2",
+    itemTitle: "text-base",
+    insideTrigger: "min-h-[64px] h-[64px] text-sm",
+  },
+} as const;
 
 export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   label = "",
@@ -64,9 +91,12 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   selectionMode = "single",
   unselectable = "off",
   isDisabled = false,
+  size = "md",
 }) => {
   const [showMsg, setShowMsg] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  const sizeStyles = SIZE_STYLES[size];
 
   // Determine if label should float
   const hasValue =
@@ -83,13 +113,13 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
         <div className="relative">
           {/* Custom floating label */}
           <label
-  className={cn(
-    "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
-    shouldFloat
-      ? "top-2 text-sm scale-75 font-normal leading-tight"
-      : "top-1/2 -translate-y-1/2 text-sm ml-2 text-muted-foreground",
-  )}
->
+            className={cn(
+              "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none transform origin-top-left capitalize tracking-wide z-10",
+              shouldFloat
+                ? "top-2 text-sm scale-75 font-normal leading-tight"
+                : "top-1/2 -translate-y-1/2 text-sm ml-2 text-muted-foreground",
+            )}
+          >
             {required ? (
               <span>
                 {label} <span className="text-red-500">*</span>
@@ -102,7 +132,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           {/* Select field */}
           <Select
             variant={"faded"}
-            size="md"
+            size={size}
             aria-label={label || "*"}
             value={value}
             isDisabled={isDisabled}
@@ -127,23 +157,26 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             }
             classNames={{
               trigger: cn(
-  `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg text-[12px] min-h-[56px] h-[56px]`,
-  shouldFloat ? "pt-6 pb-2" : "py-3",  // ← pt-7 pushes value down further
-  "px-3",
-  className,
-  error && "border-red-400",
-),
+                `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg px-3`,
+                sizeStyles.insideTrigger,
+                shouldFloat ? "pt-6 pb-2" : "py-3",
+                className,
+                error && "border-red-400",
+              ),
+              value: sizeStyles.value,
               label: "hidden",
+              listboxWrapper: sizeStyles.itemTitle,
               popoverContent: "rounded-lg",
             }}
           >
             {options?.map((option: any) => (
               <SelectItem
-                classNames={{
-                  base: "rounded-lg",
-                }}
                 key={option?.value || option}
                 value={option?.value || option}
+                classNames={{
+                  base: sizeStyles.itemBase,
+                  title: sizeStyles.itemTitle,
+                }}
               >
                 {option?.label || option}
               </SelectItem>
@@ -163,7 +196,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
     <div>
       <Select
         variant={"faded"}
-        size="md"
+        size={size}
         aria-label={label || "*"}
         value={value}
         isDisabled={isDisabled}
@@ -197,20 +230,24 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
         }
         classNames={{
           trigger: cn(
-            `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg text-[12px] py-1`,
+            `data-[hover=true]:shadow-none shadow-none border border-input bg-background rounded-lg py-1`,
+            sizeStyles.trigger,
             className,
           ),
-          label: ` text-xs capitalize mt-1`,
+          value: sizeStyles.value,
+          label: `text-xs capitalize mt-1`,
+          listboxWrapper: sizeStyles.itemTitle,
           popoverContent: "rounded-lg",
         }}
       >
         {options?.map((option: any) => (
           <SelectItem
-            classNames={{
-              base: "rounded-lg",
-            }}
             key={option?.value || option}
             value={option?.value || option}
+            classNames={{
+              base: sizeStyles.itemBase,
+              title: sizeStyles.itemTitle,
+            }}
           >
             {option?.label || option}
           </SelectItem>

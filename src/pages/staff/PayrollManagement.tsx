@@ -233,6 +233,10 @@ export default function PayrollManagement() {
   ];
 
   const rowsLog = combinedLogRows.map((row: any) => {
+    const isEdited = row.is_run
+      ? Boolean(row.__record?.items?.some((item: any) => item.last_edited_by || item.last_edited_by_name || item.edit_reason || (item.audit_logs && item.audit_logs.length > 0)))
+      : Boolean(row.__record?.last_edited_by || row.__record?.last_edited_by_name || row.__record?.edit_reason || (row.__record?.audit_logs && row.__record?.audit_logs.length > 0));
+
     const rowActions = [
       { key: 'view_details', label: row.is_run ? 'View Run Breakdown' : 'View Pay Slip', icon: 'mdi:eye-outline' },
     ];
@@ -270,24 +274,34 @@ export default function PayrollManagement() {
           {row.disbursal_date ? format(new Date(row.disbursal_date), 'MMM dd, yyyy') : '—'}
         </span>
       ),
-      status: row.is_run ? (
-        row.status === 'logged' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
-            <CheckCircle2 className="h-3 w-3" /> Logged
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400">
-            <AlertCircle className="h-3 w-3" /> {row.recipients_text} Logged
-          </span>
-        )
-      ) : row.status === 'voided' ? (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
-          <XCircle className="h-3 w-3" /> Voided
-        </span>
-      ) : (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
-          <CheckCircle2 className="h-3 w-3" /> Paid & Logged
-        </span>
+      status: (
+        <div className="flex items-center gap-1.5">
+          {row.is_run ? (
+            row.status === 'logged' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-3 w-3" /> Logged
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-3 w-3" /> {row.recipients_text} Logged
+              </span>
+            )
+          ) : row.status === 'voided' ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
+              <XCircle className="h-3 w-3" /> Voided
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-3 w-3" /> Paid &amp; Logged
+            </span>
+          )}
+
+          {isEdited && (
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded text-amber-600 dark:text-amber-400 shrink-0">
+              Edited
+            </span>
+          )}
+        </div>
       ),
       rowActions,
       __record: row.__record,

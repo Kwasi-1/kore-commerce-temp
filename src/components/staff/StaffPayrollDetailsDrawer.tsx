@@ -82,7 +82,7 @@ export default function StaffPayrollDetailsDrawer({
       size="lg"
       classNames={{ base: "sm:w-[540px]" }}
       header={
-        <div className="pt-4 px-2 flex items-center justify-between border-b border-border pb-3">
+        <div className="pt-2 lg:pt-3 px-2 flex items-center justify-between border-b border-border pb-3">
           <div>
             <h2 className="text-xl font-bold text-foreground">{profile.full_name || profile.name}</h2>
             <p className="text-xs text-muted-foreground font-normal">
@@ -189,11 +189,12 @@ export default function StaffPayrollDetailsDrawer({
               columns={columnsHistory}
               rows={rowsHistory}
               isLoading={false}
+              showTopContent={false}
               title=""
               showSearch={false}
               showFilter={false}
               showAddButton={false}
-              containerStyles="min-h-[180px] max-h-[260px] overflow-y-auto"
+              containerStyles="min-h-[180px] max-h-[260px] overflow-y-auto p-2"
               emptyStateTitle="No disbursals yet"
               emptyStateDescription="No past salary payments found for this employee."
               mobileFriendly={true}
