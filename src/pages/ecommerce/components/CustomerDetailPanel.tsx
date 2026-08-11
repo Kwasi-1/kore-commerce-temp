@@ -41,22 +41,22 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
   return (
     <div className="h-full flex flex-col bg-card border-l border-border shadow-xl w-full max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+          <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground font-bold text-lg">
             {customer.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-foreground leading-tight">{customer.name}</h2>
+            <h2 className="text-xl font-bold text-foreground font-header leading-tight">{customer.name}</h2>
             <span className="text-sm text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Joined {new Date(customer.created_at).toLocaleDateString()}
             </span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+        {/* <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
           <X className="h-5 w-5" />
-        </Button>
+        </Button> */}
       </div>
 
       {/* Scrollable Content */}
@@ -64,19 +64,19 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
         
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-muted/30 p-4 rounded-xl border border-border flex flex-col items-center justify-center text-center gap-1">
+          <div className="bg-muted/30 p-4 rounded-md flex flex-col items-center justify-center text-center gap-1">
             <ShoppingBag className="h-5 w-5 text-primary mb-1" />
             <div className="text-2xl font-bold">{customer.total_orders}</div>
             <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Orders</div>
           </div>
-          <div className="bg-muted/30 p-4 rounded-xl border border-border flex flex-col items-center justify-center text-center gap-1">
-            <div className="text-2xl font-bold text-primary"><CurrencyDisplay amount={customer.total_spent} /></div>
+          <div className="bg-muted/30 p-4 rounded-md flex flex-col items-center justify-center text-center gap-1">
+            <div className="text-2xl font-bold"><CurrencyDisplay amount={customer.total_spent} /></div>
             <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Spent</div>
           </div>
         </div>
 
         {/* Contact Info */}
-        <div className="bg-muted/30 p-4 rounded-xl border border-border flex flex-col gap-3">
+        <div className="bg-muted/30 p-4 rounded-md flex flex-col gap-3">
           <h3 className="font-semibold text-sm border-b border-border pb-2">Contact Information</h3>
           
           <div className="flex items-center gap-3 text-sm">
@@ -101,7 +101,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
         </div>
 
         {/* Order History */}
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border rounded-md overflow-hidden">
           <div className="bg-muted/50 px-4 py-3 border-b border-border font-semibold flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4" />

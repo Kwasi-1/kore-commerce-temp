@@ -25,7 +25,7 @@ export default function OrderStatusConfirmModal({
       onOpenChange={onClose}
       placement="center"
       size="sm"
-      header={<span className="text-lg font-semibold">Confirm Status Change</span>}
+      header={<span className="text-lg font-semibold border-b">Confirm Status Change</span>}
       body={
         <div className="py-4">
           <p className="text-sm text-muted-foreground">

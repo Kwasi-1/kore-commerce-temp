@@ -15,7 +15,7 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 const STATUS_STYLES: Record<string, string> = {
   success: "bg-green-100 text-green-700",
   completed: "bg-green-100 text-green-700",
-  pending: "bg-yellow-100 text-yellow-700",
+  pending: "bg-yellow-50 text-yellow-700",
   processing: "bg-amber-100 text-amber-700",
   cancelled: "bg-red-100 text-red-700",
   failed: "bg-red-100 text-red-700",

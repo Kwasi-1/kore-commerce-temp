@@ -69,7 +69,7 @@ export default function Customers() {
     return {
       id: c.id,
       avatar: (
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+        <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground font-bold text-xs shrink-0">
           {c.name.charAt(0).toUpperCase()}
         </div>
       ),
@@ -83,23 +83,20 @@ export default function Customers() {
   });
 
   return (
-    <PageLayout title="Customers">
+    <PageLayout title="Customers" constrainHeight={true}>
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <DashboardCard
           title="Total Customers"
           value={isLoading ? '...' : stats.totalCustomers.toString()}
-          className="border border-border"
         />
         <DashboardCard
           title="New This Month"
           value={isLoading ? '...' : stats.newThisMonth.toString()}
-          className="border border-border bg-primary/5 dark:bg-primary/10"
         />
         <DashboardCard
           title="Repeat Customers"
           value={isLoading ? '...' : stats.repeatCustomers.toString()}
-          className="border border-border"
         />
       </div>
 
@@ -107,7 +104,7 @@ export default function Customers() {
         columns={columns}
         rows={rows}
         isLoading={isLoading}
-        title="Customer Directory"
+        // title="Customer Directory"
         
         enableRowExpansion={true}
         columnsToHideOnExpansion={2}

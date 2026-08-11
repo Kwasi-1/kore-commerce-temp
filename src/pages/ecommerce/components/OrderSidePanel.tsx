@@ -99,12 +99,12 @@ export default function OrderSidePanel({
           </div>
 
           {/* Screen Only Panel Content */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8 print:hidden">
+          <div className="flex-1 overflow-y-auto px-2 pt-4 pb-6 space-y-8 print:hidden">
             
             {/* Status Updater */}
             {order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'refunded' && (
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Update Status</span>
+                {/* <span className="text-xs font-semibold text-muted-foreground uppercase !tracking-wider">Update Status</span> */}
                 <CustomSelectField
                   options={[
                     { label: 'Pending', value: 'pending' },
@@ -117,7 +117,8 @@ export default function OrderSidePanel({
                   inputProps={{
                     onChange: (e) => onUpdateStatusClick(order, e.target.value)
                   }}
-                  labelPlacement="outside"
+                  label="Update Status"
+                  labelPlacement="inside"
                   className="w-full"
                 />
               </div>
@@ -125,7 +126,7 @@ export default function OrderSidePanel({
 
             {/* Customer & Delivery Section */}
             <div className="flex flex-col gap-4 pb-6 border-b border-border/50">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Customer & Delivery Info</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase !tracking-wider">Customer & Delivery Info</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center gap-2 font-medium text-foreground mb-1 tracking-tight">
@@ -172,7 +173,7 @@ export default function OrderSidePanel({
 
             {/* Order Summary */}
             <div className="flex flex-col gap-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Order Summary</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase !tracking-wider">Order Summary</h3>
               <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
                 <div className="divide-y divide-border/50">
                   <div className="p-4 flex justify-between items-center">

@@ -59,7 +59,7 @@ export default function OrderRefundModal({
       header={<span className="text-lg font-semibold">Process Refund</span>}
       body={
         <div className="flex flex-col gap-6 py-4">
-          <div className="flex gap-4">
+          {/* <div className="flex gap-4">
             <Button 
               className="flex-1"
               variant={refundType === 'full' ? 'default' : 'outline'}
@@ -74,10 +74,35 @@ export default function OrderRefundModal({
             >
               Partial Refund
             </Button>
+          </div> */}
+
+          <div className="flex bg-secondary/80 p-[3px] rounded-full border border-border/10">
+            <button 
+              type="button"
+              className={`flex-1 text-sm font-semibold py-2 rounded-full transition-all ${
+                refundType === 'full' 
+                  ? 'bg-background text-foreground font-bold' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              onClick={() => setRefundType('full')}
+            >
+              Full Refund
+            </button>
+            <button 
+              type="button"
+              className={`flex-1 text-sm font-semibold py-2 rounded-full transition-all ${
+                refundType === 'partial' 
+                  ? 'bg-background text-foreground font-bold' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              onClick={() => setRefundType('partial')}
+            >
+              Partial Refund
+            </button>
           </div>
 
           {refundType === 'full' ? (
-            <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm border border-destructive/20">
+            <div className="bg-destructive/10 text-destructive p-4 rounded text-sm">
               Are you sure you want to completely refund this order? The total amount of <strong><CurrencyDisplay amount={orderData?.total_amount || 0} /></strong> will be recorded as refunded.
             </div>
           ) : (
