@@ -94,10 +94,12 @@ interface FeaturesState {
   plan: string;
   modules: string[];
   posSettings: POSSettings;
+  platform_paystack_enabled: boolean;
   isLoaded: boolean;
   lastFetchedAt: number | null;    // timestamp ms — for cache invalidation
   hasModule: (key: string) => boolean;
   hasSetting: (key: keyof POSSettings) => boolean;
+  isPaystackEnabled: () => boolean;
   getEffectivePaymentMethods: () => string[];
   loadFeatures: () => Promise<void>;
   updatePOSSettings: (settings: Partial<POSSettings>) => void;
@@ -110,6 +112,7 @@ export const useFeaturesStore = create<FeaturesState>()(
       plan: 'starter',
       modules: PLAN_MODULES['starter'],
       posSettings: DEFAULT_POS_SETTINGS,
+      platform_paystack_enabled: true,
       isLoaded: false,
       lastFetchedAt: null,
 
@@ -117,10 +120,18 @@ export const useFeaturesStore = create<FeaturesState>()(
 
       hasSetting: (key: keyof POSSettings) => Boolean(get().posSettings[key]),
 
+      isPaystackEnabled: () => {
+        const platformPaystackOn = get().platform_paystack_enabled ?? true;
+        const tenantPaystackOn = get().posSettings?.pos_paystack_enabled ?? true;
+        return platformPaystackOn && tenantPaystackOn;
+      },
+
       getEffectivePaymentMethods: () => {
         const settings = get().posSettings;
         const raw = settings?.pos_payment_methods || ['cash', 'mobile_money', 'card'];
-        const isPaystackOn = settings?.pos_paystack_enabled ?? true;
+        const platformPaystackOn = get().platform_paystack_enabled ?? true;
+        const tenantPaystackOn = settings?.pos_paystack_enabled ?? true;
+        const isPaystackOn = platformPaystackOn && tenantPaystackOn;
         return isPaystackOn ? raw : raw.filter((m) => m !== 'card');
       },
 
@@ -136,10 +147,12 @@ export const useFeaturesStore = create<FeaturesState>()(
             ...DEFAULT_POS_SETTINGS,
             ...(data.pos_settings || {}),
           };
+          const platform_paystack_enabled = data.platform_paystack_enabled ?? true;
           set({
             plan,
             modules,
             posSettings,
+            platform_paystack_enabled,
             isLoaded: true,
             lastFetchedAt: Date.now(),
           });

@@ -15,7 +15,8 @@ import { Lock } from 'lucide-react';
 export default function POSSettings() {
   const { posSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
   const { staffUser, tenant, setTenant } = useAuthStore();
-  const { posSettings: featureSettings, plan, updatePOSSettings: updateFeaturePOSSettings, loadFeatures } = useFeaturesStore();
+  const { posSettings: featureSettings, plan, platform_paystack_enabled, updatePOSSettings: updateFeaturePOSSettings, loadFeatures } = useFeaturesStore();
+  const isPaystackPlatformAllowed = platform_paystack_enabled ?? true;
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingFeatures, setIsSavingFeatures] = useState(false);
   const [expiryEnabled, setExpiryEnabled] = useState(false);
@@ -124,12 +125,25 @@ export default function POSSettings() {
       <div className="max-w-4xl space-y-8">
 
         {/* ── POS Micro-Features Section ─────────────────────────────────── */}
-        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
-          <h2 className="text-xl font-bold mb-1 text-foreground">POS Features</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Configure which features are active during checkout. Some features require a higher plan.
+        <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
+          <h2 className="text-xl font-bold font-header tracking-tighter -mt-1 mb-1 text-foreground">POS Features</h2>
+          <p className="text-sm text-muted-foreground border-b mb-6 pb-4">
+            <span className='hidden md:inline'>Configure which features are active during checkout.</span> Some features require a higher plan.
             You are on the <span className="font-semibold text-foreground capitalize">{getPlanLabel(plan)}</span> plan.
           </p>
+
+          {!isPaystackPlatformAllowed && (
+            <div className="mb-6 bg-amber-400/10 rounded-md p-4 flex items-start gap-3 text-amber-700 dark:text-amber-300">
+              <Lock className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <h5 className="font-bold text-sm">Paystack Online Gateway Disabled by Platform Administrator</h5>
+                <p className="leading-relaxed hidden md:block">
+                  Online payment processing has been disabled platform-wide by the administrator.
+                  All POS registers are automatically operating in <strong>Manual Cash &amp; MoMo mode</strong>.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-5">
 
@@ -163,15 +177,16 @@ export default function POSSettings() {
                     { id: 'mobile_money', label: 'Mobile Money (MoMo)', icon: '📱' },
                     { id: 'card', label: 'Card / POS Terminal', icon: '💳' },
                   ].map(method => {
-                    const isPaystackOn = localFeatures.pos_paystack_enabled ?? true;
+                    const isPaystackOn = isPaystackPlatformAllowed && (localFeatures.pos_paystack_enabled ?? true);
                     const isCard = method.id === 'card';
                     const isCash = method.id === 'cash';
-                    const isDisabled = isCash || (isCard && !isPaystackOn);
 
-                    const enabled = (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id) && !isDisabled;
+                    const isLockedDisabled = isCard && !isPaystackOn;
+                    const isSelected = isCash || (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id);
+                    const enabled = isSelected && !isLockedDisabled;
 
                     const toggle = () => {
-                      if (isDisabled) return;
+                      if (isCash || isLockedDisabled) return;
                       const current: string[] = localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
                       if (enabled) {
                         const next = current.filter(m => m !== method.id);
@@ -185,17 +200,18 @@ export default function POSSettings() {
                         key={method.id}
                         type="button"
                         onClick={toggle}
-                        disabled={isDisabled}
+                        disabled={isCash || isLockedDisabled}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${
                           enabled
                             ? 'bg-foreground text-background border-foreground'
                             : 'bg-background text-muted-foreground border-border hover:border-foreground/40'
-                        } ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                        } ${isCash ? 'cursor-default opacity-90' : isLockedDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                       >
                         <span>{method.icon}</span>
                         {method.label}
                         {isCash && <span className="text-[10px] opacity-70 ml-1">(default)</span>}
-                        {isCard && !isPaystackOn && <span className="text-[10px] opacity-70 ml-1">(disabled)</span>}
+                        {isCard && !isPaystackPlatformAllowed && <span className="text-[10px] opacity-70 ml-1">(Disabled by Platform Admin)</span>}
+                        {isCard && isPaystackPlatformAllowed && !isPaystackOn && <span className="text-[10px] opacity-70 ml-1">(disabled)</span>}
                       </button>
                     );
                   })}
@@ -206,15 +222,26 @@ export default function POSSettings() {
             <div className="border-t border-border/50" />
 
             {/* Paystack Payment Gateway Toggle */}
-            <div className="flex items-start justify-between gap-4">
+            <div className={`flex items-start justify-between gap-4 ${!isPaystackPlatformAllowed ? 'opacity-60' : ''}`}>
               <div className="flex-1">
-                <h4 className="font-bold text-foreground text-[15px]">Paystack Online Payment Gateway</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-foreground text-[15px]">Paystack Online Payment Gateway</h4>
+                  {!isPaystackPlatformAllowed && (
+                    <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+                      Disabled by Platform Admin
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
                   Automate MoMo STK Push &amp; Card checkout via Paystack. When turned OFF, Card payments are disabled by default.
+                  {!isPaystackPlatformAllowed && (
+                    <span className="block text-amber-500 font-semibold mt-1">Overridden platform-wide by Platform Admin.</span>
+                  )}
                 </p>
               </div>
               <Switch
-                isSelected={localFeatures.pos_paystack_enabled ?? true}
+                isSelected={isPaystackPlatformAllowed ? (localFeatures.pos_paystack_enabled ?? true) : false}
+                isDisabled={!isPaystackPlatformAllowed}
                 onValueChange={(val) => setLocalFeatures(p => {
                   const currentMethods = p.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
                   const nextMethods = val ? currentMethods : currentMethods.filter(m => m !== 'card');
@@ -466,9 +493,9 @@ export default function POSSettings() {
           </div>
         </section>
 
-        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
-          <h2 className="text-xl font-bold mb-1 text-foreground">Checkout & Printing</h2>
-          <p className="text-sm text-muted-foreground mb-6">Manage how receipts are printed and credit sales are handled during checkout.</p>
+        <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
+          <h2 className="text-xl font-bold font-header tracking-tighter mb-1 text-foreground">Checkout & Printing</h2>
+          <p className="text-sm text-muted-foreground mb-6 pb-4 border-b">Manage how receipts are printed and credit sales are handled during checkout.</p>
           
           <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
             

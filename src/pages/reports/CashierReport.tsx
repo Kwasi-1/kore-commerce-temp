@@ -95,17 +95,14 @@ export default function CashierReport() {
           <DashboardCard
             title="Total Handled Revenue"
             value={isLoading ? '...' : <CurrencyDisplay amount={totalRevenueAll} />}
-            className="border border-border bg-primary/5"
           />
           <DashboardCard
             title="Total Processed Transactions"
             value={isLoading ? '...' : totalTransactionsAll.toString()}
-            className="border border-border"
           />
           <DashboardCard
             title="Overall Avg. Ticket Size"
             value={isLoading ? '...' : <CurrencyDisplay amount={overallAvgValue} />}
-            className="border border-border"
           />
         </div>
 

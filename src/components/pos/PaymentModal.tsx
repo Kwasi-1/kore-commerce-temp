@@ -40,8 +40,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
   const { posSettings } = useSettingsStore();
-  const { posSettings: featureSettings, getEffectivePaymentMethods } = useFeaturesStore();
-  const isPaystackEnabled = featureSettings.pos_paystack_enabled ?? true;
+  const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
+  const isPaystackEnabled = checkPaystack();
 
   // Derive tax from featuresStore
   const taxRate = featureSettings.pos_tax_enabled ? (featureSettings.pos_tax_rate || 0) : 0;
