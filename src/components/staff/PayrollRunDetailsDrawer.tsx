@@ -286,7 +286,7 @@ export default function PayrollRunDetailsDrawer({
                     containerStyles="min-h-[280px] max-h-[440px] overflow-y-auto px-2 py-0"
                     emptyStateTitle="No line items found"
                     emptyStateDescription="No recipients recorded for this payroll run."
-                    mobileFriendly={true}
+                    mobileFriendly={false}
                   />
                 </div>
               </div>

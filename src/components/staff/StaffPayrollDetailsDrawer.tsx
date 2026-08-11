@@ -197,7 +197,7 @@ export default function StaffPayrollDetailsDrawer({
               containerStyles="min-h-[180px] max-h-[260px] overflow-y-auto p-2"
               emptyStateTitle="No disbursals yet"
               emptyStateDescription="No past salary payments found for this employee."
-              mobileFriendly={true}
+              mobileFriendly={false}
             />
           </div>
 
