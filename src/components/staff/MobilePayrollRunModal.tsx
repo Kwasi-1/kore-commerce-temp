@@ -203,7 +203,7 @@ export default function MobilePayrollRunModal({
           </div>
         }
         body={
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2 px-2">
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2 pb-4 px-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <CustomInputTextField
                 label="Pay Period"
@@ -326,7 +326,7 @@ export default function MobilePayrollRunModal({
           size="md"
           classNames={{ base: 'sm:w-[420px]' }}
           header={
-            <div className="pt-2 px-2 border-b border-border pb-2">
+            <div className="pt-2 px-2 borderb border-border pb2">
               <h3 className="text-lg font-bold">Edit Payout — {editingRecipient.staff_name}</h3>
               <p className="text-xs text-muted-foreground">Modify payable amount, method, or note.</p>
             </div>
