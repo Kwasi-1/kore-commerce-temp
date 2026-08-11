@@ -233,9 +233,8 @@ export default function PayrollManagement() {
   ];
 
   const rowsLog = combinedLogRows.map((row: any) => {
-    const isEdited = row.is_run
-      ? Boolean(row.__record?.items?.some((item: any) => item.last_edited_by || item.last_edited_by_name || item.edit_reason || (item.audit_logs && item.audit_logs.length > 0)))
-      : Boolean(row.__record?.last_edited_by || row.__record?.last_edited_by_name || row.__record?.edit_reason || (row.__record?.audit_logs && row.__record?.audit_logs.length > 0));
+    const isEdited = Boolean(row.__record?.last_edited_by_name || row.__record?.last_edited_at || row.__record?.edit_reason);
+
 
     const rowActions = [
       { key: 'view_details', label: row.is_run ? 'View Run Breakdown' : 'View Pay Slip', icon: 'mdi:eye-outline' },

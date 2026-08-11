@@ -212,7 +212,7 @@ export default function PayrollRunDetailsDrawer({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col-reverse lg:flex-row items-center gap-2">
               {activeAuditLine && (
                 <Button
                   size="sm"
@@ -221,7 +221,8 @@ export default function PayrollRunDetailsDrawer({
                   onClick={() => setActiveAuditLine(null)}
                   className="gap-1 text-xs cursor-pointer h-8"
                 >
-                  <X className="h-3.5 w-3.5" /> Close Audit View
+                  <X className="h-3.5 w-3.5" /> 
+                  <span className="lg:inline hidden">Close Audit View</span>
                 </Button>
               )}
 
@@ -327,7 +328,7 @@ export default function PayrollRunDetailsDrawer({
                     containerStyles="min-h-[220px] max-h-[340px] overflow-y-auto px-2 py-0"
                     emptyStateTitle="No line items found"
                     emptyStateDescription="No recipients recorded for this payroll run."
-                    mobileFriendly={true}
+                    mobileFriendly={false}
                   />
                 </div>
               </>

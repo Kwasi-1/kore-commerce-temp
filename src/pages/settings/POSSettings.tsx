@@ -163,12 +163,17 @@ export default function POSSettings() {
                     { id: 'mobile_money', label: 'Mobile Money (MoMo)', icon: '📱' },
                     { id: 'card', label: 'Card / POS Terminal', icon: '💳' },
                   ].map(method => {
-                    const enabled = (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id);
+                    const isPaystackOn = localFeatures.pos_paystack_enabled ?? true;
+                    const isCard = method.id === 'card';
                     const isCash = method.id === 'cash';
+                    const isDisabled = isCash || (isCard && !isPaystackOn);
+
+                    const enabled = (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id) && !isDisabled;
+
                     const toggle = () => {
+                      if (isDisabled) return;
                       const current: string[] = localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
                       if (enabled) {
-                        if (isCash) return; // Cash cannot be removed
                         const next = current.filter(m => m !== method.id);
                         setLocalFeatures(p => ({ ...p, pos_payment_methods: next.length ? next : ['cash'] }));
                       } else {
@@ -180,21 +185,43 @@ export default function POSSettings() {
                         key={method.id}
                         type="button"
                         onClick={toggle}
-                        disabled={isCash}
+                        disabled={isDisabled}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${
                           enabled
                             ? 'bg-foreground text-background border-foreground'
                             : 'bg-background text-muted-foreground border-border hover:border-foreground/40'
-                        } ${isCash ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'}`}
+                        } ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                       >
                         <span>{method.icon}</span>
                         {method.label}
                         {isCash && <span className="text-[10px] opacity-70 ml-1">(default)</span>}
+                        {isCard && !isPaystackOn && <span className="text-[10px] opacity-70 ml-1">(disabled)</span>}
                       </button>
                     );
                   })}
                 </div>
               </div>
+            </div>
+
+            <div className="border-t border-border/50" />
+
+            {/* Paystack Payment Gateway Toggle */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h4 className="font-bold text-foreground text-[15px]">Paystack Online Payment Gateway</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  Automate MoMo STK Push &amp; Card checkout via Paystack. When turned OFF, Card payments are disabled by default.
+                </p>
+              </div>
+              <Switch
+                isSelected={localFeatures.pos_paystack_enabled ?? true}
+                onValueChange={(val) => setLocalFeatures(p => {
+                  const currentMethods = p.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
+                  const nextMethods = val ? currentMethods : currentMethods.filter(m => m !== 'card');
+                  return { ...p, pos_paystack_enabled: val, pos_payment_methods: nextMethods };
+                })}
+                color="primary"
+              />
             </div>
 
             {/* Tax */}

@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
-import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown } from 'lucide-react';
+import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
@@ -40,7 +40,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
   const { posSettings } = useSettingsStore();
-  const { posSettings: featureSettings } = useFeaturesStore();
+  const { posSettings: featureSettings, getEffectivePaymentMethods } = useFeaturesStore();
+  const isPaystackEnabled = featureSettings.pos_paystack_enabled ?? true;
 
   // Derive tax from featuresStore
   const taxRate = featureSettings.pos_tax_enabled ? (featureSettings.pos_tax_rate || 0) : 0;
@@ -48,13 +49,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const taxLabel = featureSettings.pos_tax_label || 'Tax';
   const taxPercent = Math.round(taxRate * 100);
 
-  // Enabled payment methods
+  // Enabled payment methods derived centrally from featuresStore
   const ALL_TABS = [
     { id: 'cash', label: 'Cash' },
     { id: 'mobile_money', label: 'MoMo' },
     { id: 'card', label: 'Card' },
   ] as const;
-  const enabledMethods = featureSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'];
+  const enabledMethods = getEffectivePaymentMethods();
   const paymentTabs = ALL_TABS.filter(t => enabledMethods.includes(t.id));
 
   // Resolve default tab: prefer defaultMethod if enabled, else cash if enabled, else first enabled
@@ -118,7 +119,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       if (!isCreditSale) {
         if (activeTab === 'cash') {
           payload.amountTendered = amountTendered;
+        } else if (activeTab === 'mobile_money') {
+          payload.momoNumber = momoNumber;
+          payload.paystackEnabled = isPaystackEnabled;
+          if (isPaystackEnabled) {
+            payload.paystackReference = `POS-MOCK-${Date.now()}`;
+          }
         } else {
+          payload.paystackEnabled = isPaystackEnabled;
           payload.paystackReference = `POS-MOCK-${Date.now()}`;
         }
       }
@@ -374,8 +382,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 ${
-                    activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                    activeTab === tab.id
+                      ? 'bg-background shadow-sm text-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
                   }`}
                 >
                   {tab.label}
@@ -411,16 +421,19 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               {activeTab === 'mobile_money' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <CustomInputTextField
-                    label="Mobile Number"
+                    label="Customer MoMo Number"
                     labelPlacement="outside"
                     type="tel"
-                    placeholder="+233"
+                    placeholder="e.g. 0241234567"
                     value={momoNumber}
                     onChange={(e: any) => setMomoNumber(e.target.value)}
                     className="h-14 text-lg font-bold rounded-xl bg-background border-border"
                   />
-                  <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium borde border-border/50 text-muted-foreground">
-                    The customer will receive a secure payment prompt on their phone.
+
+                  <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
+                    {isPaystackEnabled
+                      ? 'The customer will receive a secure payment prompt on their phone.'
+                      : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
                   </div>
                 </div>
               )}

@@ -119,13 +119,13 @@ export default function CartPanel({
   } = useCartStore();
 
   const { showProductImages, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
-  const { posSettings } = useFeaturesStore();
+  const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
+  const effectiveMethods = getEffectivePaymentMethods();
 
   // Derive the initial default payment method from settings: prefer cash if enabled
   const getInitialMethod = (): "cash" | "mobile_money" | "card" => {
-    const methods = posSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'];
-    if (methods.includes('cash')) return 'cash';
-    return (methods[0] as "cash" | "mobile_money" | "card") || 'cash';
+    if (effectiveMethods.includes('cash')) return 'cash';
+    return (effectiveMethods[0] as "cash" | "mobile_money" | "card") || 'cash';
   };
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -164,7 +164,7 @@ export default function CartPanel({
   } as const;
 
   // Filter to only tenant-enabled methods
-  const enabledMethods = (posSettings.pos_payment_methods || ['cash', 'mobile_money', 'card'])
+  const enabledMethods = effectiveMethods
     .filter((m): m is keyof typeof ALL_PAYMENT_METHODS => m in ALL_PAYMENT_METHODS);
   const PAYMENT_METHODS = Object.fromEntries(
     enabledMethods.map(k => [k, ALL_PAYMENT_METHODS[k]])

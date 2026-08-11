@@ -25,6 +25,7 @@ export interface POSSettings {
   pos_service_charge_rate: number;
   pos_service_charge_label: string;
   pos_split_payment_enabled: boolean;
+  pos_paystack_enabled: boolean;
   pos_payment_methods: string[];   // e.g. ["cash", "mobile_money", "card"]
   pos_notes_enabled: boolean;
   pos_customer_required: boolean;
@@ -45,6 +46,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_service_charge_rate: 0,
   pos_service_charge_label: 'Service Charge',
   pos_split_payment_enabled: false,
+  pos_paystack_enabled: true,
   pos_payment_methods: ['cash', 'mobile_money', 'card'],
   pos_notes_enabled: true,
   pos_customer_required: false,
@@ -96,6 +98,7 @@ interface FeaturesState {
   lastFetchedAt: number | null;    // timestamp ms — for cache invalidation
   hasModule: (key: string) => boolean;
   hasSetting: (key: keyof POSSettings) => boolean;
+  getEffectivePaymentMethods: () => string[];
   loadFeatures: () => Promise<void>;
   updatePOSSettings: (settings: Partial<POSSettings>) => void;
   reset: () => void;
@@ -113,6 +116,13 @@ export const useFeaturesStore = create<FeaturesState>()(
       hasModule: (key: string) => get().modules.includes(key),
 
       hasSetting: (key: keyof POSSettings) => Boolean(get().posSettings[key]),
+
+      getEffectivePaymentMethods: () => {
+        const settings = get().posSettings;
+        const raw = settings?.pos_payment_methods || ['cash', 'mobile_money', 'card'];
+        const isPaystackOn = settings?.pos_paystack_enabled ?? true;
+        return isPaystackOn ? raw : raw.filter((m) => m !== 'card');
+      },
 
       loadFeatures: async () => {
         try {
