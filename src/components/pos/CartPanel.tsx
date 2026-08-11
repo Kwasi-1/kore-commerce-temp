@@ -440,11 +440,12 @@ export default function CartPanel({
                           {item.name}
                         </h4>
                         <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold">
-                          <span className="border border-border rounded-full px-2 py-0.5 text-muted-foreground bg-primary/10">
+                          <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                             {item.tier_name}
                           </span>
                           {item.price_type === 'wholesale' && (
-                            <span className="border border-amber-500/25 rounded-full px-2 py-0.5 text-amber-600 bg-amber-50 dark:bg-amber-950/20 font-bold">
+                            <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-600 inline-block"></span>
                               Wholesale
                             </span>
                           )}
@@ -1011,11 +1012,12 @@ export default function CartPanel({
                         {item.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-bold text-primary bg-primary/10">
+                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                           {item.tier_name}
                         </span>
                         {item.price_type === 'wholesale' && (
-                          <span className="border border-amber-500/25 rounded-full px-2 py-0.5 text-[11px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                          <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-600 inline-block"/>
                             Wholesale
                           </span>
                         )}
