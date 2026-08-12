@@ -53,34 +53,86 @@ interface Product {
   base_unit_name: string;
 }
 
-const flattenProducts = (parentProducts: any[]): Product[] => {
+const flattenProducts = (rawProducts: any[]): Product[] => {
   const flat: Product[] = [];
-  parentProducts.forEach(parent => {
-    (parent.variants || []).forEach((variant: any) => {
+  rawProducts.forEach(item => {
+    // Case A: Item is already a direct variant object (returned by /pos/products/search)
+    if (item.variant_id && item.packaging_tiers) {
+      const attrValues = item.variant_attributes ? Object.values(item.variant_attributes).filter(Boolean) : [];
+      const parentName = item.product_name || item.name || '';
+      const combinedName = attrValues.length > 0 
+        ? `${parentName} · ${attrValues.join(' · ')}`
+        : parentName;
+        
+      const defaultTier = item.packaging_tiers.find((t: any) => t.is_default_sale_unit) || item.packaging_tiers[0];
+      const rawRetailPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
+      const stockDisplayVal = typeof item.stock_display === 'object' ? item.stock_display.parsedValue : (item.stock_display ?? item.stock_quantity ?? 0);
+
+      const normalizedTiers = (item.packaging_tiers || []).map((t: any) => ({
+        ...t,
+        prices: {
+          retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
+          wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+        }
+      }));
+
+      flat.push({
+        id: item.variant_id,
+        variant_id: item.variant_id,
+        product_name: parentName,
+        name: combinedName,
+        sku: item.sku,
+        price: rawRetailPrice,
+        imageUrl: item.imageUrl || item.images?.[0] || undefined,
+        category: item.category || 'General',
+        description: item.description,
+        stock_quantity: item.stock_quantity ?? 0,
+        stock_display: stockDisplayVal,
+        stock_display_unit: item.stock_display_unit || 'unit',
+        low_stock: item.low_stock || false,
+        sell_mode: item.sell_mode || 'unit_only',
+        packaging_tiers: normalizedTiers,
+        variant_attributes: item.variant_attributes || {},
+        base_unit_name: item.base_unit_name || 'unit'
+      });
+      return;
+    }
+
+    // Case B: Parent product containing nested variants
+    (item.variants || []).forEach((variant: any) => {
       const attrValues = variant.variant_attributes ? Object.values(variant.variant_attributes).filter(Boolean) : [];
       const combinedName = attrValues.length > 0 
-        ? `${parent.name} · ${attrValues.join(' · ')}`
-        : parent.name;
+        ? `${item.name} · ${attrValues.join(' · ')}`
+        : item.name;
         
       const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
-      const defaultPrice = defaultTier ? defaultTier.prices.retail : 0;
+      const defaultPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
+      const stockDisplayVal = typeof variant.stock_display === 'object' ? variant.stock_display.parsedValue : (variant.stock_display ?? variant.stock_quantity ?? 0);
+
+      const normalizedTiers = (variant.packaging_tiers || []).map((t: any) => ({
+        ...t,
+        prices: {
+          retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
+          wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+        }
+      }));
 
       flat.push({
         id: variant.variant_id,
         variant_id: variant.variant_id,
-        product_name: parent.name,
+        product_name: item.name,
         name: combinedName,
         sku: variant.sku,
         price: defaultPrice,
-        imageUrl: parent.imageUrl || parent.images?.[0] || undefined,
-        category: parent.category || 'General',
-        description: parent.description,
-        stock_quantity: variant.stock_quantity,
-        stock_display: variant.stock_display,
-        stock_display_unit: variant.stock_display_unit,
-        low_stock: variant.low_stock,
-        sell_mode: variant.sell_mode,
-        packaging_tiers: variant.packaging_tiers,
+        imageUrl: item.imageUrl || item.images?.[0] || undefined,
+        category: item.category || 'General',
+        description: item.description,
+        stock_quantity: variant.stock_quantity ?? 0,
+        stock_display: stockDisplayVal,
+        stock_display_unit: variant.stock_display_unit || 'unit',
+        low_stock: variant.low_stock || false,
+        sell_mode: variant.sell_mode || 'unit_only',
+        packaging_tiers: normalizedTiers,
         variant_attributes: variant.variant_attributes || {},
         base_unit_name: variant.base_unit_name || 'unit'
       });
