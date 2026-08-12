@@ -418,7 +418,7 @@ export default function Products() {
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
-                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
+                ? "text-green-600 dark:text-green-400 bg-green-400/10"
                 : "text-muted-foreground bg-muted border border-border"
             }`}>
               {p.status || "Active"}

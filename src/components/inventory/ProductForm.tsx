@@ -459,7 +459,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     }
 
     return (
-      <div className="overflow-x-auto border border-border dark:border-gray-800 rounded-xl bg-muted/10">
+      <div className="overflow-x-auto border border-border dark:border-gray-800 rounded-md bg-muted/10">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-muted border-b border-border/70 text-[10px] text-muted-foreground uppercase font-bold">
