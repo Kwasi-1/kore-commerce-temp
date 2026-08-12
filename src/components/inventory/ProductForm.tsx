@@ -689,7 +689,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full bg-transparent md:py-4">
+    <form onSubmit={handleSubmit} className="w-full bg-transparent md:py-4 spacing-sm font-header">
       {/* Two Column Grid layout */}
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full relative">
         
@@ -699,7 +699,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             options={sidebarOptions}
             activeKey={activeSection}
             onChange={handleNavClick}
-            className="w-full font-semibold"
+            className="w-full font-semibold !tracking-tighter"
             variant="primary"
           />
         </div>

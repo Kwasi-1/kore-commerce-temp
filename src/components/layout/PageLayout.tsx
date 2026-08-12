@@ -65,22 +65,9 @@ export default function PageLayout({
           <div className="flex items-center justify-between w-full min-h-[44px] gap-3">
             {/* Left side */}
             <div className="flex items-center gap-2 min-w-0">
-              {showBackButton && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    if (onBackClick) onBackClick();
-                    else if (backUrl) navigate(backUrl);
-                    else navigate(-1);
-                  }}
-                  className="h-8 w-8 md:h-9 md:w-9 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
+              
               <div className="flex flex-col gap-0.5 min-w-0">
-                <h1 className={cn("text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate", showBackButton ? "text-xl" : "text-2xl", titleClassName)}>
+                <h1 className={cn("text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate", showBackButton ? "text-2xl" : "text-2xl", titleClassName)}>
                   {title}
                 </h1>
               </div>
@@ -118,7 +105,22 @@ export default function PageLayout({
                 </button>
               )}
 
-              {/* Profile Pill container */}
+              {showBackButton ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (onBackClick) onBackClick();
+                    else if (backUrl) navigate(backUrl);
+                    else navigate(-1);
+                  }}
+                  className="h-10 w-10 md:h-11 md:w-auto md:px-4 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden md:inline">Go Back</span>
+                </Button>
+              ) : (
+
               <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0 bg-card">
                 <Button
                   variant="ghost"
@@ -160,6 +162,7 @@ export default function PageLayout({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              )}
             </div>
           </div>
           {subtitle && (
