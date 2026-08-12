@@ -7,11 +7,12 @@ export interface RegisterPreferences {
   showStockCount: boolean;
   defaultPriceType: 'retail' | 'wholesale';
   soundEffectsEnabled: boolean;
+  showSubPacks: boolean;
 }
 
 interface RegisterPreferencesState extends RegisterPreferences {
   setPreference: <K extends keyof RegisterPreferences>(key: K, value: RegisterPreferences[K]) => void;
-  togglePreference: (key: 'showProductImages' | 'showStockCount' | 'soundEffectsEnabled') => void;
+  togglePreference: (key: 'showProductImages' | 'showStockCount' | 'soundEffectsEnabled' | 'showSubPacks') => void;
 }
 
 export const useRegisterPreferencesStore = create<RegisterPreferencesState>()(
@@ -22,6 +23,7 @@ export const useRegisterPreferencesStore = create<RegisterPreferencesState>()(
       showStockCount: true,
       defaultPriceType: 'retail',
       soundEffectsEnabled: true,
+      showSubPacks: true,
 
       setPreference: (key, value) => set({ [key]: value }),
       togglePreference: (key) => set((state) => ({ [key]: !state[key] })),

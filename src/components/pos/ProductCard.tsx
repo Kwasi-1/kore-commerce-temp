@@ -44,7 +44,7 @@ export interface Product {
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product, selectedTier?: PackagingTier) => void;
+  onAddToCart: (product: Product, selectedTier?: PackagingTier, quantityMultiplier?: number) => void;
 }
 
 export default function ProductCard({ product, onAddToCart }: ProductCardProps) {
@@ -56,7 +56,8 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     showStockCount, 
     gridDensity, 
     defaultPriceType, 
-    soundEffectsEnabled 
+    soundEffectsEnabled,
+    showSubPacks
   } = useRegisterPreferencesStore();
 
   // Density styles dictionary
@@ -269,54 +270,99 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
               </button>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
               {product.packaging_tiers.map((tier) => {
                 const tierPrice = defaultPriceType === 'wholesale' 
                   ? (tier.prices.wholesale ?? tier.prices.retail) 
                   : tier.prices.retail;
                 const cartItemForTier = items.find(i => i.productId === `${product.variant_id}-${tier.id}`);
                 const qtyInCart = cartItemForTier?.quantity || 0;
+                const isMultiUnit = tier.units_per_tier > 1;
 
                 return (
-                  <button
+                  <div
                     key={tier.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToCart(product, tier);
-                      setShowTierSelector(false);
-                    }}
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/60 transition-colors text-left group/tier"
+                    className="p-3 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Box className="h-4 w-4" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <Box className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                            {tier.name}
+                            {isMultiUnit && (
+                              <span className="text-[10px] text-muted-foreground font-normal">
+                                ({tier.units_per_tier} {product.base_unit_name}s)
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] font-semibold text-primary">
+                            <CurrencyDisplay amount={tierPrice} />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                          {tier.name}
-                          {tier.units_per_tier > 1 && (
-                            <span className="text-[10px] text-muted-foreground font-normal">
-                              ({tier.units_per_tier} {product.base_unit_name}s)
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] font-semibold text-primary">
-                          <CurrencyDisplay amount={tierPrice} />
-                        </div>
+
+                      <div className="flex items-center gap-2">
+                        {qtyInCart > 0 && (
+                          <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            {qtyInCart} in cart
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToCart(product, tier, 1);
+                            setShowTierSelector(false);
+                          }}
+                          className="h-7 px-2.5 rounded-full bg-foreground text-background font-bold text-xs flex items-center gap-1 opacity-90 hover:opacity-100 transition-opacity"
+                          title="Add 1 full unit"
+                        >
+                          <Plus className="h-3 w-3" />
+                          <span>Add</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {qtyInCart > 0 && (
-                        <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {qtyInCart} in cart
+                    {/* Quick Sub-Unit Presets (Half Pack, Quarter Pack) for Multi-Unit Tiers */}
+                    {isMultiUnit && showSubPacks && (
+                      <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-1">
+                          Sub-Pack:
                         </span>
-                      )}
-                      <div className="h-7 w-7 rounded-full bg-foreground text-background flex items-center justify-center opacity-80 group-hover/tier:opacity-100 transition-opacity">
-                        <Plus className="h-3.5 w-3.5" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToCart(product, tier, 0.5);
+                            setShowTierSelector(false);
+                          }}
+                          className="px-2 py-0.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
+                        >
+                          <span>½ Pack</span>
+                          <span className="text-[9px] text-muted-foreground font-normal">
+                            ({Math.round(tier.units_per_tier * 0.5)} {product.base_unit_name}s)
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToCart(product, tier, 0.25);
+                            setShowTierSelector(false);
+                          }}
+                          className="px-2 py-0.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
+                        >
+                          <span>¼ Pack</span>
+                          <span className="text-[9px] text-muted-foreground font-normal">
+                            ({Math.round(tier.units_per_tier * 0.25)} {product.base_unit_name}s)
+                          </span>
+                        </button>
                       </div>
-                    </div>
-                  </button>
+                    )}
+                  </div>
                 );
               })}
             </div>

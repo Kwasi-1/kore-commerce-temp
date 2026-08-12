@@ -118,7 +118,7 @@ export default function CartPanel({
     addItem,
   } = useCartStore();
 
-  const { showProductImages, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
+  const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks } = useRegisterPreferencesStore();
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
 
@@ -531,35 +531,37 @@ export default function CartPanel({
                       </Button>
 
                       {/* Quick Fraction Selector Popover */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
-                            title="Quick Fraction (½, ¼)"
-                          >
-                            ½
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-28 p-1">
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>½ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.5</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>¼ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.25</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>¾ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.75</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>1½ Packs</span>
-                            <span className="text-[10px] text-muted-foreground">1.5</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {showSubPacks && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                              title="Quick Fraction (½, ¼)"
+                            >
+                              ½
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-28 p-1">
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>½ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.5</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>¼ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.25</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>¾ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.75</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>1½ Packs</span>
+                              <span className="text-[10px] text-muted-foreground">1.5</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
 
                     {/* Price and Remove Row */}
@@ -1144,34 +1146,36 @@ export default function CartPanel({
                       </Button>
 
                       {/* Mobile Quick Fraction Selector Popover */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
-                          >
-                            ½
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-28 p-1">
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>½ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.5</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>¼ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.25</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>¾ Pack</span>
-                            <span className="text-[10px] text-muted-foreground">0.75</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
-                            <span>1½ Packs</span>
-                            <span className="text-[10px] text-muted-foreground">1.5</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {showSubPacks && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                            >
+                              ½
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-28 p-1">
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>½ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.5</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>¼ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.25</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>¾ Pack</span>
+                              <span className="text-[10px] text-muted-foreground">0.75</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                              <span>1½ Packs</span>
+                              <span className="text-[10px] text-muted-foreground">1.5</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     <div className="font-bold text-[14px] text-foreground tracking-tight">
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">

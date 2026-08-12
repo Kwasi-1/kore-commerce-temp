@@ -43,6 +43,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     gridDensity, 
     defaultPriceType, 
     soundEffectsEnabled, 
+    showSubPacks,
     setPreference 
   } = useRegisterPreferencesStore();
 
@@ -75,7 +76,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <Settings className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300 hover:rotate-45" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[290px] p-4 rounded-[20px] shadow-xl border-border/60 bg-popover/95 backdrop-blur-md z-50">
+          <DropdownMenuContent align="end" className="w-[320px] p-4 rounded-[20px] shadow-xl border-border/60 bg-popover/95 backdrop-blur-md z-50">
             <DropdownMenuLabel className="px-1 py-1 font-bold text-foreground text-sm flex items-center gap-2">
               <Settings className="h-4 w-4 text-primary" />
               <span>Register Preferences</span>
@@ -118,18 +119,30 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 onCheckedChange={(val) => setPreference('soundEffectsEnabled', val)} 
               />
             </DropdownMenuItem>
+
+            {/* Sub-Pack Presets */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
+              <div className="flex flex-col gap-0.5 max-w-[200px]">
+                <span className="font-semibold text-xs text-foreground">Sub-Pack Presets (½, ¼)</span>
+                <span className="text-[10px] text-muted-foreground">Show partial pack options in POS</span>
+              </div>
+              <Switch 
+                checked={showSubPacks} 
+                onCheckedChange={(val) => setPreference('showSubPacks', val)} 
+              />
+            </DropdownMenuItem>
             
             <DropdownMenuSeparator className="my-2" />
             
             {/* Grid Density */}
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <span className="font-semibold text-xs text-foreground">Grid Density</span>
-              <div className="flex w-full bg-secondary p-0.5 rounded-lg border border-border/50">
+              <div className="flex w-full bg-secondary p-0.5 rounded-full border border-border/50">
                 {(['compact', 'normal', 'large'] as const).map((density) => (
                   <button
                     key={density}
                     onClick={() => setPreference('gridDensity', density)}
-                    className={`flex-1 py-1 text-[10px] font-bold capitalize rounded-md transition-all ${
+                    className={`flex-1 py-1 text-[10px] font-bold capitalize rounded-full transition-all ${
                       gridDensity === density 
                         ? 'bg-background text-foreground shadow-sm' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -147,12 +160,12 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 <span className="font-semibold text-xs text-foreground">Default Price Tier</span>
                 <span className="text-[10px] text-muted-foreground">Standard pricing type for checkout</span>
               </div>
-              <div className="flex w-full bg-secondary p-0.5 rounded-lg border border-border/50">
+              <div className="flex w-full bg-secondary p-0.5 rounded-full border border-border/50">
                 {(['retail', 'wholesale'] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setPreference('defaultPriceType', mode)}
-                    className={`flex-1 py-1 text-[10px] font-bold capitalize rounded-md transition-all ${
+                    className={`flex-1 py-1 text-[10px] font-bold capitalize rounded-full transition-all ${
                       defaultPriceType === mode 
                         ? 'bg-background text-foreground shadow-sm' 
                         : 'text-muted-foreground hover:text-foreground'

@@ -194,7 +194,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     }
   };
 
-  const handleAddToCart = (product: Product, selectedTier?: PackagingTier) => {
+  const handleAddToCart = (product: Product, selectedTier?: PackagingTier, quantityMultiplier: number = 1) => {
     if (isShiftRequired && !currentShift) {
       toast.error('You must start a shift first before adding items to the cart!');
       return;
@@ -220,7 +220,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
     const cartKey = `${product.variant_id}-${tier.id}`;
     const currentQuantityInCart = useCartStore.getState().items.find(i => i.productId === cartKey)?.quantity || 0;
-    const incrementedQtyInBaseUnits = (currentQuantityInCart + 1) * tier.units_per_tier;
+    const addedQty = Math.round(quantityMultiplier * 1000) / 1000;
+    const incrementedQtyInBaseUnits = (currentQuantityInCart + addedQty) * tier.units_per_tier;
 
     if (incrementedQtyInBaseUnits > stock) {
       toast.error(`Only ${product.stock_display} ${product.stock_display_unit} in stock!`);
@@ -240,6 +241,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       name: product.name,
       sku: product.sku,
       price: activePrice,
+      quantity: addedQty,
       imageUrl: product.imageUrl,
       category: product.category,
       stock_quantity: product.stock_quantity,
