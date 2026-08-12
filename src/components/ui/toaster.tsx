@@ -8,7 +8,7 @@ export function Toaster() {
       toastOptions={{
         classNames: {
           toast: "border-0 bg-white shadow-lg",
-          title: "text-sm font-semibold text-foreground",
+          title: "text-sm font-semibold text-primary-foreground",
           description: "text-sm text-muted-foreground",
           actionButton: "bg-primary text-primary-foreground",
           cancelButton: "bg-gray-100 text-foreground",
