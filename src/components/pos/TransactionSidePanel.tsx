@@ -3,6 +3,8 @@ import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
 import { useCurrency } from '@/hooks';
+import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ const getVal = (val: any): number => {
   if (typeof val === 'string') return parseFloat(val) || 0;
   if (typeof val === 'object') {
     if (typeof val.parsedValue === 'number') return val.parsedValue;
+    if (typeof val.amount === 'number') return val.amount;
     if (typeof val.source === 'string') return parseFloat(val.source) || 0;
     if (typeof val.source === 'number') return val.source;
   }
@@ -32,8 +35,10 @@ export default function TransactionSidePanel({
   onIssueRefund
 }: TransactionSidePanelProps) {
   const { formatAmount } = useCurrency();
+  const { tenant } = useAuthStore();
+  const { storeSettings } = useSettingsStore();
 
-  const storeName = receiptData?.storeName || receiptData?.tenant?.name || 'VYSION STORE';
+  const storeName = receiptData?.storeName || receiptData?.tenant?.name || storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
   const cashierName = receiptData?.cashierName || receiptData?.cashier?.name || 'Staff';
   const rawPaymentMethod = (receiptData?.paymentMethod || receiptData?.payment?.method || 'cash').toLowerCase();
   const displayPaymentMethod = rawPaymentMethod === 'mobile_money_manual'

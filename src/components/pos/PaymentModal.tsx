@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown, Lock } from 'lucide-react';
@@ -39,7 +40,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   // Mobile-only: collapsible item list inside the compact summary
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
-  const { posSettings } = useSettingsStore();
+  const { tenant } = useAuthStore();
+  const { posSettings, storeSettings } = useSettingsStore();
+  const storeName = storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
+  const storePhone = storeSettings?.phoneNumber;
+
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
   const isPaystackEnabled = checkPaystack();
 
@@ -172,9 +177,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
         {/* Header */}
         <div className="text-center mb-6">
-          <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900">VYSION STORE</h3>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wide">123 Commerce St, Accra, Ghana</p>
-          <p className="text-[10px] text-zinc-500">Tel: +233 24 123 4567</p>
+          <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900 uppercase">{storeName}</h3>
+          {storeSettings?.email && <p className="text-[10px] text-zinc-500 tracking-wide">{storeSettings.email}</p>}
+          {storePhone && <p className="text-[10px] text-zinc-500">Tel: {storePhone}</p>}
         </div>
 
         {/* Info Section */}

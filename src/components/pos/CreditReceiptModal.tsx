@@ -4,6 +4,8 @@ import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, Download } from 'lucide-react';
 import { CurrencyDisplay } from '@/hooks';
+import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -21,6 +23,11 @@ export default function CreditReceiptModal({
   transaction
 }: CreditReceiptModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const { tenant } = useAuthStore();
+  const { storeSettings } = useSettingsStore();
+
+  const storeName = storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
+  const storePhone = storeSettings?.phoneNumber;
 
   if (!transaction) return null;
 
@@ -78,9 +85,9 @@ export default function CreditReceiptModal({
       >
         {/* Header */}
         <div className="text-center mb-6 relative">
-          <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900">VYSION STORE</h3>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wide">123 Commerce St, Accra, Ghana</p>
-          <p className="text-[10px] text-zinc-500">Tel: +233 24 123 4567</p>
+          <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900 uppercase">{storeName}</h3>
+          {storeSettings?.email && <p className="text-[10px] text-zinc-500 tracking-wide">{storeSettings.email}</p>}
+          {storePhone && <p className="text-[10px] text-zinc-500">Tel: {storePhone}</p>}
           {isSettled && renderSettledStamp()}
         </div>
 
