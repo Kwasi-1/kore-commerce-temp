@@ -181,17 +181,22 @@ export default function CartPanel({
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingQtyValue, setEditingQtyValue] = useState<string>("");
 
+  const formatQtyDisplay = (qty: number) => {
+    if (qty % 1 === 0) return qty.toString().padStart(2, "0");
+    return qty.toString();
+  };
+
   const handleBlurQty = (productId: string, stockQuantity?: number) => {
     const item = items.find(i => i.productId === productId);
     const unitsPerTier = item ? item.units_per_tier : 1;
-    let newQty = parseInt(editingQtyValue, 10);
+    let newQty = parseFloat(editingQtyValue);
     const stock = stockQuantity ?? Infinity;
     
-    if (isNaN(newQty) || newQty < 1) {
+    if (isNaN(newQty) || newQty <= 0) {
       newQty = 1;
     } else if (newQty * unitsPerTier > stock) {
-      newQty = Math.floor(stock / unitsPerTier);
-      if (newQty < 1) {
+      newQty = Math.floor((stock / unitsPerTier) * 100) / 100;
+      if (newQty <= 0) {
         removeItem(productId);
         setEditingProductId(null);
         return;
@@ -199,8 +204,22 @@ export default function CartPanel({
       toast.error(`Only ${newQty} in stock!`);
     }
     
+    newQty = Math.round(newQty * 1000) / 1000;
     updateQuantity(productId, newQty);
     setEditingProductId(null);
+  };
+
+  const handleFractionSelect = (productId: string, fraction: number, stockQuantity?: number) => {
+    const item = items.find(i => i.productId === productId);
+    const unitsPerTier = item ? item.units_per_tier : 1;
+    const stock = stockQuantity ?? Infinity;
+    
+    if (fraction * unitsPerTier > stock) {
+      toast.error(`Insufficient stock!`);
+      return;
+    }
+    
+    updateQuantity(productId, Math.round(fraction * 1000) / 1000);
   };
 
   useEffect(() => {
@@ -454,12 +473,12 @@ export default function CartPanel({
                     </div>
 
                     {/* Qty Controls */}
-                    <div className="flex items-center gap-1.5 bg-secondary border border-border/40 rounded-full px-1 py-1 shrink-0">
+                    <div className="flex items-center gap-1 bg-secondary border border-border/40 rounded-full px-1.5 py-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1)
+                          updateQuantity(item.productId, Math.max(0, item.quantity - 1))
                         }
                         className="h-6 w-6 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-foreground"
                       >
@@ -468,8 +487,9 @@ export default function CartPanel({
                       {editingProductId === item.productId ? (
                         <input
                           type="number"
-                          min="1"
-                          className="w-10 h-6 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
+                          step="any"
+                          min="0.01"
+                          className="w-12 h-6 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
                           value={editingQtyValue}
                           onChange={(e) => setEditingQtyValue(e.target.value)}
                           onBlur={() => handleBlurQty(item.productId, item.stock_quantity)}
@@ -485,13 +505,14 @@ export default function CartPanel({
                         />
                       ) : (
                         <span 
-                          className="font-bold text-xs w-5 text-center cursor-pointer hover:text-primary transition-colors"
+                          className="font-bold text-xs px-1 text-center cursor-pointer hover:text-primary transition-colors min-w-[20px]"
                           onClick={() => {
                             setEditingProductId(item.productId);
                             setEditingQtyValue(item.quantity.toString());
                           }}
+                          title="Click to type custom quantity"
                         >
-                          {item.quantity.toString().padStart(2, "0")}
+                          {formatQtyDisplay(item.quantity)}
                         </span>
                       )}
                       <Button
@@ -508,6 +529,37 @@ export default function CartPanel({
                       >
                         <Icon icon="ic:outline-plus" className="h-2.5 w-2.5" />
                       </Button>
+
+                      {/* Quick Fraction Selector Popover */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                            title="Quick Fraction (½, ¼)"
+                          >
+                            ½
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-28 p-1">
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>½ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.5</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>¼ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.25</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>¾ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.75</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>1½ Packs</span>
+                            <span className="text-[10px] text-muted-foreground">1.5</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {/* Price and Remove Row */}
@@ -1035,12 +1087,12 @@ export default function CartPanel({
 
                   {/* Bottom row: qty + total */}
                   <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-1 bg-secondary rounded-full px-1 py-1">
+                    <div className="flex items-center gap-1 bg-secondary rounded-full px-1.5 py-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1)
+                          updateQuantity(item.productId, Math.max(0, item.quantity - 1))
                         }
                         className="h-7 w-7 rounded-full hover:bg-black/5 text-foreground"
                       >
@@ -1049,8 +1101,9 @@ export default function CartPanel({
                       {editingProductId === item.productId ? (
                         <input
                           type="number"
-                          min="1"
-                          className="w-10 h-7 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
+                          step="any"
+                          min="0.01"
+                          className="w-12 h-7 text-center font-bold text-xs bg-background border border-border rounded outline-none no-spin-buttons"
                           value={editingQtyValue}
                           onChange={(e) => setEditingQtyValue(e.target.value)}
                           onBlur={() => handleBlurQty(item.productId, item.stock_quantity)}
@@ -1066,13 +1119,13 @@ export default function CartPanel({
                         />
                       ) : (
                         <span 
-                          className="font-bold text-[13px] w-6 text-center cursor-pointer hover:text-primary transition-colors"
+                          className="font-bold text-[13px] px-1 text-center cursor-pointer hover:text-primary transition-colors min-w-[22px]"
                           onClick={() => {
                             setEditingProductId(item.productId);
                             setEditingQtyValue(item.quantity.toString());
                           }}
                         >
-                          {item.quantity.toString().padStart(2, "0")}
+                          {formatQtyDisplay(item.quantity)}
                         </span>
                       )}
                       <Button
@@ -1089,6 +1142,36 @@ export default function CartPanel({
                       >
                         <Icon icon="material-symbols:add-rounded" className="h-3 w-3" />
                       </Button>
+
+                      {/* Mobile Quick Fraction Selector Popover */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                          >
+                            ½
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-28 p-1">
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>½ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.5</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.25, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>¼ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.25</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 0.75, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>¾ Pack</span>
+                            <span className="text-[10px] text-muted-foreground">0.75</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFractionSelect(item.productId, 1.5, item.stock_quantity)} className="text-xs font-bold justify-between cursor-pointer">
+                            <span>1½ Packs</span>
+                            <span className="text-[10px] text-muted-foreground">1.5</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <div className="font-bold text-[14px] text-foreground tracking-tight">
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
