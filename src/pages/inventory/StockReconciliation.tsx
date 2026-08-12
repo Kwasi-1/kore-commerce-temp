@@ -18,7 +18,39 @@ export default function StockReconciliation() {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/tenant/products?limit=100');
-      setProducts(response.data.success?.data?.products || []);
+      const rawProducts = response.data.success?.data?.products || [];
+      
+      const flatItems: any[] = [];
+      rawProducts.forEach((p: any) => {
+        const variants = p.variants || [];
+        if (variants.length === 0) {
+          flatItems.push({
+            id: p.id,
+            productId: p.id,
+            name: p.name,
+            category: p.category || 'General',
+            sku: p.sku || 'N/A',
+            quantity: p.stock_quantity ?? p.total_stock_base_units ?? 0,
+            base_unit_name: p.base_unit_name || 'units'
+          });
+        } else {
+          variants.forEach((v: any) => {
+            const attrVals = v.variant_attributes ? Object.values(v.variant_attributes).filter(Boolean) : [];
+            const fullName = attrVals.length > 0 ? `${p.name} · ${attrVals.join(' · ')}` : p.name;
+            flatItems.push({
+              id: v.id,
+              productId: v.id,
+              name: fullName,
+              category: p.category || 'General',
+              sku: v.sku || p.sku || 'N/A',
+              quantity: v.stock_quantity ?? 0,
+              base_unit_name: v.base_unit_name || 'units'
+            });
+          });
+        }
+      });
+
+      setProducts(flatItems);
       setPhysicalCounts({});
     } catch (error) {
       console.error('Failed to fetch products for reconciliation:', error);
@@ -91,7 +123,7 @@ export default function StockReconciliation() {
       id: p.id,
       product: <span className="font-semibold text-foreground">{p.name}</span>,
       sku: <span className="font-mono text-sm text-muted-foreground">{p.sku || 'N/A'}</span>,
-      system_stock: <span className="text-muted-foreground">{p.quantity}</span>,
+      system_stock: <span className="text-muted-foreground font-semibold">{p.quantity} <span className="text-xs font-normal text-muted-foreground">{p.base_unit_name || 'units'}</span></span>,
       physical_stock: (
         <input 
           type="number"
