@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { CustomInputTextField, CustomTextareaField } from '@/components/shared/text-field';
-import { Button } from '@nextui-org/react';
+
+import { useSettingsStore } from '@/store/settingsStore';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 
 export default function BusinessProfile() {
+  const { fetchSettings: reloadStoreSettings } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
 
   const [profileData, setProfileData] = useState({
     storeName: '',
-    description: ''
+    description: '',
+    location: ''
+  });
+  const [initialProfileData, setInitialProfileData] = useState({
+    storeName: '',
+    description: '',
+    location: ''
   });
 
   const [contactData, setContactData] = useState({
+    email: '',
+    phoneNumber: '',
+    additionalNumber: ''
+  });
+  const [initialContactData, setInitialContactData] = useState({
     email: '',
     phoneNumber: '',
     additionalNumber: ''
@@ -25,18 +39,27 @@ export default function BusinessProfile() {
     const fetchSettings = async () => {
       try {
         const response = await apiClient.get('/tenant/settings');
-        const store = response.data.success.data.store;
+        const data = response.data.success.data;
+        const store = data.store || {};
+        const loc = data.location?.address || store.address || '';
         
-        setProfileData({
+        const fetchedProfile = {
           storeName: store.name || '',
-          description: store.description || ''
-        });
+          description: store.description || '',
+          location: loc
+        };
         
-        setContactData({
+        const fetchedContact = {
           email: store.email || '',
           phoneNumber: store.phoneNumber || '',
           additionalNumber: store.additionalNumber || ''
-        });
+        };
+
+        setProfileData(fetchedProfile);
+        setInitialProfileData(fetchedProfile);
+        
+        setContactData(fetchedContact);
+        setInitialContactData(fetchedContact);
       } catch (error) {
         console.error('Fetch settings error:', error);
         toast.error('Failed to load business profile');
@@ -48,11 +71,28 @@ export default function BusinessProfile() {
     fetchSettings();
   }, []);
 
+  const isProfileDirty = 
+    profileData.storeName !== initialProfileData.storeName ||
+    profileData.description !== initialProfileData.description ||
+    profileData.location !== initialProfileData.location;
+
+  const isContactDirty = 
+    contactData.email !== initialContactData.email ||
+    contactData.phoneNumber !== initialContactData.phoneNumber ||
+    contactData.additionalNumber !== initialContactData.additionalNumber;
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isProfileDirty) return;
     setIsSavingProfile(true);
     try {
-      await apiClient.patch('/tenant/settings/profile', profileData);
+      await apiClient.patch('/tenant/settings/profile', {
+        storeName: profileData.storeName,
+        description: profileData.description,
+        address: profileData.location
+      });
+      await reloadStoreSettings();
+      setInitialProfileData({ ...profileData });
       toast.success('Business profile updated');
     } catch (error: any) {
       toast.error(error.response?.data?.error?.message || 'Failed to update profile');
@@ -63,9 +103,12 @@ export default function BusinessProfile() {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isContactDirty) return;
     setIsSavingContact(true);
     try {
       await apiClient.patch('/tenant/settings/contact', contactData);
+      await reloadStoreSettings();
+      setInitialContactData({ ...contactData });
       toast.success('Contact information updated');
     } catch (error: any) {
       toast.error(error.response?.data?.error?.message || 'Failed to update contact info');
@@ -89,9 +132,9 @@ export default function BusinessProfile() {
       <div className="max-w-4xl space-y-8">
         
         {/* Profile Section */}
-        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
+        <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
           <h2 className="text-xl font-bold mb-1 text-foreground">General Information</h2>
-          <p className="text-sm text-muted-foreground mb-6">Update your store's public-facing name and description.</p>
+          <p className="text-sm text-muted-foreground mb-6">Update your store's public-facing details and address.</p>
           
           <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-2xl">
             <CustomInputTextField
@@ -99,6 +142,12 @@ export default function BusinessProfile() {
               value={profileData.storeName}
               onChange={(e) => setProfileData(p => ({ ...p, storeName: e.target.value }))}
               required
+            />
+            <CustomInputTextField
+              label="Store Location / Address"
+              value={profileData.location}
+              onChange={(e) => setProfileData(p => ({ ...p, location: e.target.value }))}
+              placeholder="e.g. 123 Commerce St, Accra, Ghana"
             />
             <CustomTextareaField
               label="Business Description"
@@ -110,17 +159,16 @@ export default function BusinessProfile() {
             <div className="pt-2">
               <Button 
                 type="submit" 
-                isLoading={isSavingProfile}
-                className="bg-primary text-primary-foreground font-bold"
+                disabled={!isProfileDirty || isSavingProfile}
               >
-                Save Changes
+                {isSavingProfile ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>
         </section>
 
         {/* Contact Section */}
-        <section className="bg-card text-card-foreground rounded-xl p-6 border border-border">
+        <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
           <h2 className="text-xl font-bold mb-1 text-foreground">Contact Details</h2>
           <p className="text-sm text-muted-foreground mb-6">How customers and the platform can reach you.</p>
           
@@ -150,10 +198,9 @@ export default function BusinessProfile() {
             <div className="pt-2">
               <Button 
                 type="submit" 
-                isLoading={isSavingContact}
-                className="bg-gray-900 text-white dark:bg-gray-100 dark:text-foreground font-bold"
+                disabled={!isContactDirty || isSavingContact}
               >
-                Update Contact
+                {isSavingContact ? 'Updating...' : 'Update Contact'}
               </Button>
             </div>
           </form>

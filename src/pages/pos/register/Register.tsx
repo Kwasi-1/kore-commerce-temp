@@ -273,7 +273,7 @@ export default function Register() {
             <CartPanel isMobileView={true} onOpenPaymentModal={handleOpenPaymentModal} />
 
             {/* Cart Block Overlay (Mobile) */}
-            { !isLoading && !currentShift && (
+            { !isLoading && !currentShift && isShiftRequired && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center border-t border-border/50">
                 <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
                   <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">

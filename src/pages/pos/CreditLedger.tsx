@@ -4,7 +4,7 @@ import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { CurrencyDisplay } from '@/hooks';
+import { CurrencyDisplay, useReceiptHeader } from '@/hooks';
 import DebtSettlementModal from '@/components/pos/DebtSettlementModal';
 import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
 import CustomModal from '@/components/modals/modal';
@@ -14,14 +14,10 @@ import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useFeaturesStore } from '@/store/featuresStore';
-import { useAuthStore } from '@/store/authStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 export default function CreditLedger() {
-  const { tenant } = useAuthStore();
-  const { storeSettings } = useSettingsStore();
   const { posSettings } = useFeaturesStore();
-  const storeName = storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
+  const { storeName, storeLocation, storePhone } = useReceiptHeader();
   const [debtors, setDebtors] = useState<any[]>([]);
   const [settledThisMonth, setSettledThisMonth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -240,9 +236,9 @@ export default function CreditLedger() {
       
       container.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
-          <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 4px; letter-spacing: 1px;">${storeName.toUpperCase()}</h3>
-          ${storeSettings?.email ? `<p style="font-size: 10px; color: #666; margin: 0;">${storeSettings.email}</p>` : ''}
-          ${storeSettings?.phoneNumber ? `<p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Tel: ${storeSettings.phoneNumber}</p>` : ''}
+          <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 4px; letter-spacing: 1px;">${storeName}</h3>
+          ${storeLocation ? `<p style="font-size: 10px; color: #666; text-transform: uppercase; margin: 0;">${storeLocation}</p>` : ''}
+          ${storePhone ? `<p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Tel: ${storePhone}</p>` : ''}
         </div>
         
         <div style="border-bottom: 1px dashed #ccc; padding-bottom: 12px; margin-bottom: 12px; font-size: 11px;">

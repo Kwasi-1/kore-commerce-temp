@@ -13,6 +13,8 @@ interface StoreSettings {
   email: string;
   phoneNumber: string;
   additionalNumber: string;
+  address?: string;
+  location?: string;
 }
 
 interface SettingsState {
@@ -35,7 +37,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     description: '',
     email: '',
     phoneNumber: '',
-    additionalNumber: ''
+    additionalNumber: '',
+    address: '',
+    location: ''
   },
   isLoading: false,
   error: null,
@@ -45,9 +49,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const response = await apiClient.get('/tenant/settings');
       const data = response.data.success.data;
+      const storeData = data.store || {};
+      if (data.location?.address) {
+        storeData.address = data.location.address;
+        storeData.location = data.location.address;
+      }
       set({ 
         posSettings: data.pos_settings || get().posSettings,
-        storeSettings: data.store || get().storeSettings,
+        storeSettings: { ...get().storeSettings, ...storeData },
         isLoading: false 
       });
     } catch (error: any) {

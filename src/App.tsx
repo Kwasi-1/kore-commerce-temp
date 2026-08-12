@@ -1,9 +1,10 @@
-import { Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { ModuleRoute } from '@/components/shared/ModuleRoute';
 import { usePrefetchModules } from '@/hooks/usePrefetchModules';
 import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { ChunkErrorBoundary } from '@/components/shared/ChunkErrorBoundary';
 
@@ -75,7 +76,14 @@ function AppRoutes() {
   // so navigation to allowed pages is instant with no Suspense flash.
   usePrefetchModules();
   const staffUser = useAuthStore((state) => state.staffUser);
+  const token = useAuthStore((state) => state.token);
   const isCashier = staffUser?.role === 'cashier';
+
+  useEffect(() => {
+    if (token) {
+      useSettingsStore.getState().fetchSettings().catch(() => {});
+    }
+  }, [token]);
 
   return (
     <Routes>

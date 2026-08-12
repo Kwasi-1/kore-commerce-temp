@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
-import { CurrencyDisplay } from '@/hooks';
+import { CurrencyDisplay, useReceiptHeader } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
@@ -40,10 +40,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   // Mobile-only: collapsible item list inside the compact summary
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
-  const { tenant } = useAuthStore();
+  const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
   const { posSettings, storeSettings } = useSettingsStore();
-  const storeName = storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
-  const storePhone = storeSettings?.phoneNumber;
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
   const isPaystackEnabled = checkPaystack();
@@ -178,7 +176,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         {/* Header */}
         <div className="text-center mb-6">
           <h3 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900 uppercase">{storeName}</h3>
-          {storeSettings?.email && <p className="text-[10px] text-zinc-500 tracking-wide">{storeSettings.email}</p>}
+          {storeLocation && <p className="text-[10px] text-zinc-500 uppercase tracking-wide">{storeLocation}</p>}
           {storePhone && <p className="text-[10px] text-zinc-500">Tel: {storePhone}</p>}
         </div>
 
@@ -288,25 +286,25 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         <div className="space-y-1 text-xs text-muted-foreground font-medium">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span className="text-foreground"><CurrencyDisplay amount={displaySubtotal} /></span>
+            <span className="text-foreground"><CurrencyDisplay amount={displaySubtotal} symbolClassName={'text-[0.8em] text-muted-foreground'} /></span>
           </div>
           {displayDiscount > 0 && (
             <div className="flex justify-between">
               <span>Discount</span>
-              <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} /></span>
+              <span className="text-emerald-600">-<CurrencyDisplay amount={displayDiscount} symbolClassName={'text-[0.8em] text-muted-foreground'}  /></span>
             </div>
           )}
           {featureSettings.pos_tax_enabled && taxRate > 0 && (
           <div className="flex justify-between">
             <span>{taxLabel} ({taxPercent}%)</span>
-            <span className="text-foreground"><CurrencyDisplay amount={displayTax} /></span>
+            <span className="text-foreground"><CurrencyDisplay amount={displayTax} symbolClassName={'text-[0.8em] text-muted-foreground'} /></span>
           </div>
           )}
         </div>
 
         <div className="flex justify-between items-baseline pt-2 mt-2 border-t border-border/50">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total</span>
-          <span className="text-lg font-black text-foreground"><CurrencyDisplay amount={displayTotal} /></span>
+          <span className="text-lg font-black text-foreground"><CurrencyDisplay amount={displayTotal} symbolClassName={'text-[0.8em] text-muted-foreground'} /></span>
         </div>
 
         <button
@@ -327,7 +325,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   <span className="text-muted-foreground"> × {item.quantity}</span>
                 </div>
                 <span className="text-muted-foreground font-medium whitespace-nowrap">
-                  <CurrencyDisplay amount={item.price * item.quantity} />
+                  <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
                 </span>
               </div>
             ))}
@@ -530,7 +528,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       {/* Right Column: Flow — always gets the remaining space, guaranteed */}
-      <div className="flex-1 p-6 md:p-8 overflow-hidden relative bg-card flex flex-col min-h-0">
+      <div className="flex-1 p-6 md:p-8 overflow-hidden relative md:bg-card flex flex-col min-h-0">
         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-between min-h-0">
            {isSuccess ? renderSuccessScreen() : renderPaymentFlow()}
         </div>

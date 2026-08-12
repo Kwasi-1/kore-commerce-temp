@@ -2,9 +2,7 @@ import React from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
-import { useCurrency } from '@/hooks';
-import { useAuthStore } from '@/store/authStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useCurrency, useReceiptHeader } from '@/hooks';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -35,10 +33,7 @@ export default function TransactionSidePanel({
   onIssueRefund
 }: TransactionSidePanelProps) {
   const { formatAmount } = useCurrency();
-  const { tenant } = useAuthStore();
-  const { storeSettings } = useSettingsStore();
-
-  const storeName = receiptData?.storeName || receiptData?.tenant?.name || storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store';
+  const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
   const cashierName = receiptData?.cashierName || receiptData?.cashier?.name || 'Staff';
   const rawPaymentMethod = (receiptData?.paymentMethod || receiptData?.payment?.method || 'cash').toLowerCase();
   const displayPaymentMethod = rawPaymentMethod === 'mobile_money_manual'
@@ -85,12 +80,16 @@ export default function TransactionSidePanel({
                 <h1 className="font-['AtypDisplay'] font-bold text-xl tracking-wider mb-1 text-zinc-900 uppercase">
                   {storeName}
                 </h1>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                  {receiptData.storeAddress || '123 Commerce St, Accra, Ghana'}
-                </p>
-                <p className="text-[10px] text-zinc-500">
-                  Tel: {receiptData.storePhone || '+233 24 123 4567'}
-                </p>
+                {storeLocation && (
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                    {storeLocation}
+                  </p>
+                )}
+                {storePhone && (
+                  <p className="text-[10px] text-zinc-500">
+                    Tel: {storePhone}
+                  </p>
+                )}
               </div>
 
               {/* Info Section */}
