@@ -456,7 +456,7 @@ export default function Products() {
     }
 
     return (
-      <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm animate-in fade-in duration-300">
+      <div className="border border-border rounded-sm bg-card overflow-hidden shadow-sm animate-in fade-in duration-300">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/20 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">

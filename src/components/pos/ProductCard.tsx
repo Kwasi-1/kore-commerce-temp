@@ -341,14 +341,15 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         <h3 className={densityStyles.title}>
           {displayTitle}
         </h3>
-        {displaySubtitle && (
+        {displaySubtitle ? (
           <p className={densityStyles.subtitle}>
             {displaySubtitle}
           </p>
-        )}
+        ):(
         <p className={densityStyles.sku}>
           {product.sku}
         </p>
+        )}
         
         <div className={`font-bold text-foreground tracking-tight ${densityStyles.price}`}>
           <CurrencyDisplay amount={activePrice || 0} />
