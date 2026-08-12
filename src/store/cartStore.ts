@@ -15,6 +15,7 @@ export interface CartItem {
   units_per_tier: number;
   unit_price: number;
   price_type: 'retail' | 'wholesale';
+  packaging_tiers?: any[];
 }
 
 
@@ -41,6 +42,8 @@ interface CartState {
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  updateItemTier: (productId: string, newTier: { id: string; name: string; units_per_tier: number; price: number }) => void;
+  updateItemPriceType: (productId: string, priceType: 'retail' | 'wholesale', newPrice: number) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
   
@@ -105,6 +108,44 @@ export const useCartStore = create<CartState>((set) => ({
       const newItems = state.items.map((i) =>
         i.productId === productId ? { ...i, quantity } : i
       );
+      const totals = calculateTotals(newItems, state.discount);
+      return { items: newItems, ...totals };
+    }),
+
+  updateItemTier: (productId, newTier) =>
+    set((state) => {
+      const newItems = state.items.map((i) => {
+        if (i.productId === productId) {
+          const newProductId = `${i.variant_id}-${newTier.id}`;
+          return {
+            ...i,
+            productId: newProductId,
+            packaging_tier_id: newTier.id,
+            tier_name: newTier.name,
+            units_per_tier: newTier.units_per_tier,
+            price: newTier.price,
+            unit_price: newTier.price
+          };
+        }
+        return i;
+      });
+      const totals = calculateTotals(newItems, state.discount);
+      return { items: newItems, ...totals };
+    }),
+
+  updateItemPriceType: (productId, priceType, newPrice) =>
+    set((state) => {
+      const newItems = state.items.map((i) => {
+        if (i.productId === productId) {
+          return {
+            ...i,
+            price_type: priceType,
+            price: newPrice,
+            unit_price: newPrice
+          };
+        }
+        return i;
+      });
       const totals = calculateTotals(newItems, state.discount);
       return { items: newItems, ...totals };
     }),

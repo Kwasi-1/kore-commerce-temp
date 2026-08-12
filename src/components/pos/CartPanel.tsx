@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useCartStore } from "@/store/cartStore";
+import { CartItem, useCartStore } from "@/store/cartStore";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
@@ -13,6 +13,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CurrencyDisplay } from "@/hooks";
@@ -53,6 +55,27 @@ interface Product {
   base_unit_name: string;
 }
 
+const parseVal = (v: any, fallback = 0): number => {
+  if (v === null || v === undefined) return fallback;
+  if (typeof v === 'object') return typeof v.parsedValue === 'number' ? v.parsedValue : (parseFloat(v.source || '0') || fallback);
+  const num = typeof v === 'number' ? v : parseFloat(v);
+  return isNaN(num) ? fallback : num;
+};
+
+const parseWholesaleVal = (v: any): number | null => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'object') {
+    if (typeof v.parsedValue === 'number') return v.parsedValue;
+    if (v.source) {
+      const p = parseFloat(v.source);
+      return isNaN(p) ? null : p;
+    }
+    return null;
+  }
+  const num = typeof v === 'number' ? v : parseFloat(v);
+  return isNaN(num) ? null : num;
+};
+
 const flattenProducts = (rawProducts: any[]): Product[] => {
   const flat: Product[] = [];
   rawProducts.forEach(item => {
@@ -65,14 +88,14 @@ const flattenProducts = (rawProducts: any[]): Product[] => {
         : parentName;
         
       const defaultTier = item.packaging_tiers.find((t: any) => t.is_default_sale_unit) || item.packaging_tiers[0];
-      const rawRetailPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
-      const stockDisplayVal = typeof item.stock_display === 'object' ? item.stock_display.parsedValue : (item.stock_display ?? item.stock_quantity ?? 0);
+      const rawRetailPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
+      const stockDisplayVal = parseVal(item.stock_display, item.stock_quantity ?? 0);
 
       const normalizedTiers = (item.packaging_tiers || []).map((t: any) => ({
         ...t,
         prices: {
-          retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
-          wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+          retail: parseVal(t.prices?.retail, 0),
+          wholesale: parseWholesaleVal(t.prices?.wholesale)
         }
       }));
 
@@ -106,14 +129,14 @@ const flattenProducts = (rawProducts: any[]): Product[] => {
         : item.name;
         
       const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
-      const defaultPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
-      const stockDisplayVal = typeof variant.stock_display === 'object' ? variant.stock_display.parsedValue : (variant.stock_display ?? variant.stock_quantity ?? 0);
+      const defaultPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
+      const stockDisplayVal = parseVal(variant.stock_display, variant.stock_quantity ?? 0);
 
       const normalizedTiers = (variant.packaging_tiers || []).map((t: any) => ({
         ...t,
         prices: {
-          retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
-          wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+          retail: parseVal(t.prices?.retail, 0),
+          wholesale: parseWholesaleVal(t.prices?.wholesale)
         }
       }));
 
@@ -164,6 +187,8 @@ export default function CartPanel({
     savedTransactions,
     removeItem,
     updateQuantity,
+    updateItemTier,
+    updateItemPriceType,
     clearCart,
     setDiscount,
     resumeTransaction,
@@ -272,6 +297,119 @@ export default function CartPanel({
     }
     
     updateQuantity(productId, Math.round(fraction * 1000) / 1000);
+  };
+
+  const renderItemBadges = (item: CartItem) => {
+    const availableTiers = item.packaging_tiers || [];
+    const hasMultipleTiers = availableTiers.length > 1;
+
+    // Current tier price lookup
+    const currentTier = availableTiers.find((t: any) => t.id === item.packaging_tier_id) || availableTiers[0];
+    const retailPrice = currentTier ? parseVal(currentTier.prices?.retail, item.price) : item.price;
+    const wholesalePrice = currentTier ? parseWholesaleVal(currentTier.prices?.wholesale) : null;
+    const hasWholesaleOption = wholesalePrice !== null;
+
+    return (
+      <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold flex-wrap">
+        {/* Packaging Tier Badge Dropdown */}
+        {hasMultipleTiers ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                type="button"
+                className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground capitalize"
+                title="Click to switch unit tier"
+              >
+                {item.tier_name}
+                {/* <Icon icon="solar:alt-arrow-down-bold" className="h-2.5 w-2.5 opacity-60 group-hover/tierbtn:opacity-100" /> */}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44 p-1 rounded-2xl space-y-1">
+              {/* <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+                Select Packaging Tier
+              </DropdownMenuLabel> */}
+              {/* <DropdownMenuSeparator className="my-1" /> */}
+              {availableTiers.map((t: any) => {
+                const isSelected = t.id === item.packaging_tier_id;
+                const rawTierPrice = item.price_type === 'wholesale' && t.prices?.wholesale ? t.prices.wholesale : t.prices?.retail;
+                const numericPrice = parseVal(rawTierPrice, 0);
+                
+                return (
+                  <DropdownMenuItem
+                    key={t.id}
+                    onClick={() => updateItemTier(item.productId, {
+                      id: t.id,
+                      name: t.name,
+                      units_per_tier: t.units_per_tier,
+                      price: numericPrice
+                    })}
+                    className={`text-xs font-bold justify-between cursor-pointer rounded-xl hover:bg-muted/40 ${isSelected ? 'bg-muted/70 text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    <span>{t.name}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      GHS {numericPrice}
+                    </span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {item.tier_name}
+          </span>
+        )}
+
+        {/* Price Type Switcher Dropdown (Retail / Wholesale) */}
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button 
+              type="button"
+              className={`border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1 ${item.price_type !== 'wholesale' && 'hidden'}`}
+              title="Click to switch Retail / Wholesale price"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full inline-block ${item.price_type === 'wholesale' ? 'bg-green-600' : 'bg-muted-foreground/60'}`}></span>
+              <span>{item.price_type === 'wholesale' ? 'Wholesale' : 'Retail'}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48 p-1 rounded-xl space-y-1">
+            {/* <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+              Select Price Schedule
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="my-1" /> */}
+            <DropdownMenuItem
+              onClick={() => updateItemPriceType(item.productId, 'retail', retailPrice)}
+              className={`text-xs font-bold justify-between cursor-pointer ${item.price_type === 'retail' ? 'bg-primary/10 text-foreground' : 'text-muted-foreground'}`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Retail</span>
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                GHS {retailPrice}
+              </span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              disabled={!hasWholesaleOption}
+              onClick={() => {
+                if (hasWholesaleOption && wholesalePrice !== null) {
+                  updateItemPriceType(item.productId, 'wholesale', wholesalePrice);
+                }
+              }}
+              className={`text-xs font-bold justify-between cursor-pointer ${item.price_type === 'wholesale' ? 'bg-primary/10 text-foreground hover:bg-muted/40' : 'text-muted-foreground'}`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Wholesale</span>
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                {hasWholesaleOption ? `GHS ${wholesalePrice}` : 'N/A'}
+              </span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -510,17 +648,7 @@ export default function CartPanel({
                         <h4 className="font-bold text-sm text-foreground truncate pr-2">
                           {item.name}
                         </h4>
-                        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold">
-                          <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                            {item.tier_name}
-                          </span>
-                          {item.price_type === 'wholesale' && (
-                            <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                              <span className="h-1.5 w-1.5 rounded-full bg-green-600 inline-block"></span>
-                              Wholesale
-                            </span>
-                          )}
-                        </div>
+                        {renderItemBadges(item)}
                       </div>
                     </div>
 
@@ -1028,7 +1156,7 @@ export default function CartPanel({
       {showItemsList && (
         <div
           ref={scrollRef}
-          className={`flex-1 overflow-y-auto px-5 space-y-3 scrollbar-hide ${isMobileView ? "pb-12 [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]" : "pb-4"} `}
+          className={`flex-1 overflow-y-auto px-4 sm:px-5 space-y-3 scrollbar-hide ${isMobileView ? "pb-12 [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]" : "pb-4"} `}
         >
           {items.length === 0 ? (
             savedTransactions.length > 0 ? (
@@ -1114,20 +1242,10 @@ export default function CartPanel({
                   {/* Top row */}
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col min-w-0">
-                      <h3 className="font-bold text-[14px] text-foreground line-clamp-1 tracking-tight pr-2">
+                      <h3 className="font-bold text-[14px] text-foreground line-clamp-1 tracking-tight md:tracking-normal pr-2">
                         {item.name}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {item.tier_name}
-                        </span>
-                        {item.price_type === 'wholesale' && (
-                          <span className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-600 inline-block"/>
-                            Wholesale
-                          </span>
-                        )}
-                      </div>
+                        {renderItemBadges(item)}
                     </div>
                     <Button
                       variant="destructive"
@@ -1140,7 +1258,7 @@ export default function CartPanel({
                   </div>
 
                   {/* Bottom row: qty + total */}
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="flex flex-wrap items-center justify-between mt-2 gap-1">
                     <div className="flex items-center gap-1 bg-secondary rounded-full px-1.5 py-1">
                       <Button
                         variant="ghost"
@@ -1229,7 +1347,7 @@ export default function CartPanel({
                         </DropdownMenu>
                       )}
                     </div>
-                    <div className="font-bold text-[14px] text-foreground tracking-tight">
+                    <div className="font-bold text-[14px] text-foreground tracking-tight items-end justify-end ml-auto text-right">
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
                         Total
                       </span>

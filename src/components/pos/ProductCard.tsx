@@ -259,7 +259,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           >
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="font-bold text-base text-foreground">{product.name}</h3>
+                <h3 className="font-bold text-base text-foreground capitalize">{product.name}</h3>
                 <p className="text-xs text-muted-foreground">Select unit to add to cart</p>
               </div>
               <button 
@@ -282,53 +282,50 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                 return (
                   <div
                     key={tier.id}
-                    className="p-3 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
+                    className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden"
                   >
-                    <div className="flex items-center justify-between">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToCart(product, tier);
+                        setShowTierSelector(false);
+                      }}
+                      className="w-full flex items-center justify-between p-3 hover:bg-muted/60 transition-colors text-left group/tier"
+                    >
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-muted/50 text-muted-foreground/70 flex items-center justify-center shrink-0">
                           <Box className="h-4 w-4" />
                         </div>
                         <div>
-                          <div className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                          <div className="font-bold text-xs text-foreground flex items-center gap-1.5 capitalize">
                             {tier.name}
-                            {isMultiUnit && (
+                            {tier.units_per_tier > 1 && (
                               <span className="text-[10px] text-muted-foreground font-normal">
                                 ({tier.units_per_tier} {product.base_unit_name}s)
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] font-semibold text-primary">
-                            <CurrencyDisplay amount={tierPrice} />
+                          <div className="text-[11px] font-semibold text-secondary-foreground">
+                            <CurrencyDisplay amount={tierPrice} showStyling={false} />
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {qtyInCart > 0 && (
-                          <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="text-muted-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
                             {qtyInCart} in cart
                           </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddToCart(product, tier, 1);
-                            setShowTierSelector(false);
-                          }}
-                          className="h-7 px-2.5 rounded-full bg-foreground text-background font-bold text-xs flex items-center gap-1 opacity-90 hover:opacity-100 transition-opacity"
-                          title="Add 1 full unit"
-                        >
-                          <Plus className="h-3 w-3" />
-                          <span>Add</span>
-                        </button>
+                        <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-80 group-hover/tier:opacity-100 transition-opacity">
+                          <Plus className="h-3.5 w-3.5" />
+                        </div>
                       </div>
-                    </div>
+                    </button>
 
                     {/* Quick Sub-Unit Presets (Half Pack, Quarter Pack) for Multi-Unit Tiers */}
                     {isMultiUnit && showSubPacks && (
-                      <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-1.5">
+                      <div className="px-3 py-2 border-t border-border/40 flex items-center gap-1.5 bg-background/40">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-1">
                           Sub-Pack:
                         </span>
@@ -339,7 +336,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                             onAddToCart(product, tier, 0.5);
                             setShowTierSelector(false);
                           }}
-                          className="px-2 py-0.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
+                          className="px-2.5 py-0.5 rounded-md border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
                         >
                           <span>½ Pack</span>
                           <span className="text-[9px] text-muted-foreground font-normal">
@@ -353,7 +350,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                             onAddToCart(product, tier, 0.25);
                             setShowTierSelector(false);
                           }}
-                          className="px-2 py-0.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
+                          className="px-2.5 py-0.5 rounded-md border border-border bg-background hover:bg-primary/10 hover:border-primary/40 text-foreground font-bold text-[10px] flex items-center gap-1 transition-all"
                         >
                           <span>¼ Pack</span>
                           <span className="text-[9px] text-muted-foreground font-normal">

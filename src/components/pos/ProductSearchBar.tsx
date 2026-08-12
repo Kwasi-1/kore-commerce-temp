@@ -81,6 +81,27 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     fetchProducts();
   }, []);
 
+  const parseVal = (v: any, fallback = 0): number => {
+    if (v === null || v === undefined) return fallback;
+    if (typeof v === 'object') return typeof v.parsedValue === 'number' ? v.parsedValue : (parseFloat(v.source || '0') || fallback);
+    const num = typeof v === 'number' ? v : parseFloat(v);
+    return isNaN(num) ? fallback : num;
+  };
+
+  const parseWholesaleVal = (v: any): number | null => {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object') {
+      if (typeof v.parsedValue === 'number') return v.parsedValue;
+      if (v.source) {
+        const p = parseFloat(v.source);
+        return isNaN(p) ? null : p;
+      }
+      return null;
+    }
+    const num = typeof v === 'number' ? v : parseFloat(v);
+    return isNaN(num) ? null : num;
+  };
+
   const flattenProducts = (rawProducts: any[]): Product[] => {
     const flat: Product[] = [];
     rawProducts.forEach(item => {
@@ -93,15 +114,15 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           : parentName;
           
         const defaultTier = item.packaging_tiers.find((t: any) => t.is_default_sale_unit) || item.packaging_tiers[0];
-        const rawRetailPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
-        const stockDisplayVal = typeof item.stock_display === 'object' ? item.stock_display.parsedValue : (item.stock_display ?? item.stock_quantity ?? 0);
+        const rawRetailPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
+        const stockDisplayVal = parseVal(item.stock_display, item.stock_quantity ?? 0);
 
         // Normalize packaging_tiers prices if they come as { source, parsedValue }
         const normalizedTiers = (item.packaging_tiers || []).map((t: any) => ({
           ...t,
           prices: {
-            retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
-            wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+            retail: parseVal(t.prices?.retail, 0),
+            wholesale: parseWholesaleVal(t.prices?.wholesale)
           }
         }));
 
@@ -136,14 +157,14 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           : item.name;
           
         const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
-        const defaultPrice = defaultTier ? (typeof defaultTier.prices?.retail === 'object' ? defaultTier.prices.retail.parsedValue : defaultTier.prices?.retail ?? 0) : 0;
-        const stockDisplayVal = typeof variant.stock_display === 'object' ? variant.stock_display.parsedValue : (variant.stock_display ?? variant.stock_quantity ?? 0);
+        const defaultPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
+        const stockDisplayVal = parseVal(variant.stock_display, variant.stock_quantity ?? 0);
 
         const normalizedTiers = (variant.packaging_tiers || []).map((t: any) => ({
           ...t,
           prices: {
-            retail: typeof t.prices?.retail === 'object' ? t.prices.retail.parsedValue : (t.prices?.retail ?? 0),
-            wholesale: typeof t.prices?.wholesale === 'object' ? t.prices.wholesale.parsedValue : (t.prices?.wholesale ?? null)
+            retail: parseVal(t.prices?.retail, 0),
+            wholesale: parseWholesaleVal(t.prices?.wholesale)
           }
         }));
 
@@ -304,7 +325,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       tier_name: tier.name,
       units_per_tier: tier.units_per_tier,
       unit_price: activePrice,
-      price_type: activePriceType
+      price_type: activePriceType,
+      packaging_tiers: product.packaging_tiers
     });
 
     if (soundEffectsEnabled) {
