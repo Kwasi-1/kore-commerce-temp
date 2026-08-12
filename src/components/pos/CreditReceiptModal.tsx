@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, Download } from 'lucide-react';
-import { CurrencyDisplay, useReceiptHeader } from '@/hooks';
+import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -22,6 +22,7 @@ export default function CreditReceiptModal({
 }: CreditReceiptModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { storeName, storeLocation, storePhone } = useReceiptHeader(transaction);
+  const { formatQuantity } = useQuantityFormatter();
 
   if (!transaction) return null;
 
@@ -187,7 +188,7 @@ export default function CreditReceiptModal({
                 {transaction.items?.map((item: any, idx: number) => (
                   <div key={idx} className="flex items-start">
                     <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
-                    <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                    <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
                     <span className="w-20 text-right font-semibold">
                       <CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} />
                     </span>

@@ -44,6 +44,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     defaultPriceType, 
     soundEffectsEnabled, 
     showSubPacks,
+    quantityFormat,
     setPreference 
   } = useRegisterPreferencesStore();
 
@@ -172,6 +173,32 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                     }`}
                   >
                     {mode}
+                  </button>
+                ))}
+              </div>
+            </DropdownMenuItem>
+
+            {/* Receipt Quantity Format */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-xs text-foreground">Receipt Quantity Display</span>
+                <span className="text-[10px] text-muted-foreground">Display decimals as fractions (e.g. 1 ¼)</span>
+              </div>
+              <div className="flex w-full bg-secondary p-0.5 rounded-full border border-border/50">
+                {([
+                  { key: 'fraction', label: 'Fraction (1 ¼)' },
+                  { key: 'decimal', label: 'Decimal (1.25)' }
+                ] as const).map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setPreference('quantityFormat', item.key)}
+                    className={`flex-1 py-1 text-[10px] font-bold rounded-full transition-all ${
+                      quantityFormat === item.key 
+                        ? 'bg-background text-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {item.label}
                   </button>
                 ))}
               </div>

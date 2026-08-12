@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
-import { CurrencyDisplay, useReceiptHeader } from '@/hooks';
+import { CurrencyDisplay, useReceiptHeader,  useQuantityFormatter } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
@@ -41,6 +41,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
   const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
+  const { formatQuantity } = useQuantityFormatter();
   const { posSettings, storeSettings } = useSettingsStore();
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
@@ -223,7 +224,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <div key={item.productId} className="flex flex-col border-b border-zinc-100/50 pb-1.5 last:border-0">
                 <div className="flex items-start">
                   <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
-                  <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                  <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
                   <span className="w-20 text-right font-semibold">
                     <CurrencyDisplay amount={item.price * item.quantity} />
                   </span>
@@ -325,7 +326,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <div key={item.productId} className="flex justify-between text-xs">
                 <div className="pr-2">
                   <span className="text-foreground font-semibold">{item.name}</span>
-                  <span className="text-muted-foreground"> × {item.quantity}</span>
+                  <span className="text-muted-foreground"> × {formatQuantity(item.quantity)}</span>
                 </div>
                 <span className="text-muted-foreground font-medium whitespace-nowrap">
                   <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />

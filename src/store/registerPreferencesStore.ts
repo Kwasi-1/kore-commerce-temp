@@ -8,6 +8,7 @@ export interface RegisterPreferences {
   defaultPriceType: 'retail' | 'wholesale';
   soundEffectsEnabled: boolean;
   showSubPacks: boolean;
+  quantityFormat: 'fraction' | 'decimal';
 }
 
 interface RegisterPreferencesState extends RegisterPreferences {
@@ -24,6 +25,7 @@ export const useRegisterPreferencesStore = create<RegisterPreferencesState>()(
       defaultPriceType: 'retail',
       soundEffectsEnabled: true,
       showSubPacks: true,
+      quantityFormat: 'fraction',
 
       setPreference: (key, value) => set({ [key]: value }),
       togglePreference: (key) => set((state) => ({ [key]: !state[key] })),

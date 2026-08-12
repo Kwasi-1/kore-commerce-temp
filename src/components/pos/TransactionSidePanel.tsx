@@ -2,7 +2,7 @@ import React from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
-import { useCurrency, useReceiptHeader } from '@/hooks';
+import { useCurrency, useReceiptHeader, useQuantityFormatter } from '@/hooks';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -33,6 +33,7 @@ export default function TransactionSidePanel({
   onIssueRefund
 }: TransactionSidePanelProps) {
   const { formatAmount } = useCurrency();
+  const { formatQuantity } = useQuantityFormatter();
   const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
   const cashierName = receiptData?.cashierName || receiptData?.cashier?.name || 'Staff';
   const rawPaymentMethod = (receiptData?.paymentMethod || receiptData?.payment?.method || 'cash').toLowerCase();
@@ -135,7 +136,7 @@ export default function TransactionSidePanel({
                         <span className="flex-1 pr-2 leading-tight font-medium text-left">
                           {item.productName || item.name}
                         </span>
-                        <span className="w-10 text-center text-zinc-500">{item.quantity}</span>
+                        <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
                         <span className="w-20 text-right font-semibold">
                           {formatAmount(itemSubtotal)}
                         </span>
