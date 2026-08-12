@@ -124,10 +124,23 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const isInCart = !!cartItem;
   const cartQuantity = cartItem?.quantity || 0;
   
-  // For flexible mode, check if any tier of this variant is in the cart
+  // For flexible mode or unit mode, check if any tier/unit of this variant is in the cart
   const variantCartItems = items.filter(i => i.variant_id === product.variant_id);
   const totalVariantQty = variantCartItems.reduce((sum, i) => sum + i.quantity, 0);
+  const totalCartBaseUnits = variantCartItems.reduce((sum, i) => {
+    const tierUnits = i.units_per_tier || 1;
+    return sum + (i.quantity * tierUnits);
+  }, 0);
   const isVariantInCart = variantCartItems.length > 0;
+
+  // Calculate dynamic in-cart remaining stock
+  const baseStock = product.stock_quantity ?? 0;
+  const effectiveBaseStock = Math.max(0, baseStock - totalCartBaseUnits);
+
+  const defaultSaleTier = product.packaging_tiers?.find(t => t.is_default_sale_unit) || product.packaging_tiers?.[0];
+  const unitsPerTier = defaultSaleTier?.units_per_tier || 1;
+  const effectiveDisplayStock = Math.floor(effectiveBaseStock / unitsPerTier);
+  const activeStockUnit = defaultSaleTier?.name || product.stock_display_unit || product.base_unit_name || 'Unit';
 
   const [isEditingQty, setIsEditingQty] = useState(false);
   const [inputValue, setInputValue] = useState(cartQuantity.toString());
@@ -192,7 +205,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     }
   };
 
-  const isOutOfStock = product.stock_quantity === 0;
+  const isOutOfStock = effectiveBaseStock === 0;
 
   const handleCardClick = () => {
     if (isOutOfStock) return;
@@ -209,9 +222,6 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       }
     }
   };
-
-  const stockDisplayVal = product.stock_display !== undefined ? product.stock_display : (product.stock_quantity ?? 0);
-  const stockDisplayUnit = product.stock_display_unit || product.base_unit_name || 'Unit';
 
   // Compute card display title & subtitle
   const displayTitle = product.product_name || product.name.split(' · ')[0];
@@ -233,39 +243,83 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       } ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
       onClick={handleCardClick}
     >
-      {/* Flexible Mode Tier Selector Overlay */}
+      {/* Tier Selector Dropdown Modal */}
       {showTierSelector && (
-        <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col p-3 rounded-xl md:rounded-[18px] justify-between">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-bold text-muted-foreground">Select Unit/Pack</span>
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowTierSelector(false); }}
-              className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto scrollbar-hide">
-            {product.packaging_tiers.map(tier => (
-              <button
-                key={tier.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToCart(product, tier);
-                  setShowTierSelector(false);
-                  if (soundEffectsEnabled) {
-                    playCartChime();
-                  }
-                }}
-                className="w-full py-1.5 px-2.5 bg-secondary hover:bg-primary/10 hover:text-primary rounded-lg text-left text-xs font-bold transition-all flex justify-between items-center border border-transparent hover:border-primary/20"
+        <div 
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowTierSelector(false);
+          }}
+        >
+          <div 
+            className="bg-card border border-border rounded-2xl p-5 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="font-bold text-base text-foreground">{product.name}</h3>
+                <p className="text-xs text-muted-foreground">Select unit to add to cart</p>
+              </div>
+              <button 
+                onClick={() => setShowTierSelector(false)}
+                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
               >
-                <span>{tier.name}</span>
-                <span className="text-muted-foreground font-semibold">
-                  GHS {(defaultPriceType === 'wholesale' ? (tier.prices.wholesale ?? tier.prices.retail) : tier.prices.retail).toLocaleString()}
-                </span>
-                {/* <CurrencyDisplay amount={(defaultPriceType === 'wholesale' ? (tier.prices.wholesale ?? tier.prices.retail) : tier.prices.retail).toLocaleString()} /> */}
+                <X className="h-4 w-4" />
               </button>
-            ))}
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {product.packaging_tiers.map((tier) => {
+                const tierPrice = defaultPriceType === 'wholesale' 
+                  ? (tier.prices.wholesale ?? tier.prices.retail) 
+                  : tier.prices.retail;
+                const cartItemForTier = items.find(i => i.productId === `${product.variant_id}-${tier.id}`);
+                const qtyInCart = cartItemForTier?.quantity || 0;
+
+                return (
+                  <button
+                    key={tier.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToCart(product, tier);
+                      setShowTierSelector(false);
+                    }}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/60 transition-colors text-left group/tier"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Box className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                          {tier.name}
+                          {tier.units_per_tier > 1 && (
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              ({tier.units_per_tier} {product.base_unit_name}s)
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-semibold text-primary">
+                          <CurrencyDisplay amount={tierPrice} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {qtyInCart > 0 && (
+                        <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {qtyInCart} in cart
+                        </span>
+                      )}
+                      <div className="h-7 w-7 rounded-full bg-foreground text-background flex items-center justify-center opacity-80 group-hover/tier:opacity-100 transition-opacity">
+                        <Plus className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -284,7 +338,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         {/* Stock Badge */}
         {showStockCount && (
           <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-            {stockDisplayVal} {stockDisplayUnit} Stock
+            {effectiveDisplayStock} {activeStockUnit} Stock
           </div>
         )}
 

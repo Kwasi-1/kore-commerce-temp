@@ -142,6 +142,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       clearCart();
       setIsSuccess(true);
 
+      // Silently notify Register to update product stock counts without reloading UI
+      window.dispatchEvent(new CustomEvent('pos:transaction-completed'));
+
       if (posSettings.auto_print === 'always') {
         setTimeout(() => window.print(), 100);
       }

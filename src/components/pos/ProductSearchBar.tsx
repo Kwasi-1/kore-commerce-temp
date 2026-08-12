@@ -118,8 +118,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     return flat;
   };
 
-  const fetchProducts = async () => {
-    setIsLoading(true);
+  const fetchProducts = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const response = await apiClient.get('/pos/products');
       const fetchedProducts = response.data.success?.data?.products || [];
@@ -141,11 +141,23 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast.error('Failed to load products');
+      if (!silent) toast.error('Failed to load products');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
+
+  // Silent update listener for completed transactions
+  useEffect(() => {
+    const handleTransactionCompleted = () => {
+      fetchProducts(true);
+    };
+
+    window.addEventListener('pos:transaction-completed', handleTransactionCompleted);
+    return () => {
+      window.removeEventListener('pos:transaction-completed', handleTransactionCompleted);
+    };
+  }, []);
 
   const initialRender = useRef(true);
 
