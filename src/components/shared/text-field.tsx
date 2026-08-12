@@ -270,6 +270,7 @@ interface CustomInputTextFieldProps extends InputHTMLAttributes<HTMLInputElement
   error?: string;
   height?: string;
   value?: string;
+  step?: string | number;
   labelPlacement?: "outside" | "outside-left" | "inside";
   label?: string;
   isLoading?: boolean;
@@ -281,6 +282,7 @@ interface CustomInputTextFieldProps extends InputHTMLAttributes<HTMLInputElement
     name?: string;
     min?: string | number;
     max?: string | number;
+    step?: string | number;
     maxLength?: number;
     minLength?: number;
     pattern?: string;
@@ -313,6 +315,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
     isClearabe = false,
     onClear,
     onKeyDown,
+    step,
   } = props;
 
   const [isFocused, setIsFocused] = useState(false);
@@ -320,6 +323,8 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
   // Determine if label should be in "floated" state
   const hasValue = value && value.length > 0;
   const shouldFloat = isFocused || hasValue || disabled;
+
+  const stepVal = step || inputProps?.step || (type === "number" ? "any" : undefined);
 
   // For floating label effect, we need to handle focus and blur manually
   const handleFocus = (e: any) => {
@@ -376,6 +381,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
             onBlur={handleBlur}
             onKeyDown={onKeyDown}
             disabled={disabled}
+            step={stepVal}
             placeholder={shouldFloat ? placeholder : ""}
             {...(inputProps ?? {})}
             className={cn(
@@ -467,6 +473,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
           onChange={onChange}
           onKeyDown={onKeyDown}
           disabled={disabled}
+          step={stepVal}
           placeholder={placeholder}
           {...(inputProps ?? {})}
           className={cn(

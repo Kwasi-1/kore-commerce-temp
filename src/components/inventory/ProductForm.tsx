@@ -823,11 +823,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 label="Cost / Base Unit"
                 name="costPrice"
                 type="number"
-                step="0.01"
+                step="any"
                 value={simpleCostPrice}
                 onChange={(e) => setSimpleCostPrice(e.target.value)}
                 placeholder="0.00"
-                inputProps={{ min: "0" }}
+                inputProps={{ min: "0", step: "any" }}
               />
 
               <CustomInputTextField
