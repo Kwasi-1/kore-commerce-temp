@@ -140,7 +140,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   const defaultSaleTier = product.packaging_tiers?.find(t => t.is_default_sale_unit) || product.packaging_tiers?.[0];
   const unitsPerTier = defaultSaleTier?.units_per_tier || 1;
-  const effectiveDisplayStock = Math.floor(effectiveBaseStock / unitsPerTier);
+  const effectiveDisplayStock = effectiveBaseStock / unitsPerTier;
   const activeStockUnit = defaultSaleTier?.name || product.stock_display_unit || product.base_unit_name || 'Unit';
 
   const [isEditingQty, setIsEditingQty] = useState(false);
@@ -180,14 +180,14 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   const handleQtyBlur = () => {
     if (!targetTier || !cartItem) return;
-    let newQty = parseInt(inputValue, 10);
+    let newQty = parseFloat(inputValue);
     const stock = product.stock_quantity ?? Infinity;
     
-    if (isNaN(newQty) || newQty < 1) {
+    if (isNaN(newQty) || newQty < 0.01){
       newQty = 1;
     } else if (newQty * targetTier.units_per_tier > stock) {
-      newQty = Math.floor(stock / targetTier.units_per_tier);
-      if (newQty < 1) {
+      newQty = stock / targetTier.units_per_tier;
+      if (newQty < 0.01) {
         removeItem(cartItem.productId);
         setIsEditingQty(false);
         return;
@@ -381,7 +381,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         {/* Stock Badge */}
         {showStockCount && (
           <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-            {effectiveDisplayStock} {activeStockUnit} Stock
+            {Number(effectiveDisplayStock.toFixed(2)).toString()} {activeStockUnit}{effectiveDisplayStock > 1 && "s"}
           </div>
         )}
 
