@@ -16,6 +16,8 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerBody, DrawerHeader } from '@nextui-org/react';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useProductCacheStore } from '@/store/productCacheStore';
 
 interface ProductSearchBarProps {
   isCartCollapsed?: boolean;
@@ -76,6 +78,10 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const { currentShift } = useShift();
   const { posSettings } = useFeaturesStore();
   const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
+
+  // Offline support
+  const { isOnline } = useNetworkStatus();
+  const { products: cachedProducts, categories: cachedCategories, setCache: setProductCache } = useProductCacheStore();
 
   useEffect(() => {
     fetchProducts();
@@ -194,6 +200,16 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   };
 
   const fetchProducts = async (silent = false) => {
+    // If offline, fall back to cache
+    if (!navigator.onLine) {
+      if (cachedProducts.length > 0) {
+        setProducts(cachedProducts);
+        setCategories(cachedCategories);
+      }
+      if (!silent) setIsLoading(false);
+      return;
+    }
+
     if (!silent) setIsLoading(true);
     try {
       const response = await apiClient.get('/pos/products');
@@ -207,16 +223,26 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       });
 
       const catsArray = Object.keys(counts).map(key => ({ name: key, count: counts[key] }));
-      // Sort alphabetically or by count
       catsArray.sort((a, b) => b.count - a.count);
       setCategories(catsArray);
 
       // Flatten nested variants for listing
-      setProducts(flattenProducts(fetchedProducts));
+      const flatProducts = flattenProducts(fetchedProducts);
+      setProducts(flatProducts);
+
+      // Write to offline cache
+      setProductCache(flatProducts, catsArray);
 
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      if (!silent) toast.error('Failed to load products');
+      // On network error, fall back to cache silently
+      if (cachedProducts.length > 0) {
+        setProducts(cachedProducts);
+        setCategories(cachedCategories);
+        if (!silent) toast.error('Showing cached products (could not reach server)');
+      } else {
+        if (!silent) toast.error('Failed to load products');
+      }
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -255,6 +281,20 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   }, [searchTerm]);
 
   const performSearch = async (query: string) => {
+    // Offline: filter the local cache instead of hitting the API
+    if (!navigator.onLine) {
+      const lower = query.toLowerCase();
+      const filtered = cachedProducts.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lower) ||
+          p.sku?.toLowerCase().includes(lower) ||
+          p.category?.toLowerCase().includes(lower)
+      );
+      setProducts(filtered);
+      setActiveCategories([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const searchResponse = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(query)}`);
@@ -375,6 +415,14 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   return (
     <div className="flex flex-col h-full bg-background">
+
+      {/* Offline Notice Banner */}
+      {!isOnline && (
+        <div className="hidden md:flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold shrink-0 animate-in fade-in duration-300">
+          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+          <span>Offline Mode — Showing cached products. Cash &amp; Manual MoMo only.</span>
+        </div>
+      )}
       
       {/* Top Controls: Categories and Search */}
       <div className="flex flex-col md:flex-row items-center justify-between pb-3 gap-3 shrink-0 border-b border-border/40 md:border-0 mb-3 md:mb-0">

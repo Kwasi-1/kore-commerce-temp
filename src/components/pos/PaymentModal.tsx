@@ -5,13 +5,15 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
-import { CurrencyDisplay, useReceiptHeader,  useQuantityFormatter } from '@/hooks';
-import { CheckCircle2, Printer, CreditCard, Smartphone, Banknote, Loader2, ChevronDown, Lock } from 'lucide-react';
+import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks';
+import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useOfflineQueueStore } from '@/store/offlineQueueStore';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -22,7 +24,7 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
   const { items, total, subtotal, discount, clearCart } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
+  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'mobile_money_manual' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
 
@@ -34,6 +36,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   // Processing & Success State
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isOfflineSale, setIsOfflineSale] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [frozenCart, setFrozenCart] = useState<any>(null);
 
@@ -47,26 +50,47 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
   const isPaystackEnabled = checkPaystack();
 
+  // Network & offline queue
+  const { isOnline } = useNetworkStatus();
+  const { enqueue } = useOfflineQueueStore();
+
   // Derive tax from featuresStore
   const taxRate = featureSettings.pos_tax_enabled ? (featureSettings.pos_tax_rate || 0) : 0;
   const tax = subtotal * taxRate;
   const taxLabel = featureSettings.pos_tax_label || 'Tax';
   const taxPercent = Math.round(taxRate * 100);
 
-  // Enabled payment methods derived centrally from featuresStore
+  // All possible tabs (including manual MoMo as always-available offline option)
   const ALL_TABS = [
-    { id: 'cash', label: 'Cash' },
-    { id: 'mobile_money', label: 'MoMo' },
-    { id: 'card', label: 'Card' },
+    { id: 'cash',                 label: 'Cash',        onlineOnly: false },
+    { id: 'mobile_money_manual',  label: 'Manual MoMo', onlineOnly: false },
+    { id: 'mobile_money',         label: 'MoMo (Pay)',  onlineOnly: true  },
+    { id: 'card',                 label: 'Card',        onlineOnly: true  },
   ] as const;
-  const enabledMethods = getEffectivePaymentMethods();
-  const paymentTabs = ALL_TABS.filter(t => enabledMethods.includes(t.id));
 
-  // Resolve default tab: prefer defaultMethod if enabled, else cash if enabled, else first enabled
-  const resolveDefault = (preferred: string): 'cash' | 'mobile_money' | 'card' => {
-    if (enabledMethods.includes(preferred)) return preferred as any;
-    if (enabledMethods.includes('cash')) return 'cash';
-    return (enabledMethods[0] as any) || 'cash';
+  const enabledMethods = getEffectivePaymentMethods();
+
+  // Online: show all enabled methods + manual momo
+  // Offline: only cash + manual momo (regardless of enabled methods)
+  const offlineAllowed = ['cash', 'mobile_money_manual'];
+  const paymentTabs = ALL_TABS.filter((t) => {
+    if (!isOnline) return offlineAllowed.includes(t.id);
+    // Online: show cash + manual momo always; show gateway tabs only if enabled
+    if (!t.onlineOnly) return true;
+    return enabledMethods.includes(t.id);
+  });
+
+  // Gateway-only tabs shown as locked when offline
+  const lockedGatewayTabs = !isOnline
+    ? ALL_TABS.filter((t) => t.onlineOnly && enabledMethods.includes(t.id))
+    : [];
+
+  // Resolve default tab: prefer defaultMethod if in paymentTabs, else cash, else first available
+  const resolveDefault = (preferred: string): 'cash' | 'mobile_money' | 'mobile_money_manual' | 'card' => {
+    const ids = paymentTabs.map((t) => t.id);
+    if (ids.includes(preferred as any)) return preferred as any;
+    if (ids.includes('cash')) return 'cash';
+    return (ids[0] as any) || 'cash';
   };
 
   useEffect(() => {
@@ -78,6 +102,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setCustomerName('');
       setCustomerPhone('');
       setIsSuccess(false);
+      setIsOfflineSale(false);
       setReceiptData(null);
       setFrozenCart(null);
       setMobileItemsExpanded(false);
@@ -93,7 +118,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    if (activeTab === 'mobile_money' && !isCreditSale && !momoNumber) {
+    if ((activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') && !isCreditSale && !momoNumber) {
       toast.error('Phone number is required for MoMo');
       return;
     }
@@ -104,8 +129,47 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     }
 
     setIsProcessing(true);
-    const toastId = toast.loading('Processing payment...');
 
+    // ─── OFFLINE BRANCH ────────────────────────────────────────────────────────
+    if (!isOnline) {
+      const localId = crypto.randomUUID();
+      const offlinePayload: any = {
+        items: items.map((item) => ({
+          variant_id: item.variant_id,
+          packaging_tier_id: item.packaging_tier_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          price_type: item.price_type,
+        })),
+        paymentMethod: activeTab === 'mobile_money_manual' ? 'mobile_money_manual' : activeTab,
+        isCreditSale,
+        customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
+        offlineCreatedAt: new Date().toISOString(),
+      };
+      if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
+      if (activeTab === 'mobile_money_manual') offlinePayload.momoNumber = momoNumber;
+
+      enqueue({
+        localId,
+        idempotencyKey: `offline-${localId}`,
+        payload: offlinePayload,
+        createdAt: new Date().toISOString(),
+      });
+
+      const offlineReceiptNum = `OFFLINE-${Date.now().toString().slice(-6)}`;
+      setReceiptData({ receiptNumber: offlineReceiptNum, dateCreated: new Date().toISOString() });
+      setFrozenCart({ items, subtotal, discount, tax, total });
+      clearCart();
+      setIsOfflineSale(true);
+      setIsSuccess(true);
+      setIsProcessing(false);
+
+      toast.success('Sale saved — will sync when back online');
+      return;
+    }
+    // ─── ONLINE BRANCH ─────────────────────────────────────────────────────────
+
+    const toastId = toast.loading('Processing payment...');
     try {
       const payload: any = {
         items: items.map((item) => ({
@@ -123,10 +187,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       if (!isCreditSale) {
         if (activeTab === 'cash') {
           payload.amountTendered = amountTendered;
-        } else if (activeTab === 'mobile_money') {
+        } else if (activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') {
           payload.momoNumber = momoNumber;
-          payload.paystackEnabled = isPaystackEnabled;
-          if (isPaystackEnabled) {
+          payload.paystackEnabled = activeTab === 'mobile_money' && isPaystackEnabled;
+          if (activeTab === 'mobile_money' && isPaystackEnabled) {
             payload.paystackReference = `POS-MOCK-${Date.now()}`;
           }
         } else {
@@ -141,6 +205,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setReceiptData(response.data.success?.data?.receipt || { receiptNumber: 'RCP-' + Date.now().toString().slice(-4), dateCreated: new Date().toISOString() });
       setFrozenCart({ items, subtotal, discount, tax, total });
       clearCart();
+      setIsOfflineSale(false);
       setIsSuccess(true);
 
       // Silently notify Register to update product stock counts without reloading UI
@@ -343,7 +408,24 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     <div className="flex flex-col h-full min-h-0">
       <div className="mb-4 md:mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
+        {!isOnline && (
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
+            <WifiOff className="h-3.5 w-3.5" />
+            <span>Offline Mode</span>
+          </div>
+        )}
       </div>
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="flex items-start gap-3 p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
+          <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-bold mb-0.5">No Internet Connection</p>
+            <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide space-y-6">
         {/* Credit Toggle Section — only shown when pos_credit_enabled */}
@@ -394,20 +476,38 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         {/* Show Payment Methods ONLY if not credit sale */}
         {!isCreditSale && paymentTabs.length > 0 && (
           <>
-            <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
-              {paymentTabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
-                    activeTab === tab.id
-                      ? 'bg-background shadow-sm text-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex flex-col gap-2">
+              {/* Active payment tabs */}
+              <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
+                {paymentTabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      activeTab === tab.id
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {/* Locked gateway tabs shown offline */}
+              {lockedGatewayTabs.length > 0 && (
+                <div className="flex gap-2">
+                  {lockedGatewayTabs.map(tab => (
+                    <div
+                      key={tab.id}
+                      title="Requires internet connection"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[11px] font-bold border border-border/40 text-muted-foreground/40 bg-secondary/20 cursor-not-allowed select-none"
+                    >
+                      <Lock className="h-3 w-3" />
+                      {tab.label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -435,7 +535,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 </div>
               )}
 
-              {activeTab === 'mobile_money' && (
+              {(activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <CustomInputTextField
                     label="Customer MoMo Number"
@@ -448,9 +548,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   />
 
                   <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
-                    {isPaystackEnabled
+                    {activeTab === 'mobile_money' && isPaystackEnabled
                       ? 'The customer will receive a secure payment prompt on their phone.'
-                      : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
+                      : 'Enter the customer\'s MoMo number for manual reference. Confirm payment receipt with the customer directly.'}
                   </div>
                 </div>
               )}
@@ -488,25 +588,49 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
   const renderSuccessScreen = () => (
     <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in zoom-in-95 duration-300 fade-in fill-mode-forwards">
-      <div className="mb-6 text-foreground">
-        <CheckCircle2 className="h-16 w-16" />
-      </div>
-      <h2 className="text-2xl font-bold tracking-tight mb-2 text-foreground">Transaction Complete</h2>
-      <p className="text-muted-foreground font-medium mb-8 text-sm">
-        Order <span className="text-foreground font-bold">{receiptData?.receiptNumber}</span> processed successfully.
+      {isOfflineSale ? (
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <div className="h-16 w-16 rounded-full bg-amber-500/15 flex items-center justify-center">
+            <Clock className="h-8 w-8 text-amber-500" />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+            Pending Sync
+          </span>
+        </div>
+      ) : (
+        <div className="mb-6 text-foreground">
+          <CheckCircle2 className="h-16 w-16" />
+        </div>
+      )}
+      <h2 className="text-2xl font-bold tracking-tight mb-2 text-foreground">
+        {isOfflineSale ? 'Offline Sale Saved' : 'Transaction Complete'}
+      </h2>
+      <p className="text-muted-foreground font-medium mb-2 text-sm">
+        Receipt <span className="text-foreground font-bold">{receiptData?.receiptNumber}</span>
+        {isOfflineSale ? ' saved locally.' : ' processed successfully.'}
       </p>
+      {isOfflineSale && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-6">
+          This sale will sync to your records automatically when internet is restored.
+        </p>
+      )}
+      {!isOfflineSale && (
+        <p className="text-muted-foreground font-medium mb-6 text-sm"> </p>
+      )}
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
-        <Button className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none" variant="outline" onClick={() => window.print()}>
-          <Printer className="h-4 w-4" />
-          Print Receipt
-        </Button>
-
-        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-2">
-          <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
-        </div>
-
-        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-4 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
+        {!isOfflineSale && (
+          <>
+            <Button className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none" variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" />
+              Print Receipt
+            </Button>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-2">
+              <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
+            </div>
+          </>
+        )}
+        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-2 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
           Done
         </Button>
       </div>

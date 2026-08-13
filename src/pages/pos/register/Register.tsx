@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useShift } from '@/hooks/useShift';
 import { Icon } from '@iconify/react';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 import PaymentModal from '@/components/pos/PaymentModal';
 
@@ -25,6 +26,9 @@ export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
   const { staffUser } = useAuthStore();
   
+  // Mount offline sync — drains queued transactions when internet returns
+  useOfflineSync();
+
   // Cart state for the mobile floating button
   const { items, subtotal, discount } = useCartStore();
   const taxRate = 0.12;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, Power } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ import { useShift } from '@/hooks/useShift';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -48,6 +49,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     setPreference 
   } = useRegisterPreferencesStore();
 
+  const { isOnline, pendingCount } = useNetworkStatus();
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -61,6 +64,25 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
       
       <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
         <SavedTransactionsHeader />
+
+        {/* Network Status Indicator */}
+        {!isOnline ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-bold shrink-0">
+            <WifiOff className="h-3 w-3" />
+            <span>Offline</span>
+            {pendingCount > 0 && (
+              <span className="bg-amber-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 ml-0.5 leading-none">
+                {pendingCount}
+              </span>
+            )}
+          </div>
+        ) : pendingCount > 0 ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-[11px] font-bold shrink-0">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            <span>Syncing {pendingCount}</span>
+          </div>
+        ) : null}
+
         <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="hidden md:flex relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
           <Bell className="h-4 w-4 md:h-5 md:w-5" />
           <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2  rounded-full bg-red-500"></span>
