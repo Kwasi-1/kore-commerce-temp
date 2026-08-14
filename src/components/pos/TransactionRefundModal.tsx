@@ -154,25 +154,20 @@ export default function TransactionRefundModal({
       placement="center"
       size="lg"
       header={
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center">
-            <RotateCcw className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-foreground">Process Refund</h3>
-            <p className="text-xs text-muted-foreground font-normal">
-              Receipt #{receiptData?.receiptNumber || receiptData?.id?.slice(0, 8)}
-            </p>
-          </div>
+        <div className="pb-2 border-b border-border/50">        
+          <h3 className="text-xl font-bold text-foreground !tracking-tight">Process Refund</h3>
+          <p className="text-xs text-muted-foreground font-normal leading-[2]">
+            Receipt #{receiptData?.receiptNumber || receiptData?.id?.slice(0, 8)}
+          </p>
         </div>
       }
       body={
-        <div className="flex flex-col gap-4 py-2 max-h-[calc(100vh-194px)] overflow-y-auto px-0.5">
+        <div className="flex flex-col gap-4 max-h-[calc(100vh-200px)] overflow-y-auto px-0.5">
           {/* Monochromatic Pill Tabs Container */}
           <div className="flex bg-secondary/80 p-[3px] rounded-full border border-border/10">
             <button 
               type="button"
-              className={`flex-1 text-xs font-semibold py-2 rounded-full transition-all ${
+              className={`flex-1 text-xs md:text-[12px] font-semibold py-2.5 rounded-full transition-all ${
                 refundType === 'full' 
                   ? 'bg-background shadow-sm text-foreground font-bold' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -183,7 +178,7 @@ export default function TransactionRefundModal({
             </button>
             <button 
               type="button"
-              className={`flex-1 text-xs font-semibold py-2 rounded-full transition-all ${
+              className={`flex-1 text-xs md:text-[12px] font-semibold py-2.5 rounded-full transition-all ${
                 refundType === 'partial' 
                   ? 'bg-background shadow-sm text-foreground font-bold' 
                   : 'text-muted-foreground hover:text-foreground'
