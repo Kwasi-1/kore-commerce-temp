@@ -236,28 +236,28 @@ export function QuickStockIntakeModal({
         base: "sm:w-[460px]",
       }}
       header={
-        <div className="pt-4 px-2">
-          <h2 className="text-xl font-bold flex items-center gap-2 !tracking-tight">
-            <ArrowUpDown className="h-5 w-5 text-primary" />
+        <div className="pt-3 md:px-2 border-b border-border/50 pb-2 ">
+          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 !tracking-tight">
+            <ArrowUpDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Adjust Stock Level
           </h2>
-          <p className="text-xs md:text-[13px] text-muted-foreground font-normal mt-1">
+          <p className="text-xs md:text-[13px] text-muted-foreground font-normal leading-[2] mt-1">
             Receive new shipments or record physical inventory changes.
           </p>
         </div>
       }
       body={
-        <form onSubmit={handleSubmit} className="space-y-4 p-2 pb-6">
+        <form onSubmit={handleSubmit} className="space-y-4 md:px-2 pb-6">
           {/* Product Header Summary Card */}
-          <div className="flex items-center gap-3.5 p-3.5 border rounded-xl bg-muted/20">
+          <div className="flex items-center gap-3.5 p-3.5 rounded-md bg-muted/30">
             {product.imageUrl ? (
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="h-12 w-12 rounded-lg object-cover border bg-background"
+                className="h-12 w-12 rounded-lg object-cover border bg-background flex-shrink-0"
               />
             ) : (
-              <div className="h-12 w-12 rounded-lg bg-muted border flex items-center justify-center text-muted-foreground">
+              <div className="h-12 w-12 rounded-lg bg-muted border flex items-center justify-center text-muted-foreground flex-shrink-0">
                 <Package className="h-6 w-6" />
               </div>
             )}
@@ -265,10 +265,10 @@ export function QuickStockIntakeModal({
               <h4 className="font-bold text-sm text-foreground truncate capitalize">
                 {product.name}
               </h4>
-              <p className="text-xs font-mono text-muted-foreground">{product.sku}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[11px] text-muted-foreground">Current Stock:</span>
-                <span className="font-bold text-xs text-foreground bg-background px-2 py-0.5 rounded border">
+              <p className="text-xs font-mono text-muted-foreground truncate">{product.sku}</p>
+              <div className="flex items-center gap-1.5 mt-1 md:gap-2">
+                <span className="text-xs text-muted-foreground">Current <span className="hidden sm:inline"> Stock</span>:</span>
+                <span className="font-bold text-xs text-foreground bg-background px-1.5 py-0.5 rounded border">
                   {Number(product.quantity).toLocaleString()} {product.base_unit_name}
                 </span>
               </div>
@@ -277,24 +277,22 @@ export function QuickStockIntakeModal({
 
           {/* Mode Toggle: Receive/Add (+) vs Reduce (-) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-              Adjustment Mode
-            </label>
-            <div className="grid grid-cols-2 p-1 border bg-muted/40 rounded-xl">
+            <div className="grid grid-cols-2 p-1 border border-border/50 bg-muted/40 rounded-full">
               <button
                 type="button"
                 onClick={() => {
                   setAdjustmentMode("add");
                   setReason("shipment");
                 }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 sm:py-2.5 px-2 rounded-full text-xs font-bold flex items-center justify-center gap-1 transition-all whitespace-nowrap ${
                   adjustmentMode === "add"
-                    ? "bg-green-600 text-white shadow-sm"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground bg-transparent"
                 }`}
               >
-                <Plus className="h-3.5 w-3.5" />
-                Receive / Add Stock (+)
+                <Plus className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Receive / Add</span>
+                <span className="hidden sm:inline"> Stock (+)</span>
               </button>
               <button
                 type="button"
@@ -302,14 +300,15 @@ export function QuickStockIntakeModal({
                   setAdjustmentMode("reduce");
                   setReason("correction");
                 }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 sm:py-2.5 px-2 rounded-full text-xs font-bold flex items-center justify-center gap-1 transition-all whitespace-nowrap ${
                   adjustmentMode === "reduce"
-                    ? "bg-destructive text-white shadow-sm"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground bg-transparent"
                 }`}
               >
-                <Minus className="h-3.5 w-3.5" />
-                Reduce / Remove (-)
+                <Minus className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Reduce / Remove</span>
+                <span className="hidden sm:inline">(-)</span>
               </button>
             </div>
           </div>
@@ -335,7 +334,7 @@ export function QuickStockIntakeModal({
                 selectedTierId !== "base"
                   ? `(${previewMath.tierName})`
                   : `(${product.base_unit_name || "units"})`
-              } *`}
+              }`}
               placeholder="e.g. 24"
               value={inputQuantity}
               onChange={(e) => setInputQuantity(e.target.value)}
@@ -371,7 +370,7 @@ export function QuickStockIntakeModal({
                 <span className="font-bold text-xs text-foreground">New Calculated Total:</span>
                 <span
                   className={`font-extrabold text-sm ${
-                    previewMath.isNegativeExceeded ? "text-destructive" : "text-primary"
+                    previewMath.isNegativeExceeded ? "text-destructive" : "dark:text-primary"
                   }`}
                 >
                   {Number(previewMath.newTotal).toLocaleString()} {product.base_unit_name}
@@ -438,7 +437,7 @@ export function QuickStockIntakeModal({
               variant="ghost"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl text-xs"
+              className="text-xs"
             >
               Cancel
             </Button>
@@ -450,11 +449,7 @@ export function QuickStockIntakeModal({
                 parseFloat(inputQuantity) <= 0 ||
                 previewMath.isNegativeExceeded
               }
-              className={`rounded-xl text-xs font-bold min-w-[140px] text-white ${
-                adjustmentMode === "add"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-destructive hover:bg-destructive/90"
-              }`}
+              className={`text-xs font-bold min-w-[140px]`}
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-1.5">
