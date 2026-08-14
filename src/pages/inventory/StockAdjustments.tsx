@@ -391,16 +391,8 @@ export default function StockAdjustments() {
   return (
     <PageLayout 
       title="Stock Adjustments" 
-      constrainHeight={true}
-      actions={
-        <Button 
-          onClick={() => setIsDrawerOpen(true)} 
-          className="bg-primary text-primary-foreground rounded-xl flex items-center gap-1.5 h-10 text-sm font-semibold shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Adjustment</span>
-        </Button>
-      }
+      subtitle="Audit ledger of inventory write-offs, discrepancies, and manager approvals."
+      constrainHeight={false}
     >
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         {/* Metric summary Cards */}
@@ -455,7 +447,7 @@ export default function StockAdjustments() {
 
         {/* SECTION 1: Pending Approvals (Manager Panel) */}
         {pendingItems.length > 0 && (
-          <div className="border border-amber-500/20 bg-amber-500/5 rounded-2xl p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
+          <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
             <div className="flex items-center gap-2 border-b border-amber-500/15 pb-3">
               <SlidersHorizontal className="h-5 w-5 text-amber-500" />
               <h3 className="font-bold text-amber-800 dark:text-amber-400">Awaiting Manager PIN Approvals</h3>
@@ -547,9 +539,10 @@ export default function StockAdjustments() {
           showDateFilter={true}
           dateFilterValue={dateFilter}
           onDateFilterChange={setDateFilter}
-          showAddButton={true}
-          addButtonText="New Adjustment"
-          onAddButtonClick={() => setIsDrawerOpen(true)}
+          showAddButton={false}
+          classNames={{
+            base: "min-h-[300px]"
+          }}
           onRefresh={fetchAdjustments}
           onclick={handleRowClick}
           mobileFriendly={true}

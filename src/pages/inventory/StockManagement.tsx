@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
 import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { 
-  Package, 
-  Upload, 
-  Plus
-} from 'lucide-react';
+import { Package } from 'lucide-react';
 import { Selection } from '@nextui-org/react';
 import { BulkStockUploadModal } from './components/BulkStockUploadModal';
 import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
+import { StockHistoryModal } from './components/StockHistoryModal';
 
 export default function StockManagement() {
   const [products, setProducts] = useState<ProductStockItem[]>([]);
@@ -27,6 +23,10 @@ export default function StockManagement() {
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductStockItem | null>(null);
   const [isRestockModalOpen, setIsRestockModalOpen] = useState(false);
+
+  // History modal state
+  const [historyProduct, setHistoryProduct] = useState<ProductStockItem | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Fetch products
   const fetchProducts = useCallback(async () => {
@@ -97,6 +97,12 @@ export default function StockManagement() {
     setIsRestockModalOpen(true);
   };
 
+  // Open History Audit Modal
+  const handleOpenHistory = (product: ProductStockItem) => {
+    setHistoryProduct(product);
+    setIsHistoryModalOpen(true);
+  };
+
   // Filter products for table
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -137,7 +143,7 @@ export default function StockManagement() {
     { key: 'category', label: 'Category' },
     { key: 'sku', label: 'SKU' },
     { key: 'current_stock', label: 'Current Stock' },
-    { key: 'status', label: 'Stock Status' },
+    { key: 'status', label: 'Stock Status' }
   ];
 
   // EnhancedTableComponent rows mapping
@@ -172,12 +178,12 @@ export default function StockManagement() {
           </span>
         ),
         status: (
-          <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold border ${
+          <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
             isOutOfStock 
-              ? 'text-destructive bg-destructive/10 border-destructive/20' 
+              ? 'text-destructive bg-destructive/10 border border-destructive/20' 
               : isLowStock 
-                ? 'text-amber-600 bg-amber-500/10 border-amber-500/20' 
-                : 'text-green-600 bg-green-500/10 border-green-500/20'
+                ? 'text-amber-600 bg-amber-500/10 border border-amber-500/20' 
+                : 'text-green-600 bg-green-400/10'
           }`}>
             {isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock' : 'In Stock'}
           </span>
@@ -225,6 +231,26 @@ export default function StockManagement() {
               ],
             },
           ]}
+          rowActions={[
+            {
+              key: "adjust",
+              label: "Adjust Stock Level",
+              icon: "fluent:arrow-swap-20-filled",
+            },
+            {
+              key: "history",
+              label: "View Audit Trail",
+              icon: "fluent:history-20-filled",
+            },
+          ]}
+          onRowActionClick={(actionKey, rowData) => {
+            const originalProduct = rowData.__record;
+            if (actionKey === "adjust") {
+              handleOpenRestock(originalProduct);
+            } else if (actionKey === "history") {
+              handleOpenHistory(originalProduct);
+            }
+          }}
           showAddButton={true}
           addButtonText="Bulk Receive Stock"
           onAddButtonClick={() => setIsBulkStockModalOpen(true)}
@@ -246,6 +272,17 @@ export default function StockManagement() {
         }}
         product={selectedProduct}
         onSuccess={fetchProducts}
+      />
+
+      {/* STOCK HISTORY & AUDIT TRAIL MODAL */}
+      <StockHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => {
+          setIsHistoryModalOpen(false);
+          setHistoryProduct(null);
+        }}
+        product={historyProduct}
+        onAdjustClick={handleOpenRestock}
       />
 
       {/* BULK STOCK UPLOAD MODAL */}

@@ -236,9 +236,9 @@ export function QuickStockIntakeModal({
         base: "sm:w-[460px]",
       }}
       header={
-        <div className="pt-3 md:px-2 border-b border-border/50 pb-2 ">
-          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 !tracking-tight">
-            <ArrowUpDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+        <div className="pt-2 md:pt-3 md:px-2 border-b border-border/50 pb-2 ">
+          <h2 className="text-xl font-bold flex items-center gap-2 !tracking-[-0.05rem]">
+            {/* <ArrowUpDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /> */}
             Adjust Stock Level
           </h2>
           <p className="text-xs md:text-[13px] text-muted-foreground font-normal leading-[2] mt-1">
