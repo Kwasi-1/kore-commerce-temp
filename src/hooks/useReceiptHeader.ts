@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { formatPhoneNumber } from './usePhoneFormatter';
 
 export function useReceiptHeader(receiptData?: any) {
   const { tenant } = useAuthStore();
@@ -35,7 +36,7 @@ export function useReceiptHeader(receiptData?: any) {
   );
 
   // Phone number resolution: storeSettings -> tenant -> additionalNumber
-  const storePhone = (
+  const rawStorePhone = (
     storeSettings?.phoneNumber ||
     (tenant as any)?.phoneNumber ||
     (tenant as any)?.phone_number ||
@@ -43,6 +44,8 @@ export function useReceiptHeader(receiptData?: any) {
     storeSettings?.additionalNumber ||
     ''
   );
+
+  const storePhone = formatPhoneNumber(rawStorePhone);
 
   // Email resolution
   const storeEmail = storeSettings?.email || (tenant as any)?.email || '';

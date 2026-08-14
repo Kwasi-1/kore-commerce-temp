@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Printer, Download } from 'lucide-react';
-import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks';
+import { Printer, Download, Share2 } from 'lucide-react';
+import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter, formatPhoneNumber } from '@/hooks';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -103,7 +103,7 @@ export default function CreditReceiptModal({
           {debtor?.phone && (
             <div className="flex justify-between">
               <span className="font-semibold">Phone:</span>
-              <span>{debtor.phone}</span>
+              <span>{formatPhoneNumber(debtor.phone)}</span>
             </div>
           )}
           {(transaction.type === 'settlement' || transaction.type === 'consolidated') && (

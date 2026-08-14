@@ -2,7 +2,7 @@ import React from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
-import { useCurrency, useReceiptHeader, useQuantityFormatter } from '@/hooks';
+import { useCurrency, useReceiptHeader, useQuantityFormatter, formatPhoneNumber } from '@/hooks';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -116,7 +116,7 @@ export default function TransactionSidePanel({
                 {momoPhone && (
                   <div className="flex justify-between">
                     <span className="font-semibold">MoMo Phone:</span>
-                    <span className="font-mono font-bold text-zinc-950">{momoPhone}</span>
+                    <span className="font-mono font-bold text-zinc-950">{formatPhoneNumber(momoPhone)}</span>
                   </div>
                 )}
               </div>

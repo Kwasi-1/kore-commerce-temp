@@ -6,3 +6,5 @@ export * from './useReceiptHeader';
 export * from './useQuantityFormatter';
 export * from './useNetworkStatus';
 export * from './useOfflineSync';
+export * from './usePhoneFormatter';
+
