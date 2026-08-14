@@ -2,9 +2,13 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useLayoutStore } from '@/store/layoutStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 export default function POSLayout() {
   const { isSidebarCollapsed } = useLayoutStore();
+
+  // Background offline queue drain across POS register routes
+  useOfflineSync();
 
   return (
     <div className="flex h-screen w-full transition-colors duration-200 overflow-hidden">

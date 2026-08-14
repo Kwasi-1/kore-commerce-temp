@@ -4,10 +4,14 @@ import Sidebar from '@/components/navigation/Sidebar';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 export default function DashboardLayout() {
   const { isSidebarCollapsed } = useLayoutStore();
   const { loadFeatures } = useFeaturesStore();
+
+  // Background offline queue drain across all admin/pos pages
+  useOfflineSync();
 
   // Silently refresh features in background on layout mount (SWR pattern).
   // The cached value is used instantly; the fresh fetch updates Zustand + localStorage.

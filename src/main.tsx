@@ -10,6 +10,10 @@ import "@/index.css";
 
 import { setupMockApi } from "@/api/mock";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { registerSW } from "virtual:pwa-register";
+
+// Register Service Worker immediately for rock-solid offline caching on desktop & mobile
+registerSW({ immediate: true });
 
 if (import.meta.env.VITE_USE_MOCK_API === 'true') {
   setupMockApi();

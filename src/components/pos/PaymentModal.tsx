@@ -110,6 +110,47 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
 
+  const saveOfflineSale = (toastId?: string) => {
+    const localId = crypto.randomUUID();
+    const offlinePayload: any = {
+      items: items.map((item) => ({
+        variant_id: item.variant_id,
+        packaging_tier_id: item.packaging_tier_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        price_type: item.price_type,
+      })),
+      // When offline, mobile_money is recorded as manual MoMo
+      paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
+      isCreditSale,
+      customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
+      offlineCreatedAt: new Date().toISOString(),
+    };
+    if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
+    if (activeTab === 'mobile_money') offlinePayload.momoNumber = momoNumber;
+
+    enqueue({
+      localId,
+      idempotencyKey: `offline-${localId}`,
+      payload: offlinePayload,
+      createdAt: new Date().toISOString(),
+    });
+
+    const offlineReceiptNum = `OFFLINE-${Date.now().toString().slice(-6)}`;
+    setReceiptData({ receiptNumber: offlineReceiptNum, dateCreated: new Date().toISOString() });
+    setFrozenCart({ items, subtotal, discount, tax, total });
+    clearCart();
+    setIsOfflineSale(true);
+    setIsSuccess(true);
+    setIsProcessing(false);
+
+    if (toastId) {
+      toast.success('Connection dropped — sale saved offline and will sync automatically', { id: toastId, duration: 5000 });
+    } else {
+      toast.success('Sale saved — will sync when back online');
+    }
+  };
+
   const handleTransaction = async () => {
     if (activeTab === 'cash' && !isCreditSale && amountTendered < total) {
       toast.error('Tendered amount is less than total due');
@@ -128,46 +169,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
     setIsProcessing(true);
 
-    // ─── OFFLINE BRANCH ────────────────────────────────────────────────────────
+    // ─── OFFLINE BRANCH (explicitly offline) ──────────────────────────────────
     if (!isOnline) {
-      const localId = crypto.randomUUID();
-      const offlinePayload: any = {
-        items: items.map((item) => ({
-          variant_id: item.variant_id,
-          packaging_tier_id: item.packaging_tier_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          price_type: item.price_type,
-        })),
-        // When offline, mobile_money is recorded as manual MoMo
-        paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
-        isCreditSale,
-        customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
-        offlineCreatedAt: new Date().toISOString(),
-      };
-      if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
-      if (activeTab === 'mobile_money') offlinePayload.momoNumber = momoNumber;
-
-      enqueue({
-        localId,
-        idempotencyKey: `offline-${localId}`,
-        payload: offlinePayload,
-        createdAt: new Date().toISOString(),
-      });
-
-      const offlineReceiptNum = `OFFLINE-${Date.now().toString().slice(-6)}`;
-      setReceiptData({ receiptNumber: offlineReceiptNum, dateCreated: new Date().toISOString() });
-      setFrozenCart({ items, subtotal, discount, tax, total });
-      clearCart();
-      setIsOfflineSale(true);
-      setIsSuccess(true);
-      setIsProcessing(false);
-
-      toast.success('Sale saved — will sync when back online');
+      saveOfflineSale();
       return;
     }
-    // ─── ONLINE BRANCH ─────────────────────────────────────────────────────────
 
+    // ─── ONLINE BRANCH ─────────────────────────────────────────────────────────
     const toastId = toast.loading('Processing payment...');
     try {
       const payload: any = {
@@ -215,8 +223,26 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       }
 
     } catch (error: any) {
-      console.error('Transaction failed:', error);
-      toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
+      console.error('Transaction attempt error:', error);
+
+      const isNetworkError =
+        !error.response ||
+        error.code === 'ERR_NETWORK' ||
+        error.message === 'Network Error' ||
+        error.message?.toLowerCase().includes('network') ||
+        error.code === 'ECONNABORTED';
+
+      // If online call failed due to network disconnect/timeout, fallback to offline queue (Cash / MoMo / Credit)
+      if (isNetworkError && activeTab !== 'card') {
+        saveOfflineSale(toastId);
+        return;
+      }
+
+      if (isNetworkError && activeTab === 'card') {
+        toast.error('Network connection unavailable. Card transactions require internet connectivity.', { id: toastId });
+      } else {
+        toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
+      }
     } finally {
       setIsProcessing(false);
     }
