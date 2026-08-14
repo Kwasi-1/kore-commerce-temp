@@ -2,12 +2,12 @@
  * useOfflineSync.ts
  * Drains the offline transaction queue whenever the app comes back online.
  *
- * - Listens to the browser 'online' event
- * - Iterates pending entries in useOfflineQueueStore
- * - POSTs each to /pos/transactions with X-Idempotency-Key header
- * - On success: marks synced, fires pos:transaction-completed event, shows toast
- * - On failure: marks failed, shows toast with detail
- * - Also dispatches pos:transaction-completed so ProductSearchBar refreshes stock
+ * Phase 2 improvements:
+ * - Granular per-item error handling: if item A fails (e.g. Insufficient Stock),
+ *   item A is marked 'failed' with the server error but item B continues processing.
+ * - On success, idempotent responses (HTTP 200 with idempotent: true) are treated as sync success.
+ * - Dispatches pos:transaction-completed to trigger stock refresh.
+ * - Exposes isSyncing, lastSyncedCount, lastFailedCount.
  */
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -25,8 +25,6 @@ export function useOfflineSync(): OfflineSyncStatus {
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
   const [lastFailedCount, setLastFailedCount] = useState(0);
   const isSyncingRef = useRef(false);
-
-  const { queue, markSyncing, markSynced, markFailed, clearSynced } = useOfflineQueueStore.getState();
 
   const drainQueue = async () => {
     if (isSyncingRef.current) return;
@@ -47,14 +45,22 @@ export function useOfflineSync(): OfflineSyncStatus {
     for (const transaction of pending) {
       useOfflineQueueStore.getState().markSyncing(transaction.localId);
       try {
-        await apiClient.post('/pos/transactions', transaction.payload, {
+        const response = await apiClient.post('/pos/transactions', transaction.payload, {
           headers: {
             'X-Idempotency-Key': transaction.idempotencyKey,
           },
         });
+
+        // Both a fresh 200 and an idempotent 200 are treated as success
         useOfflineQueueStore.getState().markSynced(transaction.localId);
         syncedCount++;
+
+        const isIdempotent = response.data?.success?.data?.idempotent === true;
+        if (isIdempotent) {
+          console.info(`[useOfflineSync] Transaction ${transaction.localId} was already synced (idempotent response).`);
+        }
       } catch (err: any) {
+        // Granular failure — this item fails but the loop continues for other pending items
         const reason =
           err?.response?.data?.error?.message ||
           err?.message ||
@@ -65,7 +71,7 @@ export function useOfflineSync(): OfflineSyncStatus {
       }
     }
 
-    // Clean up synced entries
+    // Remove successfully synced entries from the queue
     useOfflineQueueStore.getState().clearSynced();
 
     setLastSyncedCount(syncedCount);
@@ -83,9 +89,10 @@ export function useOfflineSync(): OfflineSyncStatus {
     }
 
     if (failedCount > 0) {
+      const verb = syncedCount > 0 ? 'others' : '';
       toast.error(
-        `⚠️ ${failedCount} offline sale${failedCount > 1 ? 's' : ''} could not be synced — please contact support`,
-        { id: syncedCount > 0 ? undefined : toastId, duration: 6000 }
+        `⚠️ ${failedCount} sale${failedCount > 1 ? 's' : ''} could not sync${verb ? ' — ' + verb + ' succeeded' : ''}. Tap the Offline badge to review.`,
+        { id: syncedCount > 0 ? undefined : toastId, duration: 8000 }
       );
     }
 
@@ -95,7 +102,7 @@ export function useOfflineSync(): OfflineSyncStatus {
   };
 
   useEffect(() => {
-    // Also try to drain on mount (in case app was refreshed while back online)
+    // Also try to drain on mount (in case app was refreshed while already back online)
     if (navigator.onLine) {
       drainQueue();
     }

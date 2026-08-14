@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,6 +23,7 @@ import { useFeaturesStore } from '@/store/featuresStore';
 import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import OfflineQueueDrawer from './OfflineQueueDrawer';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -31,6 +32,7 @@ interface RegisterHeaderProps {
 export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps) {
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const [isCashMovementOpen, setIsCashMovementOpen] = useState(false);
+  const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
   const { currentShift } = useShift();
   const { posSettings } = useFeaturesStore();
   const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
@@ -49,7 +51,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     setPreference 
   } = useRegisterPreferencesStore();
 
-  const { isOnline, pendingCount } = useNetworkStatus();
+  const { isOnline, pendingCount, failedCount } = useNetworkStatus();
 
   const handleLogout = () => {
     logout();
@@ -66,8 +68,23 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         <SavedTransactionsHeader />
 
         {/* Network Status Indicator */}
+        {/* Failed badge always shown regardless of online status */}
+        {failedCount > 0 && (
+          <button
+            onClick={() => setIsQueueDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold shrink-0 hover:bg-red-500/20 transition-colors cursor-pointer"
+            title="View failed offline sales"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            <span>{failedCount} Failed</span>
+          </button>
+        )}
         {!isOnline ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-bold shrink-0">
+          <button
+            onClick={() => setIsQueueDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-bold shrink-0 hover:bg-amber-500/20 transition-colors cursor-pointer"
+            title="View offline sales queue"
+          >
             <WifiOff className="h-3 w-3" />
             <span>Offline</span>
             {pendingCount > 0 && (
@@ -75,12 +92,16 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 {pendingCount}
               </span>
             )}
-          </div>
+          </button>
         ) : pendingCount > 0 ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-[11px] font-bold shrink-0">
+          <button
+            onClick={() => setIsQueueDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-[11px] font-bold shrink-0 hover:bg-blue-500/20 transition-colors cursor-pointer"
+            title="Syncing offline sales…"
+          >
             <RefreshCw className="h-3 w-3 animate-spin" />
             <span>Syncing {pendingCount}</span>
-          </div>
+          </button>
         ) : null}
 
         <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="hidden md:flex relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
@@ -324,6 +345,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
 
       <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
       <CashMovementModal isOpen={isCashMovementOpen} onClose={() => setIsCashMovementOpen(false)} />
+      <OfflineQueueDrawer isOpen={isQueueDrawerOpen} onClose={() => setIsQueueDrawerOpen(false)} />
     </header>
   );
 }

@@ -1,0 +1,68 @@
+# Phase 2: Offline Resilience, Server-Side Idempotency & Queue Management
+
+Expand the POS offline infrastructure built in Phase 1 by adding server-side idempotency safeguards, offline queue management UI for cashiers, robust conflict handling for stock overselling/price mismatches, and background service worker sync.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Server Model Change**: An `idempotency_key` column will be added to `POSTransaction` on the server database to ensure that retried offline syncs with the same `X-Idempotency-Key` never produce duplicate orders or double-deduct inventory.
+
+> [!NOTE]
+> **Queue Drawer UI**: Cashiers will be able to click the **Offline Status Badge** in the header to open a slide-over panel showing all queued transactions, sync errors, and individual retry/cancel options.
+
+---
+
+## Proposed Changes
+
+### Backend Component (`vysion-tech-commerce-server`)
+
+#### [MODIFY] [models/pos.py](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/vysion-tech-commerce-server/models/pos.py)
+- Add `idempotency_key = Column(String(100), nullable=True, unique=True, index=True)` to `POSTransaction` model.
+
+#### [MODIFY] [routes/pos/transactions.py](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/vysion-tech-commerce-server/routes/pos/transactions.py)
+- In `process_pos_sale()`:
+  1. Extract `X-Idempotency-Key` from request headers.
+  2. Check if a `POSTransaction` with this `idempotency_key` already exists for this tenant.
+  3. If exists, return HTTP 200 with the existing receipt data immediately (prevents duplicate sales on retries).
+  4. Save `idempotency_key` on new `POSTransaction` records.
+
+---
+
+### Frontend Component (`headlesspos-admin`)
+
+#### [MODIFY] [src/store/offlineQueueStore.ts](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/headlesspos-admin/src/store/offlineQueueStore.ts)
+- Add `retryTransaction(localId)` action to reset a failed transaction back to `pending`.
+- Add `removeTransaction(localId)` action to discard/cancel a failed transaction.
+- Store original product price snapshots to detect price changes on sync.
+
+#### [NEW] [src/components/pos/OfflineQueueDrawer.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/headlesspos-admin/src/components/pos/OfflineQueueDrawer.tsx)
+- Slide-over drawer component triggered by clicking the Offline Status badge in `RegisterHeader`.
+- Displays list of pending, syncing, synced, and failed offline sales.
+- Shows item count, total price, payment method, device creation timestamp, and error reasons for failed items.
+- Provides "Retry All Failed", "Clear Synced", and individual "Discard" buttons.
+
+#### [MODIFY] [src/hooks/useOfflineSync.ts](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/headlesspos-admin/src/hooks/useOfflineSync.ts)
+- Implement granular error handling: if item A fails (e.g. Insufficient Stock), mark item A as `failed` with server error message and continue processing item B.
+- Dispatch detailed event for queue status changes so UI updates instantly.
+
+#### [MODIFY] [src/components/pos/RegisterHeader.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/headlesspos-admin/src/components/pos/RegisterHeader.tsx)
+- Make the Network Status pill clickable to trigger the new `OfflineQueueDrawer`.
+- Display a badge with count of failed sales (`🔴 2 Failed`) if any transactions encountered sync issues.
+
+#### [MODIFY] [src/components/pos/ProductSearchBar.tsx](file:///c:/Users/kwasi/OneDrive/Desktop/business/vysion%20labs/vysion-tech%20commerce/headlesspos-admin/src/components/pos/ProductSearchBar.tsx)
+- Add stale cache indicator: if catalog cache is >1 hour old, display a warning pill in offline mode ("⚠️ Product catalog was synced over 1 hour ago").
+
+---
+
+## Verification Plan
+
+### Automated Verification
+1. Run `npx tsc --noEmit` on `headlesspos-admin` to ensure 0 TypeScript compilation errors.
+2. Verify Python backend starts cleanly without syntax or ORM errors.
+
+### Manual Verification
+1. **Idempotency Test**: Post a transaction with `X-Idempotency-Key: test-key-123` twice via API or offline sync. Verify second call returns HTTP 200 with identical receipt without creating a second order in the DB.
+2. **Offline Queue Drawer Test**: Make 2 cash sales offline. Open the status drawer by clicking the header pill. Confirm items, timestamps, and total amounts match.
+3. **Partial Failure & Resolution Test**: Trigger an oversell failure scenario offline. Reconnect and verify the failed item stays in the drawer marked `failed` with reason, while valid items sync successfully. Test "Retry" and "Discard" actions.

@@ -27,6 +27,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'mobile_money_manual' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
+  const [showOffline, setShowOffline] = useState(false);
 
   // Credit Toggle
   const [isCreditSale, setIsCreditSale] = useState(false);
@@ -409,7 +410,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       <div className="mb-4 md:mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
         {!isOnline && (
-          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
+          <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
             <WifiOff className="h-3.5 w-3.5" />
             <span>Offline Mode</span>
           </div>
@@ -417,7 +418,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       {/* Offline banner */}
-      {!isOnline && (
+      {!isOnline && showOffline && (
         <div className="flex items-start gap-3 p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
           <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
           <div>

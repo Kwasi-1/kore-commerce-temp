@@ -1,7 +1,7 @@
 /**
  * useNetworkStatus.ts
  * Reactive hook that tracks the browser's online/offline state
- * and exposes the number of pending offline transactions.
+ * and exposes pending + failed offline transaction counts.
  */
 import { useState, useEffect } from 'react';
 import { useOfflineQueueStore } from '@/store/offlineQueueStore';
@@ -9,11 +9,13 @@ import { useOfflineQueueStore } from '@/store/offlineQueueStore';
 export interface NetworkStatus {
   isOnline: boolean;
   pendingCount: number;
+  failedCount: number;
 }
 
 export function useNetworkStatus(): NetworkStatus {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const pendingCount = useOfflineQueueStore((s) => s.pendingCount);
+  const failedCount = useOfflineQueueStore((s) => s.failedCount);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -28,5 +30,5 @@ export function useNetworkStatus(): NetworkStatus {
     };
   }, []);
 
-  return { isOnline, pendingCount };
+  return { isOnline, pendingCount, failedCount };
 }
