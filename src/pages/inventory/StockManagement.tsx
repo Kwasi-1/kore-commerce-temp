@@ -1,192 +1,259 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import { Button } from '@nextui-org/react';
-import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import { Button } from '@/components/ui/button';
+import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { Save, Package } from 'lucide-react';
+import { 
+  Package, 
+  Upload, 
+  Plus
+} from 'lucide-react';
+import { Selection } from '@nextui-org/react';
+import { BulkStockUploadModal } from './components/BulkStockUploadModal';
+import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
 
 export default function StockManagement() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   
-  // Track changes locally before saving: { productId: newQuantity }
-  const [stockChanges, setStockChanges] = useState<Record<string, number>>({});
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
+  const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set(['all']));
 
-  const fetchProducts = async () => {
+  // Modals state
+  const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductStockItem | null>(null);
+  const [isRestockModalOpen, setIsRestockModalOpen] = useState(false);
+
+  // Fetch products
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/tenant/products?limit=100');
+      const response = await apiClient.get('/tenant/products?limit=150');
       const rawProducts = response.data.success?.data?.products || [];
       
-      const flatItems: any[] = [];
+      const flatItems: ProductStockItem[] = [];
+      const catSet = new Set<string>();
+
       rawProducts.forEach((p: any) => {
+        if (p.category) catSet.add(p.category);
         const variants = p.variants || [];
+        
         if (variants.length === 0) {
           flatItems.push({
             id: p.id,
+            variantId: p.id,
             productId: p.id,
             name: p.name,
             category: p.category || 'General',
-            sku: p.sku || 'N/A',
-            quantity: p.stock_quantity ?? p.total_stock_base_units ?? 0,
+            sku: p.sku || '—',
+            quantity: Number(p.stock_quantity ?? p.total_stock_base_units ?? 0),
             base_unit_name: p.base_unit_name || 'units',
-            imageUrl: p.imageUrl || p.images?.[0]
+            imageUrl: p.images?.[0] || p.imageUrl,
+            packaging_tiers: p.packaging_tiers || [],
+            cost_price: p.cost_price_per_base_unit || 0
           });
         } else {
           variants.forEach((v: any) => {
             const attrVals = v.variant_attributes ? Object.values(v.variant_attributes).filter(Boolean) : [];
-            const fullName = attrVals.length > 0 ? `${p.name} · ${attrVals.join(' · ')}` : p.name;
+            const fullName = attrVals.length > 0 ? `${p.name} (${attrVals.join(', ')})` : p.name;
             flatItems.push({
               id: v.id,
-              productId: v.id,
+              variantId: v.id,
+              productId: p.id,
               name: fullName,
               category: p.category || 'General',
-              sku: v.sku || p.sku || 'N/A',
-              quantity: v.stock_quantity ?? 0,
-              base_unit_name: v.base_unit_name || 'units',
-              imageUrl: p.imageUrl || p.images?.[0]
+              sku: v.sku || p.sku || '—',
+              quantity: Number(v.stock_quantity ?? 0),
+              base_unit_name: v.base_unit_name || p.base_unit_name || 'units',
+              imageUrl: p.images?.[0] || p.imageUrl,
+              packaging_tiers: v.packaging_tiers || p.packaging_tiers || [],
+              cost_price: v.cost_price_per_base_unit || 0
             });
           });
         }
       });
 
       setProducts(flatItems);
-      setStockChanges({}); // Reset changes on fresh fetch
+      setCategories(Array.from(catSet));
     } catch (error) {
       console.error('Failed to fetch products for stock management:', error);
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
-  const handleQuantityChange = (productId: string, newValue: string) => {
-    const parsed = parseInt(newValue, 10);
-    if (isNaN(parsed) || parsed < 0) return; // Prevent invalid inputs
-    
-    setStockChanges(prev => ({
-      ...prev,
-      [productId]: parsed
-    }));
+  // Open Quick Restock Modal
+  const handleOpenRestock = (product: ProductStockItem) => {
+    setSelectedProduct(product);
+    setIsRestockModalOpen(true);
   };
 
-  const handleSaveChanges = async () => {
-    const updates = Object.entries(stockChanges).map(([productId, quantity]) => ({
-      productId,
-      quantity
-    }));
+  // Filter products for table
+  const filteredProducts = useMemo(() => {
+    let result = products;
 
-    if (updates.length === 0) {
-      toast('No changes to save.', { icon: 'ℹ️' });
-      return;
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        p.sku.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+      );
     }
 
-    setIsSaving(true);
-    try {
-      await apiClient.patch('/tenant/products/stock-update', { updates });
-      toast.success(`Successfully updated stock for ${updates.length} items`);
-      fetchProducts();
-    } catch (error: any) {
-      console.error('Stock update error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to update stock');
-    } finally {
-      setIsSaving(false);
+    // Category filter
+    const catVal = categoryFilter instanceof Set ? Array.from(categoryFilter)[0] : categoryFilter;
+    if (catVal && catVal !== 'all') {
+      result = result.filter(p => p.category === catVal);
     }
-  };
 
-  const columns = [
-    { key: 'product', label: 'Product' },
+    // Stock status filter
+    const stockVal = stockStatusFilter instanceof Set ? Array.from(stockStatusFilter)[0] : stockStatusFilter;
+    if (stockVal === 'in_stock') {
+      result = result.filter(p => p.quantity > 5);
+    } else if (stockVal === 'low_stock') {
+      result = result.filter(p => p.quantity > 0 && p.quantity <= 5);
+    } else if (stockVal === 'out_of_stock') {
+      result = result.filter(p => p.quantity <= 0);
+    }
+
+    return result;
+  }, [products, searchQuery, categoryFilter, stockStatusFilter]);
+
+  // EnhancedTableComponent columns
+  const columns: TableColumn[] = [
+    { key: 'image', label: 'Image' },
+    { key: 'name', label: 'Product Name' },
+    { key: 'category', label: 'Category' },
     { key: 'sku', label: 'SKU' },
     { key: 'current_stock', label: 'Current Stock' },
-    { key: 'new_stock', label: 'New Stock Level' }
+    { key: 'status', label: 'Stock Status' },
   ];
 
-  const rows = products.map((p: any) => {
-    const isChanged = stockChanges[p.id] !== undefined && stockChanges[p.id] !== p.quantity;
-    const displayVal = stockChanges[p.id] !== undefined ? stockChanges[p.id] : p.quantity;
+  // EnhancedTableComponent rows mapping
+  const rows = useMemo(() => {
+    return filteredProducts.map(p => {
+      const isOutOfStock = p.quantity <= 0;
+      const isLowStock = p.quantity > 0 && p.quantity <= 5;
 
-    return {
-      id: p.id,
-      product: (
-        <div className="flex items-center gap-3">
-          <div className="hidden w-10 h-10 rounded-lg bg-muted shrink-0 overflow-hidden md:flex items-center justify-center border">
-            {p.imageUrl || (p.images && p.images[0]) ? (
-              <img src={p.imageUrl || p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-            ) : (
-              <Package className="h-5 w-5 text-muted-foreground" />
-            )}
+      return {
+        id: p.id,
+        image: p.imageUrl ? (
+          <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted border" />
+        ) : (
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+            <Package className="h-5 w-5" />
           </div>
+        ),
+        name: (
           <div>
-            <p className="font-semibold text-foreground">{p.name}</p>
-            <p className="hidden lg:block text-xs text-muted-foreground capitalize">{p.category}</p>
+            <p className="font-semibold text-foreground capitalize text-sm">{p.name}</p>
           </div>
-        </div>
-      ),
-      sku: <span className="font-mono text-sm text-muted-foreground">{p.sku || 'N/A'}</span>,
-      current_stock: (
-        <span className={`font-semibold ${p.quantity <= 5 ? 'text-red-500' : 'text-foreground'}`}>
-          {p.quantity} <span className="text-muted-foreground font-normal">{p.base_unit_name || 'units'}</span>
-        </span>
-      ),
-      new_stock: (
-        <div className="flex items-center gap-2">
-          <input 
-            type="number"
-            min="0"
-            className={`w-24 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-0 focus:ring-primary transition-colors ${
-              isChanged 
-                ? 'border-border  bg-inherit' 
-                : 'border-border bg-muted/60'
-            }`}
-            value={displayVal}
-            onChange={(e) => handleQuantityChange(p.id, e.target.value)}
-          />
-          {isChanged && <span className="text-xs text-accent font-medium">Modified</span>}
-        </div>
-      )
-    };
-  });
-
-  const hasChanges = Object.keys(stockChanges).length > 0;
+        ),
+        category: (
+          <span className="text-xs text-muted-foreground capitalize font-medium">{p.category}</span>
+        ),
+        sku: (
+          <span className="font-mono text-xs text-muted-foreground">{p.sku}</span>
+        ),
+        current_stock: (
+          <span className={`font-bold text-sm ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'}`}>
+            {Number(p.quantity).toLocaleString()} {p.base_unit_name}
+          </span>
+        ),
+        status: (
+          <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold border ${
+            isOutOfStock 
+              ? 'text-destructive bg-destructive/10 border-destructive/20' 
+              : isLowStock 
+                ? 'text-amber-600 bg-amber-500/10 border-amber-500/20' 
+                : 'text-green-600 bg-green-500/10 border-green-500/20'
+          }`}>
+            {isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock' : 'In Stock'}
+          </span>
+        ),
+        __record: p
+      };
+    });
+  }, [filteredProducts]);
 
   return (
     <PageLayout 
       title="Stock Management" 
       subtitle="Quickly adjust physical stock levels across all your inventory." 
-      actions={
-        <Button 
-          onPress={handleSaveChanges}
-          isLoading={isSaving}
-          isDisabled={!hasChanges}
-          className={`font-bold px-6 ${
-            hasChanges 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-gray-200 text-muted-foreground dark:bg-gray-800 dark:text-muted-foreground'
-          }`}
-          startContent={!isSaving && <Save className="w-4 h-4" />}
-        >
-          Save Changes ({Object.keys(stockChanges).length})
-        </Button>
-      } 
       constrainHeight={true}
     >
-      <div className="flex flex-col flex-1 min-h-0 relative h-full md:h-full gap-4">
+      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+        {/* Enhanced Table */}
         <EnhancedTableComponent
           columns={columns}
           rows={rows}
           isLoading={isLoading}
+          title="Product Stock Directory"
           showSearch={true}
-          showFilter={false}
+          searchPlaceholder="Search by name, SKU, or category..."
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          showFilter={true}
+          filterLabel="Stock Status"
+          filterOptions={[
+            { uid: 'all', name: 'All Statuses' },
+            { uid: 'in_stock', name: 'In Stock (> 5)' },
+            { uid: 'low_stock', name: 'Low Stock (1 - 5)' },
+            { uid: 'out_of_stock', name: 'Out of Stock (0)' },
+          ]}
+          filterValue={stockStatusFilter}
+          onFilterChange={(keys: any) => setStockStatusFilter(keys)}
+          additionalFilters={[
+            {
+              label: "Category",
+              value: categoryFilter,
+              onChange: (keys: any) => setCategoryFilter(keys),
+              options: [
+                { uid: "all", name: "All Categories" },
+                ...categories.map((c) => ({ uid: c, name: c })),
+              ],
+            },
+          ]}
+          showAddButton={true}
+          addButtonText="Bulk Receive Stock"
+          onAddButtonClick={() => setIsBulkStockModalOpen(true)}
+          onRefresh={fetchProducts}
+          onclick={(key: any) => {
+            const prod = products.find(p => p.id === key || p.id === key?.toString());
+            if (prod) handleOpenRestock(prod);
+          }}
           mobileFriendly={true}
         />
-
       </div>
+
+      {/* QUICK RESTOCK MODAL */}
+      <QuickStockIntakeModal
+        isOpen={isRestockModalOpen}
+        onClose={() => {
+          setIsRestockModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        onSuccess={fetchProducts}
+      />
+
+      {/* BULK STOCK UPLOAD MODAL */}
+      <BulkStockUploadModal
+        isOpen={isBulkStockModalOpen}
+        onClose={() => setIsBulkStockModalOpen(false)}
+        onSuccess={fetchProducts}
+      />
     </PageLayout>
   );
 }

@@ -22,7 +22,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
-import { BulkStockUploadModal } from "./components/BulkStockUploadModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -746,12 +745,6 @@ export default function Products() {
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setIsBulkStockModalOpen(true)}
-                className="cursor-pointer text-[13px]"
-              >
-                <Upload className="h-4 w-4 mr-2" /> Bulk Receive Stock (CSV/Excel)
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         }
@@ -810,12 +803,6 @@ export default function Products() {
       <BulkProductUploadModal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
-        onSuccess={handleBulkSuccess}
-      />
-
-      <BulkStockUploadModal
-        isOpen={isBulkStockModalOpen}
-        onClose={() => setIsBulkStockModalOpen(false)}
         onSuccess={handleBulkSuccess}
       />
     </PageLayout>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Package, 
   AlertTriangle, 
@@ -17,6 +17,8 @@ import {
   KeyRound,
   FileCheck
 } from "lucide-react";
+import { format } from "date-fns";
+import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,8 @@ import CustomModal from "@/components/modals/modal";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
 import DashboardCard from "@/components/ui/dashboard-card";
+import EnhancedTableComponent, { TableColumn } from "@/components/shared/MainTableComponent";
+import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 
 interface Adjustment {
   id: string;
@@ -64,11 +68,14 @@ export default function StockAdjustments() {
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Filtering & Pagination
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [reasonFilter, setReasonFilter] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Table search & filters
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
+  const [statusFilterSelection, setStatusFilterSelection] = useState<Selection>(new Set(["all"]));
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    active: "all_time",
+    start_date: null,
+    end_date: null,
+  });
 
   // Drawer / New adjustment state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -91,20 +98,42 @@ export default function StockAdjustments() {
   const [rejectionNote, setRejectionNote] = useState("");
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
+  // Detail Sheet Modal state
+  const [selectedDetailAdj, setSelectedDetailAdj] = useState<Adjustment | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Reason mapping utility
+  const reasonLabels: Record<string, string> = {
+    damaged: "Damaged / Broken",
+    defective: "Defective Return",
+    expired: "Expired",
+    lost: "Lost / Missing",
+    stolen: "Theft / Shrinkage",
+    counting_error: "Counting Error",
+    other: "Other"
+  };
+
   // Fetch Adjustments data
-  const fetchAdjustments = async () => {
+  const fetchAdjustments = useCallback(async () => {
     setIsLoading(true);
     try {
-      let url = "/tenant/adjustments?per_page=50";
-      if (statusFilter && statusFilter !== "all") {
-        url += `&status=${statusFilter}`;
+      let url = "/tenant/adjustments?per_page=100";
+      
+      const statusVal = statusFilterSelection instanceof Set 
+        ? Array.from(statusFilterSelection)[0] 
+        : statusFilterSelection;
+        
+      if (statusVal && statusVal !== "all") {
+        url += `&status=${statusVal}`;
       }
-      if (startDate) {
-        url += `&start_date=${startDate}T00:00:00Z`;
+
+      if (dateFilter.start_date) {
+        url += `&start_date=${format(dateFilter.start_date, "yyyy-MM-dd")}T00:00:00Z`;
       }
-      if (endDate) {
-        url += `&end_date=${endDate}T23:59:59Z`;
+      if (dateFilter.end_date) {
+        url += `&end_date=${format(dateFilter.end_date, "yyyy-MM-dd")}T23:59:59Z`;
       }
+
       const res = await apiClient.get(url);
       setAdjustments(res.data.success?.data?.adjustments || []);
     } catch (err) {
@@ -113,11 +142,11 @@ export default function StockAdjustments() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilterSelection, dateFilter]);
 
   useEffect(() => {
     fetchAdjustments();
-  }, [statusFilter, startDate, endDate]);
+  }, [fetchAdjustments]);
 
   // Load managers list for PIN authorization
   useEffect(() => {
@@ -135,7 +164,7 @@ export default function StockAdjustments() {
       });
   }, []);
 
-  // Variant Search autocomplete handler
+  // Variant Search autocomplete handler inside New Adjustment drawer
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchQuery.trim().length >= 2) {
@@ -247,6 +276,9 @@ export default function StockAdjustments() {
       }
       setIsPinModalOpen(false);
       setSelectedAdj(null);
+      if (selectedDetailAdj?.id === selectedAdj.id) {
+        setIsDetailModalOpen(false);
+      }
       fetchAdjustments();
     } catch (err: any) {
       console.error(err);
@@ -254,6 +286,14 @@ export default function StockAdjustments() {
       toast.error(msg);
     } finally {
       setIsProcessingAction(false);
+    }
+  };
+
+  const handleRowClick = (key: any) => {
+    const record = adjustments.find(a => a.id === key || a.id === key?.toString());
+    if (record) {
+      setSelectedDetailAdj(record);
+      setIsDetailModalOpen(true);
     }
   };
 
@@ -276,300 +316,244 @@ export default function StockAdjustments() {
     return adjustments.filter(a => new Date(a.date_created).getTime() >= startOfMonth).length;
   }, [adjustments]);
 
-  // Split tables into pending and history
+  // Split items for pending manager panel and main log table
   const pendingItems = useMemo(() => adjustments.filter(a => a.status === "pending"), [adjustments]);
-  const historyItems = useMemo(() => {
-    return adjustments.filter(a => {
-      if (reasonFilter !== "all" && a.reason !== reasonFilter) return false;
-      return true;
-    });
-  }, [adjustments, reasonFilter]);
 
-  // Reason mapping utility
-  const reasonLabels: Record<string, string> = {
-    damaged: "Damaged",
-    expired: "Expired",
-    lost: "Lost / Missing",
-    stolen: "Stolen",
-    counting_error: "Counting Error",
-    other: "Other"
-  };
+  // Filtered rows for EnhancedTableComponent
+  const filteredAdjustments = useMemo(() => {
+    if (!tableSearchQuery.trim()) return adjustments;
+    const q = tableSearchQuery.toLowerCase();
+    return adjustments.filter(a => 
+      (a.variant_name && a.variant_name.toLowerCase().includes(q)) ||
+      (a.sku && a.sku.toLowerCase().includes(q)) ||
+      (a.reason && a.reason.toLowerCase().includes(q)) ||
+      (a.notes && a.notes.toLowerCase().includes(q)) ||
+      (a.initiated_by_name && a.initiated_by_name.toLowerCase().includes(q))
+    );
+  }, [adjustments, tableSearchQuery]);
+
+  // EnhancedTableComponent columns definition
+  const columns: TableColumn[] = [
+    { key: "date", label: "Date" },
+    { key: "variant", label: "Product Variant" },
+    { key: "sku", label: "SKU" },
+    { key: "quantity", label: "Quantity" },
+    { key: "reason", label: "Reason" },
+    { key: "status", label: "Status" },
+    { key: "initiated_by", label: "Initiated By" },
+    { key: "approved_by", label: "Approved By" },
+    { key: "notes", label: "Rejection / Notes" },
+  ];
+
+  // EnhancedTableComponent rows mapping
+  const rows = useMemo(() => {
+    return filteredAdjustments.map((item) => ({
+      id: item.id,
+      date: item.date_created ? format(new Date(item.date_created), "MMM dd, yyyy") : "—",
+      variant: <span className="font-semibold text-foreground capitalize">{item.variant_name}</span>,
+      sku: <span className="font-mono text-xs text-muted-foreground">{item.sku}</span>,
+      quantity: (
+        <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
+          {item.quantity < 0 ? "" : "+"}{item.quantity} units
+        </span>
+      ),
+      reason: (
+        <span className="capitalize text-muted-foreground">
+          {reasonLabels[item.reason] || item.reason}
+        </span>
+      ),
+      status: (
+        <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border ${
+          item.status === "approved"
+            ? "text-green-600 bg-green-500/10 border-green-500/20"
+            : item.status === "rejected"
+              ? "text-destructive bg-destructive/10 border-destructive/20"
+              : "text-amber-600 bg-amber-500/10 border-amber-500/20 animate-pulse"
+        }`}>
+          {item.status}
+        </span>
+      ),
+      initiated_by: item.initiated_by_name || "—",
+      approved_by: item.approved_by_name || "—",
+      notes: (
+        <span className="text-muted-foreground max-w-xs truncate block" title={item.notes || item.rejection_note}>
+          {item.status === "rejected" && item.rejection_note ? (
+            <span className="text-destructive font-semibold">Rejected: {item.rejection_note}</span>
+          ) : (
+            item.notes || "—"
+          )}
+        </span>
+      ),
+      __record: item,
+    }));
+  }, [filteredAdjustments]);
 
   return (
-    <PageLayout title="Stock Adjustments" actions={
-        <Button onClick={() => setIsDrawerOpen(true)} className="bg-muted rounded-xl flex items-center gap-1.5 h-11 text-sm font-semibold">
+    <PageLayout 
+      title="Stock Adjustments" 
+      constrainHeight={true}
+      actions={
+        <Button 
+          onClick={() => setIsDrawerOpen(true)} 
+          className="bg-primary text-primary-foreground rounded-xl flex items-center gap-1.5 h-10 text-sm font-semibold shadow-sm"
+        >
           <Plus className="h-4 w-4" />
-          <span className="hidden md:block">New Adjustment</span>
+          <span>New Adjustment</span>
         </Button>
-    }>
-      {/* Metric summary Cards */}
-
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <DashboardCard
-          title="Pending Approvals"
-          value={
-            isLoading ? (
-              "..."
-            ) : (
-              <>
-                {pendingApprovalsCount}
-                <span className="text-[75%] font-normal ml-1">Requests</span>
-              </>
-            )
-          }
-          className="border border-border"
-          // valueStyle="text-amber-500 xl:text-2xl"
-          action={<Clock className="h-5 w-5 text-amber-500" />}
-        />
-        <DashboardCard
-          title="Total Written Off"
-          value={
-            isLoading ? (
-              "..."
-            ) : (
-              <>
-                {totalWrittenOffMonth}
-                <span className="text-[75%] font-normal ml-1">units</span>
-              </>
-            )
-          }
-          className="border border-border"
-          valueStyle={`text-${totalWrittenOffMonth > 0 ? "destructive" : "foreground"} xl:text-2xl`}
-          action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
-        />
-        <DashboardCard
-          title="Total Adjustments"
-          value={
-            isLoading ? (
-              "..."
-            ) : (
-              <>
-                {totalAdjustmentsMonth}
-                <span className="text-[75%] font-normal ml-1">logged</span>
-              </>
-            )
-          }
-          className="border border-border md:col-span-3 lg:col-span-1"
-          valueStyle="text-muted-foreground xl:text-2xl"
-          action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
-        />
-      </div>
-
-      {/* SECTION 1: Pending Approvals (Manager Panel) */}
-      {pendingItems.length > 0 && (
-        <div className="border border-amber-500/20 bg-amber-500/5 rounded-2xl p-5 mb-8 space-y-4 shadow-sm animate-in fade-in duration-300">
-          <div className="flex items-center gap-2 border-b border-amber-500/15 pb-3">
-            <SlidersHorizontal className="h-5 w-5 text-amber-500" />
-            <h3 className="font-bold text-amber-800 dark:text-amber-400">Awaiting Manager PIN Approvals</h3>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground font-semibold border-b border-amber-500/10">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2">Product Variant</th>
-                  <th className="pb-2">SKU</th>
-                  <th className="pb-2">Adjustment Quantity</th>
-                  <th className="pb-2">Reason</th>
-                  <th className="pb-2">Notes</th>
-                  <th className="pb-2">Initiated By</th>
-                  <th className="pb-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-amber-500/10 text-xs">
-                {pendingItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-amber-500/10 transition-colors">
-                    <td className="py-3 font-normal text-muted-foreground">
-                      {new Date(item.date_created).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 font-bold text-foreground capitalize">
-                      {item.variant_name}
-                    </td>
-                    <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
-                    <td className="py-3">
-                      <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                        {item.quantity < 0 ? "" : "+"}{item.quantity} units
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 capitalize">
-                        {reasonLabels[item.reason] || item.reason}
-                      </span>
-                    </td>
-                    <td className="py-3 text-muted-foreground max-w-xs truncate" title={item.notes}>
-                      {item.notes || "—"}
-                    </td>
-                    <td className="py-3 font-medium text-foreground">{item.initiated_by_name}</td>
-                    <td className="py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          onClick={() => handleOpenPinModal(item, "approve")}
-                          className="h-8 rounded-lg bg-green-500 hover:bg-green-600 text-white font-semibold text-xs px-3"
-                        >
-                          Approve
-                        </Button>
-                        <Button 
-                          onClick={() => handleOpenPinModal(item, "reject")}
-                          variant="ghost" 
-                          className="h-8 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 font-semibold text-xs px-3"
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* SECTION 2: All Adjustments Log (Filters + Table) */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h3 className="font-bold text-base text-foreground">Adjustments Log</h3>
-          
-          {/* Filters Bar */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5 border rounded-lg p-1 bg-muted/30">
-              <span className="text-xs text-muted-foreground px-2 font-medium">Status</span>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent border-0 text-xs font-semibold focus:ring-0 outline-none text-foreground cursor-pointer"
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 border rounded-lg p-1 bg-muted/30">
-              <span className="text-xs text-muted-foreground px-2 font-medium">Reason</span>
-              <select 
-                value={reasonFilter}
-                onChange={(e) => setReasonFilter(e.target.value)}
-                className="bg-transparent border-0 text-xs font-semibold focus:ring-0 outline-none text-foreground cursor-pointer"
-              >
-                <option value="all">All Reasons</option>
-                {Object.entries(reasonLabels).map(([key, val]) => (
-                  <option key={key} value={key}>{val}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date filters */}
-            <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5 mx-1" />
-              <input 
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent border-0 focus:ring-0 p-0 text-xs w-28 text-foreground"
-              />
-              <span>to</span>
-              <input 
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent border-0 focus:ring-0 p-0 text-xs w-28 text-foreground"
-              />
-            </div>
-
-            {/* Reset Filter Button */}
-            {(startDate || endDate || statusFilter !== "all" || reasonFilter !== "all") && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setStartDate("");
-                  setEndDate("");
-                  setStatusFilter("all");
-                  setReasonFilter("all");
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground h-8"
-              >
-                Reset
-              </Button>
-            )}
-          </div>
+      }
+    >
+      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+        {/* Metric summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          <DashboardCard
+            title="Pending Approvals"
+            value={
+              isLoading ? (
+                "..."
+              ) : (
+                <>
+                  {pendingApprovalsCount}
+                  <span className="text-[75%] font-normal ml-1">Requests</span>
+                </>
+              )
+            }
+            className="border border-border"
+            action={<Clock className="h-5 w-5 text-amber-500" />}
+          />
+          <DashboardCard
+            title="Total Written Off"
+            value={
+              isLoading ? (
+                "..."
+              ) : (
+                <>
+                  {totalWrittenOffMonth}
+                  <span className="text-[75%] font-normal ml-1">units</span>
+                </>
+              )
+            }
+            className="border border-border"
+            valueStyle={totalWrittenOffMonth > 0 ? "text-destructive xl:text-2xl" : "text-foreground xl:text-2xl"}
+            action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
+          />
+          <DashboardCard
+            title="Total Adjustments"
+            value={
+              isLoading ? (
+                "..."
+              ) : (
+                <>
+                  {totalAdjustmentsMonth}
+                  <span className="text-[75%] font-normal ml-1">logged</span>
+                </>
+              )
+            }
+            className="border border-border"
+            action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
+          />
         </div>
 
-        {/* History Table */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
-            <p className="text-xs text-muted-foreground">Loading adjustments history...</p>
-          </div>
-        ) : historyItems.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground border border-dashed rounded-xl p-8">
-            No adjustment entries found matching the filter criteria.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground font-semibold border-b bg-muted/20">
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Product Variant</th>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3">Reason</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Initiated By</th>
-                  <th className="px-4 py-3">Approved By</th>
-                  <th className="px-4 py-3">Rejection / Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y text-xs">
-                {historyItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-muted/10 transition-colors">
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(item.date_created).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-foreground capitalize">
-                      {item.variant_name}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-muted-foreground">{item.sku}</td>
-                    <td className="px-4 py-3">
-                      <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                        {item.quantity < 0 ? "" : "+"}{item.quantity} units
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="capitalize text-muted-foreground">
-                        {reasonLabels[item.reason] || item.reason}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                        item.status === "approved"
-                          ? "text-green-600 bg-green-500/10 border-green-500/20"
-                          : item.status === "rejected"
-                            ? "text-destructive bg-destructive/10 border-destructive/20"
-                            : "text-amber-600 bg-amber-500/10 border-amber-500/20 animate-pulse"
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-foreground font-medium">{item.initiated_by_name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.approved_by_name || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
-                      {item.status === "rejected" && item.rejection_note ? (
-                        <span className="text-destructive font-semibold">Rejected: {item.rejection_note}</span>
-                      ) : (
-                        item.notes || "—"
-                      )}
-                    </td>
+        {/* SECTION 1: Pending Approvals (Manager Panel) */}
+        {pendingItems.length > 0 && (
+          <div className="border border-amber-500/20 bg-amber-500/5 rounded-2xl p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-2 border-b border-amber-500/15 pb-3">
+              <SlidersHorizontal className="h-5 w-5 text-amber-500" />
+              <h3 className="font-bold text-amber-800 dark:text-amber-400">Awaiting Manager PIN Approvals</h3>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground font-semibold border-b border-amber-500/10">
+                    <th className="pb-2">Date</th>
+                    <th className="pb-2">Product Variant</th>
+                    <th className="pb-2">SKU</th>
+                    <th className="pb-2">Adjustment Quantity</th>
+                    <th className="pb-2">Reason</th>
+                    <th className="pb-2">Notes</th>
+                    <th className="pb-2">Initiated By</th>
+                    <th className="pb-2 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-amber-500/10 text-xs">
+                  {pendingItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-amber-500/10 transition-colors">
+                      <td className="py-3 font-normal text-muted-foreground">
+                        {new Date(item.date_created).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 font-bold text-foreground capitalize">
+                        {item.variant_name}
+                      </td>
+                      <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
+                      <td className="py-3">
+                        <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
+                          {item.quantity < 0 ? "" : "+"}{item.quantity} units
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 capitalize">
+                          {reasonLabels[item.reason] || item.reason}
+                        </span>
+                      </td>
+                      <td className="py-3 text-muted-foreground max-w-xs truncate" title={item.notes}>
+                        {item.notes || "—"}
+                      </td>
+                      <td className="py-3 font-medium text-foreground">{item.initiated_by_name}</td>
+                      <td className="py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            onClick={() => handleOpenPinModal(item, "approve")}
+                            className="h-8 rounded-lg bg-green-500 hover:bg-green-600 text-white font-semibold text-xs px-3"
+                          >
+                            Approve
+                          </Button>
+                          <Button 
+                            onClick={() => handleOpenPinModal(item, "reject")}
+                            variant="ghost" 
+                            className="h-8 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 font-semibold text-xs px-3"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
+
+        {/* Enhanced Table Component */}
+        <EnhancedTableComponent
+          columns={columns}
+          rows={rows}
+          isLoading={isLoading}
+          title="Adjustments Log"
+          showSearch={true}
+          searchPlaceholder="Search product variant, SKU, reason, or notes..."
+          searchValue={tableSearchQuery}
+          onSearchChange={setTableSearchQuery}
+          showFilter={true}
+          filterLabel="Status"
+          filterOptions={[
+            { uid: "all", name: "All Statuses" },
+            { uid: "approved", name: "Approved" },
+            { uid: "pending", name: "Pending" },
+            { uid: "rejected", name: "Rejected" },
+          ]}
+          filterValue={statusFilterSelection}
+          onFilterChange={(keys: any) => setStatusFilterSelection(keys)}
+          showDateFilter={true}
+          dateFilterValue={dateFilter}
+          onDateFilterChange={setDateFilter}
+          showAddButton={true}
+          addButtonText="New Adjustment"
+          onAddButtonClick={() => setIsDrawerOpen(true)}
+          onRefresh={fetchAdjustments}
+          onclick={handleRowClick}
+          mobileFriendly={true}
+        />
       </div>
 
       {/* DRAWER / SHEET: Initiate Stock Adjustment */}
@@ -801,6 +785,121 @@ export default function StockAdjustments() {
               </Button>
             </div>
           </form>
+        }
+        footer={null}
+      />
+
+      {/* DETAIL MODAL / SHEET: View Single Adjustment */}
+      <CustomModal
+        isOpen={isDetailModalOpen}
+        onOpenChange={() => {
+          setIsDetailModalOpen(false);
+          setSelectedDetailAdj(null);
+        }}
+        size="md"
+        header={
+          <div className="pt-2 px-2">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Adjustment Details
+            </h2>
+            <p className="text-xs text-muted-foreground font-normal">
+              Logged on {selectedDetailAdj?.date_created ? format(new Date(selectedDetailAdj.date_created), "MMM dd, yyyy h:mm a") : "—"}
+            </p>
+          </div>
+        }
+        body={
+          selectedDetailAdj ? (
+            <div className="space-y-4 p-2">
+              <div className="p-4 border rounded-xl bg-muted/20 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-bold text-foreground capitalize">{selectedDetailAdj.variant_name}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{selectedDetailAdj.sku}</p>
+                  </div>
+                  <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-xs font-bold border ${
+                    selectedDetailAdj.status === "approved"
+                      ? "text-green-600 bg-green-500/10 border-green-500/20"
+                      : selectedDetailAdj.status === "rejected"
+                        ? "text-destructive bg-destructive/10 border-destructive/20"
+                        : "text-amber-600 bg-amber-500/10 border-amber-500/20"
+                  }`}>
+                    {selectedDetailAdj.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t text-xs">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Adjustment Quantity</span>
+                    <span className={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
+                      {selectedDetailAdj.quantity < 0 ? "" : "+"}{selectedDetailAdj.quantity} units
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Reason</span>
+                    <span className="font-semibold text-foreground capitalize">
+                      {reasonLabels[selectedDetailAdj.reason] || selectedDetailAdj.reason}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-xl space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-border/50">
+                  <span className="text-muted-foreground">Initiated By</span>
+                  <span className="font-medium text-foreground">{selectedDetailAdj.initiated_by_name || "—"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-border/50">
+                  <span className="text-muted-foreground">Approved / Handled By</span>
+                  <span className="font-medium text-foreground">{selectedDetailAdj.approved_by_name || "—"}</span>
+                </div>
+                {selectedDetailAdj.approved_at && (
+                  <div className="flex justify-between py-1 border-b border-border/50">
+                    <span className="text-muted-foreground">Authorized At</span>
+                    <span className="font-medium text-foreground">{format(new Date(selectedDetailAdj.approved_at), "MMM dd, yyyy h:mm a")}</span>
+                  </div>
+                )}
+                <div className="pt-1">
+                  <span className="text-muted-foreground block mb-1">Notes / Remarks:</span>
+                  <p className="text-foreground bg-muted/30 p-2.5 rounded-lg font-normal">
+                    {selectedDetailAdj.notes || "No additional notes provided."}
+                  </p>
+                </div>
+                {selectedDetailAdj.status === "rejected" && selectedDetailAdj.rejection_note && (
+                  <div className="pt-1">
+                    <span className="text-destructive font-semibold block mb-1">Rejection Reason:</span>
+                    <p className="text-destructive bg-destructive/10 border border-destructive/20 p-2.5 rounded-lg">
+                      {selectedDetailAdj.rejection_note}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {selectedDetailAdj.status === "pending" && (
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button 
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenPinModal(selectedDetailAdj, "reject");
+                    }}
+                    variant="ghost" 
+                    className="border border-destructive/20 text-destructive hover:bg-destructive/10 text-xs font-semibold"
+                  >
+                    Reject Request
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenPinModal(selectedDetailAdj, "approve");
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold"
+                  >
+                    Authorize with PIN
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null
         }
         footer={null}
       />
