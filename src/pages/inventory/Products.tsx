@@ -19,6 +19,7 @@ import {
   Search,
   Layers,
   ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { BulkStockUploadModal } from "./components/BulkStockUploadModal";
@@ -549,11 +550,9 @@ export default function Products() {
     (p) => p.total_stock_base_units > 0 && p.total_stock_base_units <= 5,
   ).length;
 
-  // Custom total value calculation based on average or base unit prices
-  const totalValue = products.reduce(
-    (sum, p) => sum + (p.total_stock_base_units || 0),
-    0,
-  );
+  const activeProductsCount = products.filter(
+    (p) => (p.status ? p.status.toLowerCase() === "active" : p.is_active !== false),
+  ).length;
 
   // Status Filter Tabs
   const statuses = [
@@ -586,10 +585,10 @@ export default function Products() {
           action={<XCircle className="text-muted-foreground/50 h-5 w-5" />}
         />
         <DashboardCard
-          title="Total Base Units"
-          value={isLoading ? '...' : totalValue.toLocaleString()}
+          title="Active Products"
+          value={isLoading ? '...' : activeProductsCount}
           className="border border-border md:col-span-3 lg:col-span-1"
-          action={<Layers className="text-muted-foreground/50 h-5 w-5" />}
+          action={<CheckCircle2 className="text-muted-foreground/50 h-5 w-5" />}
         />
       </div>
 
