@@ -24,7 +24,7 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
   const { items, total, subtotal, discount, clearCart } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'mobile_money_manual' | 'card'>(defaultMethod);
+  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
   const [showOffline, setShowOffline] = useState(false);
@@ -61,33 +61,30 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const taxLabel = featureSettings.pos_tax_label || 'Tax';
   const taxPercent = Math.round(taxRate * 100);
 
-  // All possible tabs (including manual MoMo as always-available offline option)
+  // Enabled payment methods derived centrally from featuresStore
   const ALL_TABS = [
-    { id: 'cash',                 label: 'Cash',        onlineOnly: false },
-    { id: 'mobile_money_manual',  label: 'Manual MoMo', onlineOnly: false },
-    { id: 'mobile_money',         label: 'MoMo (Pay)',  onlineOnly: true  },
-    { id: 'card',                 label: 'Card',        onlineOnly: true  },
+    { id: 'cash',         label: 'Cash', requiresOnline: false },
+    { id: 'mobile_money', label: 'MoMo', requiresOnline: false },
+    { id: 'card',         label: 'Card', requiresOnline: true  },
   ] as const;
 
   const enabledMethods = getEffectivePaymentMethods();
 
-  // Online: show all enabled methods + manual momo
-  // Offline: only cash + manual momo (regardless of enabled methods)
-  const offlineAllowed = ['cash', 'mobile_money_manual'];
+  // Active payment tabs: filter by enabled methods in POS settings
+  // If offline, online-only tabs (like Card) are filtered out of active tabs
   const paymentTabs = ALL_TABS.filter((t) => {
-    if (!isOnline) return offlineAllowed.includes(t.id);
-    // Online: show cash + manual momo always; show gateway tabs only if enabled
-    if (!t.onlineOnly) return true;
-    return enabledMethods.includes(t.id);
+    if (!enabledMethods.includes(t.id)) return false;
+    if (!isOnline && t.requiresOnline) return false;
+    return true;
   });
 
   // Gateway-only tabs shown as locked when offline
   const lockedGatewayTabs = !isOnline
-    ? ALL_TABS.filter((t) => t.onlineOnly && enabledMethods.includes(t.id))
+    ? ALL_TABS.filter((t) => t.requiresOnline && enabledMethods.includes(t.id))
     : [];
 
-  // Resolve default tab: prefer defaultMethod if in paymentTabs, else cash, else first available
-  const resolveDefault = (preferred: string): 'cash' | 'mobile_money' | 'mobile_money_manual' | 'card' => {
+  // Resolve default tab: prefer defaultMethod if available, else cash, else first available
+  const resolveDefault = (preferred: string): 'cash' | 'mobile_money' | 'card' => {
     const ids = paymentTabs.map((t) => t.id);
     if (ids.includes(preferred as any)) return preferred as any;
     if (ids.includes('cash')) return 'cash';
@@ -119,7 +116,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    if ((activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') && !isCreditSale && !momoNumber) {
+    if (activeTab === 'mobile_money' && !isCreditSale && !momoNumber) {
       toast.error('Phone number is required for MoMo');
       return;
     }
@@ -142,13 +139,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           unit_price: item.unit_price,
           price_type: item.price_type,
         })),
-        paymentMethod: activeTab === 'mobile_money_manual' ? 'mobile_money_manual' : activeTab,
+        // When offline, mobile_money is recorded as manual MoMo
+        paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
         isCreditSale,
         customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
         offlineCreatedAt: new Date().toISOString(),
       };
       if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
-      if (activeTab === 'mobile_money_manual') offlinePayload.momoNumber = momoNumber;
+      if (activeTab === 'mobile_money') offlinePayload.momoNumber = momoNumber;
 
       enqueue({
         localId,
@@ -188,10 +186,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       if (!isCreditSale) {
         if (activeTab === 'cash') {
           payload.amountTendered = amountTendered;
-        } else if (activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') {
+        } else if (activeTab === 'mobile_money') {
           payload.momoNumber = momoNumber;
-          payload.paystackEnabled = activeTab === 'mobile_money' && isPaystackEnabled;
-          if (activeTab === 'mobile_money' && isPaystackEnabled) {
+          payload.paystackEnabled = isPaystackEnabled;
+          if (isPaystackEnabled) {
             payload.paystackReference = `POS-MOCK-${Date.now()}`;
           }
         } else {
@@ -536,7 +534,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 </div>
               )}
 
-              {(activeTab === 'mobile_money' || activeTab === 'mobile_money_manual') && (
+              {activeTab === 'mobile_money' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <CustomInputTextField
                     label="Customer MoMo Number"
@@ -549,9 +547,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   />
 
                   <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
-                    {activeTab === 'mobile_money' && isPaystackEnabled
+                    {!isOnline
+                      ? 'Offline Mode: Record customer MoMo number. Confirm payment directly with customer before completing.'
+                      : isPaystackEnabled
                       ? 'The customer will receive a secure payment prompt on their phone.'
-                      : 'Enter the customer\'s MoMo number for manual reference. Confirm payment receipt with the customer directly.'}
+                      : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
                   </div>
                 </div>
               )}
