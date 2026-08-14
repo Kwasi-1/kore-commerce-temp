@@ -120,6 +120,7 @@ export default function TransactionRefundModal({
           const state = itemStates[idx] || { quantity: item.quantity || 1, condition: 'sellable' };
           return {
             variant_id: item.variantId || item.variant_id || item.id || `var-${idx}`,
+            packaging_tier_id: item.packagingTierId || item.packaging_tier_id || null,
             product_name: item.productName || item.product_name || item.name || 'Item',
             packaging_tier_name: item.packagingTierName || item.packaging_tier_name || 'Unit',
             quantity: state.quantity || item.quantity || 1,
