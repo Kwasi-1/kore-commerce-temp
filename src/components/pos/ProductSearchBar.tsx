@@ -418,7 +418,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
       {/* Offline Notice Banner */}
       {!isOnline && (
-        <div className="flex flex-col gap-1.5 mb-2 shrink-0 animate-in fade-in duration-300">
+        <div className="hidden md:flex flex-col gap-1.5 mb-2 shrink-0 animate-in fade-in duration-300">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
             <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
             <span>Offline Mode — Showing cached products. Cash &amp; Manual MoMo only.</span>
