@@ -235,7 +235,7 @@ export default function Overview() {
           </Button>
         </div>
       }
-      className='custom-header md:mt-2'
+      className='custom-header md:mt-2 lg:px-5'
     >
 
       {/* ========================================================================= */}
