@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import type { Selection } from '@nextui-org/react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,13 +30,19 @@ interface ReconcileItem {
   base_unit_name: string;
 }
 
+// Helper to format quantities up to 2 decimal places without trailing .00 on whole numbers
+const formatQty = (num: number): string => {
+  const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(2);
+};
+
 export default function StockReconciliation() {
   const [products, setProducts] = useState<ReconcileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [tableSearchQuery, setTableSearchQuery] = useState('');
-  const [filterSelection, setFilterSelection] = useState<any>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [filterSelection, setFilterSelection] = useState<Selection>(new Set(['all']));
+  const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
   
   // Track physical counts: { [id]: number }
   const [physicalCounts, setPhysicalCounts] = useState<Record<string, number>>(() => {
@@ -128,7 +135,7 @@ export default function StockReconciliation() {
     
     setPhysicalCounts(prev => ({
       ...prev,
-      [id]: parsed
+      [id]: Math.round((parsed + Number.EPSILON) * 100) / 100
     }));
   };
 
@@ -157,6 +164,13 @@ export default function StockReconciliation() {
     return Array.from(cats);
   }, [products]);
 
+  const categoryFilterOptions = useMemo(() => {
+    return [
+      { uid: 'all', name: 'All Categories' },
+      ...availableCategories.map(cat => ({ uid: cat, name: cat }))
+    ];
+  }, [availableCategories]);
+
   // Computed summary metrics
   const countedCount = Object.keys(physicalCounts).length;
   
@@ -164,33 +178,37 @@ export default function StockReconciliation() {
     return Object.entries(physicalCounts).map(([id, count]) => {
       const item = products.find(p => p.id === id);
       if (!item) return null;
-      const variance = count - item.quantity;
+      const rawVariance = count - item.quantity;
+      const variance = Math.round((rawVariance + Number.EPSILON) * 100) / 100;
       if (variance === 0) return null;
       return {
         ...item,
-        physicalCount: count,
+        physicalCount: Math.round((count + Number.EPSILON) * 100) / 100,
         variance
       };
     }).filter(Boolean) as (ReconcileItem & { physicalCount: number; variance: number })[];
   }, [physicalCounts, products]);
 
   const totalSurplus = useMemo(() => {
-    return discrepancyItems
+    const sum = discrepancyItems
       .filter(d => d.variance > 0)
-      .reduce((sum, d) => sum + d.variance, 0);
+      .reduce((s, d) => s + d.variance, 0);
+    return Math.round((sum + Number.EPSILON) * 100) / 100;
   }, [discrepancyItems]);
 
   const totalShrinkage = useMemo(() => {
-    return discrepancyItems
+    const sum = discrepancyItems
       .filter(d => d.variance < 0)
-      .reduce((sum, d) => sum + Math.abs(d.variance), 0);
+      .reduce((s, d) => s + Math.abs(d.variance), 0);
+    return Math.round((sum + Number.EPSILON) * 100) / 100;
   }, [discrepancyItems]);
 
   // Filtered rows for the table
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // Category filter
-      if (categoryFilter !== 'all' && p.category !== categoryFilter) {
+      const catVal = typeof categoryFilter === 'string' ? categoryFilter : Array.from(categoryFilter)[0];
+      if (catVal && catVal !== 'all' && p.category !== catVal) {
         return false;
       }
 
@@ -270,18 +288,17 @@ export default function StockReconciliation() {
         product: (
           <div className="min-w-[180px]">
             <p className="font-semibold text-foreground capitalize text-sm">{p.name}</p>
-            <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
           </div>
         ),
         category: (
-          <span className="text-xs text-muted-foreground font-medium capitalize bg-muted/40 px-2 py-0.5 rounded border border-border/40">
+          <span className="text-sm text-muted-foreground font-medium capitalize">
             {p.category}
           </span>
         ),
         system_stock: (
-          <span className="font-semibold text-foreground text-sm">
-            {p.quantity}{' '}
-            <span className="text-xs font-normal text-muted-foreground">{p.base_unit_name}</span>
+          <span className="font-medium text-foreground text-sm">
+            {formatQty(p.quantity)}{' '}
+            <span className="text-[12px] font-normal text-muted-foreground">{p.base_unit_name}</span>
           </span>
         ),
         physical_stock: (
@@ -289,10 +306,11 @@ export default function StockReconciliation() {
             <input 
               type="number"
               min="0"
+              step="any"
               placeholder="Enter count..."
               className={`w-28 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-1 focus:ring-primary ${
                 isCounted 
-                  ? 'border-border bg-background font-semibold text-foreground' 
+                  ? 'border-border bg-background font-medium text-foreground' 
                   : 'border-border/60 bg-muted/40 text-muted-foreground'
               }`}
               value={actualVal}
@@ -315,17 +333,17 @@ export default function StockReconciliation() {
             {!isCounted ? (
               <span className="text-muted-foreground font-normal text-xs">—</span>
             ) : variance === 0 ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-muted-foreground bg-muted/60 border border-border/40">
-                <CheckCircle2 className="h-3 w-3 text-green-500" />
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-muted-foreground bg-muted/30">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
                 0 Match
               </span>
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono border ${
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono ${
                 variance > 0 
                   ? 'text-green-600 bg-green-400/10 border-green-500/20' 
-                  : 'text-destructive bg-destructive/10 border-destructive/20'
+                  : 'text-destructive bg-destructive/5 border-destructive/20'
               }`}>
-                {variance > 0 ? `+${variance}` : variance} {p.base_unit_name}
+                {variance > 0 ? `+${formatQty(variance)}` : formatQty(variance)} {p.base_unit_name}
               </span>
             )}
           </div>
@@ -335,36 +353,12 @@ export default function StockReconciliation() {
     });
   }, [filteredProducts, physicalCounts]);
 
+  const countPercent = products.length > 0 ? Math.round((countedCount / products.length) * 100) : 0;
+
   return (
     <PageLayout 
       title="Stock Reconciliation" 
-      // subtitle="Conduct physical inventory counts. Enter counted numbers to automatically calculate variances and log discrepancy adjustments."
-      constrainHeight={false}
-      actions={
-        <div className="flex items-center gap-2">
-          {countedCount > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleResetCounts}
-              className="h-9 px-3 text-xs gap-1.5 border-border rounded-md text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset All
-            </Button>
-          )}
-          <Button
-            type="button"
-            disabled={countedCount === 0}
-            onClick={() => setIsReviewModalOpen(true)}
-            className="h-9 px-4 rounded-md font-semibold text-xs gap-2 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 disabled:opacity-50"
-          >
-            <CheckSquare className="h-4 w-4" />
-            Review & Apply ({countedCount})
-          </Button>
-        </div>
-      }
+      constrainHeight={true}
     >
       <div className="flex flex-col flex-1 min-h-0 gap-5 relative h-full md:h-full">
         {/* Metric summary Cards */}
@@ -378,10 +372,25 @@ export default function StockReconciliation() {
                 <>
                   {countedCount}
                   <span className="text-[75%] font-normal text-muted-foreground ml-1.5">
-                    / {products.length} SKUs
+                    / {products.length}
                   </span>
                 </>
               )
+            }
+            subvalue={
+              !isLoading && products.length > 0 ? (
+                <div className="flex items-center gap-2.5 mt-1">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-foreground transition-all duration-300 rounded-full" 
+                      style={{ width: `${countPercent}%` }} 
+                    />
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                    {countPercent}%
+                  </span>
+                </div>
+              ) : undefined
             }
             className="border border-border"
             action={<ClipboardCheck className="h-5 w-5 text-muted-foreground/50" />}
@@ -394,12 +403,21 @@ export default function StockReconciliation() {
               ) : (
                 <>
                   {discrepancyItems.length}
-                  <span className="text-[75%] font-normal ml-1">variances</span>
+                  <span className="text-[75%] font-normal text-muted-foreground ml-1.5">
+                    {discrepancyItems.length === 1 ? 'variance' : 'variances'}
+                  </span>
                 </>
               )
             }
+            subvalue={
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {countedCount === 0 
+                  ? 'No items counted yet' 
+                  : `${products.length - countedCount} uncounted remaining`}
+              </p>
+            }
             className="border border-border"
-            valueStyle={discrepancyItems.length > 0 ? "text-destructive xl:text-2xl" : "text-foreground xl:text-2xl"}
+            valueStyle="text-foreground xl:text-2xl font-semibold"
             action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
@@ -408,13 +426,18 @@ export default function StockReconciliation() {
               isLoading ? (
                 "..."
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-green-600 font-bold">+{totalSurplus}</span>
+                <div className="flex items-center gap-2 text-foreground font-medium">
+                  <span>+{formatQty(totalSurplus)}</span>
                   <span className="text-muted-foreground font-normal text-sm">/</span>
-                  <span className="text-destructive font-bold">-{totalShrinkage}</span>
-                  <span className="text-xs font-normal text-muted-foreground">units</span>
+                  <span>-{formatQty(totalShrinkage)}</span>
+                  <span className="text-[75%] font-normal text-muted-foreground">units</span>
                 </div>
               )
+            }
+            subvalue={
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Surplus vs shrinkage units
+              </p>
             }
             className="border border-border"
             action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
@@ -440,49 +463,41 @@ export default function StockReconciliation() {
           ]}
           filterValue={filterSelection}
           onFilterChange={(keys: any) => setFilterSelection(keys)}
+          additionalFilters={[
+            {
+              label: "Category",
+              options: categoryFilterOptions,
+              value: categoryFilter,
+              onChange: (keys) => setCategoryFilter(keys),
+            }
+          ]}
           showAddButton={false}
           topActions={[
-            {
-              customComponent: (
-                <div key="actions" className="flex items-center gap-2">
-                  {/* Category cycle filter */}
-                  {availableCategories.length > 0 && (
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="h-[35px] md:h-[38px] px-3 py-1.5 border border-border rounded-md bg-muted text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="all">All Categories ({availableCategories.length})</option>
-                      {availableCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Reset count button */}
-                  {countedCount > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResetCounts}
-                      className="h-[35px] md:h-[38px] px-3 text-xs gap-1.5 border-border rounded-md text-muted-foreground hover:text-foreground"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      Reset
-                    </Button>
-                  )}
-                </div>
-              ),
-            },
+            ...(countedCount > 0 ? [
+              {
+                customComponent: (
+                  <Button
+                    key="reset-btn"
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetCounts}
+                    className="h-[35px] md:h-[38px] px-3 text-xs gap-1.5 border-border rounded-md text-muted-foreground hover:text-foreground"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Reset
+                  </Button>
+                )
+              }
+            ] : [])
           ]}
           customAddButton={
             <Button
               type="button"
-              // variant='outline'
+              variant="outline"
               disabled={countedCount === 0}
               onClick={() => setIsReviewModalOpen(true)}
-              className="h-[35px] md:h-[38px] px-4 rounded-md font-semibold text-xs gap-2 disabled:opacity-50"
+              className="h-[35px] md:h-[38px] px-4 rounded-md font-semibold text-[12px] gap-2 disabled:opacity-50 border border-foreground/20 disabled:border-border/50"
             >
               <CheckSquare className="h-4 w-4" />
               Review & Apply ({countedCount})
@@ -500,11 +515,11 @@ export default function StockReconciliation() {
       <CustomModal
         isOpen={isReviewModalOpen}
         onOpenChange={() => setIsReviewModalOpen(false)}
-        size="lg"
+        size="xl"
         header={
           <div className="pt-2 border-b border-border/50 pb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <FileCheck2 className="h-5 w-5 text-primary" />
+              {/* <FileCheck2 className="h-5 w-5 text-primary" /> */}
               Confirm Stock Reconciliation
             </h2>
             <p className="text-xs text-muted-foreground font-normal">
@@ -527,11 +542,11 @@ export default function StockReconciliation() {
 
             {/* Discrepancies Table Breakdown */}
             {discrepancyItems.length > 0 ? (
-              <div className="border border-border/70 rounded-lg overflow-hidden">
+              <div className="border border-border/70 rounded-md overflow-hidden">
                 <div className="p-2.5 bg-muted/40 border-b border-border/70 font-semibold text-xs text-foreground flex justify-between items-center">
                   <span>Variances to be Logged ({discrepancyItems.length})</span>
                   <span className="text-[11px] text-muted-foreground font-normal font-mono">
-                    Surplus: +{totalSurplus} | Shrinkage: -{totalShrinkage}
+                    Surplus: +{formatQty(totalSurplus)} | Shrinkage: -{formatQty(totalShrinkage)}
                   </span>
                 </div>
                 <div className="max-h-56 overflow-y-auto divide-y divide-border/40 text-xs">
@@ -543,16 +558,16 @@ export default function StockReconciliation() {
                       </div>
                       <div className="text-right flex items-center gap-3">
                         <div className="text-[11px] text-muted-foreground">
-                          <span>Prev: {item.quantity}</span>
+                          <span>Prev: {formatQty(item.quantity)}</span>
                           <span className="mx-1">→</span>
-                          <span className="font-semibold text-foreground">Count: {item.physicalCount}</span>
+                          <span className="font-semibold text-foreground">Count: {formatQty(item.physicalCount)}</span>
                         </div>
-                        <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs border ${
+                        <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
                           item.variance > 0
-                            ? 'text-green-600 bg-green-400/10 border-green-500/20'
-                            : 'text-destructive bg-destructive/10 border-destructive/20'
+                            ? 'text-green-600 bg-green-500/5'
+                            : 'text-destructive bg-destructive/5'
                         }`}>
-                          {item.variance > 0 ? `+${item.variance}` : item.variance} {item.base_unit_name}
+                          {item.variance > 0 ? `+${formatQty(item.variance)}` : formatQty(item.variance)} {item.base_unit_name}
                         </span>
                       </div>
                     </div>
@@ -588,7 +603,7 @@ export default function StockReconciliation() {
               variant="outline"
               onClick={() => setIsReviewModalOpen(false)}
               disabled={isSaving}
-              className="rounded-md text-xs h-9"
+              className="text-xs h-9"
             >
               Cancel
             </Button>
@@ -596,7 +611,7 @@ export default function StockReconciliation() {
               type="button"
               onClick={handleApplyReconciliation}
               disabled={isSaving}
-              className="rounded-md text-xs h-9 bg-primary text-primary-foreground min-w-[140px]"
+              className="text-xs h-9 bg-primary text-primary-foreground min-w-[140px]"
             >
               {isSaving ? (
                 <div className="flex items-center gap-1.5">
