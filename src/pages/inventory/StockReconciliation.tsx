@@ -656,12 +656,12 @@ export default function StockReconciliation() {
       <CustomModal
         isOpen={!!calculatingItem}
         onOpenChange={() => setCalculatingItem(null)}
-        size="md"
+        size="lg"
         header={
-          <div>
+          <div className='border-b border-border/50 pb-2'>
             <div className="flex items-center gap-2">
-              <Boxes className="h-4 w-4 text-primary" />
-              <h3 className="text-sm md:text-base font-bold text-foreground">
+              {/* <Boxes className="h-4 w-4 text-primary" /> */}
+              <h3 className="text-lg font-bold text-foreground">
                 Count by Packaging Tiers
               </h3>
             </div>
@@ -671,7 +671,7 @@ export default function StockReconciliation() {
           </div>
         }
         body={
-          <div className="space-y-4 py-1">
+          <div className="space-y-4">
             <div className="p-3 bg-muted/40 rounded-md borde border-border/60 text-xs text-muted-foreground flex items-center justify-between">
               <span>Base Inventory Unit: <strong className="text-foreground">{calculatingItem?.base_unit_name}</strong></span>
               <span>Expected System Stock: <strong className="text-foreground">{calculatingItem ? formatQty(calculatingItem.quantity) : 0} {calculatingItem?.base_unit_name}</strong></span>
@@ -733,7 +733,7 @@ export default function StockReconciliation() {
             </div>
 
             {/* Calculated Result Card */}
-            <div className="p-3.5 rounded-lg border bg-muted/60 border-border/80 space-y-1.5">
+            <div className="p-3.5 rounded-md bg-muted/40 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-medium">Total Calculated Stock:</span>
                 <span className="text-base font-bold text-foreground font-mono">
