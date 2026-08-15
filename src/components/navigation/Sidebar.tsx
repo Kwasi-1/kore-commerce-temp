@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { getModules } from '@/utils/permissions';
 import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
+import apiClient from '@/api/client';
 
 import koreLogo from '@/assets/images/kore.png';
 import {
@@ -96,6 +97,46 @@ export default function Sidebar() {
   const previousPlanModules = getPlanModules((graceInfo as any)?.previous_plan || 'standard');
   const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
+  const [lowStockCount, setLowStockCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!tenant?.id) return;
+    let isMounted = true;
+    apiClient.get('/tenant/products?limit=100')
+      .then((res) => {
+        if (!isMounted) return;
+        const prods = res.data?.success?.data?.products || [];
+        let count = 0;
+        prods.forEach((p: any) => {
+          const variants = p.variants || [];
+          if (variants.length === 0) {
+            const rawStock = p.total_stock_base_units ?? p.stock_quantity ?? 0;
+            const stock = typeof rawStock === 'object' ? (rawStock?.parsedValue ?? 0) : Number(rawStock || 0);
+            if (stock <= 5) {
+              count++;
+            }
+          } else {
+            variants.forEach((v: any) => {
+              const rawStock = v.stock_quantity ?? 0;
+              const stock = typeof rawStock === 'object' ? (rawStock?.parsedValue ?? 0) : Number(rawStock || 0);
+              const threshold = Number(v.low_stock_threshold ?? 5);
+              if (stock <= threshold) {
+                count++;
+              }
+            });
+          }
+        });
+        setLowStockCount(count);
+      })
+      .catch((err) => {
+        console.error('Failed to load low stock count for sidebar:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [tenant?.id, location.pathname]);
+
   const navSections: NavSection[] = [
     {
       title: 'Dashboard',
@@ -120,11 +161,11 @@ export default function Sidebar() {
       title: 'Inventory',
       icon: Package,
       show: !isCashier && (modules.inventory || hasGraceModule('inventory_basic')),
-      badge: 4,
+      badge: lowStockCount > 0 ? lowStockCount : undefined,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: 4 },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation' },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
