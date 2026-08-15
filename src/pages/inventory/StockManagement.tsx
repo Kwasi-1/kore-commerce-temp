@@ -8,6 +8,7 @@ import { Selection } from '@nextui-org/react';
 import { BulkStockUploadModal } from './components/BulkStockUploadModal';
 import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
 import { StockHistoryModal } from './components/StockHistoryModal';
+import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
 
 export default function StockManagement() {
   const [products, setProducts] = useState<ProductStockItem[]>([]);
@@ -173,9 +174,14 @@ export default function StockManagement() {
           <span className="font-mono text-sm text-muted-foreground">{p.sku}</span>
         ),
         current_stock: (
-          <span className={`font-bold text-sm ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'}`}>
-            {Number(p.quantity).toLocaleString()} {p.base_unit_name}
-          </span>
+          <PackagingStockDisplay
+            quantity={p.quantity}
+            baseUnitName={p.base_unit_name}
+            packagingTiers={p.packaging_tiers}
+            primaryClassName={`font-bold text-sm ${
+              isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'
+            }`}
+          />
         ),
         status: (
           <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${

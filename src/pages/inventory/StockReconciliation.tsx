@@ -23,12 +23,10 @@ import {
   Layers
 } from 'lucide-react';
 
-export interface PackagingTier {
-  id: string;
-  name: string;
-  units_per_tier: number;
-  is_base_unit: boolean;
-}
+import { PackagingTier, formatQty, getTierBreakdown } from '@/utils/packaging';
+import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
+
+export type { PackagingTier };
 
 export interface ReconcileItem {
   id: string;
@@ -40,50 +38,6 @@ export interface ReconcileItem {
   base_unit_name: string;
   packaging_tiers?: PackagingTier[];
 }
-
-// Helper to format quantities up to 2 decimal places without trailing .00 on whole numbers
-const formatQty = (num: number): string => {
-  const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
-  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(2);
-};
-
-// Helper to convert base units into human-readable packaging tier breakdown (e.g. 246 bottles -> 10 packs, 6 bottles)
-const getTierBreakdown = (
-  quantity: number,
-  baseUnitName: string,
-  tiers?: PackagingTier[]
-): string | null => {
-  if (!tiers || tiers.length <= 1) return null;
-
-  const multiTiers = tiers
-    .filter(t => t.units_per_tier > 1)
-    .sort((a, b) => b.units_per_tier - a.units_per_tier);
-
-  if (multiTiers.length === 0) return null;
-
-  const primaryTier = multiTiers[0];
-  const isNegative = quantity < 0;
-  const absQty = Math.abs(quantity);
-
-  const tierCount = Math.floor(absQty / primaryTier.units_per_tier);
-  const remainder = Math.round((absQty % primaryTier.units_per_tier) * 100) / 100;
-
-  if (tierCount === 0 && remainder === 0) {
-    return null;
-  }
-
-  const parts: string[] = [];
-  if (tierCount > 0) {
-    const tierLabel = tierCount === 1 ? primaryTier.name : `${primaryTier.name}s`;
-    parts.push(`${isNegative ? '-' : ''}${tierCount} ${tierLabel.toLowerCase()}`);
-  }
-  if (remainder > 0) {
-    const baseLabel = remainder === 1 ? baseUnitName : `${baseUnitName}s`;
-    parts.push(`${isNegative && tierCount === 0 ? '-' : ''}${formatQty(remainder)} ${baseLabel.toLowerCase()}`);
-  }
-
-  return parts.length > 0 ? parts.join(', ') : null;
-};
 
 export default function StockReconciliation() {
   const [products, setProducts] = useState<ReconcileItem[]>([]);
@@ -405,17 +359,13 @@ export default function StockReconciliation() {
           </span>
         ),
         system_stock: (
-          <div>
-            <span className="font-medium text-foreground text-sm">
-              {formatQty(p.quantity)}{' '}
-              <span className="text-[12px] font-normal text-muted-foreground">{p.base_unit_name}</span>
-            </span>
-            {systemTierBreakdown && (
-              <p className="text-[11px] text-muted-foreground/80 font-mono mt-0.5">
-                ({systemTierBreakdown})
-              </p>
-            )}
-          </div>
+          <PackagingStockDisplay
+            quantity={p.quantity}
+            baseUnitName={p.base_unit_name}
+            packagingTiers={p.packaging_tiers}
+            primaryClassName="font-medium text-foreground text-sm"
+            tierClassName="text-[11px] text-muted-foreground/80 font-mono mt-0.5"
+          />
         ),
         physical_stock: (
           <div className="flex flex-col gap-1">
@@ -472,20 +422,18 @@ export default function StockReconciliation() {
                 0 Match
               </span>
             ) : (
-              <>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono w-fit ${
+              <PackagingStockDisplay
+                quantity={variance}
+                baseUnitName={p.base_unit_name}
+                packagingTiers={p.packaging_tiers}
+                showPrefixSign={true}
+                primaryClassName={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono w-fit ${
                   variance > 0 
                     ? 'text-green-600 bg-green-400/10 border-green-500/20' 
                     : 'text-destructive bg-destructive/5 border-destructive/20'
-                }`}>
-                  {variance > 0 ? `+${formatQty(variance)}` : formatQty(variance)} {p.base_unit_name}
-                </span>
-                {varianceTierBreakdown && (
-                  <p className="text-[11px] text-muted-foreground/80 font-mono">
-                    ({varianceTierBreakdown})
-                  </p>
-                )}
-              </>
+                }`}
+                tierClassName="text-[11px] text-muted-foreground/80 font-mono mt-0.5"
+              />
             )}
           </div>
         ),

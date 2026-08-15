@@ -29,6 +29,7 @@ import toast from "react-hot-toast";
 import DashboardCard from "@/components/ui/dashboard-card";
 import EnhancedTableComponent, { TableColumn } from "@/components/shared/MainTableComponent";
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
+import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 
 interface Adjustment {
   id: string;
@@ -361,19 +362,18 @@ export default function StockAdjustments() {
         </div>
       ),
       quantity: (
-        <div className="flex flex-col min-w-[130px]">
-          <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-            {item.quantity < 0 ? "-" : "+"}
-            {item.package_quantity && item.packaging_tier_name
+        <PackagingStockDisplay
+          quantity={item.quantity}
+          baseUnitName={item.base_unit_name || "units"}
+          showPrefixSign={true}
+          customBreakdown={
+            item.package_quantity && item.packaging_tier_name
               ? `${item.package_quantity} ${item.packaging_tier_name}`
-              : `${Math.abs(item.quantity)} ${item.base_unit_name || "units"}`}
-          </span>
-          {item.package_quantity && item.packaging_tier_name && (
-            <span className="text-[10px] text-muted-foreground font-mono">
-              ({item.quantity < 0 ? "-" : "+"}{Math.abs(item.quantity)} {item.base_unit_name || "units"})
-            </span>
-          )}
-        </div>
+              : undefined
+          }
+          primaryClassName={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+          tierClassName="text-[11px] text-muted-foreground font-mono"
+        />
       ),
       reason: (
         <span className="capitalize text-muted-foreground">
@@ -498,12 +498,18 @@ export default function StockAdjustments() {
                       </td>
                       <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
                       <td className="py-3">
-                        <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                          {item.quantity < 0 ? "-" : "+"}
-                          {item.package_quantity && item.packaging_tier_name
-                            ? `${item.package_quantity} ${item.packaging_tier_name}`
-                            : `${Math.abs(item.quantity)} ${item.base_unit_name || "units"}`}
-                        </span>
+                        <PackagingStockDisplay
+                          quantity={item.quantity}
+                          baseUnitName={item.base_unit_name || "units"}
+                          showPrefixSign={true}
+                          customBreakdown={
+                            item.package_quantity && item.packaging_tier_name
+                              ? `${item.package_quantity} ${item.packaging_tier_name}`
+                              : undefined
+                          }
+                          primaryClassName={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+                          tierClassName="text-[10px] text-muted-foreground font-mono"
+                        />
                       </td>
                       <td className="py-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 capitalize">
@@ -614,17 +620,18 @@ export default function StockAdjustments() {
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t text-xs">
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Adjustment Quantity</span>
-                    <span className={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                      {selectedDetailAdj.quantity < 0 ? "-" : "+"}
-                      {selectedDetailAdj.package_quantity && selectedDetailAdj.packaging_tier_name
-                        ? `${selectedDetailAdj.package_quantity} ${selectedDetailAdj.packaging_tier_name}`
-                        : `${Math.abs(selectedDetailAdj.quantity)} ${selectedDetailAdj.base_unit_name || "units"}`}
-                    </span>
-                    {/* {selectedDetailAdj.package_quantity && selectedDetailAdj.packaging_tier_name && (
-                      <span className="text-[11px] text-muted-foreground font-mono block mt-0.5">
-                        ({selectedDetailAdj.quantity < 0 ? "-" : "+"}{Math.abs(selectedDetailAdj.quantity)} {selectedDetailAdj.base_unit_name || "units"})
-                      </span>
-                    )} */}
+                    <PackagingStockDisplay
+                      quantity={selectedDetailAdj.quantity}
+                      baseUnitName={selectedDetailAdj.base_unit_name || "units"}
+                      showPrefixSign={true}
+                      customBreakdown={
+                        selectedDetailAdj.package_quantity && selectedDetailAdj.packaging_tier_name
+                          ? `${selectedDetailAdj.package_quantity} ${selectedDetailAdj.packaging_tier_name}`
+                          : undefined
+                      }
+                      primaryClassName={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+                      tierClassName="text-[11px] text-muted-foreground font-mono mt-0.5"
+                    />
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Reason</span>

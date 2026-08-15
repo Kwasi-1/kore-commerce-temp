@@ -6,6 +6,8 @@ import CustomModal from "@/components/modals/modal";
 import ProductForm from "@/components/inventory/ProductForm";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
+import { getTierBreakdown, formatQty } from "@/utils/packaging";
+import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import {
   Package,
   AlertTriangle,
@@ -234,32 +236,30 @@ export default function Products() {
     };
   };
 
-  const getStockCell = (quantity: number, unitName: string) => {
+  const getStockCell = (quantity: number, unitName: string, tiers?: any[]) => {
     const isOutOfStock = quantity === 0;
     const isLowStock = quantity > 0 && quantity <= 5;
+    const statusIcon = isOutOfStock ? (
+      <XCircle className="h-3.5 w-3.5 shrink-0" />
+    ) : isLowStock ? (
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+    ) : null;
 
-    if (isOutOfStock) {
-      return (
-        <span className="inline-flex items-center gap-1 text-destructive font-bold text-[12px]">
-          <XCircle className="h-3.5 w-3.5 shrink-0" />
-          {Number(quantity.toFixed(2))} {unitName}
-        </span>
-      );
-    }
-
-    if (isLowStock) {
-      return (
-        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-[12px]">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          {Number(quantity.toFixed(2))} {unitName}
-        </span>
-      );
-    }
+    const primaryClass = isOutOfStock
+      ? "text-destructive font-bold"
+      : isLowStock
+      ? "text-amber-600 dark:text-amber-400 font-semibold"
+      : "text-foreground/80 font-medium";
 
     return (
-      <span className="text-foreground/80 font-medium text-[12px]">
-        {Number(quantity.toFixed(2))} {unitName}
-      </span>
+      <PackagingStockDisplay
+        quantity={quantity}
+        baseUnitName={unitName}
+        packagingTiers={tiers}
+        icon={statusIcon}
+        primaryClassName={primaryClass}
+        tierClassName="text-xs text-muted-foreground font-medium"
+      />
     );
   };
 
@@ -414,7 +414,7 @@ export default function Products() {
               GHS {Number(retailPrice).toFixed(2)}
             </span>
           ),
-          stock: getStockCell(stockInfo.value, stockInfo.unit),
+          stock: getStockCell(stockInfo.value, stockInfo.unit, v.packaging_tiers || p.packaging_tiers),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
               p.status === "active"
