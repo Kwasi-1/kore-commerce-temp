@@ -17,10 +17,20 @@ import {
   RotateCcw,
   SlidersHorizontal,
   FileCheck2,
-  CheckCircle2
+  CheckCircle2,
+  Boxes,
+  Calculator,
+  Layers
 } from 'lucide-react';
 
-interface ReconcileItem {
+export interface PackagingTier {
+  id: string;
+  name: string;
+  units_per_tier: number;
+  is_base_unit: boolean;
+}
+
+export interface ReconcileItem {
   id: string;
   productId: string;
   name: string;
@@ -28,12 +38,51 @@ interface ReconcileItem {
   sku: string;
   quantity: number;
   base_unit_name: string;
+  packaging_tiers?: PackagingTier[];
 }
 
 // Helper to format quantities up to 2 decimal places without trailing .00 on whole numbers
 const formatQty = (num: number): string => {
   const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
   return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(2);
+};
+
+// Helper to convert base units into human-readable packaging tier breakdown (e.g. 246 bottles -> 10 packs, 6 bottles)
+const getTierBreakdown = (
+  quantity: number,
+  baseUnitName: string,
+  tiers?: PackagingTier[]
+): string | null => {
+  if (!tiers || tiers.length <= 1) return null;
+
+  const multiTiers = tiers
+    .filter(t => t.units_per_tier > 1)
+    .sort((a, b) => b.units_per_tier - a.units_per_tier);
+
+  if (multiTiers.length === 0) return null;
+
+  const primaryTier = multiTiers[0];
+  const isNegative = quantity < 0;
+  const absQty = Math.abs(quantity);
+
+  const tierCount = Math.floor(absQty / primaryTier.units_per_tier);
+  const remainder = Math.round((absQty % primaryTier.units_per_tier) * 100) / 100;
+
+  if (tierCount === 0 && remainder === 0) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (tierCount > 0) {
+    const tierLabel = tierCount === 1 ? primaryTier.name : `${primaryTier.name}s`;
+    parts.push(`${isNegative ? '-' : ''}${tierCount} ${tierLabel.toLowerCase()}`);
+  }
+  if (remainder > 0) {
+    const baseLabel = remainder === 1 ? baseUnitName : `${baseUnitName}s`;
+    parts.push(`${isNegative && tierCount === 0 ? '-' : ''}${formatQty(remainder)} ${baseLabel.toLowerCase()}`);
+  }
+
+  return parts.length > 0 ? parts.join(', ') : null;
 };
 
 export default function StockReconciliation() {
@@ -57,6 +106,10 @@ export default function StockReconciliation() {
   // Review confirmation modal
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [auditNotes, setAuditNotes] = useState('');
+
+  // Tier Calculator Modal State
+  const [calculatingItem, setCalculatingItem] = useState<ReconcileItem | null>(null);
+  const [tierCounts, setTierCounts] = useState<Record<string, string>>({});
 
   // Auto-persist uncommitted count drafts
   useEffect(() => {
@@ -88,7 +141,8 @@ export default function StockReconciliation() {
             category: p.category || 'General',
             sku: p.sku || 'N/A',
             quantity: p.stock_quantity ?? p.total_stock_base_units ?? 0,
-            base_unit_name: p.base_unit_name || 'units'
+            base_unit_name: p.base_unit_name || 'units',
+            packaging_tiers: p.packaging_tiers || []
           });
         } else {
           variants.forEach((v: any) => {
@@ -101,7 +155,8 @@ export default function StockReconciliation() {
               category: p.category || 'General',
               sku: v.sku || p.sku || 'N/A',
               quantity: v.stock_quantity ?? 0,
-              base_unit_name: v.base_unit_name || p.base_unit_name || 'units'
+              base_unit_name: v.base_unit_name || p.base_unit_name || 'units',
+              packaging_tiers: v.packaging_tiers || p.packaging_tiers || []
             });
           });
         }
@@ -144,6 +199,55 @@ export default function StockReconciliation() {
       ...prev,
       [item.id]: item.quantity
     }));
+  };
+
+  const handleOpenTierCalculator = (item: ReconcileItem) => {
+    setCalculatingItem(item);
+    const currentCount = physicalCounts[item.id];
+    const initialInputs: Record<string, string> = {};
+
+    const multiTiers = (item.packaging_tiers || [])
+      .filter(t => t.units_per_tier > 1)
+      .sort((a, b) => b.units_per_tier - a.units_per_tier);
+
+    if (currentCount !== undefined && multiTiers.length > 0) {
+      const primaryTier = multiTiers[0];
+      const packs = Math.floor(currentCount / primaryTier.units_per_tier);
+      const loose = Math.round((currentCount % primaryTier.units_per_tier) * 100) / 100;
+      if (packs > 0) initialInputs[primaryTier.id] = String(packs);
+      if (loose > 0) initialInputs['base'] = String(loose);
+    }
+    setTierCounts(initialInputs);
+  };
+
+  const calculatedTotal = useMemo(() => {
+    if (!calculatingItem) return 0;
+    let total = 0;
+    const baseQty = parseFloat(tierCounts['base'] || '0');
+    if (!isNaN(baseQty) && baseQty > 0) total += baseQty;
+
+    (calculatingItem.packaging_tiers || []).forEach(tier => {
+      if (tier.units_per_tier > 1) {
+        const val = parseFloat(tierCounts[tier.id] || '0');
+        if (!isNaN(val) && val > 0) {
+          total += val * tier.units_per_tier;
+        }
+      }
+    });
+    return Math.round((total + Number.EPSILON) * 100) / 100;
+  }, [calculatingItem, tierCounts]);
+
+  const handleApplyTierCount = () => {
+    if (!calculatingItem) return;
+    setPhysicalCounts(prev => ({
+      ...prev,
+      [calculatingItem.id]: calculatedTotal
+    }));
+    const itemName = calculatingItem.name;
+    const baseUnit = calculatingItem.base_unit_name;
+    const breakdown = getTierBreakdown(calculatedTotal, baseUnit, calculatingItem.packaging_tiers);
+    setCalculatingItem(null);
+    toast.success(`Updated ${itemName}: ${calculatedTotal} ${baseUnit}${breakdown ? ` (${breakdown})` : ''}`);
   };
 
   const handleResetCounts = () => {
@@ -282,12 +386,17 @@ export default function StockReconciliation() {
       const isCounted = physicalCounts[p.id] !== undefined;
       const actualVal = isCounted ? physicalCounts[p.id] : '';
       const variance = isCounted ? (physicalCounts[p.id] - p.quantity) : 0;
+      const hasTiers = (p.packaging_tiers || []).some(t => t.units_per_tier > 1);
+      const systemTierBreakdown = getTierBreakdown(p.quantity, p.base_unit_name, p.packaging_tiers);
+      const actualTierBreakdown = isCounted ? getTierBreakdown(Number(actualVal), p.base_unit_name, p.packaging_tiers) : null;
+      const varianceTierBreakdown = isCounted && variance !== 0 ? getTierBreakdown(variance, p.base_unit_name, p.packaging_tiers) : null;
 
       return {
         id: p.id,
         product: (
           <div className="min-w-[180px]">
             <p className="font-semibold text-foreground capitalize text-sm">{p.name}</p>
+            <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{p.sku}</p>
           </div>
         ),
         category: (
@@ -296,55 +405,87 @@ export default function StockReconciliation() {
           </span>
         ),
         system_stock: (
-          <span className="font-medium text-foreground text-sm">
-            {formatQty(p.quantity)}{' '}
-            <span className="text-[12px] font-normal text-muted-foreground">{p.base_unit_name}</span>
-          </span>
+          <div>
+            <span className="font-medium text-foreground text-sm">
+              {formatQty(p.quantity)}{' '}
+              <span className="text-[12px] font-normal text-muted-foreground">{p.base_unit_name}</span>
+            </span>
+            {systemTierBreakdown && (
+              <p className="text-[11px] text-muted-foreground/80 font-mono mt-0.5">
+                ({systemTierBreakdown})
+              </p>
+            )}
+          </div>
         ),
         physical_stock: (
-          <div className="flex items-center gap-2">
-            <input 
-              type="number"
-              min="0"
-              step="any"
-              placeholder="Enter count..."
-              className={`w-28 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-1 focus:ring-primary ${
-                isCounted 
-                  ? 'border-border bg-background font-medium text-foreground' 
-                  : 'border-border/60 bg-muted/40 text-muted-foreground'
-              }`}
-              value={actualVal}
-              onChange={(e) => handleCountChange(p.id, e.target.value)}
-            />
-            {!isCounted && (
-              <button
-                type="button"
-                onClick={() => handleQuickMatch(p)}
-                title="Matches system count"
-                className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors border border-dashed border-border"
-              >
-                Match
-              </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <input 
+                type="number"
+                min="0"
+                step="any"
+                placeholder="Enter count..."
+                className={`w-28 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-1 focus:ring-primary ${
+                  isCounted 
+                    ? 'border-border bg-background font-medium text-foreground' 
+                    : 'border-border/60 bg-muted/40 text-muted-foreground'
+                }`}
+                value={actualVal}
+                onChange={(e) => handleCountChange(p.id, e.target.value)}
+              />
+              {hasTiers && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenTierCalculator(p)}
+                  title="Count by Packs / Boxes & Units"
+                  className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 hover:text-foreground bg-muted/60 hover:bg-muted px-2 py-1.5 rounded-md border border-border transition-colors shadow-sm"
+                >
+                  <Boxes className="h-3.5 w-3.5" />
+                  <span>Tier Calc</span>
+                </button>
+              )}
+              {!isCounted && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickMatch(p)}
+                  title="Matches system count"
+                  className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted transition-colors border border-dashed border-border"
+                >
+                  Match
+                </button>
+              )}
+            </div>
+            {actualTierBreakdown && (
+              <p className="text-[11px] text-muted-foreground/80 font-mono">
+                ({actualTierBreakdown})
+              </p>
             )}
           </div>
         ),
         variance: (
-          <div className="flex items-center">
+          <div className="flex flex-col gap-0.5">
             {!isCounted ? (
               <span className="text-muted-foreground font-normal text-xs">—</span>
             ) : variance === 0 ? (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-muted-foreground bg-muted/30">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-muted-foreground bg-muted/30 w-fit">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 0 Match
               </span>
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono ${
-                variance > 0 
-                  ? 'text-green-600 bg-green-400/10 border-green-500/20' 
-                  : 'text-destructive bg-destructive/5 border-destructive/20'
-              }`}>
-                {variance > 0 ? `+${formatQty(variance)}` : formatQty(variance)} {p.base_unit_name}
-              </span>
+              <>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono w-fit ${
+                  variance > 0 
+                    ? 'text-green-600 bg-green-400/10 border-green-500/20' 
+                    : 'text-destructive bg-destructive/5 border-destructive/20'
+                }`}>
+                  {variance > 0 ? `+${formatQty(variance)}` : formatQty(variance)} {p.base_unit_name}
+                </span>
+                {varianceTierBreakdown && (
+                  <p className="text-[11px] text-muted-foreground/80 font-mono">
+                    ({varianceTierBreakdown})
+                  </p>
+                )}
+              </>
             )}
           </div>
         ),
@@ -456,19 +597,19 @@ export default function StockReconciliation() {
           showFilter={true}
           filterLabel="Status"
           filterOptions={[
-            { uid: "all", name: "All Items" },
-            { uid: "discrepancies", name: "Variances Only" },
-            { uid: "counted", name: "Counted Items" },
-            { uid: "uncounted", name: "Uncounted Items" },
+            { uid: 'all', name: 'All Status' },
+            { uid: 'counted', name: 'Counted' },
+            { uid: 'uncounted', name: 'Uncounted' },
+            { uid: 'discrepancies', name: 'Variances Only' },
           ]}
           filterValue={filterSelection}
-          onFilterChange={(keys: any) => setFilterSelection(keys)}
+          onFilterChange={setFilterSelection}
           additionalFilters={[
             {
-              label: "Category",
+              label: 'Category',
               options: categoryFilterOptions,
               value: categoryFilter,
-              onChange: (keys) => setCategoryFilter(keys),
+              onChange: setCategoryFilter
             }
           ]}
           showAddButton={false}
@@ -477,7 +618,7 @@ export default function StockReconciliation() {
               {
                 customComponent: (
                   <Button
-                    key="reset-btn"
+                    key="reset-counts"
                     type="button"
                     variant="outline"
                     size="sm"
@@ -511,7 +652,124 @@ export default function StockReconciliation() {
         />
       </div>
 
-      {/* MODAL: Review & Commit Reconciliation */}
+      {/* MODAL 1: Tier Count Calculator */}
+      <CustomModal
+        isOpen={!!calculatingItem}
+        onOpenChange={() => setCalculatingItem(null)}
+        size="md"
+        header={
+          <div>
+            <div className="flex items-center gap-2">
+              <Boxes className="h-4 w-4 text-primary" />
+              <h3 className="text-sm md:text-base font-bold text-foreground">
+                Count by Packaging Tiers
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {calculatingItem?.name} <span className="font-mono">({calculatingItem?.sku})</span>
+            </p>
+          </div>
+        }
+        body={
+          <div className="space-y-4 py-1">
+            <div className="p-3 bg-muted/40 rounded-md borde border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+              <span>Base Inventory Unit: <strong className="text-foreground">{calculatingItem?.base_unit_name}</strong></span>
+              <span>Expected System Stock: <strong className="text-foreground">{calculatingItem ? formatQty(calculatingItem.quantity) : 0} {calculatingItem?.base_unit_name}</strong></span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Packaging Tiers Inputs */}
+              {(calculatingItem?.packaging_tiers || [])
+                .filter(t => t.units_per_tier > 1)
+                .sort((a, b) => b.units_per_tier - a.units_per_tier)
+                .map(tier => {
+                  const val = tierCounts[tier.id] || '';
+                  const subTotal = (parseFloat(val) || 0) * tier.units_per_tier;
+                  return (
+                    <div key={tier.id} className="p-3 border rounded-lg bg-card/60 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                        <label htmlFor={`tier-${tier.id}`}>
+                          {tier.name} <span className="text-[11px] text-muted-foreground font-normal">({tier.units_per_tier} {calculatingItem?.base_unit_name}s each)</span>
+                        </label>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          = {formatQty(subTotal)} {calculatingItem?.base_unit_name}s
+                        </span>
+                      </div>
+                      <Input
+                        id={`tier-${tier.id}`}
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder={`Number of ${tier.name.toLowerCase()}s...`}
+                        value={val}
+                        onChange={(e) => setTierCounts(prev => ({ ...prev, [tier.id]: e.target.value }))}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  );
+                })}
+
+              {/* Loose Base Units Input */}
+              <div className="p-3 border rounded-lg bg-card/60 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                  <label htmlFor="tier-base">
+                    Loose {calculatingItem?.base_unit_name}s <span className="text-[11px] text-muted-foreground font-normal">(individual base units)</span>
+                  </label>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    = {formatQty(parseFloat(tierCounts['base'] || '0') || 0)} {calculatingItem?.base_unit_name}s
+                  </span>
+                </div>
+                <Input
+                  id="tier-base"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder={`Loose ${calculatingItem?.base_unit_name}s...`}
+                  value={tierCounts['base'] || ''}
+                  onChange={(e) => setTierCounts(prev => ({ ...prev, base: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Calculated Result Card */}
+            <div className="p-3.5 rounded-lg border bg-muted/60 border-border/80 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Total Calculated Stock:</span>
+                <span className="text-base font-bold text-foreground font-mono">
+                  {formatQty(calculatedTotal)} {calculatingItem?.base_unit_name}
+                </span>
+              </div>
+              {getTierBreakdown(calculatedTotal, calculatingItem?.base_unit_name || 'units', calculatingItem?.packaging_tiers) && (
+                <p className="text-[11px] text-muted-foreground font-mono text-right">
+                  Breakdown: {getTierBreakdown(calculatedTotal, calculatingItem?.base_unit_name || 'units', calculatingItem?.packaging_tiers)}
+                </p>
+              )}
+            </div>
+          </div>
+        }
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full pt-2 border-t border-border/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCalculatingItem(null)}
+              className="text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleApplyTierCount}
+              className="text-xs h-9 bg-primary text-primary-foreground font-semibold px-4"
+            >
+              Apply Count ({formatQty(calculatedTotal)} {calculatingItem?.base_unit_name})
+            </Button>
+          </div>
+        }
+      />
+
+      {/* MODAL 2: Review & Commit Reconciliation */}
       <CustomModal
         isOpen={isReviewModalOpen}
         onOpenChange={() => setIsReviewModalOpen(false)}
@@ -550,28 +808,48 @@ export default function StockReconciliation() {
                   </span>
                 </div>
                 <div className="max-h-56 overflow-y-auto divide-y divide-border/40 text-xs">
-                  {discrepancyItems.map((item) => (
-                    <div key={item.id} className="p-2.5 flex items-center justify-between hover:bg-muted/20">
-                      <div>
-                        <p className="font-semibold text-foreground capitalize">{item.name}</p>
-                        <p className="font-mono text-[10px] text-muted-foreground">{item.sku}</p>
-                      </div>
-                      <div className="text-right flex items-center gap-3">
-                        <div className="text-[11px] text-muted-foreground">
-                          <span>Prev: {formatQty(item.quantity)}</span>
-                          <span className="mx-1">→</span>
-                          <span className="font-semibold text-foreground">Count: {formatQty(item.physicalCount)}</span>
+                  {discrepancyItems.map((item) => {
+                    const prevTier = getTierBreakdown(item.quantity, item.base_unit_name, item.packaging_tiers);
+                    const countTier = getTierBreakdown(item.physicalCount, item.base_unit_name, item.packaging_tiers);
+                    const varTier = getTierBreakdown(item.variance, item.base_unit_name, item.packaging_tiers);
+
+                    return (
+                      <div key={item.id} className="p-2.5 flex items-center justify-between hover:bg-muted/20">
+                        <div>
+                          <p className="font-semibold text-foreground capitalize">{item.name}</p>
+                          <p className="font-mono text-[10px] text-muted-foreground">{item.sku}</p>
                         </div>
-                        <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
-                          item.variance > 0
-                            ? 'text-green-600 bg-green-500/5'
-                            : 'text-destructive bg-destructive/5'
-                        }`}>
-                          {item.variance > 0 ? `+${formatQty(item.variance)}` : formatQty(item.variance)} {item.base_unit_name}
-                        </span>
+                        <div className="text-right flex items-center gap-3">
+                          <div className="text-[11px] text-muted-foreground">
+                            <div>
+                              <span>Prev: {formatQty(item.quantity)}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-semibold text-foreground">Count: {formatQty(item.physicalCount)}</span>
+                            </div>
+                            {(prevTier || countTier) && (
+                              <p className="text-[10px] font-mono text-muted-foreground/70 mt-0.5">
+                                {prevTier ? `(${prevTier})` : ''} → {countTier ? `(${countTier})` : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
+                              item.variance > 0
+                                ? 'text-green-600 bg-green-500/5'
+                                : 'text-destructive bg-destructive/5'
+                            }`}>
+                              {item.variance > 0 ? `+${formatQty(item.variance)}` : formatQty(item.variance)} {item.base_unit_name}
+                            </span>
+                            {varTier && (
+                              <span className="text-[10px] font-mono text-muted-foreground/70 mt-0.5">
+                                ({varTier})
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
