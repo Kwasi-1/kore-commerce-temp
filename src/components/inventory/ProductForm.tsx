@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   CustomInputTextField, 
   CustomSelectField, 
@@ -142,104 +142,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     }).catch(console.error);
   }, []);
 
-  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
-
-  const getPriceString = (pVal: any): string => {
-    if (pVal === null || pVal === undefined) return "";
-    if (typeof pVal === "object") {
-      return (pVal.source ?? pVal.parsedValue ?? "").toString().trim();
-    }
-    return pVal.toString().trim();
-  };
-
-  const generateSnapshot = useCallback((
-    pName = name,
-    pDesc = description,
-    pCat = category,
-    pStatus = status,
-    pHasVars = hasVariants,
-    pFiles = uploadedFiles,
-    pRemovedImgs = removedImageUrls,
-    pSku = simpleSku,
-    pUnit = simpleBaseUnitName,
-    pSellMode = simpleSellMode,
-    pCost = simpleCostPrice,
-    pLowStock = simpleLowStock,
-    pExpiry = simpleTrackExpiry,
-    pTiers = simpleTiers,
-    pAttrs = attributes,
-    pVars = variants
-  ) => {
-    return JSON.stringify({
-      name: (pName || "").trim(),
-      description: (pDesc || "").trim(),
-      category: (pCat || "").trim(),
-      status: pStatus || "active",
-      hasVariants: Boolean(pHasVars),
-      images: (pFiles || []).map((f: any) => f.id || f.preview || f.file?.name || "").sort(),
-      removedImages: [...(pRemovedImgs || [])].sort(),
-      simpleSku: (pSku || "").trim(),
-      simpleBaseUnitName: (pUnit || "").trim(),
-      simpleSellMode: pSellMode || "unit_only",
-      simpleCostPrice: getPriceString(pCost),
-      simpleLowStock: (pLowStock ?? "5").toString().trim(),
-      simpleTrackExpiry: Boolean(pExpiry),
-      simpleTiers: (pTiers || []).map((t: any) => ({
-        name: (t.name || "").trim(),
-        units_per_tier: Number(t.units_per_tier) || 1,
-        retail_price: getPriceString(t.retail_price || "0.00"),
-        wholesale_price: getPriceString(t.wholesale_price || ""),
-        is_default_sale_unit: Boolean(t.is_default_sale_unit),
-        is_default_purchase_unit: Boolean(t.is_default_purchase_unit)
-      })),
-      attributes: (pAttrs || [])
-        .filter((a: any) => a.name?.trim())
-        .map((a: any) => ({
-          name: (a.name || "").trim(),
-          values: (a.values || "").trim()
-        })),
-      variants: (pVars || []).map((v: any) => ({
-        sku: (v.sku || "").trim(),
-        variant_attributes: v.variant_attributes || {},
-        cost_price_per_base_unit: getPriceString(v.cost_price_per_base_unit),
-        low_stock_threshold: (v.low_stock_threshold ?? "5").toString().trim(),
-        sell_mode: v.sell_mode || "unit_only",
-        track_expiry: Boolean(v.track_expiry),
-        packaging_tiers: (v.packaging_tiers || []).map((t: any) => ({
-          name: (t.name || "").trim(),
-          units_per_tier: Number(t.units_per_tier) || 1,
-          retail_price: getPriceString(t.retail_price || "0.00"),
-          wholesale_price: getPriceString(t.wholesale_price || ""),
-          is_default_sale_unit: Boolean(t.is_default_sale_unit),
-          is_default_purchase_unit: Boolean(t.is_default_purchase_unit)
-        }))
-      }))
-    });
-  }, [
-    name, description, category, status, hasVariants,
-    uploadedFiles, removedImageUrls, simpleSku, simpleBaseUnitName,
-    simpleSellMode, simpleCostPrice, simpleLowStock, simpleTrackExpiry,
-    simpleTiers, attributes, variants
-  ]);
-
-  const isFormValid = useMemo(() => {
-    if (!name.trim()) return false;
-    if (hasVariants) {
-      if (variants.length === 0) return false;
-      return variants.every(v => v.sku && v.sku.trim() !== "");
-    } else {
-      return Boolean(simpleSku && simpleSku.trim() !== "");
-    }
-  }, [name, hasVariants, variants, simpleSku]);
-
-  const isDirty = useMemo(() => {
-    if (!isEditing) {
-      return name.trim() !== "" || simpleSku.trim() !== "" || description.trim() !== "" || uploadedFiles.length > 0;
-    }
-    if (initialSnapshot === null) return false;
-    return generateSnapshot() !== initialSnapshot;
-  }, [isEditing, initialSnapshot, generateSnapshot, name, simpleSku, description, uploadedFiles.length]);
-
   // Fetch full nested product details if editing
   useEffect(() => {
     if (initialData && initialData.id) {
@@ -247,103 +149,80 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       apiClient.get(`/tenant/products/${initialData.id}`)
         .then((res) => {
           const fullProduct = res.data.success?.data?.product;
-          if (!fullProduct) return;
-
           setName(fullProduct.name || "");
           setDescription(fullProduct.description || "");
           setCategory(fullProduct.category || "");
           setStatus(fullProduct.status || "active");
           setHasVariants(fullProduct.has_variants || false);
           
-          let loadedFiles: any[] = [];
           if (fullProduct.images) {
-            loadedFiles = fullProduct.images.map((url: string) => ({
+            setUploadedFiles(fullProduct.images.map((url: string) => ({
               id: url,
               file: new File([], "existing_image"),
               preview: url
-            }));
-            setUploadedFiles(loadedFiles);
+            })));
           }
-
-          let loadedSimpleSku = "";
-          let loadedSimpleBaseUnit = "unit";
-          let loadedSimpleSellMode: any = "unit_only";
-          let loadedSimpleCost = "";
-          let loadedSimpleLowStock = "5";
-          let loadedSimpleExpiry = false;
-          let loadedSimpleTiers: any[] = [];
-          let loadedVariants: any[] = [];
-          let loadedAttrs: any[] = [];
 
           if (!fullProduct.has_variants) {
             const v = fullProduct.variants?.[0];
             if (v) {
-              loadedSimpleSku = v.sku || "";
-              loadedSimpleBaseUnit = v.base_unit_name || "unit";
-              loadedSimpleSellMode = v.sell_mode || "unit_only";
-              loadedSimpleCost = getPriceString(v.cost_price_per_base_unit);
-              loadedSimpleLowStock = (v.low_stock_threshold ?? "5").toString();
-              loadedSimpleExpiry = v.track_expiry || false;
-
-              setSimpleSku(loadedSimpleSku);
-              setSimpleBaseUnitName(loadedSimpleBaseUnit);
-              setSimpleSellMode(loadedSimpleSellMode);
-              setSimpleStock(getPriceString(v.stock_quantity) || "0");
-              setSimpleCostPrice(loadedSimpleCost);
-              setSimpleLowStock(loadedSimpleLowStock);
-              setSimpleTrackExpiry(loadedSimpleExpiry);
+              setSimpleSku(v.sku || "");
+              setSimpleBaseUnitName(v.base_unit_name || "unit");
+              setSimpleSellMode(v.sell_mode || "unit_only");
+              setSimpleStock(v.stock_quantity?.toString() || "0");
+              setSimpleCostPrice(v.cost_price_per_base_unit?.toString() || "");
+              setSimpleLowStock(v.low_stock_threshold?.toString() || "5");
+              setSimpleTrackExpiry(v.track_expiry || false);
               
               if (v.packaging_tiers && v.packaging_tiers.length > 0) {
-                loadedSimpleTiers = v.packaging_tiers.map((t: any) => {
-                  const retailPriceObj = t.prices?.find((p: any) => p.price_type === "retail")?.price ?? t.retail_price ?? "0.00";
-                  const wholesalePriceObj = t.prices?.find((p: any) => p.price_type === "wholesale")?.price ?? t.wholesale_price ?? "";
+                setSimpleTiers(v.packaging_tiers.map((t: any) => {
+                  const retail = t.prices?.find((p: any) => p.price_type === "retail")?.price || "0.00";
+                  const wholesale = t.prices?.find((p: any) => p.price_type === "wholesale")?.price || "";
                   return {
                     id: t.id || Math.random().toString(),
-                    name: t.name || "",
-                    units_per_tier: t.units_per_tier || 1,
+                    name: t.name,
+                    units_per_tier: t.units_per_tier,
                     is_base_unit: t.is_base_unit,
                     is_default_sale_unit: t.is_default_sale_unit,
                     is_default_purchase_unit: t.is_default_purchase_unit,
-                    retail_price: getPriceString(retailPriceObj),
-                    wholesale_price: getPriceString(wholesalePriceObj)
+                    retail_price: retail.toString(),
+                    wholesale_price: wholesale.toString()
                   };
-                });
-                setSimpleTiers(loadedSimpleTiers);
+                }));
               }
             }
           } else {
             // Load list of variants
-            loadedVariants = fullProduct.variants.map((v: any) => {
+            setVariants(fullProduct.variants.map((v: any) => {
               const tiers = v.packaging_tiers?.map((t: any) => {
-                const retailPriceObj = t.prices?.find((p: any) => p.price_type === "retail")?.price ?? t.retail_price ?? "0.00";
-                const wholesalePriceObj = t.prices?.find((p: any) => p.price_type === "wholesale")?.price ?? t.wholesale_price ?? "";
+                const retail = t.prices?.find((p: any) => p.price_type === "retail")?.price || "0.00";
+                const wholesale = t.prices?.find((p: any) => p.price_type === "wholesale")?.price || "";
                 return {
                   id: t.id || Math.random().toString(),
-                  name: t.name || "",
-                  units_per_tier: t.units_per_tier || 1,
+                  name: t.name,
+                  units_per_tier: t.units_per_tier,
                   is_base_unit: t.is_base_unit,
                   is_default_sale_unit: t.is_default_sale_unit,
                   is_default_purchase_unit: t.is_default_purchase_unit,
-                  retail_price: getPriceString(retailPriceObj),
-                  wholesale_price: getPriceString(wholesalePriceObj)
+                  retail_price: retail.toString(),
+                  wholesale_price: wholesale.toString()
                 };
               }) || [];
               
               return {
                 id: v.id,
-                sku: v.sku || "",
+                sku: v.sku,
                 variant_attributes: v.variant_attributes || {},
                 base_unit_name: v.base_unit_name || "unit",
-                stock_quantity: getPriceString(v.stock_quantity) || "0",
-                cost_price_per_base_unit: getPriceString(v.cost_price_per_base_unit),
-                low_stock_threshold: (v.low_stock_threshold ?? "5").toString(),
+                stock_quantity: v.stock_quantity?.toString() || "0",
+                cost_price_per_base_unit: v.cost_price_per_base_unit?.toString() || "",
+                low_stock_threshold: v.low_stock_threshold?.toString() || "5",
                 sell_mode: v.sell_mode || "unit_only",
                 track_expiry: v.track_expiry || false,
                 packaging_tiers: tiers,
                 isExpanded: false
               };
-            });
-            setVariants(loadedVariants);
+            }));
             
             // Build attributes array based on variant attributes keys/values
             const attrMap: Record<string, Set<string>> = {};
@@ -353,34 +232,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 attrMap[key].add(String(val));
               });
             });
-            loadedAttrs = Object.entries(attrMap).map(([key, valSet]) => ({
+            const loadedAttrs = Object.entries(attrMap).map(([key, valSet]) => ({
               id: Math.random().toString(),
               name: key,
               values: Array.from(valSet).join(", ")
             }));
             setAttributes(loadedAttrs.length > 0 ? loadedAttrs : [{ id: Math.random().toString(), name: "Size", values: "" }]);
           }
-
-          // Compute snapshot of pristine initial state
-          const snap = generateSnapshot(
-            fullProduct.name,
-            fullProduct.description,
-            fullProduct.category,
-            fullProduct.status,
-            fullProduct.has_variants,
-            loadedFiles,
-            [],
-            loadedSimpleSku,
-            loadedSimpleBaseUnit,
-            loadedSimpleSellMode,
-            loadedSimpleCost,
-            loadedSimpleLowStock,
-            loadedSimpleExpiry,
-            loadedSimpleTiers,
-            loadedAttrs,
-            loadedVariants
-          );
-          setInitialSnapshot(snap);
         })
         .catch((err) => {
           console.error("Failed to load product details:", err);
@@ -1396,17 +1254,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         </Button>
         <Button 
           type="submit"
-          disabled={isLoading || !isFormValid || (isEditing && !isDirty)}
-          className={cn(
-            "bg-primary text-primary-foreground font-bold px-6 rounded-full transition-all",
-            (isLoading || !isFormValid || (isEditing && !isDirty)) && "opacity-50 cursor-not-allowed shadow-none"
-          )}
+          disabled={isLoading}
+          className="bg-primary text-primary-foreground font-bold px-6 rounded-full"
         >
-          {isLoading
-            ? "Saving..."
-            : isEditing
-            ? (isDirty ? "Update Product" : "No Changes")
-            : (!isFormValid ? "Enter Product Info" : "Create Product")}
+          {isLoading ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
         </Button>
       </div>
     </form>
