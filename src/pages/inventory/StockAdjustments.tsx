@@ -35,6 +35,10 @@ interface Adjustment {
   variant_id: string;
   variant_name: string;
   base_unit_name?: string;
+  packaging_tier_id?: string | null;
+  packaging_tier_name?: string | null;
+  units_per_tier?: number | null;
+  package_quantity?: number | null;
   sku: string;
   quantity: number;
   reason: string;
@@ -342,7 +346,7 @@ export default function StockAdjustments() {
     { key: "status", label: "Status" },
     { key: "initiated_by", label: "Initiated By" },
     { key: "approved_by", label: "Approved By" },
-    { key: "notes", label: "Rejection / Notes" },
+    // { key: "notes", label: "Rejection / Notes" },
   ];
 
   // EnhancedTableComponent rows mapping
@@ -357,9 +361,19 @@ export default function StockAdjustments() {
         </div>
       ),
       quantity: (
-        <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-          {item.quantity < 0 ? "" : "+"}{item.quantity} {item.base_unit_name || "units"}
-        </span>
+        <div className="flex flex-col min-w-[130px]">
+          <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
+            {item.quantity < 0 ? "-" : "+"}
+            {item.package_quantity && item.packaging_tier_name
+              ? `${item.package_quantity} ${item.packaging_tier_name}`
+              : `${Math.abs(item.quantity)} ${item.base_unit_name || "units"}`}
+          </span>
+          {item.package_quantity && item.packaging_tier_name && (
+            <span className="text-[10px] text-muted-foreground font-mono">
+              ({item.quantity < 0 ? "-" : "+"}{Math.abs(item.quantity)} {item.base_unit_name || "units"})
+            </span>
+          )}
+        </div>
       ),
       reason: (
         <span className="capitalize text-muted-foreground">
@@ -377,17 +391,17 @@ export default function StockAdjustments() {
           {item.status}
         </span>
       ),
-      initiated_by: item.initiated_by_name || "—",
-      approved_by: item.approved_by_name || "—",
-      notes: (
-        <span className="text-muted-foreground max-w-xs truncate block" title={item.notes || item.rejection_note}>
-          {item.status === "rejected" && item.rejection_note ? (
-            <span className="text-destructive font-semibold">Rejected: {item.rejection_note}</span>
-          ) : (
-            item.notes || "—"
-          )}
-        </span>
+      initiated_by: (
+        <span className="text-xs text-muted-foreground font-medium">{item.initiated_by_name || "—"}</span>
       ),
+      approved_by: (
+        <span className="text-xs text-muted-foreground font-medium">{item.approved_by_name || "—"}</span>
+      ),
+      // notes: (
+      //   <span className="text-xs text-muted-foreground max-w-xs truncate block" title={item.notes || item.rejection_note}>
+      //     {item.rejection_note || item.notes || "—"}
+      //   </span>
+      // ),
       __record: item,
     }));
   }, [filteredAdjustments]);
@@ -415,7 +429,7 @@ export default function StockAdjustments() {
             }
             className="border border-border"
             // valueStyle="font-header tracking-tight"
-            action={<Clock className="h-5 w-5" />}
+            action={<Clock className={`${pendingApprovalsCount > 0 ? "animate-pulse text-amber-500" : "text-muted-foreground/50"} h-5 w-5 `} />}
           />
           <DashboardCard
             title="Total Written Off"
@@ -485,7 +499,10 @@ export default function StockAdjustments() {
                       <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
                       <td className="py-3">
                         <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                          {item.quantity < 0 ? "" : "+"}{item.quantity} {item.base_unit_name || "units"}
+                          {item.quantity < 0 ? "-" : "+"}
+                          {item.package_quantity && item.packaging_tier_name
+                            ? `${item.package_quantity} ${item.packaging_tier_name}`
+                            : `${Math.abs(item.quantity)} ${item.base_unit_name || "units"}`}
                         </span>
                       </td>
                       <td className="py-3">
@@ -598,8 +615,16 @@ export default function StockAdjustments() {
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Adjustment Quantity</span>
                     <span className={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                      {selectedDetailAdj.quantity < 0 ? "" : "+"}{selectedDetailAdj.quantity} {selectedDetailAdj.base_unit_name || "units"}
+                      {selectedDetailAdj.quantity < 0 ? "-" : "+"}
+                      {selectedDetailAdj.package_quantity && selectedDetailAdj.packaging_tier_name
+                        ? `${selectedDetailAdj.package_quantity} ${selectedDetailAdj.packaging_tier_name}`
+                        : `${Math.abs(selectedDetailAdj.quantity)} ${selectedDetailAdj.base_unit_name || "units"}`}
                     </span>
+                    {/* {selectedDetailAdj.package_quantity && selectedDetailAdj.packaging_tier_name && (
+                      <span className="text-[11px] text-muted-foreground font-mono block mt-0.5">
+                        ({selectedDetailAdj.quantity < 0 ? "-" : "+"}{Math.abs(selectedDetailAdj.quantity)} {selectedDetailAdj.base_unit_name || "units"})
+                      </span>
+                    )} */}
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Reason</span>

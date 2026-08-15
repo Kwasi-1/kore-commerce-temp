@@ -22,6 +22,10 @@ interface HistoryItem {
   type: "shipment" | "adjustment";
   isAddition: boolean;
   quantity: number;
+  packagingTierName?: string | null;
+  unitsPerTier?: number | null;
+  packageQuantity?: number | null;
+  baseUnitName?: string | null;
   previousQuantity?: number;
   newQuantity?: number;
   reason: string;
@@ -141,15 +145,15 @@ export function StockHistoryModal({
                   return (
                     <div
                       key={item.id}
-                      className="p-3 rounded-xl border border-border/50 bg-card hover:bg-muted/20 transition-colors space-y-2 text-xs"
+                      className="p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/20 transition-colors space-y-2 text-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <div
                             className={`p-1.5 rounded-md ${
                               isAdd
-                                ? "bg-green-400/10 text-green-600"
-                                : "bg-destructive/10 text-destructive"
+                                ? "bg-green-500/5 text-green-600"
+                                : "bg-destructive/5 text-destructive"
                             }`}
                           >
                             {isAdd ? (
@@ -169,21 +173,30 @@ export function StockHistoryModal({
                         </div>
 
                         {/* Delta Badge */}
-                        <span
-                          className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
-                            isAdd
-                              ? "bg-green-400/10 border-green-500/20 text-green-600"
-                              : "bg-destructive/10 border-destructive/20 text-destructive"
-                          }`}
-                        >
-                          {isAdd ? "+" : "-"}
-                          {Number(typeof item.quantity === 'object' && item.quantity !== null ? ((item.quantity as any)?.parsedValue ?? (item.quantity as any)?.source ?? 0) : item.quantity).toLocaleString()} {product.base_unit_name}
-                        </span>
+                        <div className="text-right flex flex-col items-end">
+                          <span
+                            className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
+                              isAdd
+                                ? "bg-green-400/5 border-green-500/20 text-green-600"
+                                : "bg-destructive/5 border-destructive/20 text-destructive"
+                            }`}
+                          >
+                            {isAdd ? "+" : "-"}
+                            {item.packageQuantity && item.packagingTierName
+                              ? `${item.packageQuantity} ${item.packagingTierName}`
+                              : `${Number(typeof item.quantity === 'object' && item.quantity !== null ? ((item.quantity as any)?.parsedValue ?? (item.quantity as any)?.source ?? 0) : item.quantity).toLocaleString()} ${item.baseUnitName || product.base_unit_name}`}
+                          </span>
+                          {/* {item.packageQuantity && item.packagingTierName && (
+                            <span className="text-[10px] text-muted-foreground font-mono block mt-0.5">
+                              ({isAdd ? "+" : "-"}{Number(typeof item.quantity === 'object' && item.quantity !== null ? ((item.quantity as any)?.parsedValue ?? (item.quantity as any)?.source ?? 0) : item.quantity).toLocaleString()} {item.baseUnitName || product.base_unit_name})
+                            </span>
+                          )} */}
+                        </div>
                       </div>
 
                       {/* Notes if present */}
                       {item.notes && item.notes.trim() && (
-                        <div className="p-2 rounded bg-muted/40 text-[11px] text-muted-foreground italic border border-border/30">
+                        <div className="p-2 rounded bg-muted/20 text-[11px] text-muted-foreground italic">
                           "{item.notes}"
                         </div>
                       )}
