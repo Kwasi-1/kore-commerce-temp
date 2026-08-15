@@ -93,7 +93,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       qtyBtnSize: "h-8 w-8"
     },
     large: {
-      card: "p-4 md:p-5 rounded-2xl md:rounded-[22px]",
+      card: "p-3.5 pb-4 md:p-4 rounded-2xl md:rounded-[22px]",
       imageMb: "mb-3.5",
       title: "text-[16px] font-extrabold text-foreground line-clamp-2 leading-tight mb-1",
       subtitle: "text-[13px] text-muted-foreground/85 line-clamp-1 leading-tight mb-1 font-bold",

@@ -120,7 +120,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <Settings className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300 hover:rotate-45" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[320px] p-4 rounded-[20px] shadow-xl border-border/60 bg-popover/95 backdrop-blur-md z-50">
+          <DropdownMenuContent align="end" className="w-[310px] md:w-[320px] p-4 rounded-xl shadow-xl border-border/60 bg-popover/95 backdrop-blur-md z-50">
             <DropdownMenuLabel className="px-1 py-1 font-bold text-foreground text-sm flex items-center gap-2">
               <Settings className="h-4 w-4 text-primary" />
               <span>Register Preferences</span>
@@ -222,7 +222,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             </DropdownMenuItem>
 
             {/* Receipt Quantity Format */}
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
+            {/* <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-xs text-foreground">Receipt Quantity Display</span>
                 <span className="text-[10px] text-muted-foreground">Display decimals as fractions (e.g. 1 ¼)</span>
@@ -245,7 +245,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                   </button>
                 ))}
               </div>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
         

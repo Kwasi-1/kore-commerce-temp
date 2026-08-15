@@ -252,12 +252,9 @@ export default function Returns() {
           placement="right"
           size="md"
           header={
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <RotateCcw className="h-5 w-5" />
-              </div>
+            <div className="flex items-center gap-2.5 border-b border-border/50 pb-2">
               <div>
-                <h3 className="text-base font-bold tracking-tight text-foreground">Return Detail Record</h3>
+                <h3 className="text-lg font-bold tracking-tight text-foreground">Return Detail Record</h3>
                 <p className="text-xs text-muted-foreground font-mono">
                   #{selectedReturn?.id?.slice(0, 8)?.toUpperCase() || '—'}
                 </p>
@@ -265,11 +262,11 @@ export default function Returns() {
             </div>
           }
           body={
-            <div className="flex-1 overflow-y-auto px-1 py-4 text-left">
+            <div className="flex-1 overflow-y-auto px-1 pt-1 pb-4 text-left">
               {selectedReturn ? (
                 <div className="space-y-6">
                   {/* Hero Summary Card */}
-                  <div className="bg-gradient-to-b from-muted/60 to-muted/20 p-5 rounded-2xl border border-border/60 flex flex-col items-center text-center relative overflow-hidden shadow-xs">
+                  <div className="bg-gradient-to-b from-muted/30 to-muted/30 p-5 rounded-lg flex flex-col items-center text-center relative overflow-hidden shadow-xs">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">
                       Refund Amount Issued
                     </span>
@@ -278,9 +275,9 @@ export default function Returns() {
                     </div>
                     
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={`capitalize text-[11px] font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-2xs ${
+                      <span className={`capitalize text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs ${
                         selectedReturn.status === 'approved'
-                          ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                          ? 'bg-green-400/10 text-green-600 border-green-500/20'
                           : selectedReturn.status === 'rejected'
                             ? 'bg-red-500/10 text-red-600 border-red-500/20'
                             : 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse'
@@ -305,19 +302,19 @@ export default function Returns() {
                     </h4>
                     
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
                         <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Reason</span>
                         <span className="font-semibold text-foreground">{reasonLabels[selectedReturn.reason] || selectedReturn.reason || 'Other'}</span>
                       </div>
-                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
                         <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Refund Method</span>
                         <span className="font-semibold capitalize text-foreground">{selectedReturn.refund_method?.replace('_', ' ') || 'Cash'}</span>
                       </div>
-                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
                         <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Initiated By</span>
                         <span className="font-semibold text-foreground">{selectedReturn.initiated_by_name || 'Staff'}</span>
                       </div>
-                      <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
                         <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Created Date</span>
                         <span className="font-semibold text-foreground">
                           {selectedReturn.date_created ? format(new Date(selectedReturn.date_created), 'MMM dd, yyyy h:mm a') : '—'}
