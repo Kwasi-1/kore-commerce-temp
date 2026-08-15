@@ -810,15 +810,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
               <CustomInputTextField
-                label="Initial Stock"
+                label={isEditing ? "Current Stock (Locked)" : "Initial Stock"}
                 name="stock"
                 type="number"
+                disabled={isEditing}
                 value={simpleStock}
                 onChange={(e) => setSimpleStock(e.target.value)}
                 placeholder="0"
-                inputProps={{ min: "0" }}
+                inputProps={{ min: "0", disabled: isEditing }}
+                className={cn(isEditing && "opacity-75 bg-muted/40 cursor-not-allowed text-muted-foreground")}
               />
-
               <CustomInputTextField
                 label="Cost / Base Unit"
                 name="costPrice"
@@ -839,6 +840,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 placeholder="5"
                 inputProps={{ min: "0" }}
               />
+              {isEditing && (
+                <p className="text-[10px] text-muted-foreground md:col-span-2">
+                  To adjust on-hand stock, use <span className="font-semibold text-foreground">Stock Adjustments</span>, <span className="font-semibold text-foreground">Stock In</span>, or <span className="font-semibold text-foreground">Reconcile</span>.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -958,12 +964,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Initial Stock</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {isEditing ? "Stock (Locked)" : "Initial Stock"}
+                    </label>
                     <input
                       type="number"
-                      className="w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none"
-                      placeholder="e.g. 50"
-                      value={bulkStock}
+                      disabled={isEditing}
+                      className={cn(
+                        "w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none",
+                        isEditing && "opacity-70 bg-muted/40 cursor-not-allowed text-muted-foreground"
+                      )}
+                      placeholder={isEditing ? "Managed in Inventory" : "e.g. 50"}
+                      value={isEditing ? "" : bulkStock}
                       onChange={(e) => setBulkStock(e.target.value)}
                     />
                   </div>
@@ -1014,7 +1026,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                       <tr className="bg-muted border-b border-border/80 text-[10px] text-muted-foreground uppercase font-bold">
                         <th className="p-3">Attributes</th>
                         <th className="p-3">SKU</th>
-                        <th className="p-3 w-20">Stock</th>
+                        <th className="p-3 w-20">Stock {isEditing && "(Locked)"}</th>
                         <th className="p-3 w-24">Cost</th>
                         <th className="p-3 w-28">Sell Mode</th>
                         <th className="p-3 text-right w-24">Actions</th>
@@ -1039,7 +1051,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                             <td className="p-2">
                               <input
                                 type="number"
-                                className="w-full px-2 py-1 text-xs border border-border rounded bg-transparent focus:outline-none"
+                                disabled={isEditing}
+                                className={cn(
+                                  "w-full px-2 py-1 text-xs border border-border rounded bg-transparent focus:outline-none",
+                                  isEditing && "opacity-70 bg-muted/40 cursor-not-allowed text-muted-foreground"
+                                )}
                                 value={v.stock_quantity}
                                 onChange={(e) => updateVariantField(idx, "stock_quantity", e.target.value)}
                               />
