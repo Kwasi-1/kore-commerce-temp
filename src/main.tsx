@@ -15,6 +15,12 @@ import { registerSW } from "virtual:pwa-register";
 // Register Service Worker immediately for rock-solid offline caching on desktop & mobile
 registerSW({ immediate: true });
 
+// Auto-recover from stale Vite chunks after new deployments
+window.addEventListener("vite:preloadError", (event) => {
+  console.warn("New version detected, reloading to fetch latest bundle...", event);
+  window.location.reload();
+});
+
 if (import.meta.env.VITE_USE_MOCK_API === 'true') {
   setupMockApi();
 }
