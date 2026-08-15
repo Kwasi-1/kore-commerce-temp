@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
@@ -36,7 +36,8 @@ import {
   CreditCard,
   Lock,
   Bell,
-  Banknote
+  Banknote,
+  ClipboardCheck
 } from 'lucide-react';
 
 import clsx from 'clsx';
@@ -124,7 +125,7 @@ export default function Sidebar() {
         { name: 'Products', to: '/inventory/products', icon: Package },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
         { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: 4 },
-        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers, moduleKey: 'stock_reconciliation' },
+        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation' },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
       ],
@@ -189,11 +190,30 @@ export default function Sidebar() {
     },
   ];
 
+  const allNavPaths = useMemo(() => {
+    return navSections.flatMap((s) => s.items.map((i) => i.to));
+  }, []);
+
+  const isRouteActive = (to: string) => {
+    if (location.pathname === to) return true;
+    if (to === '/dashboard') return false;
+    if (location.pathname.startsWith(to + '/')) {
+      const hasMoreSpecificMatch = allNavPaths.some(
+        (otherTo) =>
+          otherTo !== to &&
+          otherTo.startsWith(to + '/') &&
+          (location.pathname === otherTo || location.pathname.startsWith(otherTo + '/'))
+      );
+      return !hasMoreSpecificMatch;
+    }
+    return false;
+  };
+
   // Accordion open/close state for sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
     navSections.forEach((section) => {
-      const isChildActive = section.items.some((item) => location.pathname.startsWith(item.to));
+      const isChildActive = section.items.some((item) => isRouteActive(item.to));
       initialState[section.title] = isChildActive || section.title === 'POS' || section.title === 'Inventory';
     });
     return initialState;
@@ -202,7 +222,7 @@ export default function Sidebar() {
   // Automatically expand section when route changes to an item inside it
   useEffect(() => {
     navSections.forEach((section) => {
-      const isChildActive = section.items.some((item) => location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to)));
+      const isChildActive = section.items.some((item) => isRouteActive(item.to));
       if (isChildActive) {
         setOpenSections((prev) => ({ ...prev, [section.title]: true }));
       }
@@ -310,9 +330,7 @@ export default function Sidebar() {
           if (visibleItems.length === 0) return null;
 
           const hasMultipleItems = visibleItems.length > 1;
-          const isSectionActive = visibleItems.some(
-            (item) => location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to))
-          );
+          const isSectionActive = visibleItems.some((item) => isRouteActive(item.to));
           const isOpen = openSections[section.title];
           const SectionIcon = section.icon;
 
@@ -321,7 +339,7 @@ export default function Sidebar() {
             return (
               <div key={section.title} className="flex flex-col items-center gap-1.5 py-1">
                 {visibleItems.map((item) => {
-                  const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                  const isActive = isRouteActive(item.to);
                   const isLocked = item.moduleKey ? !hasModule(item.moduleKey) : false;
                   const ItemIcon = item.icon;
                   return (
@@ -403,7 +421,7 @@ export default function Sidebar() {
                   {isOpen && (
                     <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 my-1">
                       {visibleItems.map((item) => {
-                        const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                        const isActive = isRouteActive(item.to);
                         const isLocked = item.moduleKey ? !hasModule(item.moduleKey) : false;
                         return (
                           <button
@@ -437,7 +455,7 @@ export default function Sidebar() {
                 (() => {
                   const singleItem = visibleItems[0];
                   if (!singleItem) return null;
-                  const isActive = location.pathname === singleItem.to || (singleItem.to !== '/dashboard' && location.pathname.startsWith(singleItem.to));
+                  const isActive = isRouteActive(singleItem.to);
                   const isLocked = singleItem.moduleKey ? !hasModule(singleItem.moduleKey) : false;
                   const SingleIcon = singleItem.icon;
 
