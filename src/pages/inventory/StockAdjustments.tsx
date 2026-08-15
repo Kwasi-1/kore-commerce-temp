@@ -34,6 +34,7 @@ interface Adjustment {
   id: string;
   variant_id: string;
   variant_name: string;
+  base_unit_name?: string;
   sku: string;
   quantity: number;
   reason: string;
@@ -336,7 +337,6 @@ export default function StockAdjustments() {
   const columns: TableColumn[] = [
     { key: "date", label: "Date" },
     { key: "variant", label: "Product Variant" },
-    { key: "sku", label: "SKU" },
     { key: "quantity", label: "Quantity" },
     { key: "reason", label: "Reason" },
     { key: "status", label: "Status" },
@@ -350,11 +350,15 @@ export default function StockAdjustments() {
     return filteredAdjustments.map((item) => ({
       id: item.id,
       date: item.date_created ? format(new Date(item.date_created), "MMM dd, yyyy") : "—",
-      variant: <span className="font-semibold text-foreground capitalize">{item.variant_name}</span>,
-      sku: <span className="font-mono text-xs text-muted-foreground">{item.sku}</span>,
+      variant: (
+        <div className="min-w-[180px]">
+          <p className="font-semibold text-foreground capitalize text-sm">{item.variant_name}</p>
+          {item.sku && <p className="font-mono text-xs text-muted-foreground">{item.sku}</p>}
+        </div>
+      ),
       quantity: (
         <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-          {item.quantity < 0 ? "" : "+"}{item.quantity} units
+          {item.quantity < 0 ? "" : "+"}{item.quantity} {item.base_unit_name || "units"}
         </span>
       ),
       reason: (
@@ -363,12 +367,12 @@ export default function StockAdjustments() {
         </span>
       ),
       status: (
-        <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border ${
+        <span className={`capitalize inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold ${
           item.status === "approved"
-            ? "text-green-600 bg-green-500/10 border-green-500/20"
+            ? "text-green-600 bg-green-400/10 border-green-500/20"
             : item.status === "rejected"
               ? "text-destructive bg-destructive/10 border-destructive/20"
-              : "text-amber-600 bg-amber-500/10 border-amber-500/20 animate-pulse"
+              : "text-amber-600 bg-amber-400/10 border-amber-500/20 animate-pulse"
         }`}>
           {item.status}
         </span>
@@ -394,7 +398,7 @@ export default function StockAdjustments() {
       subtitle="Audit ledger of inventory write-offs, discrepancies, and manager approvals."
       constrainHeight={false}
     >
-      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      <div className="flex flex-col flex-1 min-h-0 gap-5 relative h-full md:h-full">
         {/* Metric summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
@@ -410,7 +414,8 @@ export default function StockAdjustments() {
               )
             }
             className="border border-border"
-            action={<Clock className="h-5 w-5 text-amber-500" />}
+            // valueStyle="font-header tracking-tight"
+            action={<Clock className="h-5 w-5" />}
           />
           <DashboardCard
             title="Total Written Off"
@@ -441,13 +446,14 @@ export default function StockAdjustments() {
               )
             }
             className="border border-border"
+            // valueStyle="font-header !tracking-tighter"
             action={<ArrowRightLeft className="h-5 w-5 text-muted-foreground/50" />}
           />
         </div>
 
         {/* SECTION 1: Pending Approvals (Manager Panel) */}
         {pendingItems.length > 0 && (
-          <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
+          <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
             <div className="flex items-center gap-2 border-b border-amber-500/15 pb-3">
               <SlidersHorizontal className="h-5 w-5 text-amber-500" />
               <h3 className="font-bold text-amber-800 dark:text-amber-400">Awaiting Manager PIN Approvals</h3>
@@ -479,7 +485,7 @@ export default function StockAdjustments() {
                       <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
                       <td className="py-3">
                         <span className={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                          {item.quantity < 0 ? "" : "+"}{item.quantity} units
+                          {item.quantity < 0 ? "" : "+"}{item.quantity} {item.base_unit_name || "units"}
                         </span>
                       </td>
                       <td className="py-3">
@@ -521,7 +527,7 @@ export default function StockAdjustments() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          title="Adjustments Log"
+          // title="Adjustments Log"
           showSearch={true}
           searchPlaceholder="Search product variant, SKU, reason, or notes..."
           searchValue={tableSearchQuery}
@@ -549,239 +555,6 @@ export default function StockAdjustments() {
         />
       </div>
 
-      {/* DRAWER / SHEET: Initiate Stock Adjustment */}
-      <CustomModal
-        isOpen={isDrawerOpen}
-        onOpenChange={() => {
-          setIsDrawerOpen(false);
-          resetForm();
-        }}
-        size="md"
-        placement="right"
-        classNames={{
-          base: "sm:w-[450px]"
-        }}
-        header={
-          <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <SlidersHorizontal className="h-5 w-5 text-primary" />
-              Record Stock Adjustment
-            </h2>
-            <p className="text-sm text-muted-foreground font-normal leading-normal mt-2 font-sans !tracking-wide">
-              Correct records or report damages. Adjustments require a manager's PIN validation.
-            </p>
-          </div>
-        }
-        body={
-          <form onSubmit={handleNewAdjustmentSubmit} className="space-y-6 p-2 pb-8">
-            {/* Variant Autocomplete Search */}
-            <div className="space-y-2 relative">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                <Search className="h-3.5 w-3.5" />
-                Search Variant / SKU *
-              </label>
-              
-              {selectedVariant ? (
-                <div className="flex items-center justify-between p-3 border rounded-xl bg-primary/5 border-primary/20">
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-foreground capitalize">
-                      {selectedVariant.product_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {selectedVariant.sku}
-                    </p>
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSelectedVariant(null)} 
-                    className="h-8 w-8 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Input
-                    placeholder="Type product name or SKU..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="rounded-xl h-10 text-sm"
-                  />
-                  
-                  {/* Autocomplete Results Panel */}
-                  {searchResults.length > 0 && (
-                    <div className="absolute top-[70px] left-0 right-0 border bg-popover rounded-xl shadow-lg z-50 p-2 space-y-1 max-h-56 overflow-y-auto">
-                      {searchResults.map((variant) => {
-                        const attrStr = variant.variant_attributes
-                          ? Object.entries(variant.variant_attributes)
-                              .map(([k, v]) => `${k}: ${v}`)
-                              .join(", ")
-                          : "";
-                        return (
-                          <div
-                            key={variant.variant_id}
-                            onClick={() => {
-                              setSelectedVariant(variant);
-                              setSearchResults([]);
-                              setSearchQuery("");
-                            }}
-                            className="p-2.5 rounded-lg hover:bg-muted cursor-pointer text-left transition-colors flex items-center justify-between border border-transparent hover:border-border"
-                          >
-                            <div>
-                              <p className="text-xs font-bold text-foreground capitalize">
-                                {variant.product_name} {attrStr && `(${attrStr})`}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground font-mono">
-                                {variant.sku}
-                              </p>
-                            </div>
-                            <span className="text-[10px] font-bold bg-muted px-2 py-0.5 rounded text-foreground">
-                              Qty: {variant.stock_quantity}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Read-only Variant Details Block */}
-            {selectedVariant && (
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border bg-muted/20 animate-in fade-in duration-300">
-                <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Current Stock</span>
-                  <span className="text-lg font-bold text-foreground">{selectedVariant.stock_quantity} {selectedVariant.base_unit_name || "units"}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Sell Mode</span>
-                  <span className="text-sm font-semibold capitalize text-foreground">{selectedVariant.stock_quantity <= 0 ? "Out of Stock" : "Active"}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Segmented Adjustment type */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                Adjustment Mode
-              </label>
-              <div className="grid grid-cols-2 p-1 border bg-muted/40 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setAdjustmentType("reduce")}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                    adjustmentType === "reduce"
-                      ? "bg-destructive text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground bg-transparent"
-                  }`}
-                >
-                  Write Off (Reduce)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAdjustmentType("add")}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                    adjustmentType === "add"
-                      ? "bg-green-500 text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground bg-transparent"
-                  }`}
-                >
-                  Correct Upward (Add)
-                </button>
-              </div>
-            </div>
-
-            {/* Quantity inputs */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                Adjustment Quantity (Base Units) *
-              </label>
-              <Input
-                type="number"
-                min="1"
-                required
-                placeholder="e.g. 5"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="rounded-xl h-10 text-sm"
-              />
-            </div>
-
-            {/* Reason selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                Reason *
-              </label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full h-10 px-3 py-2 border rounded-xl bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                {Object.entries(reasonLabels).map(([key, val]) => (
-                  <option key={key} value={key}>{val}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Notes textarea */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                Explanatory Notes (Optional)
-              </label>
-              <Textarea
-                rows={3}
-                placeholder="Details of audit count correction, damage reason, or shelf expiry location..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="rounded-xl text-sm"
-              />
-            </div>
-
-            {/* Informational banner warning */}
-            <div className="flex gap-2.5 p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-800 dark:text-amber-400">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5 text-amber-500" />
-              <p className="text-[11px] leading-relaxed">
-                <strong>Authorization Required:</strong> This adjustment will be logged as <strong>PENDING</strong> and requires a manager's 4-digit PIN verification before stock is physically updated.
-              </p>
-            </div>
-
-            {/* Bottom Actions footer */}
-            <div className="flex gap-3 justify-end pt-4 border-t w-full">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  resetForm();
-                }}
-                disabled={isSubmitting}
-                className="rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !selectedVariant}
-                className="rounded-xl bg-primary text-primary-foreground min-w-[150px]"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Submitting...</span>
-                  </div>
-                ) : (
-                  "Submit Request"
-                )}
-              </Button>
-            </div>
-          </form>
-        }
-        footer={null}
-      />
-
       {/* DETAIL MODAL / SHEET: View Single Adjustment */}
       <CustomModal
         isOpen={isDetailModalOpen}
@@ -791,28 +564,28 @@ export default function StockAdjustments() {
         }}
         size="md"
         header={
-          <div className="pt-2 px-2">
+          <div className="pt-2 px2 border-b border-border/50 pb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              {/* <FileText className="h-5 w-5 text-primary" /> */}
               Adjustment Details
             </h2>
             <p className="text-xs text-muted-foreground font-normal">
-              Logged on {selectedDetailAdj?.date_created ? format(new Date(selectedDetailAdj.date_created), "MMM dd, yyyy h:mm a") : "—"}
+              Review full details and authorize or reject this request.
             </p>
           </div>
         }
         body={
           selectedDetailAdj ? (
-            <div className="space-y-4 p-2">
-              <div className="p-4 border rounded-xl bg-muted/20 space-y-3">
+            <div className="space-y-4 pb-6">
+              <div className="pb-4 pt-2 px-3 bg-muted/20 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm font-bold text-foreground capitalize">{selectedDetailAdj.variant_name}</p>
                     <p className="text-xs font-mono text-muted-foreground">{selectedDetailAdj.sku}</p>
                   </div>
-                  <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-xs font-bold border ${
+                  <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-xs font-bold ${
                     selectedDetailAdj.status === "approved"
-                      ? "text-green-600 bg-green-500/10 border-green-500/20"
+                      ? "text-green-600 bg-green-400/10 border-green-500/20"
                       : selectedDetailAdj.status === "rejected"
                         ? "text-destructive bg-destructive/10 border-destructive/20"
                         : "text-amber-600 bg-amber-500/10 border-amber-500/20"
@@ -825,7 +598,7 @@ export default function StockAdjustments() {
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Adjustment Quantity</span>
                     <span className={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}>
-                      {selectedDetailAdj.quantity < 0 ? "" : "+"}{selectedDetailAdj.quantity} units
+                      {selectedDetailAdj.quantity < 0 ? "" : "+"}{selectedDetailAdj.quantity} {selectedDetailAdj.base_unit_name || "units"}
                     </span>
                   </div>
                   <div>
@@ -837,7 +610,7 @@ export default function StockAdjustments() {
                 </div>
               </div>
 
-              <div className="p-4 border rounded-xl space-y-2 text-xs">
+              <div className="p-4 border rounded-lg space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted-foreground">Initiated By</span>
                   <span className="font-medium text-foreground">{selectedDetailAdj.initiated_by_name || "—"}</span>
@@ -854,7 +627,7 @@ export default function StockAdjustments() {
                 )}
                 <div className="pt-1">
                   <span className="text-muted-foreground block mb-1">Notes / Remarks:</span>
-                  <p className="text-foreground bg-muted/30 p-2.5 rounded-lg font-normal">
+                  <p className="text-foreground bg-muted/30 p-2.5 rounded-md font-normal">
                     {selectedDetailAdj.notes || "No additional notes provided."}
                   </p>
                 </div>

@@ -167,10 +167,10 @@ export default function StockManagement() {
           </div>
         ),
         category: (
-          <span className="text-xs text-muted-foreground capitalize font-medium">{p.category}</span>
+          <span className="text-sm text-muted-foreground capitalize font-medium">{p.category}</span>
         ),
         sku: (
-          <span className="font-mono text-xs text-muted-foreground">{p.sku}</span>
+          <span className="font-mono text-sm text-muted-foreground">{p.sku}</span>
         ),
         current_stock: (
           <span className={`font-bold text-sm ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'}`}>
@@ -205,7 +205,7 @@ export default function StockManagement() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          title="Product Stock Directory"
+          // title="Product Stock Directory"
           showSearch={true}
           searchPlaceholder="Search by name, SKU, or category..."
           searchValue={searchQuery}

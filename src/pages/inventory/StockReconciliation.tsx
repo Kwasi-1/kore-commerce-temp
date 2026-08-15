@@ -129,7 +129,7 @@ export default function StockReconciliation() {
           type="number"
           min="0"
           placeholder="Enter count..."
-          className={`w-32 px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-0 focus:ring-primary ${
+          className={`w-32 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-0 focus:ring-primary ${
             isCounted 
               ? 'border-border bg-inherit' 
               : 'border-secondary bg-muted/60'
