@@ -77,6 +77,7 @@ export default function StockAdjustments() {
   // Table search & filters
   const [tableSearchQuery, setTableSearchQuery] = useState("");
   const [statusFilterSelection, setStatusFilterSelection] = useState<Selection>(new Set(["all"]));
+  const [typeFilter, setTypeFilter] = useState<Selection>(new Set(["all"]));
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
     active: "all_time",
     start_date: null,
@@ -327,16 +328,31 @@ export default function StockAdjustments() {
 
   // Filtered rows for EnhancedTableComponent
   const filteredAdjustments = useMemo(() => {
-    if (!tableSearchQuery.trim()) return adjustments;
+    let result = adjustments;
+
+    // Filter by Direction / Type (addition vs reduction)
+    const typeVal =
+      typeFilter instanceof Set
+        ? Array.from(typeFilter)[0]
+        : (typeFilter as any)?.currentKey || (typeof typeFilter === "string" ? typeFilter : "all");
+
+    if (typeVal === "addition") {
+      result = result.filter((a) => a.quantity > 0);
+    } else if (typeVal === "reduction") {
+      result = result.filter((a) => a.quantity < 0);
+    }
+
+    if (!tableSearchQuery.trim()) return result;
     const q = tableSearchQuery.toLowerCase();
-    return adjustments.filter(a => 
-      (a.variant_name && a.variant_name.toLowerCase().includes(q)) ||
-      (a.sku && a.sku.toLowerCase().includes(q)) ||
-      (a.reason && a.reason.toLowerCase().includes(q)) ||
-      (a.notes && a.notes.toLowerCase().includes(q)) ||
-      (a.initiated_by_name && a.initiated_by_name.toLowerCase().includes(q))
+    return result.filter(
+      (a) =>
+        (a.variant_name && a.variant_name.toLowerCase().includes(q)) ||
+        (a.sku && a.sku.toLowerCase().includes(q)) ||
+        (a.reason && a.reason.toLowerCase().includes(q)) ||
+        (a.notes && a.notes.toLowerCase().includes(q)) ||
+        (a.initiated_by_name && a.initiated_by_name.toLowerCase().includes(q))
     );
-  }, [adjustments, tableSearchQuery]);
+  }, [adjustments, typeFilter, tableSearchQuery]);
 
   // EnhancedTableComponent columns definition
   const columns: TableColumn[] = [
@@ -357,7 +373,7 @@ export default function StockAdjustments() {
       date: item.date_created ? format(new Date(item.date_created), "MMM dd, yyyy") : "—",
       variant: (
         <div className="min-w-[180px]">
-          <p className="font-semibold text-foreground capitalize text-sm">{item.variant_name}</p>
+          <p className="font-semibold text-foreground capitalize text-[13px]">{item.variant_name}</p>
           {item.sku && <p className="font-mono text-xs text-muted-foreground">{item.sku}</p>}
         </div>
       ),
@@ -371,7 +387,7 @@ export default function StockAdjustments() {
               ? `${item.package_quantity} ${item.packaging_tier_name}`
               : undefined
           }
-          primaryClassName={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+          primaryClassName="text-foreground"
           tierClassName="text-[11px] text-muted-foreground font-mono"
         />
       ),
@@ -392,10 +408,10 @@ export default function StockAdjustments() {
         </span>
       ),
       initiated_by: (
-        <span className="text-xs text-muted-foreground font-medium">{item.initiated_by_name || "—"}</span>
+        <span className="text-[13px] text-muted-foreground font-medium">{item.initiated_by_name || "—"}</span>
       ),
       approved_by: (
-        <span className="text-xs text-muted-foreground font-medium">{item.approved_by_name || "—"}</span>
+        <span className="text-[13px] text-muted-foreground font-medium">{item.approved_by_name || "—"}</span>
       ),
       // notes: (
       //   <span className="text-xs text-muted-foreground max-w-xs truncate block" title={item.notes || item.rejection_note}>
@@ -444,7 +460,7 @@ export default function StockAdjustments() {
               )
             }
             className="border border-border"
-            valueStyle={totalWrittenOffMonth > 0 ? "text-destructive xl:text-2xl" : "text-foreground xl:text-2xl"}
+            valueStyle="text-foreground xl:text-2xl font-semibold"
             action={<AlertTriangle className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
@@ -507,7 +523,7 @@ export default function StockAdjustments() {
                               ? `${item.package_quantity} ${item.packaging_tier_name}`
                               : undefined
                           }
-                          primaryClassName={`font-bold ${item.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+                          primaryClassName="font-bold text-foreground font-mono"
                           tierClassName="text-[10px] text-muted-foreground font-mono"
                         />
                       </td>
@@ -565,6 +581,18 @@ export default function StockAdjustments() {
           ]}
           filterValue={statusFilterSelection}
           onFilterChange={(keys: any) => setStatusFilterSelection(keys)}
+          additionalFilters={[
+            {
+              label: "Type",
+              options: [
+                { uid: "all", name: "All Types" },
+                { uid: "addition", name: "Added (+)" },
+                { uid: "reduction", name: "Reduced (-)" },
+              ],
+              value: typeFilter,
+              onChange: (keys: any) => setTypeFilter(keys),
+            },
+          ]}
           showDateFilter={true}
           dateFilterValue={dateFilter}
           onDateFilterChange={setDateFilter}
@@ -629,7 +657,7 @@ export default function StockAdjustments() {
                           ? `${selectedDetailAdj.package_quantity} ${selectedDetailAdj.packaging_tier_name}`
                           : undefined
                       }
-                      primaryClassName={`font-bold text-sm ${selectedDetailAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}
+                      primaryClassName="font-bold text-sm text-foreground font-mono"
                       tierClassName="text-[11px] text-muted-foreground font-mono mt-0.5"
                     />
                   </div>
