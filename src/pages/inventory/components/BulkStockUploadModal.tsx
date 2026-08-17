@@ -140,18 +140,50 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
     }
   };
 
-  const downloadSampleTemplate = () => {
-    const headers = ["product_name", "sku", "quantity", "cost_price", "packaging_tier_name"];
+  const [isExportingTemplate, setIsExportingTemplate] = useState(false);
+
+  const downloadCatalogueTemplate = async () => {
+    setIsExportingTemplate(true);
+    try {
+      const response = await apiClient.get("/tenant/stock/export-template", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "text/csv" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `stock_receive_catalogue_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Catalogue template downloaded!");
+    } catch (err) {
+      console.error("Failed to download catalogue template:", err);
+      toast.error("Failed to generate catalogue template.");
+    } finally {
+      setIsExportingTemplate(false);
+    }
+  };
+
+  const downloadBlankTemplate = () => {
+    const headers = [
+      "sku",
+      "product_name",
+      "variant_attributes",
+      "packaging_tier_name",
+      "current_stock",
+      "quantity_to_receive",
+      "cost_price",
+      "expiry_date"
+    ];
     const csvContent = headers.join(",") + "\n" +
-      "Nike Air Max,NK-AM-01,15,500.0,Unit\n" +
-      "Sony WH-1000XM4,SN-WH-04,5,3100.0,Unit\n" +
-      "Adidas Yeezy Boost,AD-YB-99,10,1200.0,Unit\n" +
-      "Nike Socks Multi,,50,12.0,Unit";
+      "NK-AM-01,Nike Air Max,Size: 10,Box,14,20,450.00,2027-12-31\n" +
+      "SN-WH-04,Sony WH-1000XM4,Color: Black,Unit,5,10,3100.00,";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "stock_receive_template.csv");
+    link.setAttribute("download", "stock_receive_blank_template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -244,23 +276,49 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
             )}
           </div>
 
-          {/* Download template & credit purchase */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border bg-muted/30">
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-foreground">Need a template?</h4>
-              <p className="text-xs text-muted-foreground">
-                Download our template with pre-defined column headers.
-              </p>
+          {/* Download template */}
+          <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-bold text-foreground">Download Stock Intake Template</h4>
+                <p className="text-xs text-muted-foreground">
+                  Pre-filled with your active inventory catalogue. Simply enter received quantities and leave untouched items blank.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={downloadBlankTemplate}
+                  disabled={isExportingTemplate}
+                  className="rounded-lg border text-xs h-8 text-muted-foreground hover:text-foreground"
+                  title="Download blank CSV with headers"
+                >
+                  Blank
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={downloadCatalogueTemplate}
+                  disabled={isExportingTemplate}
+                  className="rounded-lg text-xs h-8 font-semibold flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20"
+                >
+                  {isExportingTemplate ? (
+                    <>
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Catalogue Template</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadSampleTemplate}
-              className="rounded-xl border hover:bg-muted text-foreground flex items-center gap-1.5"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download CSV Template
-            </Button>
           </div>
 
           {/* Supplier and Credit Options */}

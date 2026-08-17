@@ -106,6 +106,9 @@ export default function StockAuditScreen() {
     if (parsedData) {
       const initialMatched = (parsedData.matched || []).map((row: any) => ({
         ...row,
+        current_stock: Number(row.current_stock) || 0,
+        quantity_to_add: Number(row.quantity_to_add) || 0,
+        cost_price: Number(row.cost_price) || 0,
         checked: true,
         // Match base variant tracking
         track_expiry: false // will be overwritten when POS products load
@@ -339,10 +342,16 @@ export default function StockAuditScreen() {
   const summaryMetrics = useMemo(() => {
     const checkedRows = matchedRows.filter(r => r.checked);
     const count = checkedRows.length;
-    const units = checkedRows.reduce((sum, r) => sum + r.quantity_to_add, 0);
-    const value = checkedRows.reduce((sum, r) => sum + (r.quantity_to_add * r.cost_price), 0);
+    const units = checkedRows.reduce((sum, r) => {
+      const packagingTiers = getPackagingTiersForVariant(r.variant_id);
+      const unitsMultiplier = r.packaging_tier_id 
+        ? (packagingTiers.find(t => t.id === r.packaging_tier_id)?.units_per_tier || 1)
+        : 1;
+      return sum + (Number(r.quantity_to_add || 0) * unitsMultiplier);
+    }, 0);
+    const value = checkedRows.reduce((sum, r) => sum + (Number(r.quantity_to_add || 0) * Number(r.cost_price || 0)), 0);
     return { count, units, value };
-  }, [matchedRows]);
+  }, [matchedRows, posProducts]);
 
   // Final database submission
   const handleConfirmUpload = async () => {
@@ -626,8 +635,10 @@ export default function StockAuditScreen() {
                     const unitsMultiplier = row.packaging_tier_id 
                       ? (packagingTiers.find(t => t.id === row.packaging_tier_id)?.units_per_tier || 1)
                       : 1;
-                    const baseUnitsAdded = row.quantity_to_add * unitsMultiplier;
-                    const newTotal = row.current_stock + baseUnitsAdded;
+                    const qtyToAdd = Number(row.quantity_to_add || 0);
+                    const baseUnitsAdded = qtyToAdd * unitsMultiplier;
+                    const currentStockNum = Number(row.current_stock || 0);
+                    const newTotal = currentStockNum + baseUnitsAdded;
 
                     return (
                       <tr
@@ -658,7 +669,7 @@ export default function StockAuditScreen() {
                           {row.sku}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
-                          {row.current_stock}
+                          {currentStockNum}
                         </td>
                         <td className="px-2 py-2">
                           <Input
