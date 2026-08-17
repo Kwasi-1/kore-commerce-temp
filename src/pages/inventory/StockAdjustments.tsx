@@ -15,13 +15,14 @@ import {
   XCircle,
   ArrowRightLeft,
   KeyRound,
-  FileCheck
+  FileCheck,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { format } from "date-fns";
 import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CustomModal from "@/components/modals/modal";
 import apiClient from "@/api/client";
@@ -31,6 +32,7 @@ import EnhancedTableComponent, { TableColumn } from "@/components/shared/MainTab
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CustomInputTextField } from "@/components/shared/text-field";
 
 interface Adjustment {
   id: string;
@@ -96,6 +98,7 @@ export default function StockAdjustments() {
   const [pinActionType, setPinActionType] = useState<"approve" | "reject">("approve");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinCode, setPinCode] = useState("");
+  const [showPin, setShowPin] = useState(false);
   const [rejectionNote, setRejectionNote] = useState("");
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
@@ -219,6 +222,7 @@ export default function StockAdjustments() {
     setSelectedAdj(adj);
     setPinActionType(action);
     setPinCode("");
+    setShowPin(false);
     setRejectionNote("");
     setIsPinModalOpen(true);
   };
@@ -655,14 +659,14 @@ export default function StockAdjustments() {
           setIsDetailModalOpen(false);
           setSelectedDetailAdj(null);
         }}
-        size="md"
+        size={selectedDetailAdj?.status === "pending" ? "lg" : "md"}
         header={
           <div className="pt-2 px2 border-b border-border/50 pb-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2">
               {/* <FileText className="h-5 w-5 text-primary" /> */}
               Adjustment Details
             </h2>
-            <p className="text-xs text-muted-foreground font-normal">
+            <p className="text-[12px] text-muted-foreground font-normal">
               Review full details and authorize or reject this request.
             </p>
           </div>
@@ -867,35 +871,56 @@ export default function StockAdjustments() {
               </form>
             ) : (
               <form 
+                autoComplete="off"
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleActionConfirm();
                 }}
                 className="space-y-4"
               >
-                <div className="space-y-2 py-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                    Enter 4-Digit Security PIN
-                  </label>
-                  <div className="">
-                    <Input
-                      type="password"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={4}
-                      autoFocus
-                      placeholder="••••"
-                      value={pinCode}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "");
-                        if (val.length <= 4) {
-                          setPinCode(val);
-                        }
-                      }}
-                      className="text-center text-2xl tracking-[0.4em] font-mono h-12 rounded-lg font-bold border-border bg-background shadow-none focus-visible:ring-1"
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
+                <div className="space-y-1 py-1">
+                  <CustomInputTextField
+                    label="ENTER 4-DIGIT SECURITY PIN"
+                    labelPlacement="outside"
+                    type="text"
+                    value={pinCode}
+                    onChange={(e: any) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      if (val.length <= 4) {
+                        setPinCode(val);
+                      }
+                    }}
+                    placeholder={showPin ? "0000" : "••••"}
+                    height="h-12"
+                    endContent={
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setShowPin((prev) => !prev)}
+                        className="text-muted-foreground hover:text-foreground p-1 transition-colors focus:outline-none"
+                        title={showPin ? "Hide PIN" : "Show PIN"}
+                      >
+                        {showPin ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    }
+                    inputProps={{
+                      autoComplete: "off",
+                      name: "manager_auth_pin",
+                      "data-1p-ignore": "true",
+                      "data-lpignore": "true",
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      maxLength: 4,
+                      autoFocus: true,
+                      style: { WebkitTextSecurity: showPin ? "none" : "disc" } as React.CSSProperties,
+                      className: "text-center text-2xl tracking-[0.4em] font-mono font-bold rounded-lg border-border",
+                    }}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
                     Authorizing with your staff / manager account
                   </p>
                 </div>
