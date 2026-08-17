@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
-import { Button, Switch } from '@nextui-org/react';
+import { Switch } from '@nextui-org/react';
 import { Plus, Trash2, CreditCard, Calendar } from 'lucide-react';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface POFormProps {
   onSuccess: () => void;
@@ -310,7 +311,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
   const totalPoValue = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 py-6 md:p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 pb-6  md:px-4 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide">
 
         {/* ── PO Header ─────────────────────────────────────────────────── */}
@@ -442,10 +443,11 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
 
           <Button
             type="button"
-            onPress={addLineItem}
-            className="w-full bg-gray-200 dark:bg-gray-700 text-foreground font-semibold"
-            startContent={<Plus className="h-4 w-4" />}
+            onClick={addLineItem}
+            variant='outline'
+            className="w-full font-semibold"
           >
+            <Plus className="h-4 w-4" />
             Add to Order
           </Button>
         </div>
@@ -516,16 +518,16 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
 
       <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button
-          variant="flat"
-          onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
+          variant="ghost"
+          onClick={onCancel}
+          className="font-medium px-6"
         >
           Cancel
         </Button>
         <Button
           type="submit"
-          isLoading={isLoading}
-          className="bg-primary text-primary-foreground font-bold px-6"
+          disabled={isLoading}
+          className="text-primary-foreground font-bold px-6"
         >
           Create PO
         </Button>
