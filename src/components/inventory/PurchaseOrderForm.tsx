@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Switch } from '@nextui-org/react';
-import { Plus, Trash2, CreditCard, Calendar } from 'lucide-react';
+import { Plus, Trash2, CreditCard, Calendar, FileSpreadsheet, Package, Upload } from 'lucide-react';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { POProductPickerModal, CatalogVariant } from './POProductPickerModal';
+import { POImportCSVModal, POImportedItem } from './POImportCSVModal';
 
 interface POFormProps {
   onSuccess: () => void;
@@ -17,54 +20,26 @@ interface PackagingTier {
   name: string;
   units_per_tier: number;
   is_base_unit: boolean;
-  is_default_purchase_unit: boolean;
-}
-
-interface ProductVariant {
-  id: string;
-  sku: string;
-  variant_attributes: Record<string, string>;
-  base_unit_name: string;
-  cost_price_per_base_unit: number | null;
-  packaging_tiers: PackagingTier[];
-}
-
-interface ProductOption {
-  id: string;
-  name: string;
-  has_variants: boolean;
-  variants: ProductVariant[];
+  is_default_purchase_unit?: boolean;
 }
 
 interface POItem {
   variant_id: string;
   packaging_tier_id: string;
-  // display helpers
   product_name: string;
   variant_label: string;
   tier_name: string;
   tier_units_per_tier: number;
+  available_tiers?: PackagingTier[];
   quantity: number;
   cost_price: number;
-}
-
-/** Builds a human-readable variant label from attributes, falling back to SKU */
-function buildVariantLabel(variant: ProductVariant): string {
-  const attrs = variant.variant_attributes;
-  if (attrs && Object.keys(attrs).length > 0) {
-    return Object.values(attrs).join(' / ');
-  }
-  return variant.sku;
 }
 
 export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) {
   const { formatAmount } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingVariants, setIsFetchingVariants] = useState(false);
 
   const [suppliers, setSuppliers] = useState<{ label: string; value: string }[]>([]);
-  const [products, setProducts] = useState<{ id: string; name: string; has_variants: boolean }[]>([]);
-
   const [formData, setFormData] = useState({
     supplier_id: '',
     reference_number: '',
@@ -73,18 +48,14 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     credit_due_date: '',
   });
 
-  // ── Line-item builder state ─────────────────────────────────────────────────
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [loadedProductDetail, setLoadedProductDetail] = useState<ProductOption | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState('');
-  const [selectedTierId, setSelectedTierId] = useState('');
-  const [lineQty, setLineQty] = useState('');
-  const [lineCostPrice, setLineCostPrice] = useState('');
+  // Modal controls
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
+  const [isImportCSVModalOpen, setIsImportCSVModalOpen] = useState(false);
 
-  // ── Confirmed line items ────────────────────────────────────────────────────
+  // Line items
   const [items, setItems] = useState<POItem[]>([]);
 
-  // ── Initial data fetch ──────────────────────────────────────────────────────
+  // Initial suppliers fetch
   useEffect(() => {
     apiClient
       .get('/tenant/suppliers?limit=100')
@@ -93,160 +64,97 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
         setSuppliers(active.map((s: any) => ({ label: s.name, value: s.id })));
       })
       .catch(console.error);
-
-    apiClient
-      .get('/tenant/products?limit=200')
-      .then((res) => {
-        setProducts(res.data.success?.data?.products || []);
-      })
-      .catch(console.error);
   }, []);
 
-  // ── When product changes, fetch its full detail (variants + tiers) ──────────
-  const handleProductSelect = async (keys: any) => {
-    const pId = Array.from(keys)[0] as string;
-    setSelectedProductId(pId);
-    setSelectedVariantId('');
-    setSelectedTierId('');
-    setLineCostPrice('');
-    setLoadedProductDetail(null);
-
-    if (!pId) return;
-
-    setIsFetchingVariants(true);
-    try {
-      const res = await apiClient.get(`/tenant/products/${pId}`);
-      const prod = res.data.success?.data?.product as ProductOption;
-      setLoadedProductDetail(prod);
-
-      // If simple product (single variant), auto-select it
-      const activeVariants = prod.variants?.filter((v: any) => v.is_active !== false) || [];
-      if (activeVariants.length === 1) {
-        const solo = activeVariants[0];
-        setSelectedVariantId(solo.id);
-        autofillTierAndCost(solo);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load product details');
-    } finally {
-      setIsFetchingVariants(false);
-    }
+  // Handlers for adding items
+  const handleAddFromPicker = (
+    selectedVariants: { variant: CatalogVariant; quantity: number; tier_id: string; cost_price: number }[]
+  ) => {
+    setItems((prev) => {
+      const next = [...prev];
+      selectedVariants.forEach((sel) => {
+        const tier = sel.variant.packaging_tiers.find((t) => t.id === sel.tier_id) || sel.variant.default_tier;
+        const existsIdx = next.findIndex(
+          (i) => i.variant_id === sel.variant.variant_id && i.packaging_tier_id === tier.id
+        );
+        if (existsIdx >= 0) {
+          next[existsIdx].quantity += sel.quantity;
+          next[existsIdx].cost_price = sel.cost_price;
+        } else {
+          next.push({
+            variant_id: sel.variant.variant_id,
+            packaging_tier_id: tier.id,
+            product_name: sel.variant.product_name,
+            variant_label: sel.variant.variant_name !== sel.variant.product_name ? sel.variant.variant_name : `SKU: ${sel.variant.sku}`,
+            tier_name: tier.name,
+            tier_units_per_tier: tier.units_per_tier,
+            available_tiers: sel.variant.packaging_tiers,
+            quantity: sel.quantity,
+            cost_price: sel.cost_price,
+          });
+        }
+      });
+      return next;
+    });
+    toast.success(`Added ${selectedVariants.length} item(s) to order.`);
   };
 
-  const autofillTierAndCost = (variant: ProductVariant) => {
-    // Auto-select default purchase tier (or base unit)
-    const defaultTier =
-      variant.packaging_tiers.find((t) => t.is_default_purchase_unit) ||
-      variant.packaging_tiers.find((t) => t.is_base_unit) ||
-      variant.packaging_tiers[0];
-
-    if (defaultTier) {
-      setSelectedTierId(defaultTier.id);
-    }
-
-    if (variant.cost_price_per_base_unit != null) {
-      setLineCostPrice(variant.cost_price_per_base_unit.toString());
-    } else {
-      setLineCostPrice('');
-    }
+  const handleImportFromCSV = (imported: POImportedItem[]) => {
+    setItems((prev) => {
+      const next = [...prev];
+      imported.forEach((imp) => {
+        const existsIdx = next.findIndex(
+          (i) => i.variant_id === imp.variant_id && i.packaging_tier_id === imp.packaging_tier_id
+        );
+        if (existsIdx >= 0) {
+          next[existsIdx].quantity += imp.quantity;
+          if (imp.cost_price > 0) next[existsIdx].cost_price = imp.cost_price;
+        } else {
+          next.push({
+            variant_id: imp.variant_id,
+            packaging_tier_id: imp.packaging_tier_id,
+            product_name: imp.product_name,
+            variant_label: imp.variant_label,
+            tier_name: imp.tier_name,
+            tier_units_per_tier: imp.tier_units_per_tier || 1,
+            quantity: imp.quantity,
+            cost_price: imp.cost_price,
+          });
+        }
+      });
+      return next;
+    });
   };
 
-  const handleVariantSelect = (keys: any) => {
-    const vId = Array.from(keys)[0] as string;
-    setSelectedVariantId(vId);
-    setSelectedTierId('');
-    setLineCostPrice('');
-
-    const variant = loadedProductDetail?.variants.find((v) => v.id === vId);
-    if (variant) autofillTierAndCost(variant);
+  const handleUpdateItemQty = (idx: number, qtyStr: string) => {
+    const val = Number(qtyStr);
+    setItems((prev) => prev.map((item, i) => (i === idx ? { ...item, quantity: isNaN(val) ? 0 : val } : item)));
   };
 
-  const handleTierSelect = (keys: any) => {
-    const tId = Array.from(keys)[0] as string;
-    setSelectedTierId(tId);
+  const handleUpdateItemCost = (idx: number, costStr: string) => {
+    const val = Number(costStr);
+    setItems((prev) => prev.map((item, i) => (i === idx ? { ...item, cost_price: isNaN(val) ? 0 : val } : item)));
   };
 
-  // ── Derived options ─────────────────────────────────────────────────────────
-  const activeVariants = loadedProductDetail?.variants.filter((v: any) => v.is_active !== false) || [];
-
-  const variantOptions = activeVariants.map((v) => ({
-    label: `${buildVariantLabel(v)} (SKU: ${v.sku})`,
-    value: v.id,
-  }));
-
-  const selectedVariant = activeVariants.find((v) => v.id === selectedVariantId);
-  const tierOptions = (selectedVariant?.packaging_tiers || []).map((t) => ({
-    label: `${t.name} (×${t.units_per_tier}${t.is_base_unit ? ' — base unit' : ''})`,
-    value: t.id,
-  }));
-
-  const selectedTier = selectedVariant?.packaging_tiers.find((t) => t.id === selectedTierId);
-
-  // ── Add line item ───────────────────────────────────────────────────────────
-  const addLineItem = () => {
-    if (!selectedProductId || !selectedVariantId || !selectedTierId || !lineQty || !lineCostPrice) {
-      toast.error('Please select a product, variant, packaging tier, quantity, and cost price.');
-      return;
-    }
-
-    const qty = parseInt(lineQty, 10);
-    const cost = parseFloat(lineCostPrice);
-
-    if (isNaN(qty) || qty < 1) {
-      toast.error('Quantity must be a positive number.');
-      return;
-    }
-    if (isNaN(cost) || cost < 0) {
-      toast.error('Cost price must be a valid number.');
-      return;
-    }
-
-    const productName = loadedProductDetail?.name || '';
-    const variantLabel = selectedVariant ? buildVariantLabel(selectedVariant) : '';
-    const tierName = selectedTier?.name || '';
-    const tierUnits = selectedTier?.units_per_tier ?? 1;
-
-    // Unique key: variant + tier combo
-    const existsIdx = items.findIndex(
-      (i) => i.variant_id === selectedVariantId && i.packaging_tier_id === selectedTierId
+  const handleUpdateItemTier = (idx: number, tierId: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const tier = item.available_tiers?.find((t) => t.id === tierId);
+        return {
+          ...item,
+          packaging_tier_id: tierId,
+          tier_name: tier?.name || item.tier_name,
+          tier_units_per_tier: tier?.units_per_tier || item.tier_units_per_tier,
+        };
+      })
     );
-
-    if (existsIdx >= 0) {
-      const newItems = [...items];
-      newItems[existsIdx].quantity += qty;
-      newItems[existsIdx].cost_price = cost;
-      setItems(newItems);
-    } else {
-      setItems((prev) => [
-        ...prev,
-        {
-          variant_id: selectedVariantId,
-          packaging_tier_id: selectedTierId,
-          product_name: productName,
-          variant_label: variantLabel,
-          tier_name: tierName,
-          tier_units_per_tier: tierUnits,
-          quantity: qty,
-          cost_price: cost,
-        },
-      ]);
-    }
-
-    // Reset line-item builder
-    setSelectedProductId('');
-    setLoadedProductDetail(null);
-    setSelectedVariantId('');
-    setSelectedTierId('');
-    setLineQty('');
-    setLineCostPrice('');
   };
 
   const removeLineItem = (idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // ── Form handlers ───────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -257,7 +165,6 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     setFormData((prev) => ({ ...prev, supplier_id: val }));
   };
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -308,15 +215,15 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     }
   };
 
-  const totalPoValue = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
+  const totalPoValue = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.cost_price) || 0), 0);
+  const totalUnits = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.tier_units_per_tier) || 1), 0);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 pb-6  md:px-4 space-y-6">
-      <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide">
-
+    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 pb-4 md:px-2 space-y-5">
+      <div className="flex-1 overflow-y-auto space-y-5 scrollbar-hide">
         {/* ── PO Header ─────────────────────────────────────────────────── */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-lg border-b pb-2 dark:border-gray-800">PO Details</h3>
+          <h3 className="font-semibold text-base border-b pb-2 dark:border-border">PO Details</h3>
 
           <CustomSelectField
             label="Supplier"
@@ -339,7 +246,7 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
         </div>
 
         {/* ── Credit Purchase ────────────────────────────────────────────── */}
-        <div className="space-y-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl">
+        <div className="space-y-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3.5 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -348,14 +255,18 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
             <Switch
               isSelected={formData.is_credit_purchase}
               onValueChange={(val) =>
-                setFormData((prev) => ({ ...prev, is_credit_purchase: val, credit_due_date: val ? prev.credit_due_date : '' }))
+                setFormData((prev) => ({
+                  ...prev,
+                  is_credit_purchase: val,
+                  credit_due_date: val ? prev.credit_due_date : '',
+                }))
               }
               size="sm"
               color="warning"
             />
           </div>
           {formData.is_credit_purchase && (
-            <div className="space-y-1">
+            <div className="space-y-1 pt-1">
               <label className="text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Due Date
               </label>
@@ -365,173 +276,219 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
                 value={formData.credit_due_date}
                 onChange={handleChange}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required={formData.is_credit_purchase}
               />
             </div>
           )}
         </div>
 
-        {/* ── Line Item Builder ──────────────────────────────────────────── */}
-        <div className="space-y-4 bg-gray-50 dark:bg-[#1f1f1f] p-4 rounded-xl border border-border dark:border-gray-800">
-          <h3 className="font-semibold text-sm">Add Line Item</h3>
+        {/* ── Order Line Items Section ───────────────────────────────────── */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
+            <div>
+              <h3 className="font-semibold text-base flex items-center gap-2">
+                <span>Order Items</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {items.length}
+                </span>
+              </h3>
+              <p className="text-xs text-muted-foreground">Add products from your catalogue or import a spreadsheet.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsPickerModalOpen(true)}
+                className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 h-8 text-xs"
+              >
+                <Package className="h-3.5 w-3.5" />
+                Browse Catalogue
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setIsImportCSVModalOpen(true)}
+                className="font-semibold flex items-center gap-1.5 h-8 text-xs border-border hover:bg-muted"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Import File
+              </Button>
+            </div>
+          </div>
 
-          {/* Step 1: Select Product */}
-          <CustomSelectField
-            label="1. Select Product"
-            options={products.map((p) => ({ label: p.name, value: p.id }))}
-            value={selectedProductId}
-            inputProps={{ onSelectionChange: handleProductSelect }}
-            placeholder="Search products..."
-          />
+          {/* Items Table */}
+          {items.length === 0 ? (
+            <div className="p-8 border border-dashed rounded-xl flex flex-col items-center justify-center text-center gap-3 bg-muted/10">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Package className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-foreground">No items added yet</h4>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Click <strong>Browse Catalogue</strong> to select products, or <strong>Import File</strong> to upload your supplier invoice.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsPickerModalOpen(true)}
+                  className="text-xs"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Products
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsImportCSVModalOpen(true)}
+                  className="text-xs text-muted-foreground"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1" />
+                  Upload CSV
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="max-h-[320px] overflow-y-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead className="bg-muted/40 border-b border-border font-semibold text-muted-foreground sticky top-0 bg-card z-10">
+                    <tr>
+                      <th className="p-2.5">Product / Variant</th>
+                      <th className="p-2.5 w-32">Tier</th>
+                      <th className="p-2.5 w-20 text-center">Qty</th>
+                      <th className="p-2.5 w-24 text-right">Cost</th>
+                      <th className="p-2.5 w-24 text-right">Subtotal</th>
+                      <th className="p-2.5 w-10 text-center" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {items.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-muted/10">
+                        <td className="p-2.5">
+                          <div className="font-semibold text-foreground">{item.product_name}</div>
+                          {item.variant_label && (
+                            <div className="text-[11px] text-muted-foreground">{item.variant_label}</div>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          {item.available_tiers && item.available_tiers.length > 1 ? (
+                            <select
+                              value={item.packaging_tier_id}
+                              onChange={(e) => handleUpdateItemTier(idx, e.target.value)}
+                              className="w-full h-8 px-2 border rounded-md bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              {item.available_tiers.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name} (×{t.units_per_tier})
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium px-1">
+                              {item.tier_name}
+                              {item.tier_units_per_tier > 1 && (
+                                <span className="ml-1 text-gray-400 font-mono">(×{item.tier_units_per_tier})</span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2 text-center">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
+                            className="h-8 text-center text-xs font-semibold px-1 rounded-md"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.cost_price}
+                            onChange={(e) => handleUpdateItemCost(idx, e.target.value)}
+                            className="h-8 text-right text-xs font-semibold px-1 rounded-md"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right font-bold text-foreground">
+                          <CurrencyDisplay amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)} showStyling={false} />
+                        </td>
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeLineItem(idx)}
+                            className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          {/* Step 2: Select Variant (only if product loaded + has variants) */}
-          {selectedProductId && isFetchingVariants && (
-            <p className="text-xs text-muted-foreground animate-pulse">Loading variants…</p>
-          )}
-
-          {selectedProductId && !isFetchingVariants && variantOptions.length > 1 && (
-            <CustomSelectField
-              label="2. Select Variant"
-              options={variantOptions}
-              value={selectedVariantId}
-              inputProps={{ onSelectionChange: handleVariantSelect }}
-              placeholder="Choose a variant…"
-            />
-          )}
-
-          {/* Step 3: Select Packaging Tier */}
-          {selectedVariantId && tierOptions.length > 1 && (
-            <CustomSelectField
-              label="3. Select Packaging Tier"
-              options={tierOptions}
-              value={selectedTierId}
-              inputProps={{ onSelectionChange: handleTierSelect }}
-              placeholder="Choose a tier…"
-            />
-          )}
-
-          {/* Qty + Cost */}
-          {selectedVariantId && (
-            <div className="grid grid-cols-2 gap-3">
-              <CustomInputTextField
-                label="Qty Ordered"
-                type="number"
-                value={lineQty}
-                onChange={(e) => setLineQty(e.target.value)}
-                placeholder="0"
-                inputProps={{ min: '1' }}
-              />
-              <CustomInputTextField
-                label="Cost / Tier"
-                type="number"
-                value={lineCostPrice}
-                onChange={(e) => setLineCostPrice(e.target.value)}
-                placeholder="0.00"
-                inputProps={{ min: '0', step: '0.01' }}
-              />
+              {/* Table Footer Totals */}
+              <div className="bg-muted/30 p-3 border-t border-border flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">
+                  Total Items: <strong>{items.length}</strong> · Total Base Units: <strong>{totalUnits}</strong>
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground font-semibold">Grand Total:</span>
+                  <span className="text-sm font-bold text-primary">
+                    <CurrencyDisplay amount={totalPoValue} showStyling={false} />
+                  </span>
+                </div>
+              </div>
             </div>
           )}
-
-          {selectedVariantId && selectedTier && (
-            <p className="text-xs text-muted-foreground">
-              Each <strong>{selectedTier.name}</strong> = {selectedTier.units_per_tier} base unit
-              {selectedTier.units_per_tier !== 1 ? 's' : ''}.
-              {lineQty && ` Receiving ${parseInt(lineQty, 10) * selectedTier.units_per_tier} base units.`}
-            </p>
-          )}
-
-          <Button
-            type="button"
-            onClick={addLineItem}
-            variant='outline'
-            className="w-full font-semibold"
-          >
-            <Plus className="h-4 w-4" />
-            Add to Order
-          </Button>
         </div>
 
-        {/* ── Line Items Table ───────────────────────────────────────────── */}
-        {items.length > 0 && (
-          <div className="border border-border dark:border-gray-800 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Product / Variant</th>
-                  <th className="px-3 py-2 font-medium">Tier</th>
-                  <th className="px-3 py-2 font-medium">Qty</th>
-                  <th className="px-3 py-2 font-medium">Cost</th>
-                  <th className="px-3 py-2 font-medium">Total</th>
-                  <th className="px-3 py-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {items.map((item, idx) => (
-                  <tr key={idx} className="bg-white dark:bg-gray-900">
-                    <td className="px-3 py-2">
-                      <div className="font-medium text-foreground">{item.product_name}</div>
-                      {item.variant_label && (
-                        <div className="text-xs text-muted-foreground">{item.variant_label}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {item.tier_name}
-                      {item.tier_units_per_tier > 1 && (
-                        <span className="ml-1 text-gray-400">(×{item.tier_units_per_tier})</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">{item.quantity}</td>
-                    <td className="px-3 py-2">{formatAmount(item.cost_price)}</td>
-                    <td className="px-3 py-2 font-medium">{formatAmount(item.quantity * item.cost_price)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeLineItem(idx)}
-                        className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-50 dark:bg-[#1f1f1f] font-bold">
-                  <td colSpan={4} className="px-3 py-3 text-right">Grand Total:</td>
-                  <td colSpan={2} className="px-3 py-3 text-primary">
-                    <CurrencyDisplay amount={totalPoValue} />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
+        {/* ── Notes ──────────────────────────────────────────────────────── */}
         <CustomTextareaField
           label="Order Notes"
           name="notes"
           value={formData.notes}
           onChange={handleChange}
-          placeholder="Any special instructions for this order…"
+          placeholder="Any special instructions or supplier remarks…"
           rows={2}
         />
       </div>
 
-      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
-        <Button
-          variant="ghost"
-          onClick={onCancel}
-          className="font-medium px-6"
-        >
+      {/* ── Form Actions ─────────────────────────────────────────────────── */}
+      <div className="pt-3 border-t border-border flex justify-end gap-3 mt-auto">
+        <Button variant="ghost" type="button" onClick={onCancel} className="font-medium px-5 text-xs">
           Cancel
         </Button>
         <Button
           type="submit"
-          disabled={isLoading}
-          className="text-primary-foreground font-bold px-6"
+          disabled={isLoading || items.length === 0}
+          className="bg-primary text-primary-foreground font-bold px-6 text-xs min-w-[120px]"
         >
-          Create PO
+          {isLoading ? 'Creating...' : 'Create Draft PO'}
         </Button>
       </div>
+
+      {/* ── Modals ───────────────────────────────────────────────────────── */}
+      <POProductPickerModal
+        isOpen={isPickerModalOpen}
+        onClose={() => setIsPickerModalOpen(false)}
+        onSelectItems={handleAddFromPicker}
+        existingVariantIds={items.map((i) => i.variant_id)}
+      />
+
+      <POImportCSVModal
+        isOpen={isImportCSVModalOpen}
+        onClose={() => setIsImportCSVModalOpen(false)}
+        onImportItems={handleImportFromCSV}
+      />
     </form>
   );
 }

@@ -188,8 +188,8 @@ export default function PurchaseOrders() {
         isOpen={isModalOpen}
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
         placement="right"
-        size="lg"
-        classNames={{ base: "sm:w-[520px]" }}
+        size="2xl"
+        classNames={{ base: "sm:w-[700px] max-w-[95vw]" }}
         header={
           <div className="pt-3 px-2 border-b border-border/70 pb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
