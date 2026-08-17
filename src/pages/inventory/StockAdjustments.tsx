@@ -30,6 +30,7 @@ import DashboardCard from "@/components/ui/dashboard-card";
 import EnhancedTableComponent, { TableColumn } from "@/components/shared/MainTableComponent";
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Adjustment {
   id: string;
@@ -54,12 +55,6 @@ interface Adjustment {
   date_created: string;
 }
 
-interface Staff {
-  id: string;
-  name: string;
-  role: string;
-}
-
 interface SearchVariant {
   variant_id: string;
   product_name: string;
@@ -73,6 +68,7 @@ export default function StockAdjustments() {
   // Page lists states
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("awaiting");
   
   // Table search & filters
   const [tableSearchQuery, setTableSearchQuery] = useState("");
@@ -99,8 +95,6 @@ export default function StockAdjustments() {
   const [selectedAdj, setSelectedAdj] = useState<Adjustment | null>(null);
   const [pinActionType, setPinActionType] = useState<"approve" | "reject">("approve");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [managers, setManagers] = useState<Staff[]>([]);
-  const [selectedManagerId, setSelectedManagerId] = useState("");
   const [pinCode, setPinCode] = useState("");
   const [rejectionNote, setRejectionNote] = useState("");
   const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -154,22 +148,6 @@ export default function StockAdjustments() {
   useEffect(() => {
     fetchAdjustments();
   }, [fetchAdjustments]);
-
-  // Load managers list for PIN authorization
-  useEffect(() => {
-    apiClient.get("/tenant/staff")
-      .then(res => {
-        const staffList = res.data.success?.data?.staff || [];
-        const managersList = staffList.filter((s: Staff) => s.role === "owner" || s.role === "manager");
-        setManagers(managersList);
-        if (managersList.length > 0) {
-          setSelectedManagerId(managersList[0].id);
-        }
-      })
-      .catch(err => {
-        console.error("Failed to load staff:", err);
-      });
-  }, []);
 
   // Variant Search autocomplete handler inside New Adjustment drawer
   useEffect(() => {
@@ -243,16 +221,6 @@ export default function StockAdjustments() {
     setPinCode("");
     setRejectionNote("");
     setIsPinModalOpen(true);
-  };
-
-  const handlePinKeyPress = (digit: string) => {
-    if (pinCode.length < 4) {
-      setPinCode(prev => prev + digit);
-    }
-  };
-
-  const handlePinBackspace = () => {
-    setPinCode(prev => prev.slice(0, -1));
   };
 
   const handleActionConfirm = async () => {
@@ -354,6 +322,77 @@ export default function StockAdjustments() {
     );
   }, [adjustments, typeFilter, tableSearchQuery]);
 
+  // Pending approvals columns definition
+  const pendingColumns: TableColumn[] = [
+    { key: "date", label: "Date" },
+    { key: "variant", label: "Product Variant" },
+    { key: "quantity", label: "Quantity" },
+    { key: "reason", label: "Reason" },
+    { key: "notes", label: "Notes" },
+    { key: "initiated_by", label: "Initiated By" },
+    { key: "actions", label: "Actions" },
+  ];
+
+  // Pending approvals rows mapping
+  const pendingRows = useMemo(() => {
+    return pendingItems.map((item) => ({
+      id: item.id,
+      date: item.date_created ? format(new Date(item.date_created), "MMM dd, yyyy") : "—",
+      variant: (
+        <div className="min-w-[180px]">
+          <p className="font-semibold text-foreground capitalize text-[13px]">{item.variant_name}</p>
+          {item.sku && <p className="font-mono text-xs text-muted-foreground">{item.sku}</p>}
+        </div>
+      ),
+      quantity: (
+        <PackagingStockDisplay
+          quantity={item.quantity}
+          baseUnitName={item.base_unit_name || "units"}
+          showPrefixSign={true}
+          customBreakdown={
+            item.package_quantity && item.packaging_tier_name
+              ? `${item.package_quantity} ${item.packaging_tier_name}`
+              : undefined
+          }
+          tierClassName="text-[11px] text-muted-foreground"
+        />
+      ),
+      reason: (
+        <span className="inline-flex items-center px-2.5 py-1.5 rounded text-[10px] font-semibold bg-amber-500/5 text-amber-600 dark:text-amber-400 capitalize">
+          {reasonLabels[item.reason] || item.reason}
+        </span>
+      ),
+      notes: (
+        <span className="text-xs text-muted-foreground max-w-xs truncate block" title={item.notes}>
+          {item.notes || "—"}
+        </span>
+      ),
+      initiated_by: (
+        <span className="text-[13px] text-muted-foreground font-medium">{item.initiated_by_name || "—"}</span>
+      ),
+      actions: (
+        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button 
+            size="sm"
+            onClick={() => handleOpenPinModal(item, "approve")}
+            className="h-8 rounded-md font-semibold text-xs px-3 shadow-none"
+          >
+            Approve
+          </Button>
+          <Button 
+            size="sm"
+            onClick={() => handleOpenPinModal(item, "reject")}
+            variant="ghost" 
+            className="h-8 rounded-md border border-destructive/20 text-destructive hover:bg-destructive/10 font-semibold text-xs px-3"
+          >
+            Reject
+          </Button>
+        </div>
+      ),
+      __record: item,
+    }));
+  }, [pendingItems]);
+
   // EnhancedTableComponent columns definition
   const columns: TableColumn[] = [
     { key: "date", label: "Date" },
@@ -425,8 +464,8 @@ export default function StockAdjustments() {
   return (
     <PageLayout 
       title="Stock Adjustments" 
-      subtitle="Audit ledger of inventory write-offs, discrepancies, and manager approvals."
-      constrainHeight={false}
+      // subtitle="Audit ledger of inventory write-offs, discrepancies, and manager approvals."
+      constrainHeight={true}
     >
       <div className="flex flex-col flex-1 min-h-0 gap-5 relative h-full md:h-full">
         {/* Metric summary Cards */}
@@ -445,7 +484,7 @@ export default function StockAdjustments() {
             }
             className="border border-border"
             // valueStyle="font-header tracking-tight"
-            action={<Clock className={`${pendingApprovalsCount > 0 ? "animate-pulse text-amber-500" : "text-muted-foreground/50"} h-5 w-5 `} />}
+            action={<Clock className={`${pendingApprovalsCount > 0 ? "text-muted-foreground/50" : "text-muted-foreground/50"} h-5 w-5 `} />}
           />
           <DashboardCard
             title="Total Written Off"
@@ -481,129 +520,132 @@ export default function StockAdjustments() {
           />
         </div>
 
-        {/* SECTION 1: Pending Approvals (Manager Panel) */}
-        {pendingItems.length > 0 && (
-          <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
-            <div className="flex items-center gap-2 border-b border-amber-500/15 pb-3">
-              <SlidersHorizontal className="h-5 w-5 text-amber-500" />
-              <h3 className="font-bold text-amber-800 dark:text-amber-400">Awaiting Manager PIN Approvals</h3>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="text-xs text-muted-foreground font-semibold border-b border-amber-500/10">
-                    <th className="pb-2">Date</th>
-                    <th className="pb-2">Product Variant</th>
-                    <th className="pb-2">SKU</th>
-                    <th className="pb-2">Adjustment Quantity</th>
-                    <th className="pb-2">Reason</th>
-                    <th className="pb-2">Notes</th>
-                    <th className="pb-2">Initiated By</th>
-                    <th className="pb-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-500/10 text-xs">
-                  {pendingItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-amber-500/10 transition-colors">
-                      <td className="py-3 font-normal text-muted-foreground">
-                        {new Date(item.date_created).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 font-bold text-foreground capitalize">
-                        {item.variant_name}
-                      </td>
-                      <td className="py-3 font-mono text-muted-foreground">{item.sku}</td>
-                      <td className="py-3">
-                        <PackagingStockDisplay
-                          quantity={item.quantity}
-                          baseUnitName={item.base_unit_name || "units"}
-                          showPrefixSign={true}
-                          customBreakdown={
-                            item.package_quantity && item.packaging_tier_name
-                              ? `${item.package_quantity} ${item.packaging_tier_name}`
-                              : undefined
-                          }
-                          primaryClassName="font-bold text-foreground font-mono"
-                          tierClassName="text-[10px] text-muted-foreground font-mono"
-                        />
-                      </td>
-                      <td className="py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 capitalize">
-                          {reasonLabels[item.reason] || item.reason}
-                        </span>
-                      </td>
-                      <td className="py-3 text-muted-foreground max-w-xs truncate" title={item.notes}>
-                        {item.notes || "—"}
-                      </td>
-                      <td className="py-3 font-medium text-foreground">{item.initiated_by_name}</td>
-                      <td className="py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            onClick={() => handleOpenPinModal(item, "approve")}
-                            className="h-8 rounded-lg bg-green-500 hover:bg-green-600 text-white font-semibold text-xs px-3"
-                          >
-                            Approve
-                          </Button>
-                          <Button 
-                            onClick={() => handleOpenPinModal(item, "reject")}
-                            variant="ghost" 
-                            className="h-8 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 font-semibold text-xs px-3"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Dynamic Content: Tabs if there are pending approvals, or direct table if none */}
+        {pendingItems.length > 0 ? (
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full flex-1 flex flex-col min-h-0"
+          >
+            <TabsList variant="top" className="w-full mb-5">
+              <TabsTrigger 
+                value="awaiting" 
+                badge={pendingItems.length}
+                className="gap-2 font-semibold"
+              >
+                Awaiting Approval
+              </TabsTrigger>
+              <TabsTrigger 
+                value="logs" 
+                className="font-semibold"
+              >
+                Adjustment Logs
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Enhanced Table Component */}
-        <EnhancedTableComponent
-          columns={columns}
-          rows={rows}
-          isLoading={isLoading}
-          // title="Adjustments Log"
-          showSearch={true}
-          searchPlaceholder="Search product variant, SKU, reason, or notes..."
-          searchValue={tableSearchQuery}
-          onSearchChange={setTableSearchQuery}
-          showFilter={true}
-          filterLabel="Status"
-          filterOptions={[
-            { uid: "all", name: "All Statuses" },
-            { uid: "approved", name: "Approved" },
-            { uid: "pending", name: "Pending" },
-            { uid: "rejected", name: "Rejected" },
-          ]}
-          filterValue={statusFilterSelection}
-          onFilterChange={(keys: any) => setStatusFilterSelection(keys)}
-          additionalFilters={[
-            {
-              label: "Type",
-              options: [
-                { uid: "all", name: "All Types" },
-                { uid: "addition", name: "Added (+)" },
-                { uid: "reduction", name: "Reduced (-)" },
-              ],
-              value: typeFilter,
-              onChange: (keys: any) => setTypeFilter(keys),
-            },
-          ]}
-          showDateFilter={true}
-          dateFilterValue={dateFilter}
-          onDateFilterChange={setDateFilter}
-          showAddButton={false}
-          classNames={{
-            base: "min-h-[300px]"
-          }}
-          onRefresh={fetchAdjustments}
-          onclick={handleRowClick}
-          mobileFriendly={true}
-        />
+            <TabsContent value="awaiting" className="w-full mt-0">
+              <EnhancedTableComponent
+                columns={pendingColumns}
+                rows={pendingRows}
+                isLoading={isLoading}
+                showSearch={false}
+                showTopContent={false}
+                showFilter={false}
+                showDateFilter={false}
+                showAddButton={false}
+                onRefresh={fetchAdjustments}
+                onclick={handleRowClick}
+                mobileFriendly={true}
+              />
+            </TabsContent>
+
+            <TabsContent value="logs" className="w-full mt-0">
+              <EnhancedTableComponent
+                columns={columns}
+                rows={rows}
+                isLoading={isLoading}
+                showSearch={true}
+                searchPlaceholder="Search product variant, SKU, reason, or notes..."
+                searchValue={tableSearchQuery}
+                onSearchChange={setTableSearchQuery}
+                showFilter={true}
+                filterLabel="Status"
+                filterOptions={[
+                  { uid: "all", name: "All Statuses" },
+                  { uid: "approved", name: "Approved" },
+                  { uid: "pending", name: "Pending" },
+                  { uid: "rejected", name: "Rejected" },
+                ]}
+                filterValue={statusFilterSelection}
+                onFilterChange={(keys: any) => setStatusFilterSelection(keys)}
+                additionalFilters={[
+                  {
+                    label: "Type",
+                    options: [
+                      { uid: "all", name: "All Types" },
+                      { uid: "addition", name: "Added (+)" },
+                      { uid: "reduction", name: "Reduced (-)" },
+                    ],
+                    value: typeFilter,
+                    onChange: (keys: any) => setTypeFilter(keys),
+                  },
+                ]}
+                showDateFilter={true}
+                dateFilterValue={dateFilter}
+                onDateFilterChange={setDateFilter}
+                showAddButton={false}
+                // classNames={{
+                //   base: "min-h-[300px]"
+                // }}
+                onRefresh={fetchAdjustments}
+                onclick={handleRowClick}
+                mobileFriendly={true}
+              />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <EnhancedTableComponent
+            columns={columns}
+            rows={rows}
+            isLoading={isLoading}
+            showSearch={true}
+            searchPlaceholder="Search product variant, SKU, reason, or notes..."
+            searchValue={tableSearchQuery}
+            onSearchChange={setTableSearchQuery}
+            showFilter={true}
+            filterLabel="Status"
+            filterOptions={[
+              { uid: "all", name: "All Statuses" },
+              { uid: "approved", name: "Approved" },
+              { uid: "pending", name: "Pending" },
+              { uid: "rejected", name: "Rejected" },
+            ]}
+            filterValue={statusFilterSelection}
+            onFilterChange={(keys: any) => setStatusFilterSelection(keys)}
+            additionalFilters={[
+              {
+                label: "Type",
+                options: [
+                  { uid: "all", name: "All Types" },
+                  { uid: "addition", name: "Added (+)" },
+                  { uid: "reduction", name: "Reduced (-)" },
+                ],
+                value: typeFilter,
+                onChange: (keys: any) => setTypeFilter(keys),
+              },
+            ]}
+            showDateFilter={true}
+            dateFilterValue={dateFilter}
+            onDateFilterChange={setDateFilter}
+            showAddButton={false}
+            classNames={{
+              base: "min-h-[300px]"
+            }}
+            onRefresh={fetchAdjustments}
+            onclick={handleRowClick}
+            mobileFriendly={true}
+          />
+        )}
       </div>
 
       {/* DETAIL MODAL / SHEET: View Single Adjustment */}
@@ -718,7 +760,7 @@ export default function StockAdjustments() {
                       setIsDetailModalOpen(false);
                       handleOpenPinModal(selectedDetailAdj, "approve");
                     }}
-                    className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold"
+                    className="text-xs font-semibold"
                   >
                     Authorize with PIN
                   </Button>
@@ -730,7 +772,7 @@ export default function StockAdjustments() {
         footer={null}
       />
 
-      {/* PIN PAD DIALOG: Manager approvals */}
+      {/* PIN / AUTHORIZATION MODAL: Manager approvals */}
       <CustomModal
         isOpen={isPinModalOpen}
         onOpenChange={() => {
@@ -739,138 +781,138 @@ export default function StockAdjustments() {
         }}
         size="md"
         header={
-          <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary" />
-              Manager PIN Authorization
+          <div className="pt-2 px-1 border-b border-border/50 pb-2">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
+              {/* <KeyRound className="h-5 w-5 text-primary" /> */}
+              {pinActionType === "approve" ? "Manager Authorization" : "Reject Adjustment"}
             </h2>
-            <p className="text-sm text-muted-foreground font-normal">
+            <p className="text-xs text-muted-foreground font-normal mt-0.5">
               {pinActionType === "approve" 
-                ? "Authorize stock adjustment. Enter your 4-digit POS PIN."
-                : "Reject adjustment request. Provide rejection notes."
+                ? "Enter your 4-digit POS / Manager PIN to authorize this stock change."
+                : "Provide explanatory notes for rejecting this adjustment request."
               }
             </p>
           </div>
         }
         body={
-          <div className="p-2 space-y-5 text-center">
-            {/* Displaying target item summaries */}
+          <div className="p-1 space-y-4 pb-4">
+            {/* Displaying target item summary */}
             {selectedAdj && (
-              <div className="border rounded-xl p-3 bg-muted/10 space-y-1 text-left text-xs">
-                <p className="font-bold capitalize text-foreground">{selectedAdj.variant_name}</p>
-                <p className="text-muted-foreground">Adjustment: <span className={`font-semibold ${selectedAdj.quantity < 0 ? "text-destructive" : "text-green-500"}`}>{selectedAdj.quantity < 0 ? "" : "+"}{selectedAdj.quantity} units</span></p>
-                <p className="text-muted-foreground">Reason: <span className="font-semibold">{reasonLabels[selectedAdj.reason] || selectedAdj.reason}</span></p>
+              <div className="border border-border/70 rounded-md p-3 bg-muted/20 space-y-1.5 text-xs">
+                <div className="flex justify-between items-start">
+                  <p className="font-bold capitalize text-foreground text-sm">{selectedAdj.variant_name}</p>
+                  {selectedAdj.sku && <span className="font-mono text-muted-foreground text-[11px]">{selectedAdj.sku}</span>}
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-border/40 text-xs">
+                  <span className="text-muted-foreground">Adjustment:</span>
+                  <PackagingStockDisplay
+                    quantity={selectedAdj.quantity}
+                    baseUnitName={selectedAdj.base_unit_name || "units"}
+                    showPrefixSign={true}
+                    customBreakdown={
+                      selectedAdj.package_quantity && selectedAdj.packaging_tier_name
+                        ? `${selectedAdj.package_quantity} ${selectedAdj.packaging_tier_name}`
+                        : undefined
+                    }
+                    primaryClassName="font-bold text-foreground font-mono text-xs"
+                    tierClassName="text-[10px] text-muted-foreground font-mono"
+                  />
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">Reason:</span>
+                  <span className="font-medium text-foreground capitalize">{reasonLabels[selectedAdj.reason] || selectedAdj.reason}</span>
+                </div>
+                {selectedAdj.notes && (
+                  <div className="pt-1 text-[11px] text-muted-foreground">
+                    <span className="font-medium text-foreground/80">Notes: </span>{selectedAdj.notes}
+                  </div>
+                )}
               </div>
             )}
 
             {pinActionType === "reject" ? (
-              <div className="space-y-4 text-left">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                    Rejection Reason *
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleActionConfirm();
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-semibold text-foreground">
+                    Rejection Reason <span className="text-destructive">*</span>
                   </label>
                   <Textarea
                     required
+                    autoFocus
                     placeholder="Provide explanatory notes on why this request is rejected..."
                     value={rejectionNote}
                     onChange={(e) => setRejectionNote(e.target.value)}
-                    className="rounded-xl text-sm"
+                    className="rounded-lg text-sm min-h-[90px]"
                   />
                 </div>
-                <div className="flex gap-2 justify-end pt-4 border-t">
-                  <Button variant="ghost" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleActionConfirm} disabled={isProcessingAction || !rejectionNote.trim()} className="bg-destructive text-white hover:bg-destructive/95">
-                    {isProcessingAction ? "Rejecting..." : "Confirm Reject"}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {/* Selector for verifying manager */}
-                <div className="text-left space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                    <UserCheck className="h-3.5 w-3.5" />
-                    Approving Manager *
-                  </label>
-                  <select
-                    value={selectedManagerId}
-                    onChange={(e) => setSelectedManagerId(e.target.value)}
-                    className="w-full h-10 px-3 py-2 border rounded-xl bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    {managers.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.role})
-                      </option>
-                    ))}
-                    {managers.length === 0 && (
-                      <option value="">No managers found</option>
-                    )}
-                  </select>
-                </div>
-
-                {/* PIN digits indicators */}
-                <div className="flex justify-center gap-4 py-2">
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div
-                      key={idx}
-                      className={`h-4.5 w-4.5 rounded-full border-2 transition-all ${
-                        pinCode.length > idx
-                          ? "bg-primary border-primary scale-110"
-                          : "bg-transparent border-border"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {/* PIN Pad 1-9 Grid buttons */}
-                <div className="grid grid-cols-3 gap-3 max-w-[280px] mx-auto pb-4">
-                  {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
-                    <button
-                      key={digit}
-                      type="button"
-                      onClick={() => handlePinKeyPress(digit)}
-                      className="h-14 w-14 rounded-full border bg-muted/40 hover:bg-muted font-bold text-lg text-foreground flex items-center justify-center transition-colors shadow-sm focus:outline-none active:scale-95"
-                    >
-                      {digit}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setPinCode("")}
-                    className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-center focus:outline-none active:scale-95"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePinKeyPress("0")}
-                    className="h-14 w-14 rounded-full border bg-muted/40 hover:bg-muted font-bold text-lg text-foreground flex items-center justify-center transition-colors shadow-sm focus:outline-none active:scale-95"
-                  >
-                    0
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handlePinBackspace}
-                    className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-center focus:outline-none active:scale-95"
-                  >
-                    Delete
-                  </button>
-                </div>
-
-                {/* Submit action */}
-                <div className="flex gap-2 justify-end pt-4 border-t">
-                  <Button variant="ghost" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/50">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
                     Cancel
                   </Button>
                   <Button 
-                    onClick={handleActionConfirm} 
+                    type="submit" 
+                    size="sm"
+                    disabled={isProcessingAction || !rejectionNote.trim()} 
+                    className="bg-destructive text-white hover:bg-destructive/90 font-semibold"
+                  >
+                    {isProcessingAction ? "Rejecting..." : "Confirm Reject"}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleActionConfirm();
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-2 py-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Enter 4-Digit Security PIN
+                  </label>
+                  <div className="">
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      autoFocus
+                      placeholder="••••"
+                      value={pinCode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        if (val.length <= 4) {
+                          setPinCode(val);
+                        }
+                      }}
+                      className="text-center text-2xl tracking-[0.4em] font-mono h-12 rounded-lg font-bold border-border bg-background shadow-none focus-visible:ring-1"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Authorizing with your staff / manager account
+                  </p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/50">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    size="sm"
                     disabled={isProcessingAction || pinCode.length !== 4} 
-                    className="bg-green-500 hover:bg-green-600 text-white min-w-[120px]"
+                    className="min-w-[110px] font-semibold"
                   >
                     {isProcessingAction ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         <span>Verifying...</span>
                       </div>
@@ -879,7 +921,7 @@ export default function StockAdjustments() {
                     )}
                   </Button>
                 </div>
-              </div>
+              </form>
             )}
           </div>
         }

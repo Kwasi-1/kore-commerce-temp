@@ -5,6 +5,10 @@ import { cn } from "@/lib/utils"
 
 const Tabs = TabsPrimitive.Root
 
+const TabsContext = React.createContext<{ variant?: "soft" | "top" }>({
+  variant: "soft",
+})
+
 interface TabsListProps
   extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> {
   variant?: "soft" | "top"
@@ -13,17 +17,21 @@ interface TabsListProps
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   TabsListProps
->(({ className, variant = "soft", ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex items-center text-muted-foreground",
-      variant === "soft" && "h-10 justify-center rounded-md bg-muted p-1",
-      variant === "top" && "w-full justify-start gap-6 border-b border-border",
-      className
-    )}
-    {...props}
-  />
+>(({ className, variant = "soft", children, ...props }, ref) => (
+  <TabsContext.Provider value={{ variant }}>
+    <TabsPrimitive.List
+      ref={ref}
+      className={cn(
+        "inline-flex items-center text-muted-foreground",
+        variant === "soft" && "h-10 justify-center rounded-md bg-muted p-1",
+        variant === "top" && "w-full justify-start gap-8 border-b border-border pb-0",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </TabsPrimitive.List>
+  </TabsContext.Provider>
 ))
 TabsList.displayName = TabsPrimitive.List.displayName
 
@@ -36,27 +44,32 @@ interface TabsTriggerProps
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   TabsTriggerProps
->(({ className, variant = "soft", badge, children, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "inline-flex items-center whitespace-nowrap text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-      variant === "soft" &&
-        "justify-center rounded-sm px-3 py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-      variant === "top" &&
-        "gap-2 border-b-2 border-transparent px-1 pb-3 text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground",
-      className
-    )}
-    {...props}
-  >
-    <span>{children}</span>
-    {badge && (
-      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-        {badge}
-      </span>
-    )}
-  </TabsPrimitive.Trigger>
-))
+>(({ className, variant: propVariant, badge, children, ...props }, ref) => {
+  const context = React.useContext(TabsContext)
+  const variant = propVariant ?? context.variant ?? "soft"
+
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        "inline-flex items-center whitespace-nowrap text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        variant === "soft" &&
+          "justify-center rounded-sm px-3 py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground",
+        variant === "top" &&
+          "gap-2 border-b-2 border-transparent -mb-[1px] px-1 pb-3 text-muted-foreground hover:text-foreground data-[state=active]:border-muted-foreground data-[state=active]:text-foreground data-[state=active]:font-semibold",
+        className
+      )}
+      {...props}
+    >
+      <span>{children}</span>
+      {badge !== undefined && badge !== null && (
+        <span className="hidden inlineflex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold leading-none tabular-nums text-primary-foreground">
+          {badge}
+        </span>
+      )}
+    </TabsPrimitive.Trigger>
+  )
+})
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
 const TabsContent = React.forwardRef<
@@ -66,7 +79,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=inactive]:hidden data-[state=active]:flex data-[state=active]:flex-1 data-[state=active]:flex-col data-[state=active]:min-h-0",
       className
     )}
     {...props}
