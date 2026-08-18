@@ -213,7 +213,7 @@ export function POProductPickerModal({
       onOpenChange={onClose}
       size="4xl"
       classNames={{
-        base: 'min-h-[560px]',
+        base: 'min-h-[calc(100dvh-0.75rem)] md:min-h-[560px]',
       }}
       header={
         <div className="pt-2 px-2 border-b border-border/60 pb-3">
@@ -255,7 +255,7 @@ export function POProductPickerModal({
           </div>
 
           {/* Table of items with responsive columns & smooth horizontal scroll */}
-          <div className="border border-border/60 overflow-x-auto max-h-[380px] overflow-y-auto bg-card">
+          <div className="border border-border/60 overflow-x-auto max-h-[calc(100dvh-20.5rem)] md:max-h-[380px] overflow-y-auto bg-card">
             <table className="w-full text-left text-xs border-collapse min-w-[320px] md:min-w-full">
               <thead className="border-b border-border/60 font-semibold text-muted-foreground sticky top-0 bg-background z-10">
                 <tr className="bg-muted/30">

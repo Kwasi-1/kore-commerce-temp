@@ -48,7 +48,7 @@ export default function PurchaseOrderDetailModal({
       onOpenChange={handleClose}
       size="3xl"
       classNames={{
-        base: "rounded-xl min-h-[520px] scrollbar-hide"
+        base: "rounded-xl min-h-[calc(100dvh-0.75rem)] md:min-h-[520px] scrollbar-hide"
       }}
       header={
         <div className="pt-2 px-2 border-b border-border/50 pb-2.5">
@@ -134,8 +134,9 @@ export default function PurchaseOrderDetailModal({
             {/* TAB 1: Line Items */}
             {detailActiveTab === 'items' && (
               <div className="space-y-3">
-                <div className="border border-border/70 overflow-hidden max-h-[320px] overflow-y-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                <div className="border border-border/70 rounded-lg md:rounded-none overflow-hidden max-h-[calc(100dvh-24.5rem)] md:max-h-[340px] overflow-y-auto">
+                  {/* Desktop View Table */}
+                  <table className="hidden md:table w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-border/70 text-muted-foreground font-semibold text-[11px] uppercase !tracking-wider">
                         <th className="p-3 !tracking-wide">Item / Variant</th>
@@ -167,7 +168,7 @@ export default function PurchaseOrderDetailModal({
                               {item.variant_name || item.variantName || "Unknown Variant"}
                             </td>
                             <td className="p-3 font-mono text-muted-foreground">
-                              <span className="">
+                              <span>
                                 {item.variant_sku || item.variantSku || "—"}
                               </span>
                             </td>
@@ -212,6 +213,73 @@ export default function PurchaseOrderDetailModal({
                       })}
                     </tbody>
                   </table>
+
+                  {/* Mobile View Card List */}
+                  <div className="block md:hidden divide-y divide-border/60">
+                    {(selectedPO.items || []).map((item: any, i: number) => {
+                      const cost = typeof item.cost_price_per_tier === 'object' 
+                        ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
+                        : Number(item.cost_price_per_tier || 0);
+                      const sub = typeof item.subtotal === 'object'
+                        ? Number(item.subtotal?.parsedValue ?? item.subtotal?.source ?? 0)
+                        : Number(item.subtotal || 0);
+                      const qtyOrd = Number(item.quantity_ordered ?? item.quantityOrdered ?? 0);
+                      const qtyRec = Number(item.quantity_received ?? item.quantityReceived ?? 0);
+                      const pct = qtyOrd > 0 ? Math.min(100, Math.round((qtyRec / qtyOrd) * 100)) : 0;
+                      const isFullyReceived = qtyRec >= qtyOrd && qtyOrd > 0;
+                      const isPartiallyReceived = qtyRec > 0 && qtyRec < qtyOrd;
+
+                      return (
+                        <div key={i} className="p-3 space-y-2 dark:bg-muted/20 hover:bg-muted/10 transition-colors">
+                          {/* Row 1: Name + Subtotal */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-foreground text-xs leading-snug capitalize truncate">
+                                {item.variant_name || item.variantName || "Item"}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                                <span className="font-mono">{item.variant_sku || item.variantSku || "—"}</span>
+                                <span>·</span>
+                                <span>{item.packaging_tier_name || item.packagingTierName || "Unit"}</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="font-bold text-foreground text-xs">
+                                <CurrencyDisplay amount={sub} showStyling={false} />
+                              </span>
+                              <div className="text-[10px] text-muted-foreground">
+                                <CurrencyDisplay amount={cost} showStyling={false} /> / unit
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Row 2: Fulfillment Progress */}
+                          <div className="pt-1 space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-muted-foreground">
+                                Fulfillment ({qtyOrd} ordered):
+                              </span>
+                              <span className={isFullyReceived ? 'text-foreground font-bold' : isPartiallyReceived ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-muted-foreground font-medium'}>
+                                {qtyRec} / {qtyOrd} ({pct}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden border border-border/30">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  isFullyReceived
+                                    ? 'bg-foreground'
+                                    : isPartiallyReceived
+                                    ? 'bg-amber-500'
+                                    : 'bg-transparent'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {selectedPO.notes && (
@@ -299,7 +367,7 @@ export default function PurchaseOrderDetailModal({
       }
       footer={
         selectedPO ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50 w-full">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-border/50 w-full">
             <div className="flex items-center gap-2">
               {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
                 <Button 
@@ -307,7 +375,7 @@ export default function PurchaseOrderDetailModal({
                   size="sm" 
                   onClick={() => onCancel(selectedPO)}
                   disabled={isCancellingPO || isReceivingPO || isClosingPO}
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
                   {isCancellingPO ? "Cancelling..." : "Cancel PO"}
@@ -319,7 +387,7 @@ export default function PurchaseOrderDetailModal({
                   size="sm" 
                   onClick={() => onCloseEarly(selectedPO)}
                   disabled={isCancellingPO || isReceivingPO || isClosingPO}
-                  className="text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1.5"
+                  className="text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1.5 w-full sm:w-auto justify-center"
                   title="Close PO early if supplier will not deliver remaining items"
                 >
                   <Icon icon="solar:check-read-linear" className="h-4 w-4" />
@@ -328,12 +396,12 @@ export default function PurchaseOrderDetailModal({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 justify-end">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleClose}
-                className="text-xs font-medium"
+                className="text-xs font-medium flex-1 sm:flex-none"
               >
                 Close
               </Button>
@@ -343,7 +411,7 @@ export default function PurchaseOrderDetailModal({
                   variant="outline" 
                   size="sm" 
                   onClick={() => onEdit(selectedPO)}
-                  className="text-xs font-semibold flex items-center gap-1.5"
+                  className="text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
                   <Icon icon="solar:pen-linear" className="h-3.5 w-3.5" />
                   Edit Draft
@@ -355,7 +423,7 @@ export default function PurchaseOrderDetailModal({
                   size="sm" 
                   onClick={() => onReceive(selectedPO)}
                   disabled={isReceivingPO || isCancellingPO || isClosingPO}
-                  className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
+                  className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
                   <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
                   {selectedPO.status === 'partially_received' ? "Receive Remaining Stock" : "Mark as Received"}

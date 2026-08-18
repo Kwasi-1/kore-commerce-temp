@@ -129,7 +129,7 @@ const NewModal = extendVariants(Modal, {
       },
       center: {
         wrapper: "items-center justify-center",
-        base: "mx-3 my-3 sm:mx-4 sm:my-4 w-[calc(100vw-1.5rem)]  max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto",
+        base: "mx-1.5 my-1.5 sm:mx-4 sm:my-4 w-[calc(100vw-0.75rem)]  max-h-[calc(100dvh-0.75rem)] sm:max-h-[90dvh] overflow-y-auto",
       },
       "top-center": {
         wrapper: "items-start justify-center",
