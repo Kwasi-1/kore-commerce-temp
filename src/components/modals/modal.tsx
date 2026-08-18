@@ -108,7 +108,7 @@ const CustomModal: FC<CustomModalProps> = ({
       <ModalContent className="">
         <>
           {header && (
-            <ModalHeader className="flex flex-col gap-1">{header}</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1 spacing-sm">{header}</ModalHeader>
           )}
           <ModalBody className="">{body}</ModalBody>
           {footer && <ModalFooter>{footer}</ModalFooter>}
@@ -129,7 +129,7 @@ const NewModal = extendVariants(Modal, {
       },
       center: {
         wrapper: "items-center justify-center",
-        base: "mx-3 my-3 sm:mx-4 sm:my-4 w-[calc(100vw-1.5rem)]  max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto rounded-2xl",
+        base: "mx-3 my-3 sm:mx-4 sm:my-4 w-[calc(100vw-1.5rem)]  max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto",
       },
       "top-center": {
         wrapper: "items-start justify-center",
@@ -149,7 +149,7 @@ const NewModal = extendVariants(Modal, {
       },
       right: {
         wrapper: "justify-end items-stretch sm:items-stretch",
-        base: "mx-2 my-2 sm:mx-3.5 sm:my-3 h-[calc(100dvh-1rem)] sm:h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-1.5rem)] overflow-y-auto scrollbar-hide w-[calc(100vw-1rem)] sm:w-auto min-w-0 sm:min-w-[450px] rounded-2xl",
+        base: "mx-1.5 my-1.5 sm:mx-3 sm:my-3 h-[calc(100dvh-0.75rem)] sm:h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-1.5rem)] overflow-y-auto scrollbar-hide w-[calc(100vw-0.75rem)] sm:w-auto min-w-0 sm:min-w-[450px] rounded-xl md:rounded-2xl",
       },
     },
   },
