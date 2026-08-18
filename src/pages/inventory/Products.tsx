@@ -24,6 +24,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
+import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
+import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,9 +74,15 @@ export default function Products() {
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
+  // Detail Modal state
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<any | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // Row Actions state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [productToToggleStatus, setProductToToggleStatus] = useState<any | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -169,18 +177,45 @@ export default function Products() {
     }
   };
 
-  const handleUpdateStatus = async (product: any, newStatus: string) => {
+  const handleConfirmStatusToggle = async () => {
+    if (!productToToggleStatus) return;
+    const isActive = productToToggleStatus.status
+      ? productToToggleStatus.status.toLowerCase() === "active"
+      : productToToggleStatus.is_active !== false;
+    const newStatus = isActive ? "draft" : "active";
+
     setIsUpdatingStatus(true);
     try {
-      await apiClient.patch(`/tenant/products/${product.id}/status`, {
+      await apiClient.patch(`/tenant/products/${productToToggleStatus.id}/status`, {
         status: newStatus,
       });
       toast.success(`Product marked as ${newStatus}`);
+      setIsStatusModalOpen(false);
+      setProductToToggleStatus(null);
+      if (selectedProductForDetail?.id === productToToggleStatus.id) {
+        setSelectedProductForDetail((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                status: newStatus,
+                is_active: newStatus === "active",
+              }
+            : null
+        );
+      }
       fetchProducts();
     } catch (error) {
       toast.error("Failed to update product status");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleRowClick = (key: any) => {
+    const row = tableRows.find((r) => (r.id || r.key) === key);
+    if (row?.__record) {
+      setSelectedProductForDetail(row.__record);
+      setIsDetailModalOpen(true);
     }
   };
 
@@ -291,63 +326,81 @@ export default function Products() {
   // Transform products data into rows for EnhancedTableComponent
   const tableRows = useMemo(() => {
     if (effectiveViewMode === "group") {
-      return products.map((p) => ({
-        id: p.id,
-        __record: p,
-        image:
-          p.images && p.images[0] ? (
-            <img
-              src={p.images[0]}
-              alt={p.name}
-              className="h-10 w-10 rounded-lg object-cover bg-muted border"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-              <Package className="h-5 w-5" />
-            </div>
+      return products.map((p) => {
+        const isActive = p.status
+          ? p.status.toLowerCase() === "active"
+          : p.is_active !== false;
+
+        return {
+          id: p.id,
+          __record: p,
+          image:
+            p.images && p.images[0] ? (
+              <img
+                src={p.images[0]}
+                alt={p.name}
+                className="h-10 w-10 rounded-lg object-cover bg-muted border"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+                <Package className="h-5 w-5" />
+              </div>
+            ),
+          name: p.name,
+          category: p.category || "—",
+          variants: (
+            <span
+              className={`${
+                p.has_variants
+                  ? "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20 dark:border-primary/30"
+                  : "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-muted/30 dark:bg-inherit dark:text-secondary-foreground border border-border/50 dark:border-border"
+              }`}
+            >
+              {p.has_variants ? `${p.variant_count} variants` : "Simple"}
+            </span>
           ),
-        name: p.name,
-        category: p.category || "—",
-        variants: (
-          <span className={`${p.has_variants ? "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-primary/30 dark:bg-inherit dark:text-primary border border-primary/20 dark:border-primary/30" : "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-muted/30 dark:bg-inherit dark:text-secondary-foreground border border-border/50 dark:border-border"}`}>
-            {p.has_variants ? `${p.variant_count} variants` : "Simple"}
-          </span>
-        ),
-        total_stock: getStockCell(p.total_stock_base_units, "units"),
-        status: (
-          <span
-            className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              p.status === "active"
-                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
-                : "text-muted-foreground bg-muted border border-border"
-            }`}
-          >
-            {p.status || "Active"}
-          </span>
-        ),
-      }));
+          total_stock: getStockCell(p.total_stock_base_units, "units"),
+          status: (
+            <span
+              className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+                isActive
+                  ? "text-green-600 dark:text-green-400 bg-green-500/10"
+                  : "text-muted-foreground bg-muted border border-border"
+              }`}
+            >
+              {p.status || (isActive ? "Active" : "Draft")}
+            </span>
+          ),
+        };
+      });
     }
 
     // List view: flatten variants
     const flatRows: any[] = [];
     products.forEach((p) => {
+      const isActive = p.status
+        ? p.status.toLowerCase() === "active"
+        : p.is_active !== false;
+
       const vars = p.variants || [];
       if (vars.length === 0) {
         flatRows.push({
           id: p.id,
           __record: p,
-          rowClassName: "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-destructive",
-          image: p.images && p.images[0] ? (
-            <img
-              src={p.images[0]}
-              alt={p.name}
-              className="h-10 w-10 rounded-lg object-cover bg-muted border"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-              <Package className="h-5 w-5" />
-            </div>
-          ),
+          rowClassName:
+            "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-destructive",
+          image:
+            p.images && p.images[0] ? (
+              <img
+                src={p.images[0]}
+                alt={p.name}
+                className="h-10 w-10 rounded-lg object-cover bg-muted border"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
+                <Package className="h-5 w-5" />
+              </div>
+            ),
           name: p.name,
           category: p.category || "—",
           sku: "—",
@@ -359,12 +412,14 @@ export default function Products() {
           price: "—",
           stock: getStockCell(0, "units"),
           status: (
-            <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              p.status === "active"
-                ? "text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20"
-                : "text-muted-foreground bg-muted border border-border"
-            }`}>
-              {p.status || "Active"}
+            <span
+              className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
+                isActive
+                  ? "text-green-600 dark:text-green-400 bg-green-500/10"
+                  : "text-muted-foreground bg-muted border border-border"
+              }`}
+            >
+              {p.status || (isActive ? "Active" : "Draft")}
             </span>
           ),
         });
@@ -417,11 +472,11 @@ export default function Products() {
           stock: getStockCell(stockInfo.value, stockInfo.unit, v.packaging_tiers || p.packaging_tiers),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              p.status === "active"
-                ? "text-green-600 dark:text-green-400 bg-green-400/10"
+              isActive
+                ? "text-green-600 dark:text-green-400 bg-green-500/10"
                 : "text-muted-foreground bg-muted border border-border"
             }`}>
-              {p.status || "Active"}
+              {p.status || (isActive ? "Active" : "Draft")}
             </span>
           ),
         });
@@ -669,15 +724,14 @@ export default function Products() {
             className: "text-danger",
           },
         ]}
+        onclick={handleRowClick}
         onRowActionClick={(actionKey, rowData) => {
           const originalProduct = rowData.__record;
           if (actionKey === "edit") {
             handleEdit(originalProduct);
-          } else if (actionKey === "archive") {
-            handleUpdateStatus(
-              originalProduct,
-              originalProduct.status === "active" ? "draft" : "active",
-            );
+          } else if (actionKey === "archive" || actionKey === "toggle_status") {
+            setProductToToggleStatus(originalProduct);
+            setIsStatusModalOpen(true);
           } else if (actionKey === "delete") {
             setProductToDelete(originalProduct);
             setIsDeleteModalOpen(true);
@@ -707,7 +761,7 @@ export default function Products() {
         ]}
         // Actions
         showAddButton={false}
-        customAddButton= {
+        customAddButton={
           <DropdownMenu>
             <div className="flex rounded-md overflow-hidden border shadow-sm lg:h-[34px] bg-muted">
               <Button
@@ -751,6 +805,36 @@ export default function Products() {
         onRefresh={fetchProducts}
         mobileFriendly={false}
         // containerStyles=""
+      />
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedProductForDetail(null);
+        }}
+        product={selectedProductForDetail}
+        onEdit={(prod) => {
+          setIsDetailModalOpen(false);
+          handleEdit(prod);
+        }}
+        onToggleStatus={(prod) => {
+          setProductToToggleStatus(prod);
+          setIsStatusModalOpen(true);
+        }}
+      />
+
+      {/* Product Status Confirmation Modal */}
+      <ProductStatusModal
+        isOpen={isStatusModalOpen}
+        onClose={() => {
+          setIsStatusModalOpen(false);
+          setProductToToggleStatus(null);
+        }}
+        product={productToToggleStatus}
+        onConfirm={handleConfirmStatusToggle}
+        isUpdating={isUpdatingStatus}
       />
 
       {/* Delete Confirmation Modal */}
