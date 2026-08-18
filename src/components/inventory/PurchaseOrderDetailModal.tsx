@@ -180,7 +180,7 @@ export default function PurchaseOrderDetailModal({
                             <td className="p-3 text-center">
                               <div className="space-y-1.5 inline-block w-28 text-center">
                                 <div className="flex items-center justify-between text-[11px] font-semibold">
-                                  <span className={isFullyReceived ? 'text-emerald-600 dark:text-emerald-400' : isPartiallyReceived ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
+                                  <span className={isFullyReceived ? 'text-foreground font-bold' : isPartiallyReceived ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
                                     {qtyRec} / {qtyOrd}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground font-medium">
@@ -191,7 +191,7 @@ export default function PurchaseOrderDetailModal({
                                   <div
                                     className={`h-full rounded-full transition-all duration-300 ${
                                       isFullyReceived
-                                        ? 'bg-emerald-500'
+                                        ? 'bg-muted-foreground'
                                         : isPartiallyReceived
                                         ? 'bg-amber-500'
                                         : 'bg-transparent'
