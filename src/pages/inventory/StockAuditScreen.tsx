@@ -1,20 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  CheckCircle2, 
-  AlertCircle, 
-  HelpCircle, 
-  Check, 
-  X, 
-  Plus, 
-  Trash2, 
-  Sparkles,
-  Layers,
-  Calendar,
-  Lock,
-  ChevronDown
-} from "lucide-react";
+import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import apiClient from "@/api/client";
@@ -22,6 +8,7 @@ import toast from "react-hot-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import CustomModal from "@/components/modals/modal";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MatchedRow {
   isNewProduct?: boolean;
@@ -110,8 +97,7 @@ export default function StockAuditScreen() {
         quantity_to_add: Number(row.quantity_to_add) || 0,
         cost_price: Number(row.cost_price) || 0,
         checked: true,
-        // Match base variant tracking
-        track_expiry: false // will be overwritten when POS products load
+        track_expiry: false
       }));
       setMatchedRows(initialMatched);
       setUnmatchedRows(parsedData.unmatched || []);
@@ -147,7 +133,7 @@ export default function StockAuditScreen() {
           for (const p of productsList) {
             const v = p.variants?.find((varObj: any) => varObj.variant_id === m.variant_id);
             if (v) {
-              trackExpirySetting = !!v.expiry_warning; // If expiry warning config is returned, it has tracking
+              trackExpirySetting = !!v.expiry_warning;
               break;
             }
           }
@@ -307,6 +293,10 @@ export default function StockAuditScreen() {
     setMatchedRows(prev => prev.map((r, i) => i === idx ? { ...r, checked: !r.checked } : r));
   };
 
+  const handleToggleAllMatched = (checked: boolean) => {
+    setMatchedRows(prev => prev.map(r => ({ ...r, checked })));
+  };
+
   const handleCostChange = (idx: number, val: string) => {
     const num = Number(val);
     setMatchedRows(prev => prev.map((r, i) => i === idx ? { ...r, cost_price: isNaN(num) ? 0 : num } : r));
@@ -352,6 +342,9 @@ export default function StockAuditScreen() {
     const value = checkedRows.reduce((sum, r) => sum + (Number(r.quantity_to_add || 0) * Number(r.cost_price || 0)), 0);
     return { count, units, value };
   }, [matchedRows, posProducts]);
+
+  const isAllMatchedChecked = matchedRows.length > 0 && matchedRows.every(r => r.checked);
+  const isMatchedIndeterminate = matchedRows.some(r => r.checked) && !isAllMatchedChecked;
 
   // Final database submission
   const handleConfirmUpload = async () => {
@@ -406,16 +399,21 @@ export default function StockAuditScreen() {
 
   if (!parsedData) {
     return (
-      <PageLayout title="Shipment Stock Audit">
-        <div className="flex flex-col items-center justify-center py-20 space-y-5 bg-card border rounded-[24px] max-w-xl mx-auto mt-12 p-8 shadow-md">
-          <div className="h-16 w-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
-            <AlertCircle className="h-8 w-8" />
+      <PageLayout
+        title="Audit Stock Shipment"
+        subtitle="Review unmatched items, resolve duplicates, and update inventory changes."
+        showBackButton={true}
+        backUrl="/inventory/products"
+      >
+        <div className="flex flex-col items-center justify-center py-20 space-y-5 bg-card border border-border rounded-xl max-w-xl mx-auto mt-12 p-8 shadow-sm">
+          <div className="h-14 w-14 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
+            <Icon icon="solar:danger-circle-linear" className="h-7 w-7" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">No Shipment Data Found</h2>
-          <p className="text-sm text-muted-foreground text-center">
+          <h2 className="text-lg font-bold text-foreground">No Shipment Data Found</h2>
+          <p className="text-xs text-muted-foreground text-center">
             You need to upload a shipment spreadsheet first before accessing the Stock Audit dashboard.
           </p>
-          <Button onClick={() => navigate("/inventory/products")} className="rounded-xl bg-primary">
+          <Button onClick={() => navigate("/inventory/products")} className="rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
             Back to Products
           </Button>
         </div>
@@ -424,83 +422,66 @@ export default function StockAuditScreen() {
   }
 
   return (
-    <PageLayout title="Shipment Stock Audit">
-      {/* Page Header Metadata */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/inventory/products")}
-            className="h-9 w-9 rounded-xl border"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Audit Stock Shipment</h1>
-            <p className="text-xs text-muted-foreground">
-              Review unmatched items, resolve duplicates, and update inventory changes.
-            </p>
-          </div>
-        </div>
-
-        {/* Credit Purchase indicator badge */}
-        {creditDetails?.isCreditPurchase && (
-          <div className="flex items-center gap-3 px-4 py-2 border rounded-xl bg-primary/5 border-primary/20 animate-pulse">
-            <Lock className="h-4 w-4 text-primary" />
-            <div className="text-xs text-left leading-tight">
-              <p className="font-bold text-primary">Supplier Credit Purchase</p>
-              <p className="text-muted-foreground font-normal">
-                Supplier: <span className="font-semibold text-foreground">{creditDetails.supplierName}</span>
-                {creditDetails.creditDueDate && ` · Due: ${creditDetails.creditDueDate}`}
-              </p>
+    <PageLayout
+      title="Audit Stock Shipment"
+      subtitle="Review unmatched items, resolve duplicates, and update inventory changes."
+      showBackButton={true}
+      backUrl="/inventory/products"
+      actions={
+        creditDetails?.isCreditPurchase ? (
+          <div className="flex items-center gap-2.5 px-3 py-1.5 border border-border rounded-lg bg-muted/40 text-xs">
+            <Icon icon="solar:card-linear" className="h-4 w-4 text-foreground/70" />
+            <div className="text-left leading-tight">
+              <span className="font-semibold text-foreground">Credit Purchase: </span>
+              <span className="text-muted-foreground">{creditDetails.supplierName}</span>
+              {creditDetails.creditDueDate && <span className="text-muted-foreground"> · Due: {creditDetails.creditDueDate}</span>}
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="space-y-8 pb-32 w-full min-w-0">
+        ) : undefined
+      }
+    >
+      <div className="space-y-6 pb-32 w-full min-w-0">
         {/* SECTION 1: Ambiguous items (Needs Resolving) */}
         {ambiguousRows.length > 0 && (
-          <div className="border border-orange-500/30 rounded-xl overflow-hidden bg-orange-500/5 shadow-sm">
-            <div className="bg-orange-500/10 border-b border-orange-500/20 px-5 py-3.5 flex items-center justify-between">
+          <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
+            <div className="bg-muted/40 border-b border-border/70 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-orange-500" />
-                <h3 className="font-bold text-orange-700 dark:text-orange-400">
+                <Icon icon="solar:question-circle-linear" className="h-4 w-4 text-amber-500" />
+                <h3 className="font-bold text-xs text-foreground">
                   Ambiguous Rows ({ambiguousRows.length})
                 </h3>
               </div>
-              <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+              <span className="text-xs text-muted-foreground font-medium">
                 Multiple potential matches found in system. Please resolve.
               </span>
             </div>
             <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-orange-500/10 text-xs text-muted-foreground font-bold uppercase tracking-wider bg-orange-500/5">
-                    <th className="px-5 py-3">Product Name in Sheet</th>
-                    <th className="px-5 py-3">SKU</th>
-                    <th className="px-5 py-3">Quantity</th>
-                    <th className="px-5 py-3">Suggest Match</th>
+                  <tr className="border-b border-border/70 text-muted-foreground font-bold uppercase tracking-wider bg-muted/20">
+                    <th className="px-4 py-2.5">Product Name in Sheet</th>
+                    <th className="px-4 py-2.5">SKU</th>
+                    <th className="px-4 py-2.5">Quantity</th>
+                    <th className="px-4 py-2.5">Suggest Match</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-orange-500/10 text-xs">
+                <tbody className="divide-y divide-border/40 text-xs">
                   {ambiguousRows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-orange-500/10 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-foreground capitalize">
+                    <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-2.5 font-semibold text-foreground capitalize">
                         {row.row_data.product_name}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-muted-foreground">
+                      <td className="px-4 py-2.5 font-mono text-muted-foreground">
                         {row.row_data.sku || "—"}
                       </td>
-                      <td className="px-5 py-3.5 font-semibold text-foreground">
+                      <td className="px-4 py-2.5 font-semibold text-foreground">
                         {row.row_data.quantity}
                       </td>
-                      <td className="px-5 py-2.5">
+                      <td className="px-4 py-2">
                         <select
                           onChange={(e) => handleResolveAmbiguous(row, e.target.value)}
                           defaultValue=""
-                          className="px-3 py-1.5 border rounded-lg bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          className="w-full max-w-xs h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/20"
                         >
                           <option value="" disabled>Select match candidate...</option>
                           {row.candidates.map((c) => (
@@ -520,62 +501,62 @@ export default function StockAuditScreen() {
 
         {/* SECTION 2: Unmatched items (Create New / Skip) */}
         {unmatchedRows.length > 0 && (
-          <div className="border border-yellow-500/30 rounded-xl overflow-hidden bg-yellow-500/5 shadow-sm animate-in fade-in duration-300">
-            <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-5 py-3.5 flex items-center justify-between">
+          <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
+            <div className="bg-muted/40 border-b border-border/70 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-yellow-500" />
-                <h3 className="font-bold text-yellow-700 dark:text-yellow-400">
+                <Icon icon="solar:danger-triangle-linear" className="h-4 w-4 text-amber-500" />
+                <h3 className="font-bold text-xs text-foreground">
                   Unmatched Rows ({unmatchedRows.length})
                 </h3>
               </div>
-              <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+              <span className="text-xs text-muted-foreground font-medium">
                 Not found in your system. Create new product drafts or exclude.
               </span>
             </div>
             <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-yellow-500/10 text-xs text-muted-foreground font-bold uppercase tracking-wider bg-yellow-500/5">
-                    <th className="px-5 py-3">Product Name in Sheet</th>
-                    <th className="px-5 py-3">SKU</th>
-                    <th className="px-5 py-3">Quantity</th>
-                    <th className="px-5 py-3">Cost Price</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
+                  <tr className="border-b border-border/70 text-muted-foreground font-bold uppercase tracking-wider bg-muted/20">
+                    <th className="px-4 py-2.5">Product Name in Sheet</th>
+                    <th className="px-4 py-2.5">SKU</th>
+                    <th className="px-4 py-2.5">Quantity</th>
+                    <th className="px-4 py-2.5">Cost Price</th>
+                    <th className="px-4 py-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-yellow-500/10 text-xs">
+                <tbody className="divide-y divide-border/40 text-xs">
                   {unmatchedRows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-yellow-500/10 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-foreground capitalize">
+                    <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-2.5 font-semibold text-foreground capitalize">
                         {row.row_data.product_name}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-muted-foreground">
+                      <td className="px-4 py-2.5 font-mono text-muted-foreground">
                         {row.row_data.sku || "—"}
                       </td>
-                      <td className="px-5 py-3.5 font-semibold text-foreground">
+                      <td className="px-4 py-2.5 font-semibold text-foreground">
                         {row.row_data.quantity}
                       </td>
-                      <td className="px-5 py-3.5 font-semibold text-foreground">
+                      <td className="px-4 py-2.5 font-semibold text-foreground">
                         GHS {(row.row_data.cost_price || 0).toFixed(2)}
                       </td>
-                      <td className="px-5 py-2 text-right">
+                      <td className="px-4 py-2 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleOpenAddProduct(row)}
-                            className="h-8 rounded-lg border hover:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 text-xs flex items-center gap-1"
+                            className="h-7 rounded-md border text-xs font-medium flex items-center gap-1 text-foreground hover:bg-muted"
                           >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Icon icon="solar:add-circle-linear" className="h-3.5 w-3.5" />
                             Add as New Product
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveUnmatched(row)}
-                            className="h-8 rounded-lg hover:bg-destructive/10 text-destructive text-xs flex items-center gap-1"
+                            className="h-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs flex items-center gap-1"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Icon icon="solar:trash-bin-trash-linear" className="h-3.5 w-3.5" />
                             Skip
                           </Button>
                         </div>
@@ -589,47 +570,51 @@ export default function StockAuditScreen() {
         )}
 
         {/* SECTION 3: Matched items (Ready to Receive) */}
-        <div className="border border-green-500/30 rounded-xl overflow-hidden bg-background shadow-md">
-          <div className="bg-green-500/15 border-b border-green-500/20 px-5 py-3.5 flex items-center justify-between">
+        <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
+          <div className="bg-muted/40 border-b border-border/70 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <h3 className="font-bold text-green-700 dark:text-green-400">
+              <Icon icon="solar:check-circle-bold" className="h-4 w-4 text-foreground/80" />
+              <h3 className="font-bold text-xs text-foreground">
                 Matched Rows ({matchedRows.length})
               </h3>
             </div>
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               Mapped successfully. Ready to import.
             </span>
           </div>
 
           {matchedRows.length === 0 ? (
-            <div className="text-center py-10 text-sm text-muted-foreground">
+            <div className="text-center py-10 text-xs text-muted-foreground">
               No matched products in shipment. Resolve ambiguous or unmatched items to populate this list.
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b text-xs text-muted-foreground font-bold uppercase tracking-wider bg-muted/20">
-                    <th className="px-4 py-3 w-10 text-center">
-                      {/* Checkbox select all/none logic is handled by individual toggles */}
+                  <tr className="border-b border-border/70 text-muted-foreground font-bold uppercase tracking-wider bg-muted/20">
+                    <th className="px-4 py-2.5 w-10 text-center">
+                      <Checkbox
+                        checked={isAllMatchedChecked ? true : isMatchedIndeterminate ? "indeterminate" : false}
+                        onCheckedChange={(val) => handleToggleAllMatched(!!val)}
+                        aria-label="Select all rows"
+                      />
                     </th>
-                    <th className="px-4 py-3">Product Variant</th>
-                    <th className="px-4 py-3">SKU</th>
-                    <th className="px-4 py-3">Current Stock</th>
-                    <th className="px-4 py-3 w-36">Quantity to Add</th>
-                    <th className="px-4 py-3 w-32">Packaging Tier</th>
-                    <th className="px-4 py-3 w-36">Cost Price</th>
-                    <th className="px-4 py-3">New Total</th>
+                    <th className="px-4 py-2.5">Product Variant</th>
+                    <th className="px-4 py-2.5">SKU</th>
+                    <th className="px-4 py-2.5">Current Stock</th>
+                    <th className="px-4 py-2.5 w-32">Quantity to Add</th>
+                    <th className="px-4 py-2.5 w-36">Packaging Tier</th>
+                    <th className="px-4 py-2.5 w-32 text-right">Cost Price</th>
+                    <th className="px-4 py-2.5 text-right">New Total</th>
                     {trackExpiryEnabled && (
                       <>
-                        <th className="px-4 py-3 w-36">Expiry Date</th>
-                        <th className="px-4 py-3 w-28">Batch Ref</th>
+                        <th className="px-4 py-2.5 w-32">Expiry Date</th>
+                        <th className="px-4 py-2.5 w-28">Batch Ref</th>
                       </>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y text-xs">
+                <tbody className="divide-y divide-border/40 text-xs">
                   {matchedRows.map((row, idx) => {
                     const packagingTiers = getPackagingTiersForVariant(row.variant_id);
                     const unitsMultiplier = row.packaging_tier_id 
@@ -647,40 +632,40 @@ export default function StockAuditScreen() {
                           !row.checked ? "opacity-50 bg-muted/30" : ""
                         }`}
                       >
-                        <td className="px-4 py-3 text-center">
-                          <input
-                            type="checkbox"
+                        <td className="px-4 py-2.5 text-center">
+                          <Checkbox
                             checked={row.checked}
-                            onChange={() => handleToggleChecked(idx)}
-                            className="h-4.5 w-4.5 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                            onCheckedChange={() => handleToggleChecked(idx)}
+                            aria-label={`Select ${row.variant_name}`}
                           />
                         </td>
-                        <td className="px-4 py-3 font-semibold text-foreground">
+                        <td className="px-4 py-2.5 font-semibold text-foreground">
                           <div className="flex items-center gap-2">
                             <span className="capitalize">{row.variant_name}</span>
                             {row.isNewProduct && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted text-foreground border border-border">
                                 New Product
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-mono text-muted-foreground">
+                        <td className="px-4 py-2.5 font-mono text-muted-foreground">
                           {row.sku}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-4 py-2.5 text-muted-foreground">
                           {currentStockNum}
                         </td>
-                        <td className="px-2 py-2">
-                          <Input
+                        <td className="px-2 py-1.5">
+                          <input
                             type="number"
+                            min="0"
                             value={row.quantity_to_add}
                             onChange={(e) => handleQtyChange(idx, e.target.value)}
                             disabled={!row.checked}
-                            className="h-8 rounded-lg text-xs"
+                            className="w-full h-8 px-2 text-center border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15 disabled:opacity-50"
                           />
                         </td>
-                        <td className="px-2 py-2">
+                        <td className="px-2 py-1.5">
                           {row.isNewProduct ? (
                             <span className="capitalize text-muted-foreground px-2">
                               {row.packaging_tier_name} (Base)
@@ -690,7 +675,7 @@ export default function StockAuditScreen() {
                               value={row.packaging_tier_id || ""}
                               onChange={(e) => handleTierChange(idx, e.target.value)}
                               disabled={!row.checked || loadingPOSProducts}
-                              className="w-full h-8 px-2 border rounded-lg bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50"
                             >
                               {packagingTiers.map((t: any) => (
                                 <option key={t.id} value={t.id}>
@@ -703,32 +688,31 @@ export default function StockAuditScreen() {
                             </select>
                           )}
                         </td>
-                        <td className="px-2 py-2">
-                          <div className="relative flex items-center">
-                            <span className="absolute left-2.5 text-muted-foreground text-[10px]">GHS</span>
-                            <Input
-                              type="number"
-                              value={row.cost_price}
-                              onChange={(e) => handleCostChange(idx, e.target.value)}
-                              disabled={!row.checked}
-                              className="h-8 pl-9 rounded-lg text-xs"
-                            />
-                          </div>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={row.cost_price}
+                            onChange={(e) => handleCostChange(idx, e.target.value)}
+                            disabled={!row.checked}
+                            className="w-full h-8 px-2 text-right border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15 disabled:opacity-50"
+                          />
                         </td>
-                        <td className="px-4 py-3 font-semibold text-foreground">
+                        <td className="px-4 py-2.5 font-semibold text-foreground text-right">
                           {newTotal}
                         </td>
                         
                         {trackExpiryEnabled && (
                           <>
-                            <td className="px-2 py-2">
+                            <td className="px-2 py-1.5">
                               {row.track_expiry ? (
-                                <Input
+                                <input
                                   type="date"
                                   value={row.expiry_date || ""}
                                   onChange={(e) => handleExpiryDateChange(idx, e.target.value)}
                                   disabled={!row.checked}
-                                  className="h-8 text-xs p-1 rounded-lg"
+                                  className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50"
                                 />
                               ) : (
                                 <span className="text-[10px] text-muted-foreground italic px-2">
@@ -736,15 +720,15 @@ export default function StockAuditScreen() {
                                 </span>
                               )}
                             </td>
-                            <td className="px-2 py-2">
+                            <td className="px-2 py-1.5">
                               {row.track_expiry ? (
-                                <Input
+                                <input
                                   type="text"
                                   placeholder="Batch #"
                                   value={row.batch_reference || ""}
                                   onChange={(e) => handleBatchRefChange(idx, e.target.value)}
                                   disabled={!row.checked}
-                                  className="h-8 text-xs rounded-lg"
+                                  className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50"
                                 />
                               ) : (
                                 <span className="text-[10px] text-muted-foreground italic px-2">
@@ -765,47 +749,49 @@ export default function StockAuditScreen() {
       </div>
 
       {/* Sticky Bottom Actions Bar */}
-      <div className="absolute bottom-0 left-0 right-0 border-t bg-card/80 backdrop-blur-md px-6 py-4 flex items-center justify-between z-30 shadow-xl">
-        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-card/90 backdrop-blur-md px-6 md:px-10 py-3.5 flex items-center justify-between z-30 shadow-lg">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <div className="text-left">
-              <span className="text-xs text-muted-foreground font-medium block">Checked Rows</span>
-              <span className="text-lg font-bold text-foreground">{summaryMetrics.count} Products</span>
+              <span className="text-[11px] text-muted-foreground font-medium block">Checked Rows</span>
+              <span className="text-base font-bold text-foreground">{summaryMetrics.count} Products</span>
             </div>
-            <div className="h-8 w-[1px] bg-border hidden sm:block" />
+            <div className="h-6 w-[1px] bg-border hidden sm:block" />
             <div className="text-left">
-              <span className="text-xs text-muted-foreground font-medium block">Total Shipment Qty</span>
-              <span className="text-lg font-bold text-foreground">{summaryMetrics.units} Units</span>
+              <span className="text-[11px] text-muted-foreground font-medium block">Total Shipment Qty</span>
+              <span className="text-base font-bold text-foreground">{summaryMetrics.units} Units</span>
             </div>
-            <div className="h-8 w-[1px] bg-border hidden sm:block" />
+            <div className="h-6 w-[1px] bg-border hidden sm:block" />
             <div className="text-left">
-              <span className="text-xs text-muted-foreground font-medium block">Total Value</span>
-              <span className="text-lg font-bold text-primary">GHS {summaryMetrics.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-[11px] text-muted-foreground font-medium block">Total Value</span>
+              <span className="text-base font-bold text-foreground">GHS {summaryMetrics.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-2.5 justify-end">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate("/inventory/products")}
               disabled={isConfirming}
-              className="rounded-xl border h-11 px-6 text-sm"
+              className="border-border h-9 px-5 text-xs md:text-[13px] font-medium"
             >
               Cancel Audit
             </Button>
             <Button
+              size="sm"
               onClick={handleConfirmUpload}
               disabled={isConfirming || summaryMetrics.count === 0}
-              className="rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground min-w-[200px] h-11 px-8 text-sm font-semibold flex items-center justify-center gap-2"
+              className="bg-primary text-primary-foreground min-w-[180px] h-9 px-6 text-xs md:text-[13px] font-semibold flex items-center justify-center gap-1.5"
             >
               {isConfirming ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   <span>Saving Stock...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" />
+                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
                   <span>Confirm & Update Stock</span>
                 </>
               )}
@@ -821,53 +807,53 @@ export default function StockAuditScreen() {
           setIsAddProductOpen(false);
           setSelectedUnmatchedRow(null);
         }}
-        size="2xl"
+        size="xl"
         header={
-          <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500 animate-pulse" />
-              Add Unmatched Product
-            </h2>
-            <p className="text-sm text-muted-foreground font-normal">
+          <div className="pt-2 px-1 border-b border-border/50 pb-3">
+            <div className="flex items-center gap-2">
+              <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground/80" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Add Unmatched Product</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Register this product inside your system. Values will be received locally.
             </p>
           </div>
         }
         body={
-          <form onSubmit={handleAddProductSubmit} className="space-y-5 p-2 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+          <form onSubmit={handleAddProductSubmit} className="space-y-4 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Product Name *
                 </label>
-                <Input
+                <input
                   required
                   value={newProdName}
                   onChange={(e) => setNewProdName(e.target.value)}
-                  className="rounded-xl h-10 text-sm"
+                  className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   SKU (Unique) *
                 </label>
-                <Input
+                <input
                   required
                   value={newProdSku}
                   onChange={(e) => setNewProdSku(e.target.value)}
-                  className="rounded-xl h-10 text-sm font-mono"
+                  className="w-full h-8 px-2.5 font-mono border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Category
                 </label>
                 <select
                   value={newProdCategory}
                   onChange={(e) => setNewProdCategory(e.target.value)}
-                  className="w-full h-10 px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 >
                   <option value="General">General</option>
                   {categories.map((c) => (
@@ -878,78 +864,78 @@ export default function StockAuditScreen() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Base Unit Label
                 </label>
-                <Input
+                <input
                   value={newProdBaseUnit}
                   onChange={(e) => setNewProdBaseUnit(e.target.value)}
                   placeholder="e.g. piece, bottle"
-                  className="rounded-xl h-10 text-sm"
+                  className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Retail Price (Base Unit) *
                 </label>
-                <Input
+                <input
                   type="number"
                   step="0.01"
                   required
                   value={newProdRetailPrice}
                   onChange={(e) => setNewProdRetailPrice(e.target.value)}
                   placeholder="0.00"
-                  className={`rounded-xl h-10 text-sm ${
+                  className={`w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 ${
                     newProdRetailPrice && newProdCostPrice && Number(newProdRetailPrice) < Number(newProdCostPrice)
-                      ? "border-amber-500 bg-amber-500/5 focus-visible:ring-amber-500"
+                      ? "border-amber-500 bg-amber-500/5"
                       : ""
                   }`}
                 />
                 {newProdRetailPrice && newProdCostPrice && Number(newProdRetailPrice) < Number(newProdCostPrice) && (
-                  <span className="text-[10px] text-amber-500 font-medium block mt-1">
+                  <span className="text-[10px] text-amber-500 font-medium block">
                     ⚠️ Retail price is less than cost price (negative margin)
                   </span>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Cost Price (Base Unit)
                 </label>
-                <Input
+                <input
                   type="number"
                   step="0.01"
                   value={newProdCostPrice}
                   onChange={(e) => setNewProdCostPrice(e.target.value)}
                   placeholder="0.00"
-                  className="rounded-xl h-10 text-sm"
+                  className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                   Quantity to Add
                 </label>
-                <Input
+                <input
                   type="number"
                   value={newProdQty}
                   onChange={(e) => setNewProdQty(e.target.value)}
-                  className="rounded-xl h-10 text-sm"
+                  className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                 />
               </div>
             </div>
 
             {/* Expiry inputs inside product creation (conditional on settings) */}
             {trackExpiryEnabled && (
-              <div className="border rounded-2xl p-4 bg-muted/20 space-y-4">
+              <div className="bg-muted/30 rounded-md p-3.5 space-y-3 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-bold text-foreground cursor-pointer" htmlFor="new-expiry-toggle">
+                    <label className="text-xs font-bold text-foreground cursor-pointer" htmlFor="new-expiry-toggle">
                       Track Expiry for Variant
                     </label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Enable batch expiry date warning for this specific item.
                     </p>
                   </div>
@@ -961,28 +947,28 @@ export default function StockAuditScreen() {
                 </div>
 
                 {newProdTrackExpiry && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in slide-in-from-top-1">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Expiry Date
                       </label>
-                      <Input
+                      <input
                         type="date"
                         value={newProdExpiryDate}
                         onChange={(e) => setNewProdExpiryDate(e.target.value)}
-                        className="rounded-xl h-10 text-sm"
+                        className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Batch Reference
                       </label>
-                      <Input
+                      <input
                         type="text"
                         placeholder="e.g. LOT-A"
                         value={newProdBatchRef}
                         onChange={(e) => setNewProdBatchRef(e.target.value)}
-                        className="rounded-xl h-10 text-sm"
+                        className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                       />
                     </div>
                   </div>
@@ -990,19 +976,20 @@ export default function StockAuditScreen() {
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-4 border-t w-full">
+            <div className="flex justify-end gap-2 pt-3 border-t border-border/50 w-full">
               <Button
                 type="button"
                 variant="ghost"
+                size="sm"
                 onClick={() => {
                   setIsAddProductOpen(false);
                   setSelectedUnmatchedRow(null);
                 }}
-                className="rounded-xl"
+                className="rounded-lg text-xs font-medium"
               >
                 Cancel
               </Button>
-              <Button type="submit" className="rounded-xl bg-primary text-primary-foreground">
+              <Button type="submit" size="sm" className="rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
                 Add Product
               </Button>
             </div>
