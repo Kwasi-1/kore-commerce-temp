@@ -23,6 +23,10 @@ export default function PurchaseOrders() {
   // Detail Modal state
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Custom Confirmation Modal states
+  const [poToReceive, setPoToReceive] = useState<any | null>(null);
+  const [poToCancel, setPoToCancel] = useState<any | null>(null);
   const [isReceivingPO, setIsReceivingPO] = useState(false);
   const [isCancellingPO, setIsCancellingPO] = useState(false);
 
@@ -62,16 +66,13 @@ export default function PurchaseOrders() {
     setIsModalOpen(true);
   };
 
-  const handleCancel = async (poId: string, refNumber?: string) => {
-    const confirmMsg = `Are you sure you want to cancel purchase order ${refNumber ? `"${refNumber}"` : ''}? This action cannot be undone.`;
-    if (!window.confirm(confirmMsg)) {
-      return;
-    }
-
+  const handleConfirmCancel = async () => {
+    if (!poToCancel) return;
     setIsCancellingPO(true);
     try {
-      const response = await apiClient.post(`/tenant/purchase-orders/${poId}/cancel`);
+      const response = await apiClient.post(`/tenant/purchase-orders/${poToCancel.id}/cancel`, {});
       toast.success(response.data.success?.message || 'Purchase order cancelled');
+      setPoToCancel(null);
       setIsDetailModalOpen(false);
       setSelectedPO(null);
       fetchPOs();
@@ -83,16 +84,14 @@ export default function PurchaseOrders() {
     }
   };
 
-  const handleReceive = async (poId: string) => {
-    if (!window.confirm('Are you sure you want to mark this PO as received? This will add the items to your inventory stock automatically.')) {
-      return;
-    }
-
+  const handleConfirmReceive = async () => {
+    if (!poToReceive) return;
     setIsReceivingPO(true);
     try {
-      const response = await apiClient.post(`/tenant/purchase-orders/${poId}/receive`);
+      const response = await apiClient.post(`/tenant/purchase-orders/${poToReceive.id}/receive`, {});
       const unitsAdded = response.data.success?.data?.unitsReceived || 0;
       toast.success(`PO Received! ${unitsAdded} units added to stock.`);
+      setPoToReceive(null);
       setIsDetailModalOpen(false);
       setSelectedPO(null);
       fetchPOs();
@@ -176,8 +175,8 @@ export default function PurchaseOrders() {
 
   const handleRowActionClick = (actionKey: string, row: any) => {
     const po = row.__record || purchaseOrders.find((p: any) => p.id === row.id);
-    if (actionKey === 'receive') handleReceive(row.id);
-    if (actionKey === 'cancel') handleCancel(row.id, po?.referenceNumber || po?.reference_number);
+    if (actionKey === 'receive' && po) setPoToReceive(po);
+    if (actionKey === 'cancel' && po) setPoToCancel(po);
     if (actionKey === 'edit' && po) handleEdit(po);
   };
 
@@ -376,7 +375,7 @@ export default function PurchaseOrders() {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => handleCancel(selectedPO.id, selectedPO.referenceNumber || selectedPO.reference_number)}
+                    onClick={() => setPoToCancel(selectedPO)}
                     disabled={isCancellingPO || isReceivingPO}
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5"
                   >
@@ -414,7 +413,7 @@ export default function PurchaseOrders() {
                 {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
                   <Button 
                     size="sm" 
-                    onClick={() => handleReceive(selectedPO.id)}
+                    onClick={() => setPoToReceive(selectedPO)}
                     disabled={isReceivingPO || isCancellingPO}
                     className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
                   >
@@ -427,7 +426,124 @@ export default function PurchaseOrders() {
           ) : null
         }
       />
+
+      {/* ── Confirm Receive Modal ────────────────────────────────────────────── */}
+      <CustomModal
+        isOpen={!!poToReceive}
+        onOpenChange={() => {
+          if (!isReceivingPO) setPoToReceive(null);
+        }}
+        size="sm"
+        header={
+          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2">
+            <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground" />
+            <h3 className="text-sm font-bold text-foreground">Receive Purchase Order?</h3>
+          </div>
+        }
+        body={
+          <div className="py-2 space-y-2 text-xs text-muted-foreground">
+            <p>
+              Are you sure you want to mark <strong className="text-foreground">{poToReceive?.referenceNumber || poToReceive?.reference_number || 'this PO'}</strong> as received?
+            </p>
+            <div className="bg-muted/30 p-2.5 rounded-md border border-border/60 text-[11px] text-muted-foreground">
+              All ordered line items will be added to your inventory automatically, updating current stock levels.
+            </div>
+          </div>
+        }
+        footer={
+          <div className="flex justify-end gap-2 w-full pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setPoToReceive(null)}
+              disabled={isReceivingPO}
+              className="text-xs font-medium"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              onClick={handleConfirmReceive}
+              disabled={isReceivingPO}
+              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[130px] justify-center"
+            >
+              {isReceivingPO ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span>Receiving...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
+                  <span>Confirm & Receive</span>
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      />
+
+      {/* ── Confirm Cancel PO Modal ──────────────────────────────────────────── */}
+      <CustomModal
+        isOpen={!!poToCancel}
+        onOpenChange={() => {
+          if (!isCancellingPO) setPoToCancel(null);
+        }}
+        size="sm"
+        header={
+          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2 text-destructive">
+            <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" />
+            <h3 className="text-sm font-bold text-foreground">Cancel Purchase Order?</h3>
+          </div>
+        }
+        body={
+          <div className="py-2 space-y-1 text-xs text-muted-foreground">
+            <p>
+              Are you sure you want to cancel purchase order <strong className="text-foreground">{poToCancel?.referenceNumber || poToCancel?.reference_number || 'this PO'}</strong>?
+            </p>
+            <p className="text-[11px] text-destructive/80 font-medium">
+              This action cannot be undone.
+            </p>
+          </div>
+        }
+        footer={
+          <div className="flex justify-end gap-2 w-full pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setPoToCancel(null)}
+              disabled={isCancellingPO}
+              className="text-xs font-medium"
+            >
+              Keep Order
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              onClick={handleConfirmCancel}
+              disabled={isCancellingPO}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold flex items-center gap-1.5 min-w-[110px] justify-center"
+            >
+              {isCancellingPO ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span>Cancelling...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
+                  <span>Cancel PO</span>
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      />
     </PageLayout>
   );
 }
+
 
