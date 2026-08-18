@@ -189,7 +189,7 @@ export default function PurchaseOrders() {
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
         placement="right"
         size="2xl"
-        classNames={{ base: "sm:w-[700px] max-w-[95vw]" }}
+        classNames={{ base: "sm:w-[700px] " }}
         header={
           <div className="pt-3 px-2 border-b border-border/70 pb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -214,7 +214,10 @@ export default function PurchaseOrders() {
           setIsDetailModalOpen(false);
           setSelectedPO(null);
         }}
-        size="2xl"
+        size="3xl"
+        classNames={{
+          base: "rounded-xl min-h-[500px] scrollbar-hide"
+        }}
         header={
           <div className="pt-2 px-2 border-b border-border/50 pb-2">
             <div className="flex items-center justify-between gap-2">
@@ -242,7 +245,7 @@ export default function PurchaseOrders() {
           selectedPO && (
             <div className="space-y-4 py-2 text-sm">
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-md bg-muted/20 border border-border/50">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded bg-muted/20 borde border-border/50">
                 <div>
                   <span className="text-[11px] text-muted-foreground block font-medium">Order Date</span>
                   <span className="text-xs font-semibold">
@@ -275,20 +278,20 @@ export default function PurchaseOrders() {
 
               {/* Notes if present */}
               {selectedPO.notes && (
-                <div className="p-2.5 rounded-md bg-muted/10 border border-border/40 text-xs text-muted-foreground">
+                <div className="p-2.5 rounded border border-border text-xs text-muted-foreground">
                   <strong className="text-foreground">Notes:</strong> {selectedPO.notes}
                 </div>
               )}
 
               {/* Items Table */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {/* <h4 className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">
                   Line Items ({selectedPO.items?.length || 0})
-                </h4>
-                <div className="border rounded-md overflow-hidden max-h-[300px] overflow-y-auto">
+                </h4> */}
+                <div className="border rounded overflow-hidden max-h-[300px] overflow-y-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-muted/30 border-b border-border/50 font-semibold text-muted-foreground">
+                      <tr className="bg-inherit border-b border-border/70 font-semibold text-muted-foreground">
                         <th className="p-2.5">Item / Variant</th>
                         <th className="p-2.5">SKU</th>
                         <th className="p-2.5">Tier</th>
@@ -337,32 +340,33 @@ export default function PurchaseOrders() {
                   </table>
                 </div>
               </div>
-
-              {/* Action buttons */}
-              <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsDetailModalOpen(false)}
-                >
-                  Close
-                </Button>
-                {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleReceive(selectedPO.id)}
-                    disabled={isReceivingPO}
-                    className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    {isReceivingPO ? "Receiving..." : "Mark as Received"}
-                  </Button>
-                )}
-              </div>
             </div>
           )
         }
-        footer={null}
+        footer={
+          selectedPO ? (
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/50 w-full">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsDetailModalOpen(false)}
+              >
+                Close
+              </Button>
+              {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
+                <Button 
+                  size="sm" 
+                  onClick={() => handleReceive(selectedPO.id)}
+                  disabled={isReceivingPO}
+                  className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {isReceivingPO ? "Receiving..." : "Mark as Received"}
+                </Button>
+              )}
+            </div>
+          ) : null
+        }
       />
     </PageLayout>
   );

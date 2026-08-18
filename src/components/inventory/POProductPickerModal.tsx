@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Search, Layers, Check, Plus, Package } from 'lucide-react';
 import apiClient from '@/api/client';
 import { CurrencyDisplay } from '@/hooks';
+import { CustomSelectField } from '@/components/shared/text-field';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface PackagingTier {
   id: string;
@@ -44,8 +45,17 @@ export function POProductPickerModal({
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<CatalogVariant[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMap, setSelectedMap] = useState<Record<string, { quantity: number; tier_id: string; cost_price: number }>>({});
+
+  // Debounce search query changes
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (isOpen) {
@@ -103,6 +113,7 @@ export function POProductPickerModal({
     } else {
       setSelectedMap({});
       setSearchQuery('');
+      setDebouncedSearchQuery('');
       setSelectedCategory('all');
     }
   }, [isOpen]);
@@ -116,14 +127,21 @@ export function POProductPickerModal({
     return Array.from(set).sort();
   }, [products]);
 
-  // Filtered products list
+  const categoryOptions = useMemo(() => {
+    return [
+      { label: `All Categories (${products.length})`, value: 'all' },
+      ...categories.map(cat => ({ label: cat, value: cat }))
+    ];
+  }, [categories, products.length]);
+
+  // Filtered products list using debounced query
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesCat = selectedCategory === 'all' || p.category.toLowerCase() === selectedCategory.toLowerCase();
       if (!matchesCat) return false;
 
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
+      if (!debouncedSearchQuery.trim()) return true;
+      const q = debouncedSearchQuery.toLowerCase();
       return (
         p.product_name.toLowerCase().includes(q) ||
         p.variant_name.toLowerCase().includes(q) ||
@@ -131,7 +149,7 @@ export function POProductPickerModal({
         p.category.toLowerCase().includes(q)
       );
     });
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, debouncedSearchQuery]);
 
   const handleToggleSelect = (variant: CatalogVariant) => {
     setSelectedMap(prev => {
@@ -193,55 +211,61 @@ export function POProductPickerModal({
     <CustomModal
       isOpen={isOpen}
       onOpenChange={onClose}
-      size="3xl"
+      size="4xl"
+      classNames={{
+        base: 'min-h-[560px]',
+      }}
       header={
-        <div className="pt-2 px-2 border-b border-border/50 pb-3">
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold">Browse Product Catalogue</h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
+        <div className="pt-2 px-2 border-b border-border/60 pb-3">
+          <h2 className="text-lg font-bold !tracking-tight">Browse Product Catalogue</h2>
+          <p className="text-xs md:text-[13px] text-muted-foreground">
             Search and select multiple items to add to your purchase order.
           </p>
         </div>
       }
       body={
         <div className="space-y-4 py-2">
-          {/* Search & Category Filter */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+          {/* Search & Category Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
                 placeholder="Search products by name, SKU, or attribute..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs rounded-lg"
+                className="w-full h-10 pl-9 pr-3 text-sm hover:bg-muted/30 focus:bg-background border border-border focus:border-primary rounded-lg transition-colors outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-9 px-3 border rounded-lg bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
-            >
-              <option value="all">All Categories ({products.length})</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <div className="w-full sm:w-56 shrink-0">
+              <CustomSelectField
+                // size="sm"
+                options={categoryOptions}
+                value={selectedCategory}
+                labelPlacement='outside'
+                inputProps={{
+                  onSelectionChange: (keys: any) => {
+                    const val = Array.from(keys)[0] as string;
+                    setSelectedCategory(val || 'all');
+                  }
+                }}
+                placeholder="All Categories"
+              />
+            </div>
           </div>
 
           {/* Table of items */}
-          <div className="border rounded-xl overflow-hidden max-h-[380px] overflow-y-auto">
+          <div className="border border-border/60 overflow-hidden max-h-[380px] overflow-y-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-muted/40 border-b border-border/60 font-semibold text-muted-foreground sticky top-0 bg-card z-10">
-                <tr>
+              <thead className="border-b border-border/60 font-semibold text-muted-foreground sticky top-0 bg-card z-10">
+                <tr className="bg-muted/30">
                   <th className="p-3 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={filteredProducts.length > 0 && filteredProducts.every(p => !!selectedMap[p.variant_id])}
-                      onChange={handleSelectAllFiltered}
-                      className="h-4 w-4 rounded accent-primary cursor-pointer"
-                    />
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={filteredProducts.length > 0 && filteredProducts.every(p => !!selectedMap[p.variant_id])}
+                        onCheckedChange={handleSelectAllFiltered}
+                      />
+                    </div>
                   </th>
                   <th className="p-3">Product / Variant</th>
                   <th className="p-3">SKU</th>
@@ -281,12 +305,12 @@ export function POProductPickerModal({
                         }`}
                       >
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleSelect(p)}
-                            className="h-4 w-4 rounded accent-primary cursor-pointer"
-                          />
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => handleToggleSelect(p)}
+                            />
+                          </div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-foreground">{p.variant_name}</div>
@@ -323,16 +347,15 @@ export function POProductPickerModal({
             <strong>{selectedCount}</strong> {selectedCount === 1 ? 'item' : 'items'} selected
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               Cancel
             </Button>
             <Button
               size="sm"
               disabled={selectedCount === 0}
               onClick={handleConfirm}
-              className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5"
+              className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
             >
-              <Plus className="h-4 w-4" />
               Add Selected ({selectedCount})
             </Button>
           </div>
