@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CustomInputTextField, CustomTextareaField } from '@/components/shared/text-field';
-import { Button } from '@nextui-org/react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface SupplierFormProps {
   initialData?: any;
@@ -54,7 +54,7 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full py-4 px-1 space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full pb-4 px-1 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
         <CustomInputTextField
           label="Supplier / Company Name"
@@ -114,16 +114,16 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
 
       <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
         <Button 
-          variant="flat" 
-          onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
+          variant="ghost" 
+          onClick={onCancel}
+          className="font-medium px-6"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
-          isLoading={isLoading}
-          className="bg-primary text-primary-foreground font-bold px-6"
+          disabled={isLoading}
+          className="font-medium px-6"
         >
           {isEditing ? 'Update Supplier' : 'Create Supplier'}
         </Button>

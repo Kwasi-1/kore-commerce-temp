@@ -176,7 +176,7 @@ export default function Suppliers() {
         size="lg"
         classNames={{ base: "sm:w-[500px]" }}
         header={
-          <div className="pt-4 px-2">
+          <div className="pt-3 px-2 pb-2 border-b border-border/80">
             <h2 className="text-xl font-bold">{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</h2>
             <p className="text-sm text-muted-foreground font-normal">Manage supplier contact details.</p>
           </div>
