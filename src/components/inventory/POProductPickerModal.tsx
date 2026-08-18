@@ -234,7 +234,7 @@ export function POProductPickerModal({
                 placeholder="Search products by name, SKU, or attribute..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 text-sm hover:bg-muted/30 focus:bg-background border border-border focus:border-primary rounded-lg transition-colors outline-none text-foreground placeholder:text-muted-foreground"
+                className="w-full h-10 pl-9 pr-3 text-sm bg-inherit hover:bg-muted/30 focus:bg-background border border-border focus:border-primary rounded-lg transition-colors outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div className="w-full sm:w-56 shrink-0">
@@ -254,10 +254,10 @@ export function POProductPickerModal({
             </div>
           </div>
 
-          {/* Table of items */}
-          <div className="border border-border/60 overflow-hidden max-h-[380px] overflow-y-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="border-b border-border/60 font-semibold text-muted-foreground sticky top-0 bg-card z-10">
+          {/* Table of items with responsive columns & smooth horizontal scroll */}
+          <div className="border border-border/60 overflow-x-auto max-h-[380px] overflow-y-auto bg-card">
+            <table className="w-full text-left text-xs border-collapse min-w-[320px] md:min-w-full">
+              <thead className="border-b border-border/60 font-semibold text-muted-foreground sticky top-0 bg-background z-10">
                 <tr className="bg-muted/30">
                   <th className="p-3 w-10 text-center">
                     <div className="flex items-center justify-center">
@@ -268,10 +268,10 @@ export function POProductPickerModal({
                     </div>
                   </th>
                   <th className="p-3">Product / Variant</th>
-                  <th className="p-3">SKU</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3 text-center">Current Stock</th>
-                  <th className="p-3">Default Unit / Tier</th>
+                  <th className="p-3 hidden md:table-cell">SKU</th>
+                  <th className="p-3 hidden sm:table-cell">Category</th>
+                  <th className="p-3 text-center">Stock</th>
+                  <th className="p-3 hidden lg:table-cell">Default Unit / Tier</th>
                   <th className="p-3 text-right">Cost Price</th>
                 </tr>
               </thead>
@@ -313,15 +313,27 @@ export function POProductPickerModal({
                           </div>
                         </td>
                         <td className="p-3">
-                          <div className="font-semibold text-foreground">{p.variant_name}</div>
-                          {isAlreadyInPO && (
-                            <span className="text-[10px] text-amber-500 font-medium">Already in order</span>
-                          )}
+                          <div className="font-semibold text-foreground text-xs leading-snug">{p.variant_name}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            {p.category && (
+                              <span className="sm:hidden text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded font-medium">
+                                {p.category}
+                              </span>
+                            )}
+                            {isAlreadyInPO && (
+                              <span className="text-[10px] text-amber-500 font-medium">Already in order</span>
+                            )}
+                          </div>
                         </td>
-                        <td className="p-3 font-mono text-muted-foreground">{p.sku}</td>
-                        <td className="p-3 text-muted-foreground">{p.category}</td>
-                        <td className="p-3 text-center font-medium">{p.current_stock}</td>
-                        <td className="p-3 text-muted-foreground">
+                        <td className="p-3 font-mono text-muted-foreground hidden md:table-cell">{p.sku}</td>
+                        <td className="p-3 text-muted-foreground hidden sm:table-cell">{p.category}</td>
+                        <td className="p-3 text-center font-medium">
+                          <span>{p.current_stock}</span>
+                          <span className="lg:hidden text-[10px] text-muted-foreground block font-normal">
+                            {p.default_tier.name}
+                          </span>
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell">
                           {p.default_tier.name}
                           {p.default_tier.units_per_tier > 1 && (
                             <span className="text-[10px] text-muted-foreground ml-1">
@@ -329,7 +341,7 @@ export function POProductPickerModal({
                             </span>
                           )}
                         </td>
-                        <td className="p-3 text-right font-medium text-foreground">
+                        <td className="p-3 text-right font-medium text-foreground whitespace-nowrap">
                           <CurrencyDisplay amount={p.cost_price} showStyling={false} />
                         </td>
                       </tr>
@@ -347,14 +359,14 @@ export function POProductPickerModal({
             <strong>{selectedCount}</strong> {selectedCount === 1 ? 'item' : 'items'} selected
           </span>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} className='hidden md:flex'>
               Cancel
             </Button>
             <Button
               size="sm"
               disabled={selectedCount === 0}
               onClick={handleConfirm}
-              className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
+              className="bg-primary text-xs md:text-sm text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
             >
               Add Selected ({selectedCount})
             </Button>

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
+import { Icon } from '@iconify/react/dist/iconify.js';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
@@ -118,52 +118,51 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
   const handleParseAndImport = async () => {
     if (!file) {
       toast.error('Please select a file to import.');
-      return;
-    }
+    } else {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setIsPending(true);
-    try {
-      const response = await apiClient.post('/tenant/stock/parse-upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const data = response.data.success?.data;
-      if (data && data.matched) {
-        const matchedItems: POImportedItem[] = (data.matched || []).map((m: any) => {
-          return {
-            variant_id: m.variant_id,
-            packaging_tier_id: m.packaging_tier_id || '',
-            product_name: m.variant_name || m.row_data?.product_name || 'Product',
-            variant_label: m.sku ? `SKU: ${m.sku}` : '',
-            tier_name: m.packaging_tier_name || 'Unit',
-            tier_units_per_tier: 1,
-            quantity: Number(m.quantity_to_add || m.row_data?.quantity || 1),
-            cost_price: Number(m.cost_price ?? m.row_data?.cost_price ?? 0)
-          };
+      setIsPending(true);
+      try {
+        const response = await apiClient.post('/tenant/stock/parse-upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
 
-        if (matchedItems.length === 0) {
-          toast.error('No matching items with quantities found in the uploaded file.');
-          return;
-        }
+        const data = response.data.success?.data;
+        if (data && data.matched) {
+          const matchedItems: POImportedItem[] = (data.matched || []).map((m: any) => {
+            return {
+              variant_id: m.variant_id,
+              packaging_tier_id: m.packaging_tier_id || '',
+              product_name: m.variant_name || m.row_data?.product_name || 'Product',
+              variant_label: m.sku ? `SKU: ${m.sku}` : '',
+              tier_name: m.packaging_tier_name || 'Unit',
+              tier_units_per_tier: 1,
+              quantity: Number(m.quantity_to_add || m.row_data?.quantity || 1),
+              cost_price: Number(m.cost_price ?? m.row_data?.cost_price ?? 0)
+            };
+          });
 
-        onImportItems(matchedItems);
-        toast.success(`Successfully imported ${matchedItems.length} items into order!`);
-        handleClose();
-      } else {
-        toast.error('Failed to parse file. Please verify column headers.');
+          if (matchedItems.length === 0) {
+            toast.error('No matching items with quantities found in the uploaded file.');
+            return;
+          }
+
+          onImportItems(matchedItems);
+          toast.success(`Successfully imported ${matchedItems.length} items into order!`);
+          handleClose();
+        } else {
+          toast.error('Failed to parse file. Please verify column headers.');
+        }
+      } catch (error: any) {
+        console.error('File parse error:', error);
+        const errMsg = error.response?.data?.error?.message || 'Failed to parse spreadsheet file';
+        toast.error(errMsg);
+      } finally {
+        setIsPending(false);
       }
-    } catch (error: any) {
-      console.error('File parse error:', error);
-      const errMsg = error.response?.data?.error?.message || 'Failed to parse spreadsheet file';
-      toast.error(errMsg);
-    } finally {
-      setIsPending(false);
     }
   };
 
@@ -173,12 +172,12 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
       onOpenChange={handleClose}
       size="xl"
       header={
-        <div className="pt-2 px-2 border-b border-border/50 pb-3">
+        <div className="pt-2 px-1 border-b border-border/50 pb-3">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold">Import Line Items from Spreadsheet</h2>
+            <Icon icon="solar:file-spreadsheet-linear" className="h-5 w-5 text-foreground/80" />
+            <h2 className="text-base sm:text-lg font-bold text-foreground">Import Line Items from Spreadsheet</h2>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Upload your supplier CSV or Excel file to populate order line items automatically.
           </p>
         </div>
@@ -191,10 +190,10 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
               isDragging
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/10'
+                ? 'border-foreground/40 bg-muted/30'
+                : 'border-border/80 bg-muted/10 hover:border-foreground/30 hover:bg-muted/20'
             }`}
           >
             <input
@@ -206,15 +205,18 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
               disabled={isPending}
             />
 
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary">
-              <Upload className="h-6 w-6" />
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+              <Icon icon="solar:cloud-upload-linear" className="h-6 w-6 text-foreground/70" />
             </div>
 
             {file ? (
               <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-foreground truncate max-w-xs">
-                  {file.name}
-                </p>
+                <div className="flex items-center justify-center gap-1.5">
+                  <Icon icon="solar:document-text-bold" className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-sm font-semibold text-foreground truncate max-w-xs">
+                    {file.name}
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {(file.size / 1024).toFixed(1)} KB · Click to change file
                 </p>
@@ -232,7 +234,7 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
           </div>
 
           {/* Download Template Bar */}
-          <div className="p-3.5 rounded-xl border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-3.5 rounded-xl border border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <h4 className="text-xs font-bold text-foreground">Need a template?</h4>
               <p className="text-[11px] text-muted-foreground">
@@ -245,26 +247,26 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
                 size="sm"
                 type="button"
                 onClick={downloadBlankTemplate}
-                className="rounded-lg border text-xs h-8 text-muted-foreground hover:text-foreground"
+                className="rounded-lg border text-xs h-8 text-muted-foreground hover:text-foreground font-medium"
               >
                 Blank
               </Button>
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 type="button"
                 onClick={downloadCatalogueTemplate}
                 disabled={isExportingTemplate}
-                className="rounded-lg text-xs h-8 font-semibold flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20"
+                className="rounded-lg text-xs h-8 font-medium flex items-center gap-1.5 text-foreground hover:bg-muted"
               >
                 {isExportingTemplate ? (
                   <>
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                     <span>Generating...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="h-3.5 w-3.5" />
+                    <Icon icon="solar:download-linear" className="h-3.5 w-3.5" />
                     <span>Catalogue Template</span>
                   </>
                 )}
@@ -275,7 +277,7 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
       }
       footer={
         <div className="flex justify-end gap-2 w-full pt-2">
-          <Button variant="outline" size="sm" onClick={handleClose} disabled={isPending}>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
             Cancel
           </Button>
           <Button
@@ -286,12 +288,12 @@ export function POImportCSVModal({ isOpen, onClose, onImportItems }: POImportCSV
           >
             {isPending ? (
               <>
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 <span>Importing...</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-4 w-4" />
+                <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
                 <span>Import Items</span>
               </>
             )}

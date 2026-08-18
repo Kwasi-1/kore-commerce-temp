@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Switch } from '@nextui-org/react';
-import { Trash2, CreditCard, Calendar, Package, Upload, PackageCheck, RefreshCw } from 'lucide-react';
+import { CreditCard, Calendar, Package, Upload, PackageCheck, RefreshCw } from 'lucide-react';
+import { Icon } from '@iconify/react/dist/iconify.js';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -15,6 +16,16 @@ const generatePoReference = () => {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   return `PO-${dateStr}-${randomSuffix}`;
+};
+
+const getCleanVariantLabel = (productName: string, variantLabel?: string) => {
+  if (!variantLabel) return null;
+  let clean = variantLabel.trim();
+  if (clean.toLowerCase().startsWith(productName.toLowerCase())) {
+    clean = clean.slice(productName.length).trim();
+  }
+  clean = clean.replace(/^[(\-\s/_]+|[)\-\s/_]+$/g, '').trim();
+  return clean || null;
 };
 
 interface PurchaseOrderFormProps {
@@ -279,10 +290,10 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
           </div>
         }
         body={
-          <form id="purchase-order-form" onSubmit={handleSubmit} className="flex flex-col h-full space-y-5 px-1 py-1">
+          <form id="purchase-order-form" onSubmit={handleSubmit} className="flex flex-col h-full space-y-5 px-0.5 md:px-2 py-1">
             <div className="space-y-4">
               {/* ── PO Details ─────────────────────────────────────────────── */}
-              <div className="space-y-3">
+              <div className={`${items.length === 0 ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}`}>
                 <CustomSelectField
                   label="Supplier"
                   options={suppliers}
@@ -314,7 +325,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
               </div>
 
               {/* ── Payment Terms / Credit Purchase (Monochromatic & Clean) ── */}
-              <div className="border border-border rounded-xl p-3.5 bg-card space-y-3 transition-colors">
+              <div className="bg-muted/30 rounded-md p-3.5 space-y-3 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
@@ -389,7 +400,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
                   </div>
                 </div>
 
-                {/* Items Table / Minimal Empty State */}
+                {/* Items Table / Responsive Mobile Cards / Minimal Empty State */}
                 {items.length === 0 ? (
                   <div className="py-10 px-4 border border-dashed border-border/70 rounded-lg flex flex-col items-center justify-center text-center gap-2 bg-muted/5">
                     <Package className="h-7 w-7 text-muted-foreground/50" />
@@ -399,9 +410,10 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
                   </div>
                 ) : (
                   <div className="border border-border/70 overflow-hidden">
-                    <div className="max-h-[300px] overflow-y-auto">
+                    {/* Desktop View Table */}
+                    <div className="hidden md:block max-h-[300px] overflow-y-auto">
                       <table className="w-full text-xs text-left border-collapse">
-                        <thead className="border-b border-border/70 font-semibold text-muted-foreground sticky top-0 bg-card z-10">
+                        <thead className="border-b border-border/70 font-semibold text-muted-foreground sticky top-0 bg-background z-10">
                           <tr className='bg-muted/30'>
                             <th className="p-2.5">Product / Variant</th>
                             <th className="p-2.5 w-28">Tier</th>
@@ -412,20 +424,131 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/40">
-                          {items.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-muted/10">
-                              <td className="p-2.5">
-                                <div className="font-semibold text-foreground">{item.product_name}</div>
-                                {item.variant_label && (
-                                  <div className="text-[11px] text-muted-foreground">{item.variant_label}</div>
+                          {items.map((item, idx) => {
+                            const cleanVariant = getCleanVariantLabel(item.product_name, item.variant_label);
+                            return (
+                              <tr key={idx} className="hover:bg-muted/10">
+                                <td className="p-2.5">
+                                  <div className="font-semibold text-foreground">{item.product_name}</div>
+                                  {cleanVariant && (
+                                    <div className="text-[11px] text-muted-foreground font-medium">{cleanVariant}</div>
+                                  )}
+                                </td>
+                                <td className="p-2">
+                                  {item.available_tiers && item.available_tiers.length > 1 ? (
+                                    <select
+                                      value={item.packaging_tier_id}
+                                      onChange={(e) => handleUpdateItemTier(idx, e.target.value)}
+                                      className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
+                                    >
+                                      {item.available_tiers.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                          {t.name} (×{t.units_per_tier})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground font-medium px-1">
+                                      {item.tier_name}
+                                      {item.tier_units_per_tier > 1 && (
+                                        <span className="ml-1 text-muted-foreground/60 font-mono">
+                                          (×{item.tier_units_per_tier})
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={item.quantity}
+                                    onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
+                                    className="w-full h-8 px-2 text-center border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
+                                  />
+                                </td>
+                                <td className="p-2 text-right">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.cost_price}
+                                    onChange={(e) => handleUpdateItemCost(idx, e.target.value)}
+                                    className="w-full h-8 px-2 text-right border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
+                                  />
+                                </td>
+                                <td className="p-2.5 text-right font-semibold text-foreground whitespace-nowrap">
+                                  <CurrencyDisplay
+                                    amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)}
+                                    showStyling={false}
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeLineItem(idx)}
+                                    className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                                    title="Remove item"
+                                  >
+                                    <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile View Card List */}
+                    <div className="block md:hidden divide-y divide-border/60 max-h-[320px] overflow-y-auto">
+                      {items.map((item, idx) => {
+                        const cleanVariant = getCleanVariantLabel(item.product_name, item.variant_label);
+                        return (
+                          <div key={idx} className="p-3 space-y-2 bg-card hover:bg-muted/10 transition-colors">
+                            {/* Row 1: Product info + Subtotal + Delete */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-foreground text-xs leading-snug truncate">
+                                  {item.product_name}
+                                </div>
+                                {cleanVariant && (
+                                  <div className="text-[11px] text-muted-foreground font-medium truncate">
+                                    {cleanVariant}
+                                  </div>
                                 )}
-                              </td>
-                              <td className="p-2">
+                              </div>
+
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                <span className="font-bold text-foreground text-xs">
+                                  <CurrencyDisplay
+                                    amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)}
+                                    showStyling={false}
+                                  />
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeLineItem(idx)}
+                                  className="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors"
+                                  title="Remove item"
+                                >
+                                  <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Row 2: Inputs Grid (Packaging, Qty, Cost) */}
+                            <div className="grid grid-cols-12 gap-2 items-end pt-1">
+                              {/* Packaging Tier */}
+                              <div className="col-span-5">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">
+                                  Tier
+                                </label>
                                 {item.available_tiers && item.available_tiers.length > 1 ? (
                                   <select
                                     value={item.packaging_tier_id}
                                     onChange={(e) => handleUpdateItemTier(idx, e.target.value)}
-                                    className="w-full h-8 px-2 border rounded-md bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                    className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                                   >
                                     {item.available_tiers.map((t) => (
                                       <option key={t.id} value={t.id}>
@@ -434,54 +557,49 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
                                     ))}
                                   </select>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground font-medium px-1">
+                                  <div className="h-8 flex items-center px-2 border border-border/70 rounded-md bg-muted/20 text-xs text-muted-foreground font-medium truncate">
                                     {item.tier_name}
                                     {item.tier_units_per_tier > 1 && (
-                                      <span className="ml-1 text-muted-foreground/60 font-mono">
+                                      <span className="ml-1 text-muted-foreground/60 font-mono text-[10px]">
                                         (×{item.tier_units_per_tier})
                                       </span>
                                     )}
-                                  </span>
+                                  </div>
                                 )}
-                              </td>
-                              <td className="p-2 text-center">
-                                <Input
+                              </div>
+
+                              {/* Qty */}
+                              <div className="col-span-3">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1 text-center">
+                                  Qty
+                                </label>
+                                <input
                                   type="number"
                                   min="1"
                                   value={item.quantity}
                                   onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
-                                  className="h-8 text-center text-xs font-semibold px-1 rounded-md"
+                                  className="w-full h-8 px-1 text-center border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
                                 />
-                              </td>
-                              <td className="p-2 text-right">
-                                <Input
+                              </div>
+
+                              {/* Cost Price */}
+                              <div className="col-span-4">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1 text-right">
+                                  Cost
+                                </label>
+                                <input
                                   type="number"
                                   min="0"
                                   step="0.01"
                                   value={item.cost_price}
                                   onChange={(e) => handleUpdateItemCost(idx, e.target.value)}
-                                  className="h-8 text-right text-xs font-semibold px-1 rounded-md"
+                                  className="w-full h-8 px-2 text-right border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
                                 />
-                              </td>
-                              <td className="p-2.5 text-right font-semibold text-foreground">
-                                <CurrencyDisplay
-                                  amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)}
-                                  showStyling={false}
-                                />
-                              </td>
-                              <td className="p-2 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeLineItem(idx)}
-                                  className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Table Footer Totals */}
