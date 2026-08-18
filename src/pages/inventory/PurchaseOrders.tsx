@@ -1,26 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
-import CustomModal from '@/components/modals/modal';
 import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
+import PurchaseOrderDetailModal from '@/components/inventory/PurchaseOrderDetailModal';
+import PurchaseOrderReceiveModal, { ReceiveItemRow } from '@/components/inventory/PurchaseOrderReceiveModal';
+import PurchaseOrderCancelModal from '@/components/inventory/PurchaseOrderCancelModal';
+import PurchaseOrderCloseEarlyModal from '@/components/inventory/PurchaseOrderCloseEarlyModal';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-interface ReceiveItemRow {
-  variant_id: string;
-  packaging_tier_id: string;
-  variant_name: string;
-  variant_sku: string;
-  tier_name: string;
-  quantity_ordered: number;
-  quantity_already_received: number;
-  quantity_to_receive: number;
-  cost_price_per_tier: number;
-}
 
 export default function PurchaseOrders() {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
@@ -36,7 +25,6 @@ export default function PurchaseOrders() {
   // Detail Modal state
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailActiveTab, setDetailActiveTab] = useState<'items' | 'receipts'>('items');
 
   // Custom Confirmation Modal states
   const [poToReceive, setPoToReceive] = useState<any | null>(null);
@@ -100,6 +88,7 @@ export default function PurchaseOrders() {
         tier_name: item.packaging_tier_name || item.packagingTierName || 'Unit',
         quantity_ordered: qtyOrd,
         quantity_already_received: qtyAlready,
+        quantity_remaining: remaining,
         quantity_to_receive: remaining,
         cost_price_per_tier: cost,
       };
@@ -110,11 +99,17 @@ export default function PurchaseOrders() {
   };
 
   const handleReceiveQtyChange = (index: number, valStr: string) => {
-    const val = parseInt(valStr, 10);
+    const rawVal = parseInt(valStr, 10);
     setReceiveRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, quantity_to_receive: isNaN(val) || val < 0 ? 0 : val } : row
-      )
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        const maxAllowed = Math.max(0, row.quantity_ordered - row.quantity_already_received);
+        if (!isNaN(rawVal) && rawVal > maxAllowed) {
+          toast.error(`Quantity cannot exceed remaining (${maxAllowed})`, { id: 'po-max-qty' });
+        }
+        const clampedVal = isNaN(rawVal) ? 0 : Math.min(maxAllowed, Math.max(0, rawVal));
+        return { ...row, quantity_to_receive: clampedVal };
+      })
     );
   };
 
@@ -310,20 +305,12 @@ export default function PurchaseOrders() {
     const found = purchaseOrders.find((p: any) => p.id === poId || p.id === poId?.toString());
     if (found) {
       setSelectedPO(found);
-      setDetailActiveTab('items');
       setIsDetailModalOpen(true);
     } else if (keyOrRow?.__record) {
       setSelectedPO(keyOrRow.__record);
-      setDetailActiveTab('items');
       setIsDetailModalOpen(true);
     }
   };
-
-  const totalUnitsReceiving = receiveRows.reduce((sum, r) => sum + (Number(r.quantity_to_receive) || 0), 0);
-  const totalValueReceiving = receiveRows.reduce(
-    (sum, r) => sum + (Number(r.quantity_to_receive) || 0) * (Number(r.cost_price_per_tier) || 0),
-    0
-  );
 
   return (
     <PageLayout title="Purchase Orders" constrainHeight={true}>
@@ -370,641 +357,55 @@ export default function PurchaseOrders() {
       />
 
       {/* PO Detail View Modal */}
-      <CustomModal
+      <PurchaseOrderDetailModal
         isOpen={isDetailModalOpen}
-        onOpenChange={() => {
+        onClose={() => {
           setIsDetailModalOpen(false);
           setSelectedPO(null);
-          setDetailActiveTab('items');
         }}
-        size="3xl"
-        classNames={{
-          base: "rounded-xl min-h-[520px] scrollbar-hide"
-        }}
-        header={
-          <div className="pt-2 px-2 border-b border-border/50 pb-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                {selectedPO?.referenceNumber || selectedPO?.reference_number || "Purchase Order"}
-              </h2>
-              {selectedPO && (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold capitalize ${
-                  selectedPO.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30'
-                  : selectedPO.status === 'partially_received' ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/30'
-                  : selectedPO.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
-                  : selectedPO.status === 'draft' ? 'text-muted-foreground bg-muted'
-                  : 'text-destructive bg-destructive/5'
-                }`}>
-                  {selectedPO.status === 'partially_received' ? 'Partially Received' : selectedPO.status}
-                </span>
-              )}
-            </div>
-            <p className="text-xs md:text-[13px] text-muted-foreground font-normal">
-              Supplier: <strong className="text-foreground">{selectedPO?.supplierName || (selectedPO?.supplier ? (typeof selectedPO.supplier === 'object' ? selectedPO.supplier.name : selectedPO.supplier) : 'Unknown')}</strong>
-            </p>
-          </div>
-        }
-        body={
-          selectedPO && (
-            <div className="space-y-4 py-2 text-sm">
-              {/* Metadata Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded bg-muted/20 border border-border/40">
-                <div>
-                  <span className="text-[11px] text-muted-foreground block font-medium uppercase !tracking-wider">Order Date</span>
-                  <span className="text-xs font-semibold text-foreground mt-0.5 block">
-                    {selectedPO.orderDate || selectedPO.order_date || selectedPO.dateCreated || selectedPO.date_created
-                      ? new Date(selectedPO.orderDate || selectedPO.order_date || selectedPO.dateCreated || selectedPO.date_created).toLocaleDateString()
-                      : "—"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-muted-foreground block font-medium uppercase !tracking-wider">Payment Type</span>
-                  <span className="text-xs font-semibold text-foreground mt-0.5 block">
-                    {selectedPO.isCreditPurchase || selectedPO.is_credit_purchase ? "Credit" : "Cash"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-muted-foreground block font-medium uppercase !tracking-wider">Credit Due Date</span>
-                  <span className="text-xs font-semibold text-foreground mt-0.5 block">
-                    {selectedPO.creditDueDate || selectedPO.credit_due_date
-                      ? new Date(selectedPO.creditDueDate || selectedPO.credit_due_date).toLocaleDateString()
-                      : "—"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-muted-foreground block font-medium uppercase !tracking-wider">Total Amount</span>
-                  <span className="text-xs font-bold text-foreground mt-0.5 block">
-                    <CurrencyDisplay amount={Number(selectedPO.totalAmount ?? selectedPO.total_amount ?? 0)} showStyling={false} />
-                  </span>
-                </div>
-              </div>
-
-              {/* Segmented Tabs Bar */}
-              <div className="flex items-center p-1 bg-muted/40 dark:bg-muted/20 rounded-md border border-border/50 gap-1 w-fit">
-                <button
-                  type="button"
-                  onClick={() => setDetailActiveTab('items')}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${
-                    detailActiveTab === 'items'
-                      ? 'bg-background text-foreground shadow-xs border border-border/50'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon icon="solar:box-minimalistic-linear" className="h-4 w-4 text-muted-foreground" />
-                  <span>Line Items & Progress</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    detailActiveTab === 'items'
-                      ? 'bg-primary/20 text-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {selectedPO.items?.length || 0}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDetailActiveTab('receipts')}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${
-                    detailActiveTab === 'receipts'
-                      ? 'bg-background text-foreground shadow-xs border border-border/50'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon icon="solar:history-linear" className="h-4 w-4 text-muted-foreground" />
-                  <span>Delivery Receipts</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    detailActiveTab === 'receipts'
-                      ? 'bg-primary/20 text-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {selectedPO.receipts?.length || 0}
-                  </span>
-                </button>
-              </div>
-
-              {/* TAB 1: Line Items */}
-              {detailActiveTab === 'items' && (
-                <div className="space-y-3">
-                  <div className="border border-border/70 overflow-hidden max-h-[320px] overflow-y-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-border/70 text-muted-foreground font-semibold text-[11px] uppercase !tracking-wider">
-                          <th className="p-3 !tracking-wide">Item / Variant</th>
-                          <th className="p-3 !tracking-wide">SKU</th>
-                          <th className="p-3 !tracking-wide">Tier</th>
-                          <th className="p-3 !tracking-wide text-center">Ordered</th>
-                          <th className="p-3 !tracking-wide text-center">Fulfillment</th>
-                          <th className="p-3 !tracking-wide text-right">Cost</th>
-                          <th className="p-3 !tracking-wide text-right">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40">
-                        {(selectedPO.items || []).map((item: any, i: number) => {
-                          const cost = typeof item.cost_price_per_tier === 'object' 
-                            ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
-                            : Number(item.cost_price_per_tier || 0);
-                          const sub = typeof item.subtotal === 'object'
-                            ? Number(item.subtotal?.parsedValue ?? item.subtotal?.source ?? 0)
-                            : Number(item.subtotal || 0);
-                          const qtyOrd = Number(item.quantity_ordered ?? item.quantityOrdered ?? 0);
-                          const qtyRec = Number(item.quantity_received ?? item.quantityReceived ?? 0);
-                          const pct = qtyOrd > 0 ? Math.min(100, Math.round((qtyRec / qtyOrd) * 100)) : 0;
-                          const isFullyReceived = qtyRec >= qtyOrd && qtyOrd > 0;
-                          const isPartiallyReceived = qtyRec > 0 && qtyRec < qtyOrd;
-
-                          return (
-                            <tr key={i} className="hover:bg-muted/10 transition-colors">
-                              <td className="p-2.5 font-medium text-foreground capitalize">
-                                {item.variant_name || item.variantName || "Unknown Variant"}
-                              </td>
-                              <td className="p-3 font-mono text-muted-foreground">
-                                <span className="">
-                                  {item.variant_sku || item.variantSku || "—"}
-                                </span>
-                              </td>
-                              <td className="p-3 text-muted-foreground">
-                                {item.packaging_tier_name || item.packagingTierName || "Unit"}
-                              </td>
-                              <td className="p-3 text-center font-semibold text-foreground">
-                                {qtyOrd}
-                              </td>
-                              <td className="p-3 text-center">
-                                <div className="space-y-1.5 inline-block w-28 text-center">
-                                  <div className="flex items-center justify-between text-[11px] font-semibold">
-                                    <span className={isFullyReceived ? 'text-emerald-600 dark:text-emerald-400' : isPartiallyReceived ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
-                                      {qtyRec} / {qtyOrd}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground font-medium">
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                  <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden border border-border/30">
-                                    <div
-                                      className={`h-full rounded-full transition-all duration-300 ${
-                                        isFullyReceived
-                                          ? 'bg-emerald-500'
-                                          : isPartiallyReceived
-                                          ? 'bg-amber-500'
-                                          : 'bg-transparent'
-                                      }`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-3 text-right text-muted-foreground font-medium">
-                                <CurrencyDisplay amount={cost} showStyling={false} />
-                              </td>
-                              <td className="p-3 text-right font-semibold text-foreground">
-                                <CurrencyDisplay amount={sub} showStyling={false} />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {selectedPO.notes && (
-                    <div className="p-3 rounded border border-border/60 bg-muted/10 text-xs text-muted-foreground">
-                      <strong className="text-foreground">Notes:</strong> {selectedPO.notes}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB 2: Delivery Receipts History */}
-              {detailActiveTab === 'receipts' && (
-                <div className="space-y-3">
-                  {(!selectedPO.receipts || selectedPO.receipts.length === 0) ? (
-                    <div className="text-center py-10 text-muted-foreground text-xs space-y-2 border border-dashed border-border/70 rounded-xl">
-                      <Icon icon="solar:box-minimalistic-linear" className="h-9 w-9 mx-auto opacity-40 text-muted-foreground" />
-                      <p className="font-semibold text-foreground text-sm">No Delivery Receipts Yet</p>
-                      <p className="text-xs md:text-[13px] max-w-sm mx-auto">When stock items are received, timestamped intake audit records will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
-                      {selectedPO.receipts.map((rcv: any, rIdx: number) => (
-                        <div key={rIdx} className="border border-border/70 rounded-xl p-3.5 space-y-3 bg-card/60 shadow-xs">
-                          {/* Receipt Card Header */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2.5">
-                            <div className="flex items-center gap-2.5">
-                              <span className="font-mono text-[11px] font-bold text-foreground bg-muted/50 px-2.5 py-1 rounded border border-border/60">
-                                {rcv.receiptNumber || `Receipt #${rIdx + 1}`}
-                              </span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                <Icon icon="solar:calendar-linear" className="h-3.5 w-3.5" />
-                                {rcv.dateReceived ? new Date(rcv.dateReceived).toLocaleString() : '—'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs">
-                              {rcv.receivedByName && (
-                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                  <Icon icon="solar:user-circle-linear" className="h-3.5 w-3.5" />
-                                  <span>{rcv.receivedByName}</span>
-                                </span>
-                              )}
-                              <span className="text-[11px] text-muted-foreground">
-                                Units: <strong className="text-foreground">{rcv.totalUnitsReceived}</strong>
-                              </span>
-                              <span className="font-bold text-foreground">
-                                <CurrencyDisplay amount={Number(rcv.totalAmountReceived || 0)} showStyling={false} />
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Items in this Receipt */}
-                          <div className="bg-muted/15 rounded-lg border border-border/40 divide-y divide-border/30 px-3 py-0.5 text-xs">
-                            {(rcv.items || []).map((ritem: any, itemIdx: number) => (
-                              <div key={itemIdx} className="py-2 flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="font-medium text-foreground capitalize truncate">
-                                    {ritem.variant_name || ritem.variantName || 'Item'}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
-                                    {ritem.variant_sku || ritem.variantSku || '—'}
-                                  </span>
-                                  <span className="text-[11px] text-muted-foreground">
-                                    ({ritem.packaging_tier_name || ritem.packagingTierName || 'Unit'})
-                                  </span>
-                                </div>
-                                <div className="text-right flex items-center gap-3 shrink-0">
-                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded text-[11px] border-emerald-200/50 dark:border-emerald-800/30">
-                                    +{ritem.quantity_received} units
-                                  </span>
-                                  <span className="font-semibold text-foreground text-xs min-w-[70px] text-right">
-                                    <CurrencyDisplay amount={Number(ritem.subtotal || 0)} showStyling={false} />
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        }
-        footer={
-          selectedPO ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50 w-full">
-              <div className="flex items-center gap-2">
-                {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setPoToCancel(selectedPO)}
-                    disabled={isCancellingPO || isReceivingPO || isClosingPO}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5"
-                  >
-                    <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
-                    {isCancellingPO ? "Cancelling..." : "Cancel PO"}
-                  </Button>
-                )}
-                {selectedPO.status === 'partially_received' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setPoToCloseEarly(selectedPO)}
-                    disabled={isCancellingPO || isReceivingPO || isClosingPO}
-                    className="text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1.5"
-                    title="Close PO early if supplier will not deliver remaining items"
-                  >
-                    <Icon icon="solar:check-read-linear" className="h-4 w-4" />
-                    Close Short
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    setIsDetailModalOpen(false);
-                    setSelectedPO(null);
-                  }}
-                  className="text-xs font-medium"
-                >
-                  Close
-                </Button>
-
-                {selectedPO.status === 'draft' && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleEdit(selectedPO)}
-                    className="text-xs font-semibold flex items-center gap-1.5"
-                  >
-                    <Icon icon="solar:pen-linear" className="h-3.5 w-3.5" />
-                    Edit Draft
-                  </Button>
-                )}
-
-                {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleOpenReceiveModal(selectedPO)}
-                    disabled={isReceivingPO || isCancellingPO || isClosingPO}
-                    className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
-                  >
-                    <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                    {selectedPO.status === 'partially_received' ? "Receive Remaining Stock" : "Mark as Received"}
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : null
-        }
+        selectedPO={selectedPO}
+        onEdit={(po) => handleEdit(po)}
+        onReceive={(po) => handleOpenReceiveModal(po)}
+        onCancel={(po) => setPoToCancel(po)}
+        onCloseEarly={(po) => setPoToCloseEarly(po)}
+        isCancellingPO={isCancellingPO}
+        isReceivingPO={isReceivingPO}
+        isClosingPO={isClosingPO}
       />
 
-      {/* ── Partial Receiving & Quantity Adjustment Modal ──────────────────────── */}
-      <CustomModal
+      {/* Partial Receiving & Quantity Adjustment Modal */}
+      <PurchaseOrderReceiveModal
         isOpen={!!poToReceive}
-        onOpenChange={() => {
-          if (!isReceivingPO) {
-            setPoToReceive(null);
-            setReceiveRows([]);
-          }
+        onClose={() => {
+          setPoToReceive(null);
+          setReceiveRows([]);
         }}
-        size="3xl"
-        classNames={{
-          base: "rounded-xl min-h-[450px] scrollbar-hide"
-        }}
-        header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
-                {/* <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-primary" /> */}
-                Receive Stock Intake
-              </h2>
-              <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-md">
-                {poToReceive?.referenceNumber || poToReceive?.reference_number || "PO"}
-              </span>
-            </div>
-            <p className="text-xs md:text-[13px] !tracking-tight text-muted-foreground font-normal mt-0.5">
-              Supplier: <strong className="text-foreground">{poToReceive?.supplierName || (poToReceive?.supplier ? (typeof poToReceive.supplier === 'object' ? poToReceive.supplier.name : poToReceive.supplier) : 'Supplier')}</strong> · Adjust received quantities if shipment is partial or damaged.
-            </p>
-          </div>
-        }
-        body={
-          <div className="space-y-3 pb-2 text-xs">
-            {/* Quick Bulk Presets */}
-            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border/50">
-              <span className="text-[11px] text-muted-foreground font-medium">
-                Line Items ({receiveRows.length})
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={handleSetAllReceiveRemaining}
-                  className="h-6 text-[11px] px-2 font-medium"
-                >
-                  Fill All Remaining
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={handleClearAllReceive}
-                  className="h-6 text-[11px] px-2 font-medium text-muted-foreground"
-                >
-                  Clear (Set 0)
-                </Button>
-              </div>
-            </div>
-
-            {/* Line Items Table */}
-            <div className="border border-border/70 rounded overflow-hidden max-h-[320px] overflow-y-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-border/70 font-semibold text-muted-foreground">
-                    <th className="p-2.5">Item / Variant</th>
-                    <th className="p-2.5">Tier</th>
-                    <th className="p-2.5 text-center">Ordered</th>
-                    <th className="p-2.5 text-center">Qty to Intake</th>
-                    <th className="p-2.5 text-right">Unit Cost</th>
-                    <th className="p-2.5 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {receiveRows.map((row, idx) => {
-                    const rowSubtotal = (Number(row.quantity_to_receive) || 0) * (Number(row.cost_price_per_tier) || 0);
-                    return (
-                      <tr key={idx} className="hover:bg-muted/10">
-                        <td className="p-2.5 font-medium text-foreground capitalize">
-                          <div>{row.variant_name}</div>
-                          <span className="text-[10px] font-mono text-muted-foreground">{row.variant_sku}</span>
-                        </td>
-                        <td className="p-2.5 text-muted-foreground font-medium">
-                          {row.tier_name}
-                        </td>
-                        <td className="p-2.5 text-center font-medium text-muted-foreground">
-                          {row.quantity_ordered}
-                          {row.quantity_already_received > 0 && (
-                            <span className="block text-[10px] text-green-600">({row.quantity_already_received} recvd)</span>
-                          )}
-                        </td>
-                        <td className="p-2.5 text-center">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={row.quantity_to_receive.toString()}
-                            onChange={(e) => handleReceiveQtyChange(idx, e.target.value)}
-                            className="h-8 w-20 mx-auto text-center font-semibold rounded-md border-border text-xs"
-                          />
-                        </td>
-                        <td className="p-2.5 text-right">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={row.cost_price_per_tier.toString()}
-                            onChange={(e) => handleReceiveCostChange(idx, e.target.value)}
-                            className="h-8 w-24 ml-auto text-right font-medium rounded-md border-border text-xs"
-                          />
-                        </td>
-                        <td className="p-2.5 text-right font-semibold text-foreground">
-                          <CurrencyDisplay amount={rowSubtotal} showStyling={false} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Totals Summary Footer Card */}
-            <div className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-xs">
-              <div className="space-y-0.5">
-                <span className="text-[11px] text-muted-foreground font-medium block">Total Units to Add</span>
-                <span className="font-bold text-foreground text-sm">{totalUnitsReceiving} units</span>
-              </div>
-              <div className="text-right space-y-0.5">
-                <span className="text-[11px] text-muted-foreground font-medium block">Receiving Value</span>
-                <span className="font-bold text-foreground text-base lg:text-lg">
-                  <CurrencyDisplay amount={totalValueReceiving} showStyling={true} />
-                </span>
-              </div>
-            </div>
-          </div>
-        }
-        footer={
-          <div className="flex justify-end gap-2 w-full pt-1 border-t border-border/50">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() => {
-                setPoToReceive(null);
-                setReceiveRows([]);
-              }}
-              disabled={isReceivingPO}
-              className="text-xs font-medium"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              onClick={handleConfirmReceive}
-              disabled={isReceivingPO || totalUnitsReceiving === 0}
-              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[160px] justify-center"
-            >
-              {isReceivingPO ? (
-                <>
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Receiving Stock...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                  <span>Confirm & Update Stock</span>
-                </>
-              )}
-            </Button>
-          </div>
-        }
+        poToReceive={poToReceive}
+        receiveRows={receiveRows}
+        onReceiveQtyChange={handleReceiveQtyChange}
+        onReceiveCostChange={handleReceiveCostChange}
+        onSetAllReceiveRemaining={handleSetAllReceiveRemaining}
+        onClearAllReceive={handleClearAllReceive}
+        onConfirmReceive={handleConfirmReceive}
+        isReceivingPO={isReceivingPO}
       />
 
-      {/* ── Confirm Cancel PO Modal ──────────────────────────────────────────── */}
-      <CustomModal
+      {/* Confirm Cancel PO Modal */}
+      <PurchaseOrderCancelModal
         isOpen={!!poToCancel}
-        onOpenChange={() => {
-          if (!isCancellingPO) setPoToCancel(null);
-        }}
-        size="sm"
-        header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2 text-destructive">
-            <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" />
-            <h3 className="text-sm font-bold text-foreground">Cancel Purchase Order?</h3>
-          </div>
-        }
-        body={
-          <div className="py-2 space-y-1 text-xs text-muted-foreground">
-            <p>
-              Are you sure you want to cancel purchase order <strong className="text-foreground">{poToCancel?.referenceNumber || poToCancel?.reference_number || 'this PO'}</strong>?
-            </p>
-            <p className="text-[11px] text-destructive/80 font-medium">
-              This action cannot be undone.
-            </p>
-          </div>
-        }
-        footer={
-          <div className="flex justify-end gap-2 w-full pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() => setPoToCancel(null)}
-              disabled={isCancellingPO}
-              className="text-xs font-medium"
-            >
-              Keep Order
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              onClick={handleConfirmCancel}
-              disabled={isCancellingPO}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold flex items-center gap-1.5 min-w-[110px] justify-center"
-            >
-              {isCancellingPO ? (
-                <>
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Cancelling...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
-                  <span>Cancel PO</span>
-                </>
-              )}
-            </Button>
-          </div>
-        }
+        onClose={() => setPoToCancel(null)}
+        poToCancel={poToCancel}
+        onConfirmCancel={handleConfirmCancel}
+        isCancellingPO={isCancellingPO}
       />
 
-      {/* ── Confirm Close Short PO Modal ──────────────────────────────────────── */}
-      <CustomModal
+      {/* Confirm Close Short PO Modal */}
+      <PurchaseOrderCloseEarlyModal
         isOpen={!!poToCloseEarly}
-        onOpenChange={() => {
-          if (!isClosingPO) setPoToCloseEarly(null);
-        }}
-        size="sm"
-        header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2">
-            <Icon icon="solar:check-read-linear" className="h-5 w-5 text-amber-500" />
-            <h3 className="text-sm font-bold text-foreground">Close Purchase Order Short?</h3>
-          </div>
-        }
-        body={
-          <div className="py-2 space-y-2 text-xs text-muted-foreground">
-            <p>
-              Close <strong className="text-foreground">{poToCloseEarly?.referenceNumber || poToCloseEarly?.reference_number || 'this PO'}</strong> now and mark it as completed?
-            </p>
-            <div className="bg-muted/30 p-2.5 rounded-md border border-border/60 text-[11px] text-muted-foreground">
-              Use this if your supplier cannot deliver the remaining items. The stock you already received will remain in inventory, and this PO will no longer appear as pending delivery.
-            </div>
-          </div>
-        }
-        footer={
-          <div className="flex justify-end gap-2 w-full pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() => setPoToCloseEarly(null)}
-              disabled={isClosingPO}
-              className="text-xs font-medium"
-            >
-              Keep Pending
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              onClick={handleConfirmCloseEarly}
-              disabled={isClosingPO}
-              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[120px] justify-center"
-            >
-              {isClosingPO ? (
-                <>
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Closing...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                  <span>Close PO Early</span>
-                </>
-              )}
-            </Button>
-          </div>
-        }
+        onClose={() => setPoToCloseEarly(null)}
+        poToCloseEarly={poToCloseEarly}
+        onConfirmCloseEarly={handleConfirmCloseEarly}
+        isClosingPO={isClosingPO}
       />
     </PageLayout>
   );
