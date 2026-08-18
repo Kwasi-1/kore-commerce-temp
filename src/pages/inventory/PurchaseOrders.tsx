@@ -36,13 +36,16 @@ export default function PurchaseOrders() {
   // Detail Modal state
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailActiveTab, setDetailActiveTab] = useState<'items' | 'receipts'>('items');
 
   // Custom Confirmation Modal states
   const [poToReceive, setPoToReceive] = useState<any | null>(null);
   const [receiveRows, setReceiveRows] = useState<ReceiveItemRow[]>([]);
   const [poToCancel, setPoToCancel] = useState<any | null>(null);
+  const [poToCloseEarly, setPoToCloseEarly] = useState<any | null>(null);
   const [isReceivingPO, setIsReceivingPO] = useState(false);
   const [isCancellingPO, setIsCancellingPO] = useState(false);
+  const [isClosingPO, setIsClosingPO] = useState(false);
 
   const fetchPOs = async () => {
     setIsLoading(true);
@@ -160,6 +163,24 @@ export default function PurchaseOrders() {
     }
   };
 
+  const handleConfirmCloseEarly = async () => {
+    if (!poToCloseEarly) return;
+    setIsClosingPO(true);
+    try {
+      const response = await apiClient.post(`/tenant/purchase-orders/${poToCloseEarly.id}/close`, {});
+      toast.success(response.data.success?.message || 'Purchase order closed early');
+      setPoToCloseEarly(null);
+      setIsDetailModalOpen(false);
+      setSelectedPO(null);
+      fetchPOs();
+    } catch (error: any) {
+      console.error('Close PO error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to close PO');
+    } finally {
+      setIsClosingPO(false);
+    }
+  };
+
   const handleConfirmReceive = async () => {
     if (!poToReceive) return;
     
@@ -208,6 +229,7 @@ export default function PurchaseOrders() {
   const rows = purchaseOrders.map((po: any) => {
     const isReceivable = po.status !== 'received' && po.status !== 'cancelled';
     const isDraft = po.status === 'draft';
+    const isPartial = po.status === 'partially_received';
     
     // Build row actions
     const rowActions = [];
@@ -215,7 +237,15 @@ export default function PurchaseOrders() {
       rowActions.push({ key: 'edit', label: 'Edit Draft', icon: 'solar:pen-linear' });
     }
     if (isReceivable) {
-      rowActions.push({ key: 'receive', label: 'Mark Received', icon: 'solar:check-circle-linear', className: 'text-success' });
+      rowActions.push({
+        key: 'receive',
+        label: isPartial ? 'Receive More' : 'Receive Stock',
+        icon: 'solar:check-circle-linear',
+        className: 'text-success'
+      });
+      if (isPartial) {
+        rowActions.push({ key: 'close_early', label: 'Close PO', icon: 'solar:check-read-linear' });
+      }
       rowActions.push({ key: 'cancel', label: 'Cancel PO', icon: 'solar:close-circle-linear', className: 'text-destructive' });
     }
 
@@ -252,13 +282,14 @@ export default function PurchaseOrders() {
         <span className="text-xs text-muted-foreground font-semibold">Cash</span>
       ),
       status: (
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium capitalize ${
           po.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
+          : po.status === 'partially_received' ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400'
           : po.status === 'draft' ? 'text-muted-foreground bg-muted'
           : po.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400'
           : 'text-destructive bg-destructive/5'
         }`}>
-          {po.status}
+          {po.status === 'partially_received' ? 'Partial' : po.status}
         </span>
       ),
       rowActions,
@@ -269,6 +300,7 @@ export default function PurchaseOrders() {
   const handleRowActionClick = (actionKey: string, row: any) => {
     const po = row.__record || purchaseOrders.find((p: any) => p.id === row.id);
     if (actionKey === 'receive' && po) handleOpenReceiveModal(po);
+    if (actionKey === 'close_early' && po) setPoToCloseEarly(po);
     if (actionKey === 'cancel' && po) setPoToCancel(po);
     if (actionKey === 'edit' && po) handleEdit(po);
   };
@@ -278,9 +310,11 @@ export default function PurchaseOrders() {
     const found = purchaseOrders.find((p: any) => p.id === poId || p.id === poId?.toString());
     if (found) {
       setSelectedPO(found);
+      setDetailActiveTab('items');
       setIsDetailModalOpen(true);
     } else if (keyOrRow?.__record) {
       setSelectedPO(keyOrRow.__record);
+      setDetailActiveTab('items');
       setIsDetailModalOpen(true);
     }
   };
@@ -305,6 +339,7 @@ export default function PurchaseOrders() {
           { uid: 'all', name: 'All Statuses' },
           { uid: 'draft', name: 'Draft' },
           { uid: 'ordered', name: 'Ordered' },
+          { uid: 'partially_received', name: 'Partially Received' },
           { uid: 'received', name: 'Received' },
           { uid: 'cancelled', name: 'Cancelled' },
         ]}
@@ -340,13 +375,14 @@ export default function PurchaseOrders() {
         onOpenChange={() => {
           setIsDetailModalOpen(false);
           setSelectedPO(null);
+          setDetailActiveTab('items');
         }}
         size="3xl"
         classNames={{
-          base: "rounded-xl min-h-[500px] scrollbar-hide"
+          base: "rounded-xl min-h-[520px] scrollbar-hide"
         }}
         header={
-          <div className="pt-2 px-2 border-b border-border/50 pb-2">
+          <div className="pt-2 px-2 border-b border-border/50 pb-2.5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 {selectedPO?.referenceNumber || selectedPO?.reference_number || "Purchase Order"}
@@ -354,11 +390,12 @@ export default function PurchaseOrders() {
               {selectedPO && (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold capitalize ${
                   selectedPO.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30'
+                  : selectedPO.status === 'partially_received' ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/30'
                   : selectedPO.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
                   : selectedPO.status === 'draft' ? 'text-muted-foreground bg-muted'
                   : 'text-destructive bg-destructive/5'
                 }`}>
-                  {selectedPO.status}
+                  {selectedPO.status === 'partially_received' ? 'Partially Received' : selectedPO.status}
                 </span>
               )}
             </div>
@@ -402,84 +439,189 @@ export default function PurchaseOrders() {
                 </div>
               </div>
 
-              {/* Notes if present */}
-              {selectedPO.notes && (
-                <div className="p-2.5 rounded border border-border text-xs text-muted-foreground">
-                  <strong className="text-foreground">Notes:</strong> {selectedPO.notes}
+              {/* Tabs Bar */}
+              <div className="flex items-center gap-2 border-b border-border/60 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setDetailActiveTab('items')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+                    detailActiveTab === 'items'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon icon="solar:box-minimalistic-linear" className="h-3.5 w-3.5" />
+                  Line Items & Progress ({selectedPO.items?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailActiveTab('receipts')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+                    detailActiveTab === 'receipts'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon icon="solar:history-linear" className="h-3.5 w-3.5" />
+                  Delivery Receipts History ({selectedPO.receipts?.length || 0})
+                </button>
+              </div>
+
+              {/* TAB 1: Line Items */}
+              {detailActiveTab === 'items' && (
+                <div className="space-y-3">
+                  <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-muted/30 border-b border-border/70 font-semibold text-muted-foreground">
+                          <th className="p-2.5">Item / Variant</th>
+                          <th className="p-2.5">SKU</th>
+                          <th className="p-2.5">Tier</th>
+                          <th className="p-2.5 text-center">Qty Ordered</th>
+                          <th className="p-2.5 text-center">Fulfillment</th>
+                          <th className="p-2.5 text-right">Cost</th>
+                          <th className="p-2.5 text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {(selectedPO.items || []).map((item: any, i: number) => {
+                          const cost = typeof item.cost_price_per_tier === 'object' 
+                            ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
+                            : Number(item.cost_price_per_tier || 0);
+                          const sub = typeof item.subtotal === 'object'
+                            ? Number(item.subtotal?.parsedValue ?? item.subtotal?.source ?? 0)
+                            : Number(item.subtotal || 0);
+                          const qtyOrd = Number(item.quantity_ordered ?? item.quantityOrdered ?? 0);
+                          const qtyRec = Number(item.quantity_received ?? item.quantityReceived ?? 0);
+                          const pct = qtyOrd > 0 ? Math.min(100, Math.round((qtyRec / qtyOrd) * 100)) : 0;
+
+                          return (
+                            <tr key={i} className="hover:bg-muted/10">
+                              <td className="p-2.5 font-medium text-foreground capitalize">
+                                {item.variant_name || item.variantName || "Unknown Variant"}
+                              </td>
+                              <td className="p-2.5 font-mono text-muted-foreground">
+                                {item.variant_sku || item.variantSku || "—"}
+                              </td>
+                              <td className="p-2.5 text-muted-foreground">
+                                {item.packaging_tier_name || item.packagingTierName || "Unit"}
+                              </td>
+                              <td className="p-2.5 text-center font-semibold">
+                                {qtyOrd}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <div className="space-y-1">
+                                  <span className={`font-semibold text-xs ${qtyRec >= qtyOrd ? 'text-green-600' : qtyRec > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                                    {qtyRec} / {qtyOrd} ({pct}%)
+                                  </span>
+                                  <div className="w-20 mx-auto h-[5px] bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${qtyRec >= qtyOrd ? 'bg-green-500' : 'bg-amber-500'}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-2.5 text-right">
+                                <CurrencyDisplay amount={cost} showStyling={false} />
+                              </td>
+                              <td className="p-2.5 text-right font-semibold text-foreground">
+                                <CurrencyDisplay amount={sub} showStyling={false} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {selectedPO.notes && (
+                    <div className="p-2.5 rounded border border-border text-xs text-muted-foreground">
+                      <strong className="text-foreground">Notes:</strong> {selectedPO.notes}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Items Table */}
-              <div className="space-y-2">
-                <div className="border rounded overflow-hidden max-h-[300px] overflow-y-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-inherit border-b border-border/70 font-semibold text-muted-foreground">
-                        <th className="p-2.5">Item / Variant</th>
-                        <th className="p-2.5">SKU</th>
-                        <th className="p-2.5">Tier</th>
-                        <th className="p-2.5 text-center">Qty Ordered</th>
-                        <th className="p-2.5 text-center">Qty Recv</th>
-                        <th className="p-2.5 text-right">Cost</th>
-                        <th className="p-2.5 text-right">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {(selectedPO.items || []).map((item: any, i: number) => {
-                        const cost = typeof item.cost_price_per_tier === 'object' 
-                          ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
-                          : Number(item.cost_price_per_tier || 0);
-                        const sub = typeof item.subtotal === 'object'
-                          ? Number(item.subtotal?.parsedValue ?? item.subtotal?.source ?? 0)
-                          : Number(item.subtotal || 0);
+              {/* TAB 2: Delivery Receipts History */}
+              {detailActiveTab === 'receipts' && (
+                <div className="space-y-3">
+                  {(!selectedPO.receipts || selectedPO.receipts.length === 0) ? (
+                    <div className="text-center py-8 text-muted-foreground text-xs space-y-1">
+                      <Icon icon="solar:box-minimalistic-linear" className="h-8 w-8 mx-auto opacity-40" />
+                      <p className="font-medium text-foreground">No Delivery Receipts Yet</p>
+                      <p>When stock items are received, timestamped intake audit logs will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+                      {selectedPO.receipts.map((rcv: any, rIdx: number) => (
+                        <div key={rIdx} className="border border-border/70 rounded-lg p-3 space-y-2 bg-muted/15">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                {rcv.receiptNumber || `Receipt #${rIdx + 1}`}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {rcv.dateReceived ? new Date(rcv.dateReceived).toLocaleString() : '—'}
+                              </span>
+                            </div>
+                            <div className="text-right text-[11px] text-muted-foreground">
+                              {rcv.receivedByName && <span>Received by: <strong className="text-foreground">{rcv.receivedByName}</strong> · </span>}
+                              <span>Units: <strong className="text-foreground">{rcv.totalUnitsReceived}</strong> · </span>
+                              <span className="font-semibold text-foreground"><CurrencyDisplay amount={Number(rcv.totalAmountReceived || 0)} showStyling={false} /></span>
+                            </div>
+                          </div>
 
-                        return (
-                          <tr key={i} className="hover:bg-muted/10">
-                            <td className="p-2.5 font-medium text-foreground capitalize">
-                              {item.variant_name || item.variantName || "Unknown Variant"}
-                            </td>
-                            <td className="p-2.5 font-mono text-muted-foreground">
-                              {item.variant_sku || item.variantSku || "—"}
-                            </td>
-                            <td className="p-2.5 text-muted-foreground">
-                              {item.packaging_tier_name || item.packagingTierName || "Unit"}
-                            </td>
-                            <td className="p-2.5 text-center font-semibold">
-                              {item.quantity_ordered ?? item.quantityOrdered ?? 0}
-                            </td>
-                            <td className="p-2.5 text-center font-semibold text-green-600">
-                              {item.quantity_received ?? item.quantityReceived ?? 0}
-                            </td>
-                            <td className="p-2.5 text-right">
-                              <CurrencyDisplay amount={cost} showStyling={false} />
-                            </td>
-                            <td className="p-2.5 text-right font-semibold text-foreground">
-                              <CurrencyDisplay amount={sub} showStyling={false} />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                          <div className="divide-y divide-border/30 text-xs">
+                            {(rcv.items || []).map((ritem: any, itemIdx: number) => (
+                              <div key={itemIdx} className="py-1.5 flex items-center justify-between">
+                                <div>
+                                  <span className="font-medium text-foreground capitalize">{ritem.variant_name || ritem.variantName || 'Item'}</span>
+                                  <span className="text-[10px] text-muted-foreground font-mono ml-2">{ritem.variant_sku || ritem.variantSku}</span>
+                                  <span className="text-[10px] text-muted-foreground ml-1.5">({ritem.packaging_tier_name || ritem.packagingTierName || 'Unit'})</span>
+                                </div>
+                                <div className="text-right font-semibold">
+                                  +{ritem.quantity_received} units · <CurrencyDisplay amount={Number(ritem.subtotal || 0)} showStyling={false} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           )
         }
         footer={
           selectedPO ? (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50 w-full">
-              <div>
+              <div className="flex items-center gap-2">
                 {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setPoToCancel(selectedPO)}
-                    disabled={isCancellingPO || isReceivingPO}
+                    disabled={isCancellingPO || isReceivingPO || isClosingPO}
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5"
                   >
                     <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
                     {isCancellingPO ? "Cancelling..." : "Cancel PO"}
+                  </Button>
+                )}
+                {selectedPO.status === 'partially_received' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setPoToCloseEarly(selectedPO)}
+                    disabled={isCancellingPO || isReceivingPO || isClosingPO}
+                    className="text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1.5"
+                    title="Close PO early if supplier will not deliver remaining items"
+                  >
+                    <Icon icon="solar:check-read-linear" className="h-4 w-4" />
+                    Close Short
                   </Button>
                 )}
               </div>
@@ -513,11 +655,11 @@ export default function PurchaseOrders() {
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReceiveModal(selectedPO)}
-                    disabled={isReceivingPO || isCancellingPO}
+                    disabled={isReceivingPO || isCancellingPO || isClosingPO}
                     className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
                   >
                     <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                    {isReceivingPO ? "Receiving..." : "Mark as Received"}
+                    {selectedPO.status === 'partially_received' ? "Receive Remaining Stock" : "Mark as Received"}
                   </Button>
                 )}
               </div>
@@ -748,6 +890,64 @@ export default function PurchaseOrders() {
                 <>
                   <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
                   <span>Cancel PO</span>
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      />
+
+      {/* ── Confirm Close Short PO Modal ──────────────────────────────────────── */}
+      <CustomModal
+        isOpen={!!poToCloseEarly}
+        onOpenChange={() => {
+          if (!isClosingPO) setPoToCloseEarly(null);
+        }}
+        size="sm"
+        header={
+          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2">
+            <Icon icon="solar:check-read-linear" className="h-5 w-5 text-amber-500" />
+            <h3 className="text-sm font-bold text-foreground">Close Purchase Order Short?</h3>
+          </div>
+        }
+        body={
+          <div className="py-2 space-y-2 text-xs text-muted-foreground">
+            <p>
+              Close <strong className="text-foreground">{poToCloseEarly?.referenceNumber || poToCloseEarly?.reference_number || 'this PO'}</strong> now and mark it as completed?
+            </p>
+            <div className="bg-muted/30 p-2.5 rounded-md border border-border/60 text-[11px] text-muted-foreground">
+              Use this if your supplier cannot deliver the remaining items. The stock you already received will remain in inventory, and this PO will no longer appear as pending delivery.
+            </div>
+          </div>
+        }
+        footer={
+          <div className="flex justify-end gap-2 w-full pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setPoToCloseEarly(null)}
+              disabled={isClosingPO}
+              className="text-xs font-medium"
+            >
+              Keep Pending
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              onClick={handleConfirmCloseEarly}
+              disabled={isClosingPO}
+              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[120px] justify-center"
+            >
+              {isClosingPO ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span>Closing...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
+                  <span>Close PO Early</span>
                 </>
               )}
             </Button>
