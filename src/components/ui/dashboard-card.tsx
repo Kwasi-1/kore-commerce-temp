@@ -46,7 +46,7 @@ export function DashboardCard({
     <div
       onClick={handleCardClick}
       className={cn(
-        "flex h-full min-h-[140px] flex-col justify-between rounded-xl md:rounded-[10px] bg-card/60 backdrop-blur-lg p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-300 ease-in-out",
+        "flex flex-col h-full min-h-[110px] rounded-xl md:rounded-[10px] bg-card/60 backdrop-blur-lg p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-300 ease-in-out",
         (onClick || collapsibleContent) && "cursor-pointer hover:border-foreground/50",
         subvalue ? "md:min-h-[150px]" : "md:min-h-[140px]",
         isActive ? "border-foreground/20 bg-secondary/30 hover:md:ring-1 ring-foreground/10" : "border-border dark:border-border/60",
@@ -54,6 +54,7 @@ export function DashboardCard({
       )}
       {...props}
     >
+      <div className="flex-1 h-full min-h-[76.4px] md:min-h-[98.4px] flex flex-col justify-between">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="text-[10px] md:text-xs font-medium uppercase tracking-wide md:tracking-wider text-muted-foreground font-header">{title}</p>
@@ -83,6 +84,7 @@ export function DashboardCard({
           {valueTrailing}
         </div>
         {subvalue && <div className="text-xs text-muted-foreground">{subvalue}</div>}
+      </div>
       </div>
 
       {collapsibleContent && (
