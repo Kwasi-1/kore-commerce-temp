@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Switch } from '@nextui-org/react';
-import { Trash2, CreditCard, Calendar, Package, Upload, PackageCheck } from 'lucide-react';
+import { Trash2, CreditCard, Calendar, Package, Upload, PackageCheck, RefreshCw } from 'lucide-react';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -10,6 +10,12 @@ import { Input } from '../ui/input';
 import CustomModal from '@/components/modals/modal';
 import { POProductPickerModal, CatalogVariant } from './POProductPickerModal';
 import { POImportCSVModal, POImportedItem } from './POImportCSVModal';
+
+const generatePoReference = () => {
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  return `PO-${dateStr}-${randomSuffix}`;
+};
 
 interface PurchaseOrderFormProps {
   isOpen: boolean;
@@ -60,6 +66,14 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
   // Initial suppliers fetch & form reset when opening
   useEffect(() => {
     if (isOpen) {
+      setFormData({
+        supplier_id: '',
+        reference_number: generatePoReference(),
+        notes: '',
+        is_credit_purchase: false,
+        credit_due_date: '',
+      });
+
       apiClient
         .get('/tenant/suppliers?limit=100')
         .then((res) => {
@@ -279,13 +293,23 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
                 />
 
                 <CustomInputTextField
-                  label="Reference Number (Invoice / Receipt)"
+                  label="Reference Number (Invoice / Receipt / PO #)"
                   name="reference_number"
                   value={formData.reference_number}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. INV-2026-001"
+                  placeholder="e.g. INV-2026-001 or PO-20260818-1234"
                   inputProps={{ required: true }}
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, reference_number: generatePoReference() }))}
+                      className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                      title="Generate new PO Reference #"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                  }
                 />
               </div>
 
