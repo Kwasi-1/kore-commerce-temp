@@ -819,10 +819,6 @@ export default function Products() {
           setIsDetailModalOpen(false);
           handleEdit(prod);
         }}
-        onToggleStatus={(prod) => {
-          setProductToToggleStatus(prod);
-          setIsStatusModalOpen(true);
-        }}
       />
 
       {/* Product Status Confirmation Modal */}
