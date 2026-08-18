@@ -20,6 +20,12 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
+const generateSkuFromName = (prodName: string, suffix?: string) => {
+  const clean = (prodName || "PRD").replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "PRD";
+  const rand = Math.floor(100 + Math.random() * 900);
+  return suffix ? `${clean}-${suffix.toUpperCase()}-${rand}` : `${clean}-${rand}`;
+};
+
 export default function ProductForm({ initialData, onSuccess, onCancel }: ProductFormProps) {
   const isEditing = !!initialData;
   const [isLoading, setIsLoading] = useState(false);
@@ -297,7 +303,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
       const nameSuffix = combo.join(" / ");
       const skuSuffix = combo.map(v => v.toUpperCase().replace(/\s+/g, "")).join("-");
-      const generatedSku = `${simpleSku || name.toUpperCase().replace(/\s+/g, "") || "SKU"}-${skuSuffix}`;
+      const cleanPrefix = (name || "PRD").replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "PRD";
+      const generatedSku = `${cleanPrefix}-${skuSuffix}`;
 
       return {
         id: Math.random().toString(),
@@ -581,11 +588,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       return;
     }
 
-    if (!hasVariants && !simpleSku) {
-      toast.error("SKU is required for simple products");
-      return;
-    }
-
     setIsLoading(true);
     try {
       // Build packaging tiers helper format
@@ -794,8 +796,17 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                 name="sku"
                 value={simpleSku}
                 onChange={(e) => setSimpleSku(e.target.value)}
-                required
-                placeholder="e.g. COKE-33"
+                placeholder="Auto-generate or scan barcode"
+                endContent={
+                  <button
+                    type="button"
+                    onClick={() => setSimpleSku(generateSkuFromName(name))}
+                    className="text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors"
+                    title="Auto-generate SKU"
+                  >
+                    <Icon icon="lucide:refresh-cw" className="text-[14px]" />
+                  </button>
+                }
               />
 
               <CustomInputTextField
