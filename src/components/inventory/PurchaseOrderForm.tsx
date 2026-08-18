@@ -32,6 +32,7 @@ interface PurchaseOrderFormProps {
   isOpen: boolean;
   onOpenChange: () => void;
   onSuccess: () => void;
+  initialPO?: any | null;
 }
 
 interface PackagingTier {
@@ -54,7 +55,7 @@ interface POItem {
   cost_price: number;
 }
 
-export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: PurchaseOrderFormProps) {
+export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, initialPO }: PurchaseOrderFormProps) {
   const { formatAmount } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,13 +78,38 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
   // Initial suppliers fetch & form reset when opening
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        supplier_id: '',
-        reference_number: generatePoReference(),
-        notes: '',
-        is_credit_purchase: false,
-        credit_due_date: '',
-      });
+      if (initialPO) {
+        setFormData({
+          supplier_id: initialPO.supplier_id || initialPO.supplierId || '',
+          reference_number: initialPO.reference_number || initialPO.referenceNumber || '',
+          notes: initialPO.notes || '',
+          is_credit_purchase: Boolean(initialPO.is_credit_purchase ?? initialPO.isCreditPurchase),
+          credit_due_date: (initialPO.credit_due_date || initialPO.creditDueDate || '').slice(0, 10),
+        });
+
+        const initialItems: POItem[] = (initialPO.items || []).map((item: any) => ({
+          variant_id: item.variant_id || item.variantId,
+          packaging_tier_id: item.packaging_tier_id || item.packagingTierId,
+          product_name: item.variant_name || item.variantName || 'Product',
+          variant_label: item.variant_sku || item.variantSku || 'SKU',
+          tier_name: item.packaging_tier_name || item.packagingTierName || 'Unit',
+          tier_units_per_tier: 1,
+          quantity: Number(item.quantity_ordered ?? item.quantityOrdered ?? 0),
+          cost_price: typeof item.cost_price_per_tier === 'object'
+            ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
+            : Number(item.cost_price_per_tier ?? item.costPricePerTier ?? 0),
+        }));
+        setItems(initialItems);
+      } else {
+        setFormData({
+          supplier_id: '',
+          reference_number: generatePoReference(),
+          notes: '',
+          is_credit_purchase: false,
+          credit_due_date: '',
+        });
+        setItems([]);
+      }
 
       apiClient
         .get('/tenant/suppliers?limit=100')
@@ -103,7 +129,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
       });
       setItems([]);
     }
-  }, [isOpen]);
+  }, [isOpen, initialPO]);
 
   // Handlers for adding items
   const handleAddFromPicker = (
@@ -251,13 +277,18 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
         payload.credit_due_date = formData.credit_due_date;
       }
 
-      await apiClient.post('/tenant/purchase-orders', payload);
-      toast.success('Draft Purchase Order created successfully');
+      if (initialPO?.id) {
+        await apiClient.put(`/tenant/purchase-orders/${initialPO.id}`, payload);
+        toast.success('Purchase Order updated successfully');
+      } else {
+        await apiClient.post('/tenant/purchase-orders', payload);
+        toast.success('Draft Purchase Order created successfully');
+      }
       onOpenChange();
       onSuccess();
     } catch (error: any) {
-      console.error('Create PO error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to create PO');
+      console.error('PO submit error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to save PO');
     } finally {
       setIsLoading(false);
     }
@@ -306,11 +337,10 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
         header={
           <div className="pt-3 px-2 border-b border-border/70 pb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              {/* <PackageCheck className="h-6 w-6 text-primary" /> */}
-              Draft Purchase Order
+              {initialPO ? "Edit Draft Purchase Order" : "Draft Purchase Order"}
             </h2>
             <p className="text-sm text-muted-foreground font-normal">
-              Add line items to order from your suppliers.
+              {initialPO ? `Updating ${initialPO.referenceNumber || initialPO.reference_number || "purchase order"}` : "Add line items to order from your suppliers."}
             </p>
           </div>
         }
@@ -671,7 +701,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
               disabled={isLoading || items.length === 0}
               className="bg-primary text-primary-foreground font-semibold px-6 text-xs"
             >
-              {isLoading ? 'Creating...' : 'Create Draft PO'}
+              {isLoading ? (initialPO ? 'Saving...' : 'Creating...') : (initialPO ? 'Save Changes' : 'Create Draft PO')}
             </Button>
           </div>
         }

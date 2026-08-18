@@ -6,7 +6,7 @@ import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { PackageCheck, CreditCard, FileText, Calendar, Building2, Layers, CheckCircle2 } from 'lucide-react';
+import { Icon } from '@iconify/react/dist/iconify.js';
 import { Button } from '@/components/ui/button';
 
 export default function PurchaseOrders() {
@@ -18,11 +18,13 @@ export default function PurchaseOrders() {
   
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPO, setEditingPO] = useState<any | null>(null);
 
   // Detail Modal state
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isReceivingPO, setIsReceivingPO] = useState(false);
+  const [isCancellingPO, setIsCancellingPO] = useState(false);
 
   const fetchPOs = async () => {
     setIsLoading(true);
@@ -49,7 +51,36 @@ export default function PurchaseOrders() {
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
+    setEditingPO(null);
     fetchPOs();
+  };
+
+  const handleEdit = (po: any) => {
+    setIsDetailModalOpen(false);
+    setSelectedPO(null);
+    setEditingPO(po);
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = async (poId: string, refNumber?: string) => {
+    const confirmMsg = `Are you sure you want to cancel purchase order ${refNumber ? `"${refNumber}"` : ''}? This action cannot be undone.`;
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    setIsCancellingPO(true);
+    try {
+      const response = await apiClient.post(`/tenant/purchase-orders/${poId}/cancel`);
+      toast.success(response.data.success?.message || 'Purchase order cancelled');
+      setIsDetailModalOpen(false);
+      setSelectedPO(null);
+      fetchPOs();
+    } catch (error: any) {
+      console.error('Cancel PO error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to cancel PO');
+    } finally {
+      setIsCancellingPO(false);
+    }
   };
 
   const handleReceive = async (poId: string) => {
@@ -60,7 +91,7 @@ export default function PurchaseOrders() {
     setIsReceivingPO(true);
     try {
       const response = await apiClient.post(`/tenant/purchase-orders/${poId}/receive`);
-      const unitsAdded = response.data.success.data.unitsReceived;
+      const unitsAdded = response.data.success?.data?.unitsReceived || 0;
       toast.success(`PO Received! ${unitsAdded} units added to stock.`);
       setIsDetailModalOpen(false);
       setSelectedPO(null);
@@ -84,11 +115,16 @@ export default function PurchaseOrders() {
 
   const rows = purchaseOrders.map((po: any) => {
     const isReceivable = po.status !== 'received' && po.status !== 'cancelled';
+    const isDraft = po.status === 'draft';
     
     // Build row actions
     const rowActions = [];
+    if (isDraft) {
+      rowActions.push({ key: 'edit', label: 'Edit Draft', icon: 'solar:pen-linear' });
+    }
     if (isReceivable) {
-      rowActions.push({ key: 'receive', label: 'Mark Received', icon: 'mdi:check-circle', className: 'text-success' });
+      rowActions.push({ key: 'receive', label: 'Mark Received', icon: 'solar:check-circle-linear', className: 'text-success' });
+      rowActions.push({ key: 'cancel', label: 'Cancel PO', icon: 'solar:close-circle-linear', className: 'text-destructive' });
     }
 
     const refNum = po.referenceNumber || po.reference_number || po.id?.slice(0, 8) || '—';
@@ -112,7 +148,7 @@ export default function PurchaseOrders() {
       total: <span className="font-medium"><CurrencyDisplay amount={totalVal} showStyling={false} /></span>,
       type: isCredit ? (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400">
-          <CreditCard className="h-3 w-3" />
+          <Icon icon="solar:card-linear" className="h-3 w-3" />
           Credit
           {formattedDueDate && (
             <span className="text-[10px] text-amber-500 ml-0.5">
@@ -126,9 +162,9 @@ export default function PurchaseOrders() {
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
           po.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
-          : po.status === 'draft' ? 'text-muted-foreground bg-gray-50 dark:bg-gray-800 '
+          : po.status === 'draft' ? 'text-muted-foreground bg-muted'
           : po.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400'
-          : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
+          : 'text-destructive bg-destructive/5'
         }`}>
           {po.status}
         </span>
@@ -139,7 +175,10 @@ export default function PurchaseOrders() {
   });
 
   const handleRowActionClick = (actionKey: string, row: any) => {
+    const po = row.__record || purchaseOrders.find((p: any) => p.id === row.id);
     if (actionKey === 'receive') handleReceive(row.id);
+    if (actionKey === 'cancel') handleCancel(row.id, po?.referenceNumber || po?.reference_number);
+    if (actionKey === 'edit' && po) handleEdit(po);
   };
 
   const handleRowClick = (keyOrRow: any) => {
@@ -176,18 +215,25 @@ export default function PurchaseOrders() {
         
         showAddButton={true}
         addButtonText="New PO"
-        onAddButtonClick={() => setIsModalOpen(true)}
+        onAddButtonClick={() => {
+          setEditingPO(null);
+          setIsModalOpen(true);
+        }}
         onRowActionClick={handleRowActionClick}
         onclick={handleRowClick}
         
         mobileFriendly={true}
       />
 
-      {/* New PO Modal Form */}
+      {/* PO Modal Form (Create & Edit) */}
       <PurchaseOrderForm 
         isOpen={isModalOpen}
-        onOpenChange={() => setIsModalOpen(!isModalOpen)}
-        onSuccess={handleFormSuccess} 
+        onOpenChange={() => {
+          setIsModalOpen(false);
+          setEditingPO(null);
+        }}
+        onSuccess={handleFormSuccess}
+        initialPO={editingPO}
       />
 
       {/* PO Detail View Modal */}
@@ -205,7 +251,6 @@ export default function PurchaseOrders() {
           <div className="pt-2 px-2 border-b border-border/50 pb-2">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                {/* <FileText className="h-5 w-5 text-primary" /> */}
                 {selectedPO?.referenceNumber || selectedPO?.reference_number || "Purchase Order"}
               </h2>
               {selectedPO && (
@@ -213,7 +258,7 @@ export default function PurchaseOrders() {
                   selectedPO.status === 'received' ? 'text-green-600 bg-green-50 dark:bg-green-900/30'
                   : selectedPO.status === 'ordered' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
                   : selectedPO.status === 'draft' ? 'text-muted-foreground bg-muted'
-                  : 'text-destructive bg-destructive/10'
+                  : 'text-destructive bg-destructive/5'
                 }`}>
                   {selectedPO.status}
                 </span>
@@ -228,7 +273,7 @@ export default function PurchaseOrders() {
           selectedPO && (
             <div className="space-y-4 py-2 text-sm">
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded bg-muted/20 borde border-border/50">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded bg-muted/20 border border-border/50">
                 <div>
                   <span className="text-[11px] text-muted-foreground block font-medium">Order Date</span>
                   <span className="text-xs font-semibold">
@@ -268,9 +313,6 @@ export default function PurchaseOrders() {
 
               {/* Items Table */}
               <div className="space-y-2">
-                {/* <h4 className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">
-                  Line Items ({selectedPO.items?.length || 0})
-                </h4> */}
                 <div className="border rounded overflow-hidden max-h-[300px] overflow-y-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
@@ -328,25 +370,59 @@ export default function PurchaseOrders() {
         }
         footer={
           selectedPO ? (
-            <div className="flex justify-end gap-2 pt-2 border-t border-border/50 w-full">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsDetailModalOpen(false)}
-              >
-                Close
-              </Button>
-              {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50 w-full">
+              <div>
+                {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCancel(selectedPO.id, selectedPO.referenceNumber || selectedPO.reference_number)}
+                    disabled={isCancellingPO || isReceivingPO}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs font-medium flex items-center gap-1.5"
+                  >
+                    <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
+                    {isCancellingPO ? "Cancelling..." : "Cancel PO"}
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
                 <Button 
+                  variant="outline" 
                   size="sm" 
-                  onClick={() => handleReceive(selectedPO.id)}
-                  disabled={isReceivingPO}
-                  className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5"
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedPO(null);
+                  }}
+                  className="text-xs font-medium"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {isReceivingPO ? "Receiving..." : "Mark as Received"}
+                  Close
                 </Button>
-              )}
+
+                {selectedPO.status === 'draft' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleEdit(selectedPO)}
+                    className="text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Icon icon="solar:pen-linear" className="h-3.5 w-3.5" />
+                    Edit Draft
+                  </Button>
+                )}
+
+                {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleReceive(selectedPO.id)}
+                    disabled={isReceivingPO || isCancellingPO}
+                    className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
+                    {isReceivingPO ? "Receiving..." : "Mark as Received"}
+                  </Button>
+                )}
+              </div>
             </div>
           ) : null
         }
@@ -354,3 +430,4 @@ export default function PurchaseOrders() {
     </PageLayout>
   );
 }
+
