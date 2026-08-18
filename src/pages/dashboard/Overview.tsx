@@ -553,7 +553,7 @@ export default function Overview() {
             Point of Sale Overview
           </h3>
           {/* Top Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4">
             <DashboardCard
               title="Today's Revenue"
               value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
@@ -617,7 +617,7 @@ export default function Overview() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
             {/* 7-Day Revenue Chart */}
             <div className="lg:col-span-2 bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm text-card-foreground">
               <div className="flex justify-between items-center mb-6">
@@ -721,7 +721,7 @@ export default function Overview() {
             Ecommerce Overview
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-4">
             <DashboardCard
               title="Online Revenue Today"
               value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
