@@ -263,6 +263,31 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
     }
   };
 
+  // Dirty check & Discard confirmation state
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const isDirty = items.length > 0 || !!formData.supplier_id || !!formData.notes.trim();
+
+  const handleRequestClose = () => {
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+    } else {
+      forceClose();
+    }
+  };
+
+  const forceClose = () => {
+    setShowDiscardConfirm(false);
+    setFormData({
+      supplier_id: '',
+      reference_number: '',
+      notes: '',
+      is_credit_purchase: false,
+      credit_due_date: '',
+    });
+    setItems([]);
+    onOpenChange();
+  };
+
   const totalPoValue = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.cost_price) || 0), 0);
   const totalUnits = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.tier_units_per_tier) || 1), 0);
 
@@ -270,7 +295,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
     <>
       <CustomModal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleRequestClose}
         placement="right"
         size={items.length === 0 ? "lg" : "3xl"}
         classNames={{
@@ -635,7 +660,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
             <Button
               variant="ghost"
               type="button"
-              onClick={onOpenChange}
+              onClick={handleRequestClose}
               className="font-medium px-4 text-xs"
             >
               Cancel
@@ -647,6 +672,47 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: P
               className="bg-primary text-primary-foreground font-semibold px-6 text-xs"
             >
               {isLoading ? 'Creating...' : 'Create Draft PO'}
+            </Button>
+          </div>
+        }
+      />
+
+      {/* ── Discard Confirmation Modal ────────────────────────────────────────── */}
+      <CustomModal
+        isOpen={showDiscardConfirm}
+        onOpenChange={() => setShowDiscardConfirm(false)}
+        size="sm"
+        header={
+          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2 text-destructive">
+            <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" />
+            <h3 className="text-sm font-bold text-foreground">Discard Draft Purchase Order?</h3>
+          </div>
+        }
+        body={
+          <div className="py-2">
+            <p className="text-xs text-muted-foreground">
+              You have unsaved changes ({items.length} line item{items.length !== 1 ? 's' : ''}). If you close now, your draft will be lost.
+            </p>
+          </div>
+        }
+        footer={
+          <div className="flex justify-end gap-2 w-full pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setShowDiscardConfirm(false)}
+              className="text-xs font-medium"
+            >
+              Keep Editing
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              onClick={forceClose}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold"
+            >
+              Discard Order
             </Button>
           </div>
         }
