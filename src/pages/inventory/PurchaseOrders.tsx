@@ -8,6 +8,19 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface ReceiveItemRow {
+  variant_id: string;
+  packaging_tier_id: string;
+  variant_name: string;
+  variant_sku: string;
+  tier_name: string;
+  quantity_ordered: number;
+  quantity_already_received: number;
+  quantity_to_receive: number;
+  cost_price_per_tier: number;
+}
 
 export default function PurchaseOrders() {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
@@ -26,6 +39,7 @@ export default function PurchaseOrders() {
 
   // Custom Confirmation Modal states
   const [poToReceive, setPoToReceive] = useState<any | null>(null);
+  const [receiveRows, setReceiveRows] = useState<ReceiveItemRow[]>([]);
   const [poToCancel, setPoToCancel] = useState<any | null>(null);
   const [isReceivingPO, setIsReceivingPO] = useState(false);
   const [isCancellingPO, setIsCancellingPO] = useState(false);
@@ -66,6 +80,68 @@ export default function PurchaseOrders() {
     setIsModalOpen(true);
   };
 
+  const handleOpenReceiveModal = (po: any) => {
+    const rows: ReceiveItemRow[] = (po.items || []).map((item: any) => {
+      const qtyOrd = Number(item.quantity_ordered ?? item.quantityOrdered ?? 0);
+      const qtyAlready = Number(item.quantity_received ?? item.quantityReceived ?? 0);
+      const remaining = Math.max(0, qtyOrd - qtyAlready);
+      const cost = typeof item.cost_price_per_tier === 'object'
+        ? Number(item.cost_price_per_tier?.parsedValue ?? item.cost_price_per_tier?.source ?? 0)
+        : Number(item.cost_price_per_tier ?? item.costPricePerTier ?? 0);
+
+      return {
+        variant_id: item.variant_id || item.variantId,
+        packaging_tier_id: item.packaging_tier_id || item.packagingTierId,
+        variant_name: item.variant_name || item.variantName || 'Item',
+        variant_sku: item.variant_sku || item.variantSku || '—',
+        tier_name: item.packaging_tier_name || item.packagingTierName || 'Unit',
+        quantity_ordered: qtyOrd,
+        quantity_already_received: qtyAlready,
+        quantity_to_receive: remaining,
+        cost_price_per_tier: cost,
+      };
+    });
+
+    setReceiveRows(rows);
+    setPoToReceive(po);
+  };
+
+  const handleReceiveQtyChange = (index: number, valStr: string) => {
+    const val = parseInt(valStr, 10);
+    setReceiveRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, quantity_to_receive: isNaN(val) || val < 0 ? 0 : val } : row
+      )
+    );
+  };
+
+  const handleReceiveCostChange = (index: number, valStr: string) => {
+    const val = parseFloat(valStr);
+    setReceiveRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, cost_price_per_tier: isNaN(val) || val < 0 ? 0 : val } : row
+      )
+    );
+  };
+
+  const handleSetAllReceiveRemaining = () => {
+    setReceiveRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        quantity_to_receive: Math.max(0, row.quantity_ordered - row.quantity_already_received),
+      }))
+    );
+  };
+
+  const handleClearAllReceive = () => {
+    setReceiveRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        quantity_to_receive: 0,
+      }))
+    );
+  };
+
   const handleConfirmCancel = async () => {
     if (!poToCancel) return;
     setIsCancellingPO(true);
@@ -86,12 +162,29 @@ export default function PurchaseOrders() {
 
   const handleConfirmReceive = async () => {
     if (!poToReceive) return;
+    
+    const totalToReceive = receiveRows.reduce((sum, r) => sum + (Number(r.quantity_to_receive) || 0), 0);
+    if (totalToReceive === 0) {
+      toast.error('Please enter a quantity greater than 0 for at least one item');
+      return;
+    }
+
     setIsReceivingPO(true);
     try {
-      const response = await apiClient.post(`/tenant/purchase-orders/${poToReceive.id}/receive`, {});
-      const unitsAdded = response.data.success?.data?.unitsReceived || 0;
+      const payload = {
+        items: receiveRows.map((r) => ({
+          variant_id: r.variant_id,
+          packaging_tier_id: r.packaging_tier_id,
+          quantity_received: Number(r.quantity_to_receive) || 0,
+          cost_price_per_tier: Number(r.cost_price_per_tier) || 0,
+        })),
+      };
+
+      const response = await apiClient.post(`/tenant/purchase-orders/${poToReceive.id}/receive`, payload);
+      const unitsAdded = response.data.success?.data?.unitsReceived || totalToReceive;
       toast.success(`PO Received! ${unitsAdded} units added to stock.`);
       setPoToReceive(null);
+      setReceiveRows([]);
       setIsDetailModalOpen(false);
       setSelectedPO(null);
       fetchPOs();
@@ -175,7 +268,7 @@ export default function PurchaseOrders() {
 
   const handleRowActionClick = (actionKey: string, row: any) => {
     const po = row.__record || purchaseOrders.find((p: any) => p.id === row.id);
-    if (actionKey === 'receive' && po) setPoToReceive(po);
+    if (actionKey === 'receive' && po) handleOpenReceiveModal(po);
     if (actionKey === 'cancel' && po) setPoToCancel(po);
     if (actionKey === 'edit' && po) handleEdit(po);
   };
@@ -191,6 +284,12 @@ export default function PurchaseOrders() {
       setIsDetailModalOpen(true);
     }
   };
+
+  const totalUnitsReceiving = receiveRows.reduce((sum, r) => sum + (Number(r.quantity_to_receive) || 0), 0);
+  const totalValueReceiving = receiveRows.reduce(
+    (sum, r) => sum + (Number(r.quantity_to_receive) || 0) * (Number(r.cost_price_per_tier) || 0),
+    0
+  );
 
   return (
     <PageLayout title="Purchase Orders" constrainHeight={true}>
@@ -413,7 +512,7 @@ export default function PurchaseOrders() {
                 {selectedPO.status !== 'received' && selectedPO.status !== 'cancelled' && (
                   <Button 
                     size="sm" 
-                    onClick={() => setPoToReceive(selectedPO)}
+                    onClick={() => handleOpenReceiveModal(selectedPO)}
                     disabled={isReceivingPO || isCancellingPO}
                     className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
                   >
@@ -427,36 +526,149 @@ export default function PurchaseOrders() {
         }
       />
 
-      {/* ── Confirm Receive Modal ────────────────────────────────────────────── */}
+      {/* ── Partial Receiving & Quantity Adjustment Modal ──────────────────────── */}
       <CustomModal
         isOpen={!!poToReceive}
         onOpenChange={() => {
-          if (!isReceivingPO) setPoToReceive(null);
+          if (!isReceivingPO) {
+            setPoToReceive(null);
+            setReceiveRows([]);
+          }
         }}
-        size="sm"
+        size="3xl"
+        classNames={{
+          base: "rounded-xl min-h-[450px] scrollbar-hide"
+        }}
         header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2">
-            <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground" />
-            <h3 className="text-sm font-bold text-foreground">Receive Purchase Order?</h3>
+          <div className="pt-2 px-1 border-b border-border/50 pb-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-primary" />
+                Receive Stock Intake
+              </h2>
+              <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-full border border-border/60">
+                {poToReceive?.referenceNumber || poToReceive?.reference_number || "PO"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground font-normal mt-0.5">
+              Supplier: <strong className="text-foreground">{poToReceive?.supplierName || (poToReceive?.supplier ? (typeof poToReceive.supplier === 'object' ? poToReceive.supplier.name : poToReceive.supplier) : 'Supplier')}</strong> · Adjust received quantities if shipment is partial or damaged.
+            </p>
           </div>
         }
         body={
-          <div className="py-2 space-y-2 text-xs text-muted-foreground">
-            <p>
-              Are you sure you want to mark <strong className="text-foreground">{poToReceive?.referenceNumber || poToReceive?.reference_number || 'this PO'}</strong> as received?
-            </p>
-            <div className="bg-muted/30 p-2.5 rounded-md border border-border/60 text-[11px] text-muted-foreground">
-              All ordered line items will be added to your inventory automatically, updating current stock levels.
+          <div className="space-y-3 py-2 text-xs">
+            {/* Quick Bulk Presets */}
+            <div className="flex items-center justify-between gap-2 bg-muted/20 px-3 py-2 rounded-lg border border-border/50">
+              <span className="text-[11px] text-muted-foreground font-medium">
+                Line Items ({receiveRows.length})
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={handleSetAllReceiveRemaining}
+                  className="h-6 text-[11px] px-2 font-medium"
+                >
+                  Fill All Remaining
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={handleClearAllReceive}
+                  className="h-6 text-[11px] px-2 font-medium text-muted-foreground"
+                >
+                  Clear (Set 0)
+                </Button>
+              </div>
+            </div>
+
+            {/* Line Items Table */}
+            <div className="border border-border/70 rounded-lg overflow-hidden max-h-[320px] overflow-y-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border/70 font-semibold text-muted-foreground">
+                    <th className="p-2.5">Item / Variant</th>
+                    <th className="p-2.5">Tier</th>
+                    <th className="p-2.5 text-center">Ordered</th>
+                    <th className="p-2.5 text-center">Qty to Intake</th>
+                    <th className="p-2.5 text-right">Unit Cost</th>
+                    <th className="p-2.5 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {receiveRows.map((row, idx) => {
+                    const rowSubtotal = (Number(row.quantity_to_receive) || 0) * (Number(row.cost_price_per_tier) || 0);
+                    return (
+                      <tr key={idx} className="hover:bg-muted/10">
+                        <td className="p-2.5 font-medium text-foreground capitalize">
+                          <div>{row.variant_name}</div>
+                          <span className="text-[10px] font-mono text-muted-foreground">{row.variant_sku}</span>
+                        </td>
+                        <td className="p-2.5 text-muted-foreground font-medium">
+                          {row.tier_name}
+                        </td>
+                        <td className="p-2.5 text-center font-medium text-muted-foreground">
+                          {row.quantity_ordered}
+                          {row.quantity_already_received > 0 && (
+                            <span className="block text-[10px] text-green-600">({row.quantity_already_received} recvd)</span>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={row.quantity_to_receive.toString()}
+                            onChange={(e) => handleReceiveQtyChange(idx, e.target.value)}
+                            className="h-8 w-20 mx-auto text-center font-semibold rounded-md border-border text-xs"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.cost_price_per_tier.toString()}
+                            onChange={(e) => handleReceiveCostChange(idx, e.target.value)}
+                            className="h-8 w-24 ml-auto text-right font-medium rounded-md border-border text-xs"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right font-semibold text-foreground">
+                          <CurrencyDisplay amount={rowSubtotal} showStyling={false} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals Summary Footer Card */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/60 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[11px] text-muted-foreground font-medium block">Total Units to Add</span>
+                <span className="font-bold text-foreground text-sm">{totalUnitsReceiving} units</span>
+              </div>
+              <div className="text-right space-y-0.5">
+                <span className="text-[11px] text-muted-foreground font-medium block">Receiving Value</span>
+                <span className="font-bold text-foreground text-base">
+                  <CurrencyDisplay amount={totalValueReceiving} showStyling={false} />
+                </span>
+              </div>
             </div>
           </div>
         }
         footer={
-          <div className="flex justify-end gap-2 w-full pt-1">
+          <div className="flex justify-end gap-2 w-full pt-1 border-t border-border/50">
             <Button
               variant="outline"
               size="sm"
               type="button"
-              onClick={() => setPoToReceive(null)}
+              onClick={() => {
+                setPoToReceive(null);
+                setReceiveRows([]);
+              }}
               disabled={isReceivingPO}
               className="text-xs font-medium"
             >
@@ -466,18 +678,18 @@ export default function PurchaseOrders() {
               size="sm"
               type="button"
               onClick={handleConfirmReceive}
-              disabled={isReceivingPO}
-              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[130px] justify-center"
+              disabled={isReceivingPO || totalUnitsReceiving === 0}
+              className="bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 min-w-[160px] justify-center"
             >
               {isReceivingPO ? (
                 <>
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Receiving...</span>
+                  <span>Receiving Stock...</span>
                 </>
               ) : (
                 <>
                   <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                  <span>Confirm & Receive</span>
+                  <span>Confirm & Update Stock</span>
                 </>
               )}
             </Button>
