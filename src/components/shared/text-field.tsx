@@ -263,7 +263,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
 
 // CUSTOM INPUT
 interface CustomInputTextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
-  type?: "text" | "number" | "date" | "email" | "password" | "tel" | "url";
+  type?: "text" | "number" | "date" | "email" | "password" | "tel" | "url" | "time" | "datetime-local";
   onChange?: (e: any) => unknown;
   placeholder?: string;
   required?: boolean;
@@ -389,6 +389,9 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
               startContent ? "pl-9" : "pl-3",
               endContent || isClearabe || error ? "pr-10" : "pr-3",
               shouldFloat ? "pt-6 pb-2" : "py-3",
+              !shouldFloat &&
+                (type === "date" || type === "time" || type === "datetime-local") &&
+                "text-transparent [&::-webkit-datetime-edit]:opacity-0 [&::-webkit-datetime-edit]:invisible",
               "focus:border-foreground/60 focus:ring-1 focus:ring-primary-green outline-none focus:outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "transition-all duration-200",

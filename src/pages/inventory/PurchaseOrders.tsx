@@ -183,28 +183,11 @@ export default function PurchaseOrders() {
         mobileFriendly={true}
       />
 
-      {/* New PO Modal */}
-      <CustomModal
+      {/* New PO Modal Form */}
+      <PurchaseOrderForm 
         isOpen={isModalOpen}
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
-        placement="right"
-        size="2xl"
-        classNames={{ base: "sm:w-[700px] " }}
-        header={
-          <div className="pt-3 px-2 border-b border-border/70 pb-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <PackageCheck className="h-6 w-6 text-primary" />
-              Draft Purchase Order
-            </h2>
-            <p className="text-sm text-muted-foreground font-normal">Add line items to order from your suppliers.</p>
-          </div>
-        }
-        body={
-          <PurchaseOrderForm 
-            onSuccess={handleFormSuccess}
-            onCancel={() => setIsModalOpen(false)} 
-          />
-        }
+        onSuccess={handleFormSuccess} 
       />
 
       {/* PO Detail View Modal */}

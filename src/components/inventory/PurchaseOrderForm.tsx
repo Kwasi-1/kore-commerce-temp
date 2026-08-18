@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Switch } from '@nextui-org/react';
-import { Plus, Trash2, CreditCard, Calendar, FileSpreadsheet, Package, Upload } from 'lucide-react';
+import { Trash2, CreditCard, Calendar, Package, Upload, PackageCheck } from 'lucide-react';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import CustomModal from '@/components/modals/modal';
 import { POProductPickerModal, CatalogVariant } from './POProductPickerModal';
 import { POImportCSVModal, POImportedItem } from './POImportCSVModal';
 
-interface POFormProps {
+interface PurchaseOrderFormProps {
+  isOpen: boolean;
+  onOpenChange: () => void;
   onSuccess: () => void;
-  onCancel: () => void;
 }
 
 interface PackagingTier {
@@ -35,7 +37,7 @@ interface POItem {
   cost_price: number;
 }
 
-export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) {
+export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess }: PurchaseOrderFormProps) {
   const { formatAmount } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,23 +50,35 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
     credit_due_date: '',
   });
 
-  // Modal controls
+  // Sub-modal controls
   const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
   const [isImportCSVModalOpen, setIsImportCSVModalOpen] = useState(false);
 
   // Line items
   const [items, setItems] = useState<POItem[]>([]);
 
-  // Initial suppliers fetch
+  // Initial suppliers fetch & form reset when opening
   useEffect(() => {
-    apiClient
-      .get('/tenant/suppliers?limit=100')
-      .then((res) => {
-        const active = res.data.success?.data?.suppliers || [];
-        setSuppliers(active.map((s: any) => ({ label: s.name, value: s.id })));
-      })
-      .catch(console.error);
-  }, []);
+    if (isOpen) {
+      apiClient
+        .get('/tenant/suppliers?limit=100')
+        .then((res) => {
+          const active = res.data.success?.data?.suppliers || [];
+          setSuppliers(active.map((s: any) => ({ label: s.name, value: s.id })));
+        })
+        .catch(console.error);
+    } else {
+      // Reset form when closed
+      setFormData({
+        supplier_id: '',
+        reference_number: '',
+        notes: '',
+        is_credit_purchase: false,
+        credit_due_date: '',
+      });
+      setItems([]);
+    }
+  }, [isOpen]);
 
   // Handlers for adding items
   const handleAddFromPicker = (
@@ -180,6 +194,14 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
       toast.error('Please add at least one line item');
       return;
     }
+
+    // Validate quantities
+    const invalidQtyItem = items.find((i) => !i.quantity || i.quantity <= 0);
+    if (invalidQtyItem) {
+      toast.error(`Please enter a valid quantity for "${invalidQtyItem.product_name}"`);
+      return;
+    }
+
     if (formData.is_credit_purchase && !formData.credit_due_date) {
       toast.error('Credit due date is required for credit purchases');
       return;
@@ -195,8 +217,8 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
         items: items.map((i) => ({
           variant_id: i.variant_id,
           packaging_tier_id: i.packaging_tier_id,
-          quantity: i.quantity,
-          cost_price: i.cost_price,
+          quantity: Number(i.quantity),
+          cost_price: Number(i.cost_price),
         })),
       };
 
@@ -205,7 +227,8 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
       }
 
       await apiClient.post('/tenant/purchase-orders', payload);
-      toast.success('Draft Purchase Order created');
+      toast.success('Draft Purchase Order created successfully');
+      onOpenChange();
       onSuccess();
     } catch (error: any) {
       console.error('Create PO error:', error);
@@ -219,264 +242,275 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
   const totalUnits = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.tier_units_per_tier) || 1), 0);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full px-1 pb-4 md:px-2 space-y-5">
-      <div className="flex-1 overflow-y-auto space-y-5 scrollbar-hide">
-        {/* ── PO Header ─────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-base border-b pb-2 dark:border-border">PO Details</h3>
-
-          <CustomSelectField
-            label="Supplier"
-            options={suppliers}
-            value={formData.supplier_id}
-            inputProps={{ onSelectionChange: handleSupplierSelect }}
-            placeholder="Select a supplier"
-            required
-          />
-
-          <CustomInputTextField
-            label="Reference Number (Invoice / Receipt)"
-            name="reference_number"
-            value={formData.reference_number}
-            onChange={handleChange}
-            required
-            placeholder="e.g. INV-2026-001"
-            inputProps={{ required: true }}
-          />
-        </div>
-
-        {/* ── Credit Purchase ────────────────────────────────────────────── */}
-        <div className="space-y-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3.5 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">Credit Purchase</span>
-            </div>
-            <Switch
-              isSelected={formData.is_credit_purchase}
-              onValueChange={(val) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  is_credit_purchase: val,
-                  credit_due_date: val ? prev.credit_due_date : '',
-                }))
-              }
-              size="sm"
-              color="warning"
-            />
+    <>
+      <CustomModal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        placement="right"
+        size={items.length === 0 ? "lg" : "3xl"}
+        classNames={{
+          base: items.length === 0 
+            ? 'sm:w-[520px] transition-all duration-300' 
+            : 'sm:w-[820px] transition-all duration-300',
+        }}
+        header={
+          <div className="pt-3 px-2 border-b border-border/70 pb-2">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              {/* <PackageCheck className="h-6 w-6 text-primary" /> */}
+              Draft Purchase Order
+            </h2>
+            <p className="text-sm text-muted-foreground font-normal">
+              Add line items to order from your suppliers.
+            </p>
           </div>
-          {formData.is_credit_purchase && (
-            <div className="space-y-1 pt-1">
-              <label className="text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> Due Date
-              </label>
-              <input
-                type="date"
-                name="credit_due_date"
-                value={formData.credit_due_date}
+        }
+        body={
+          <form id="purchase-order-form" onSubmit={handleSubmit} className="flex flex-col h-full space-y-5 px-1 py-1">
+            <div className="space-y-4">
+              {/* ── PO Details ─────────────────────────────────────────────── */}
+              <div className="space-y-3">
+                <CustomSelectField
+                  label="Supplier"
+                  options={suppliers}
+                  value={formData.supplier_id}
+                  inputProps={{ onSelectionChange: handleSupplierSelect }}
+                  placeholder="Select a supplier"
+                  required
+                />
+
+                <CustomInputTextField
+                  label="Reference Number (Invoice / Receipt)"
+                  name="reference_number"
+                  value={formData.reference_number}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g. INV-2026-001"
+                  inputProps={{ required: true }}
+                />
+              </div>
+
+              {/* ── Payment Terms / Credit Purchase (Monochromatic & Clean) ── */}
+              <div className="border border-border rounded-xl p-3.5 bg-card space-y-3 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">Credit Purchase</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enable if payment to supplier is deferred.
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={formData.is_credit_purchase}
+                    onValueChange={(val) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        is_credit_purchase: val,
+                        credit_due_date: val ? prev.credit_due_date : '',
+                      }))
+                    }
+                    size="sm"
+                  />
+                </div>
+
+                {formData.is_credit_purchase && (
+                  <div className="pt-2 border-t border-border/50">
+                    <CustomInputTextField
+                      label="Credit Due Date"
+                      name="credit_due_date"
+                      type="date"
+                      value={formData.credit_due_date}
+                      onChange={handleChange}
+                      required={formData.is_credit_purchase}
+                      inputProps={{
+                        min: new Date().toISOString().split('T')[0],
+                        required: formData.is_credit_purchase,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* ── Order Line Items Section ───────────────────────────────── */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm text-foreground">Order Items</h3>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      {items.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      radius="lg"
+                      onClick={() => setIsPickerModalOpen(true)}
+                      className="font-semibold flex items-center gap-1.5 h-8 text-xs px-2.5"
+                    >
+                      <Package className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      radius="lg"
+                      onClick={() => setIsImportCSVModalOpen(true)}
+                      className="font-medium flex items-center gap-1.5 h-8 text-xs px-2.5 border-border hover:bg-muted"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Items Table / Minimal Empty State */}
+                {items.length === 0 ? (
+                  <div className="py-10 px-4 border border-dashed border-border/70 rounded-lg flex flex-col items-center justify-center text-center gap-2 bg-muted/5">
+                    <Package className="h-7 w-7 text-muted-foreground/50" />
+                    <p className="text-xs text-muted-foreground font-medium">
+                      No items added yet. Click <strong>Browse Catalogue</strong> or <strong>Import File</strong> above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-border/70 overflow-hidden">
+                    <div className="max-h-[300px] overflow-y-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="border-b border-border/70 font-semibold text-muted-foreground sticky top-0 bg-card z-10">
+                          <tr className='bg-muted/30'>
+                            <th className="p-2.5">Product / Variant</th>
+                            <th className="p-2.5 w-28">Tier</th>
+                            <th className="p-2.5 w-20 text-center">Qty</th>
+                            <th className="p-2.5 w-24 text-right">Cost</th>
+                            <th className="p-2.5 w-24 text-right">Subtotal</th>
+                            <th className="p-2.5 w-8 text-center" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {items.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-muted/10">
+                              <td className="p-2.5">
+                                <div className="font-semibold text-foreground">{item.product_name}</div>
+                                {item.variant_label && (
+                                  <div className="text-[11px] text-muted-foreground">{item.variant_label}</div>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                {item.available_tiers && item.available_tiers.length > 1 ? (
+                                  <select
+                                    value={item.packaging_tier_id}
+                                    onChange={(e) => handleUpdateItemTier(idx, e.target.value)}
+                                    className="w-full h-8 px-2 border rounded-md bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                  >
+                                    {item.available_tiers.map((t) => (
+                                      <option key={t.id} value={t.id}>
+                                        {t.name} (×{t.units_per_tier})
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-medium px-1">
+                                    {item.tier_name}
+                                    {item.tier_units_per_tier > 1 && (
+                                      <span className="ml-1 text-muted-foreground/60 font-mono">
+                                        (×{item.tier_units_per_tier})
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2 text-center">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
+                                  className="h-8 text-center text-xs font-semibold px-1 rounded-md"
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.cost_price}
+                                  onChange={(e) => handleUpdateItemCost(idx, e.target.value)}
+                                  className="h-8 text-right text-xs font-semibold px-1 rounded-md"
+                                />
+                              </td>
+                              <td className="p-2.5 text-right font-semibold text-foreground">
+                                <CurrencyDisplay
+                                  amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)}
+                                  showStyling={false}
+                                />
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => removeLineItem(idx)}
+                                  className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Table Footer Totals */}
+                    <div className="p-2.5 border-t border-border/70 flex items-center justify-between text-[12px]">
+                      <span className="text-muted-foreground">
+                        Total Items: <strong>{items.length}</strong> · Units: <strong>{totalUnits}</strong>
+                      </span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-muted-foreground">Grand Total:</span>
+                        <span className="font-bold text-foreground text-base">
+                          <CurrencyDisplay amount={totalPoValue} showStyling={false} />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Order Notes ────────────────────────────────────────────── */}
+              <CustomTextareaField
+                label="Order Notes"
+                name="notes"
+                value={formData.notes}
                 onChange={handleChange}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
-                required={formData.is_credit_purchase}
+                placeholder="Any special instructions or supplier remarks…"
+                rows={2}
               />
             </div>
-          )}
-        </div>
-
-        {/* ── Order Line Items Section ───────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
-            <div>
-              <h3 className="font-semibold text-base flex items-center gap-2">
-                <span>Order Items</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  {items.length}
-                </span>
-              </h3>
-              <p className="text-xs text-muted-foreground">Add products from your catalogue or import a spreadsheet.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setIsPickerModalOpen(true)}
-                className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 h-8 text-xs"
-              >
-                <Package className="h-3.5 w-3.5" />
-                Browse Catalogue
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setIsImportCSVModalOpen(true)}
-                className="font-semibold flex items-center gap-1.5 h-8 text-xs border-border hover:bg-muted"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                Import File
-              </Button>
-            </div>
+          </form>
+        }
+        footer={
+          <div className="flex justify-end gap-2 w-full pt-1">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={onOpenChange}
+              className="font-medium px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="purchase-order-form"
+              disabled={isLoading || items.length === 0}
+              className="bg-primary text-primary-foreground font-semibold px-6 text-xs"
+            >
+              {isLoading ? 'Creating...' : 'Create Draft PO'}
+            </Button>
           </div>
+        }
+      />
 
-          {/* Items Table */}
-          {items.length === 0 ? (
-            <div className="p-8 border border-dashed rounded-xl flex flex-col items-center justify-center text-center gap-3 bg-muted/10">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Package className="h-5 w-5" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-foreground">No items added yet</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  Click <strong>Browse Catalogue</strong> to select products, or <strong>Import File</strong> to upload your supplier invoice.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsPickerModalOpen(true)}
-                  className="text-xs"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Add Products
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setIsImportCSVModalOpen(true)}
-                  className="text-xs text-muted-foreground"
-                >
-                  <Upload className="h-3.5 w-3.5 mr-1" />
-                  Upload CSV
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="max-h-[320px] overflow-y-auto">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-muted/40 border-b border-border font-semibold text-muted-foreground sticky top-0 bg-card z-10">
-                    <tr>
-                      <th className="p-2.5">Product / Variant</th>
-                      <th className="p-2.5 w-32">Tier</th>
-                      <th className="p-2.5 w-20 text-center">Qty</th>
-                      <th className="p-2.5 w-24 text-right">Cost</th>
-                      <th className="p-2.5 w-24 text-right">Subtotal</th>
-                      <th className="p-2.5 w-10 text-center" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {items.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-muted/10">
-                        <td className="p-2.5">
-                          <div className="font-semibold text-foreground">{item.product_name}</div>
-                          {item.variant_label && (
-                            <div className="text-[11px] text-muted-foreground">{item.variant_label}</div>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          {item.available_tiers && item.available_tiers.length > 1 ? (
-                            <select
-                              value={item.packaging_tier_id}
-                              onChange={(e) => handleUpdateItemTier(idx, e.target.value)}
-                              className="w-full h-8 px-2 border rounded-md bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                              {item.available_tiers.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.name} (×{t.units_per_tier})
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-xs text-muted-foreground font-medium px-1">
-                              {item.tier_name}
-                              {item.tier_units_per_tier > 1 && (
-                                <span className="ml-1 text-gray-400 font-mono">(×{item.tier_units_per_tier})</span>
-                              )}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-2 text-center">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
-                            className="h-8 text-center text-xs font-semibold px-1 rounded-md"
-                          />
-                        </td>
-                        <td className="p-2 text-right">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.cost_price}
-                            onChange={(e) => handleUpdateItemCost(idx, e.target.value)}
-                            className="h-8 text-right text-xs font-semibold px-1 rounded-md"
-                          />
-                        </td>
-                        <td className="p-2.5 text-right font-bold text-foreground">
-                          <CurrencyDisplay amount={(Number(item.quantity) || 0) * (Number(item.cost_price) || 0)} showStyling={false} />
-                        </td>
-                        <td className="p-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeLineItem(idx)}
-                            className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table Footer Totals */}
-              <div className="bg-muted/30 p-3 border-t border-border flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">
-                  Total Items: <strong>{items.length}</strong> · Total Base Units: <strong>{totalUnits}</strong>
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground font-semibold">Grand Total:</span>
-                  <span className="text-sm font-bold text-primary">
-                    <CurrencyDisplay amount={totalPoValue} showStyling={false} />
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Notes ──────────────────────────────────────────────────────── */}
-        <CustomTextareaField
-          label="Order Notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Any special instructions or supplier remarks…"
-          rows={2}
-        />
-      </div>
-
-      {/* ── Form Actions ─────────────────────────────────────────────────── */}
-      <div className="pt-3 border-t border-border flex justify-end gap-3 mt-auto">
-        <Button variant="ghost" type="button" onClick={onCancel} className="font-medium px-5 text-xs">
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={isLoading || items.length === 0}
-          className="bg-primary text-primary-foreground font-bold px-6 text-xs min-w-[120px]"
-        >
-          {isLoading ? 'Creating...' : 'Create Draft PO'}
-        </Button>
-      </div>
-
-      {/* ── Modals ───────────────────────────────────────────────────────── */}
+      {/* ── Sub-Modals ─────────────────────────────────────────────────────── */}
       <POProductPickerModal
         isOpen={isPickerModalOpen}
         onClose={() => setIsPickerModalOpen(false)}
@@ -489,6 +523,6 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: POFormProps) 
         onClose={() => setIsImportCSVModalOpen(false)}
         onImportItems={handleImportFromCSV}
       />
-    </form>
+    </>
   );
 }
