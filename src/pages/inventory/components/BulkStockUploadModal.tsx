@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Upload, AlertCircle, Download, CreditCard, Calendar, Truck } from "lucide-react";
+import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "@/components/ui/button";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
@@ -191,22 +191,26 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
   };
 
   const footer = (
-    <div className="flex gap-3 justify-end w-full px-2 pb-2">
-      <Button variant="ghost" onClick={handleClose} disabled={isPending}>
+    <div className="flex gap-2 justify-end w-full pt-2">
+      <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
         Cancel
       </Button>
       <Button
+        size="sm"
         onClick={handleParse}
         disabled={isPending || !file}
-        className="bg-primary hover:bg-primary/95 text-primary-foreground min-w-[140px] rounded-xl"
+        className="bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 min-w-[140px]"
       >
         {isPending ? (
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          <>
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span>Parsing File...</span>
-          </div>
+          </>
         ) : (
-          "Parse Shipment"
+          <>
+            <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
+            <span>Parse Shipment</span>
+          </>
         )}
       </Button>
     </div>
@@ -216,30 +220,30 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
     <CustomModal
       isOpen={isOpen}
       onOpenChange={() => handleClose()}
-      size="2xl"
+      size="xl"
       header={
-        <div className="pt-4 px-2">
-          <h2 className="text=lg md:text-xl font-bold flex items-center gap-2">
-            {/* <Truck className="h-5 w-5 text-primary" /> */}
-            Receive Stock from Shipment
-          </h2>
-          <p className="text-[12px] md:text-sm text-muted-foreground font-normal leading-[1.4]">
+        <div className="pt-2 px-1 border-b border-border/50 pb-3">
+          <div className="flex items-center gap-2">
+            {/* <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground/80" /> */}
+            <h2 className="text-base sm:text-lg font-bold text-foreground">Receive Stock from Shipment</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Upload your supplier stock CSV or Excel sheet to receive items into inventory.
           </p>
         </div>
       }
       body={
-        <div className="flex-1 w-full md:p-2 space-y-3 md:space-y-4">
+        <div className="space-y-4 py-2">
           {/* File Upload Drop Zone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+            className={`border-2 border-dashed rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
               isDragging
-                ? "border-primary bg-primary/5 scale-[0.99]"
-                : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/10"
+                ? "border-foreground/40 bg-muted/30"
+                : "border-border/80 bg-muted/10 hover:border-foreground/30 hover:bg-muted/20"
             }`}
           >
             <input
@@ -251,21 +255,24 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
               disabled={isPending}
             />
             
-            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary animate-pulse">
-              <Upload className="h-6 w-6" />
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+              <Icon icon="solar:cloud-upload-linear" className="h-6 w-6 text-foreground/70" />
             </div>
 
             {file ? (
               <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-foreground truncate max-w-md">
-                  {file.name}
-                </p>
+                <div className="flex items-center justify-center gap-1.5">
+                  <Icon icon="solar:document-text-bold" className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-sm font-semibold text-foreground truncate max-w-xs">
+                    {file.name}
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {(file.size / 1024).toFixed(1)} KB · Click to change file
                 </p>
               </div>
             ) : (
-              <div className="text-center space-y-1.5">
+              <div className="text-center space-y-1">
                 <h3 className="text-sm font-semibold text-foreground">
                   Click or drag spreadsheet here to upload
                 </h3>
@@ -277,60 +284,60 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
           </div>
 
           {/* Download template */}
-          <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <h4 className="text-sm font-bold text-foreground">Download Stock Intake Template</h4>
-                <p className="text-xs text-muted-foreground">
-                  Pre-filled with your active inventory catalogue. Simply enter received quantities and leave untouched items blank.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={downloadBlankTemplate}
-                  disabled={isExportingTemplate}
-                  className="rounded-lg border text-xs h-8 text-muted-foreground hover:text-foreground"
-                  title="Download blank CSV with headers"
-                >
-                  Blank
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={downloadCatalogueTemplate}
-                  disabled={isExportingTemplate}
-                  className="rounded-lg text-xs h-8 font-semibold flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20"
-                >
-                  {isExportingTemplate ? (
-                    <>
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-3.5 w-3.5" />
-                      <span>Catalogue Template</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+          <div className="p-3.5 rounded-xl border border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-foreground">Download Stock Intake Template</h4>
+              <p className="text-[11px] text-muted-foreground">
+                Pre-filled with your active inventory catalogue. Simply enter received quantities and leave untouched items blank.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={downloadBlankTemplate}
+                disabled={isExportingTemplate}
+                className="rounded-lg border text-xs h-8 text-muted-foreground hover:text-foreground font-medium"
+                title="Download blank CSV with headers"
+              >
+                Blank
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={downloadCatalogueTemplate}
+                disabled={isExportingTemplate}
+                className="rounded-lg text-xs h-8 font-medium flex items-center gap-1.5 text-foreground hover:bg-muted"
+              >
+                {isExportingTemplate ? (
+                  <>
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="solar:download-linear" className="h-3.5 w-3.5" />
+                    <span>Catalogue Template</span>
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
           {/* Supplier and Credit Options */}
-          <div className="border rounded-lg md:rounded-xl p-5 space-y-5 bg-card">
+          <div className="bg-muted/30 rounded-md p-3.5 space-y-3 transition-colors">
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-foreground flex items-center gap-2 cursor-pointer" htmlFor="credit-toggle">
-                  {/* <CreditCard className="h-4 w-4 text-primary" /> */}
-                  Credit Purchase
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Select if payment to the supplier will be made later.
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Icon icon="solar:card-linear" className="h-4 w-4 text-foreground/70" />
+                  <label className="text-xs font-bold text-foreground cursor-pointer" htmlFor="credit-toggle">
+                    Credit Purchase
+                  </label>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Select if payment to the supplier will be deferred.
                 </p>
               </div>
               <Switch
@@ -343,16 +350,16 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
 
             {/* Hidden fields expanded on Credit Purchase Toggle */}
             {isCreditPurchase && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                     Supplier *
                   </label>
                   <select
                     value={supplierId}
                     onChange={(e) => setSupplierId(e.target.value)}
                     disabled={isPending}
-                    className="w-full h-10 px-3 py-2 border rounded-xl bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50"
+                    className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50"
                   >
                     {suppliers.length === 0 ? (
                       <option value="">No suppliers available</option>
@@ -366,17 +373,16 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" />
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground block">
                     Due Date (Optional)
                   </label>
-                  <Input
+                  <input
                     type="date"
                     value={creditDueDate}
                     onChange={(e) => setCreditDueDate(e.target.value)}
                     disabled={isPending}
-                    className="rounded-xl h-10 text-sm"
+                    className="w-full h-8 px-2.5 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15"
                   />
                 </div>
               </div>
