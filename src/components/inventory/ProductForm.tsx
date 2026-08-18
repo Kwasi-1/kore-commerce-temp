@@ -14,6 +14,8 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { PillSidebar } from "../shared/pill-sidebar";
 
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
 interface ProductFormProps {
   initialData?: any;
   onSuccess: () => void;
@@ -21,10 +23,193 @@ interface ProductFormProps {
 }
 
 const generateSkuFromName = (prodName: string, suffix?: string) => {
-  const clean = (prodName || "PRD").replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "PRD";
+  if (!prodName || !prodName.trim()) {
+    const rand = Math.floor(100 + Math.random() * 900);
+    return suffix ? `PRD-${suffix.toUpperCase()}-${rand}` : `PRD-${rand}`;
+  }
+  const words = prodName
+    .trim()
+    .split(/[\s\-_/]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.replace(/[^A-Za-z0-9]/g, "").slice(0, 5).toUpperCase())
+    .filter(Boolean);
+
+  const prefix = words.join("-") || "PRD";
   const rand = Math.floor(100 + Math.random() * 900);
-  return suffix ? `${clean}-${suffix.toUpperCase()}-${rand}` : `${clean}-${rand}`;
+  return suffix ? `${prefix}-${suffix.toUpperCase()}-${rand}` : `${prefix}-${rand}`;
 };
+
+function CreatableCategorySelect({
+  value,
+  onChange,
+  categories,
+  onAddCategory,
+  error,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  categories: string[];
+  onAddCategory: (newCat: string) => void;
+  error?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return categories;
+    return categories.filter((c) =>
+      c.toLowerCase().includes(search.trim().toLowerCase())
+    );
+  }, [categories, search]);
+
+  const exactMatch = categories.some(
+    (c) => c.toLowerCase() === search.trim().toLowerCase()
+  );
+
+  const handleSelect = (cat: string) => {
+    onChange(cat);
+    setSearch("");
+    setOpen(false);
+  };
+
+  const handleCreate = () => {
+    const trimmed = search.trim();
+    if (!trimmed) return;
+    onAddCategory(trimmed);
+    onChange(trimmed);
+    setSearch("");
+    setOpen(false);
+  };
+
+  const hasValue = Boolean(value);
+
+  return (
+    <div className="relative w-full font-header">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "w-full text-left rounded-lg border border-input bg-card px-3.5 h-[3.5rem] relative flex items-center justify-between transition-all duration-200 outline-none focus:outline-none focus:ring-0",
+              open && "border-foreground/30",
+              error && "border-destructive"
+            )}
+          >
+            {/* Floating Label */}
+            <span
+              className={cn(
+                "absolute left-3.5 transition-all duration-200 pointer-events-none text-muted-foreground",
+                hasValue || open
+                  ? "top-2 text-[10px] uppercase font-bold tracking-wider"
+                  : "top-1/2 -translate-y-1/2 text-sm"
+              )}
+            >
+              Category <span className="text-red-500">*</span>
+            </span>
+
+            {/* Selected Value */}
+            <span
+              className={cn(
+                "text-sm font-semibold text-foreground pt-4 truncate",
+                !hasValue && "opacity-0"
+              )}
+            >
+              {value || "Select Category"}
+            </span>
+
+            <Icon
+              icon="lucide:chevrons-up-down"
+              className="text-muted-foreground h-4 w-4 shrink-0 ml-2"
+            />
+          </button>
+        </PopoverTrigger>
+
+        <PopoverContent
+          align="start"
+          sideOffset={6}
+          className="w-[calc(100vw-2rem)] sm:w-[320px] p-2 rounded-xl shadow-xl border border-border bg-card z-50"
+        >
+          {/* Search bar inside popover */}
+          <div className="flex items-center gap-2 px-2.5 py-1.5 border border-border rounded-lg bg-muted/20 mb-2">
+            <Icon icon="lucide:search" className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search or type new category..."
+              className="w-full bg-transparent text-xs text-foreground focus:outline-none placeholder:text-muted-foreground"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!exactMatch && search.trim()) {
+                    handleCreate();
+                  } else if (filtered.length > 0) {
+                    handleSelect(filtered[0]);
+                  }
+                }
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Icon icon="lucide:x" className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Options List */}
+          <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+            {filtered.map((cat) => {
+              const isSelected = cat.toLowerCase() === value.toLowerCase();
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => handleSelect(cat)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors font-medium",
+                    isSelected
+                      ? "bg-muted font-semibold text-foreground"
+                      : "text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <span className="truncate">{cat}</span>
+                  {isSelected && <Icon icon="lucide:check" className="h-3.5 w-3.5 shrink-0 text-foreground" />}
+                </button>
+              );
+            })}
+
+            {filtered.length === 0 && !search.trim() && (
+              <p className="text-center text-xs text-muted-foreground py-4">
+                No categories available.
+              </p>
+            )}
+
+            {/* Creatable option if typed text is new */}
+            {search.trim() && !exactMatch && (
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-foreground font-medium bg-muted/40 hover:bg-muted border border-dashed border-border mt-1.5 transition-colors"
+              >
+                <Icon icon="lucide:plus" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">
+                  Create <strong className="font-semibold text-foreground">"{search.trim()}"</strong>
+                </span>
+              </button>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {error && <span className="text-destructive text-xs mt-1 block">{error}</span>}
+    </div>
+  );
+}
 
 export default function ProductForm({ initialData, onSuccess, onCancel }: ProductFormProps) {
   const isEditing = !!initialData;
@@ -138,8 +323,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   useEffect(() => {
     apiClient.get("/tenant/products?limit=100").then((res) => {
       const prods = res.data.success?.data?.products || [];
-      const cats = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean))) as string[];
-      setCategories(cats);
+      const fetchedCats = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean))) as string[];
+      const defaultCats = ["Beverages", "Bakery", "Dairy", "Grocery", "Fashion", "Electronics", "Snacks", "General"];
+      const merged = Array.from(new Set([...defaultCats, ...fetchedCats])).sort();
+      setCategories(merged);
     }).catch(console.error);
 
     apiClient.get("/tenant/settings").then((res) => {
@@ -303,7 +490,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
 
       const nameSuffix = combo.join(" / ");
       const skuSuffix = combo.map(v => v.toUpperCase().replace(/\s+/g, "")).join("-");
-      const cleanPrefix = (name || "PRD").replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "PRD";
+      const words = (name || "PRD")
+        .trim()
+        .split(/[\s\-_/]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(w => w.replace(/[^A-Za-z0-9]/g, "").slice(0, 5).toUpperCase())
+        .filter(Boolean);
+      const cleanPrefix = words.join("-") || "PRD";
       const generatedSku = `${cleanPrefix}-${skuSuffix}`;
 
       return {
@@ -723,15 +917,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <CustomSelectField
-              label="Category"
-              options={categoryOptions.length > 0 ? categoryOptions : [{ label: "General", value: "General" }]}
+            <CreatableCategorySelect
               value={category}
-              inputProps={{
-                onSelectionChange: (keys) => setCategory(Array.from(keys)[0] as string || "")
+              onChange={setCategory}
+              categories={categories}
+              onAddCategory={(newCat) => {
+                setCategories((prev) => Array.from(new Set([...prev, newCat])).sort());
               }}
-              placeholder="Select category"
-              required
             />
 
             <CustomSelectField
