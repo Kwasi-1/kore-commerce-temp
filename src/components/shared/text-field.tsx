@@ -620,6 +620,7 @@ export const CustomTextareaField = ({
   label,
   value,
   onChange,
+  name,
   height = "min-h-[100px]",
   labelPlacement = "inside",
   startContent,
@@ -672,6 +673,7 @@ export const CustomTextareaField = ({
 
           {/* Textarea field */}
           <textarea
+            name={name}
             value={value}
             onChange={(e) => {
               if (onChange) {
@@ -742,6 +744,7 @@ export const CustomTextareaField = ({
       )}
       <div className="relative">
         <textarea
+          name={name}
           value={value}
           onChange={(e) => {
             if (onChange) {
