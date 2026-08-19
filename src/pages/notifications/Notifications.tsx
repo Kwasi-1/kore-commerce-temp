@@ -129,27 +129,27 @@ export default function Notifications() {
     switch (category) {
       case 'inventory':
         return {
-          icon: <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-amber-500" />,
-          bg: 'bg-amber-500/10 border-amber-500/20',
+          icon: <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground/80" />,
+          bg: 'bg-muted/50 border-border/80 text-foreground',
           badgeText: 'Inventory',
         };
       case 'orders':
         return {
-          icon: <Icon icon="solar:bag-3-linear" className="h-5 w-5 text-emerald-500" />,
-          bg: 'bg-emerald-500/10 border-emerald-500/20',
+          icon: <Icon icon="solar:bag-3-linear" className="h-5 w-5 text-foreground/80" />,
+          bg: 'bg-muted/50 border-border/80 text-foreground',
           badgeText: 'Orders',
         };
       case 'financial':
         return {
-          icon: <Icon icon="solar:wallet-money-linear" className="h-5 w-5 text-rose-500" />,
-          bg: 'bg-rose-500/10 border-rose-500/20',
+          icon: <Icon icon="solar:wallet-money-linear" className="h-5 w-5 text-foreground/80" />,
+          bg: 'bg-muted/50 border-border/80 text-foreground',
           badgeText: 'Financial',
         };
       case 'system':
       default:
         return {
-          icon: <Icon icon="solar:shield-warning-linear" className="h-5 w-5 text-blue-500" />,
-          bg: 'bg-blue-500/10 border-blue-500/20',
+          icon: <Icon icon="solar:shield-warning-linear" className="h-5 w-5 text-foreground/80" />,
+          bg: 'bg-muted/50 border-border/80 text-foreground',
           badgeText: 'System',
         };
     }
@@ -335,7 +335,7 @@ export default function Notifications() {
                     {/* Category Icon Badge */}
                     <div
                       className={clsx(
-                        'p-2.5 rounded-lg border shrink-0 mt-0.5',
+                        'p-2.5 rounded-[10px] border shrink-0 mt-0.5',
                         theme.bg
                       )}
                     >
