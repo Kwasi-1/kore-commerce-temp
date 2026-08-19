@@ -168,7 +168,7 @@ export default function Notifications() {
     <PageLayout
       title="Notifications & Activity Log"
       subtitle="Real-time alerts, stock warnings, and transaction logs across your store."
-      className="max-w-5xl mx-auto"
+      className="max-w-4xl xl:max-w-5xl mx-auto"
     >
       <div className="space-y-5 max-w-5xl mx-auto pb-10">
         {/* Controls Card */}
