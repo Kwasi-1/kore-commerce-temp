@@ -240,11 +240,11 @@ export default function Notifications() {
     <PageLayout
       title="Notifications & Activity Log"
       subtitle="Real-time alerts, stock warnings, and transaction logs across your store."
-      className='max-w-5xl mx-auto'
+      className="max-w-5xl mx-auto"
     >
       <div className="space-y-5 max-w-5xl mx-auto pb-10">
         {/* Controls Card */}
-        <div className="flex flex-col gap-3.5 p-3.5 sm:p-4 rounded-xl bg-card border border-border/80 shadow-xs">
+        <div className="flex flex-col gap-3.5 p-3.5 sm:p-4 rounded-xl bg-card border border-border shadow-xs">
           {/* Top Row: Search & Global Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             {/* Search Input */}
@@ -255,7 +255,7 @@ export default function Notifications() {
                 placeholder="Search alerts by title, order, or keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -291,7 +291,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('all')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'all'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -302,7 +302,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('unread')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all flex items-center gap-1.5 shrink-0',
                 activeTab === 'unread'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -312,10 +312,10 @@ export default function Notifications() {
               {unreadCount > 0 && (
                 <span
                   className={clsx(
-                    'px-1.5 py-0.2 text-[10px] font-bold rounded-full',
+                    'px-1.5 py-0.2 text-[11px] font-bold rounded-full',
                     activeTab === 'unread'
                       ? 'bg-background text-foreground'
-                      : 'bg-primary/20 text-primary'
+                      : 'bg-primary text-primary-foreground'
                   )}
                 >
                   {unreadCount}
@@ -325,7 +325,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('inventory')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'inventory'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -336,7 +336,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('orders')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'orders'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -347,7 +347,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('financial')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'financial'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -358,7 +358,7 @@ export default function Notifications() {
             <button
               onClick={() => setActiveTab('system')}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0',
+                'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'system'
                   ? 'bg-foreground text-background font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -382,8 +382,8 @@ export default function Notifications() {
                 <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground mb-3">
                   <Bell className="h-5 w-5 opacity-60" />
                 </div>
-                <h3 className="text-sm font-bold text-foreground">No Notifications</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                <h3 className="text-base font-bold text-foreground">No Notifications</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">
                   You're all caught up! There are no active alerts matching your current filter.
                 </p>
               </CardContent>
@@ -396,18 +396,18 @@ export default function Notifications() {
                 <div
                   key={item.id}
                   className={clsx(
-                    'group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all duration-150',
+                    'group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-xl border transition-all duration-150',
                     item.read
                       ? 'bg-card/70 border-border/70 text-muted-foreground'
                       : 'bg-card border-foreground/20 shadow-xs'
                   )}
                 >
                   {/* Left Icon + Text Content */}
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     {/* Category Icon Badge */}
                     <div
                       className={clsx(
-                        'p-2 rounded-lg border shrink-0 mt-0.5',
+                        'p-2.5 rounded-lg border shrink-0 mt-0.5',
                         theme.bg
                       )}
                     >
@@ -419,27 +419,27 @@ export default function Notifications() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4
                           className={clsx(
-                            'text-xs font-bold tracking-tight',
+                            'text-sm font-bold tracking-tight',
                             item.read ? 'text-foreground/90' : 'text-foreground'
                           )}
                         >
                           {item.title}
                         </h4>
                         {!item.read && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                          <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
                         )}
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           · {parseTimestamp(item.timestamp)}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
+                      <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed">
                         {item.message}
                       </p>
                     </div>
                   </div>
 
                   {/* Right Actions & Deep-Link Button */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                  <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
                     {/* Actionable Deep Link Pill */}
                     {item.actionUrl && (
                       <Button
@@ -447,7 +447,7 @@ export default function Notifications() {
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(item.actionUrl!)}
-                        className="h-7 px-2.5 text-[11px] font-semibold gap-1 border-border/80 hover:bg-muted text-foreground"
+                        className="h-8 px-3 text-xs font-semibold gap-1.5 border-border/80 hover:bg-muted text-foreground"
                       >
                         <span>{item.actionLabel || 'View Details'}</span>
                         <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -459,17 +459,17 @@ export default function Notifications() {
                         <button
                           onClick={() => markAsRead(item.id)}
                           title="Mark as read"
-                          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         >
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-4 w-4" />
                         </button>
                       )}
                       <button
                         onClick={() => deleteNotification(item.id)}
                         title="Dismiss notification"
-                        className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
