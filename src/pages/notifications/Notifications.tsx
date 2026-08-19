@@ -3,21 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Bell, 
-  Package, 
-  ShoppingBag, 
-  DollarSign, 
-  AlertTriangle, 
-  Info, 
-  Check, 
-  Trash2, 
-  Search, 
-  ArrowRight,
-  ShieldAlert,
-  Clock,
-  Sparkles
-} from 'lucide-react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,64 +23,6 @@ export interface NotificationItem {
   actionLabel?: string;
 }
 
-const FALLBACK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'n1',
-    title: 'Low Stock Alert',
-    message: 'Nido Milk stock level reached threshold (4 units remaining). Consider placing a purchase order.',
-    category: 'inventory',
-    type: 'warning',
-    timestamp: new Date(Date.now() - 1000 * 60 * 18),
-    read: false,
-    actionUrl: '/inventory/stock',
-    actionLabel: 'Restock Item',
-  },
-  {
-    id: 'n2',
-    title: 'New Online Order #ORD-8821',
-    message: 'Customer Adelaide Afful placed an order for 2x Graphic T-Shirt via Paystack (GHS 50.00).',
-    category: 'orders',
-    type: 'success',
-    timestamp: new Date(Date.now() - 1000 * 60 * 95),
-    read: false,
-    actionUrl: '/transactions',
-    actionLabel: 'View Order',
-  },
-  {
-    id: 'n3',
-    title: 'Purchase Order In-Transit (PO-2026-004)',
-    message: 'Guinness Brewery confirmed shipment. Expected arrival within 24 hours.',
-    category: 'inventory',
-    type: 'info',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
-    read: false,
-    actionUrl: '/inventory/purchase-orders',
-    actionLabel: 'Inspect PO',
-  },
-  {
-    id: 'n4',
-    title: 'Cash Drawer Reconciliation Warning',
-    message: 'Shift closing recorded a variance of -GHS 5.00 on Cash Drawer #1.',
-    category: 'financial',
-    type: 'alert',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    read: true,
-    actionUrl: '/transactions',
-    actionLabel: 'Review Shift',
-  },
-  {
-    id: 'n5',
-    title: 'System Security Update',
-    message: 'POS receipt printing and end-of-day reconciliation engine upgraded to v2.4.0.',
-    category: 'system',
-    type: 'info',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    read: true,
-    actionUrl: '/settings',
-    actionLabel: 'System Settings',
-  },
-];
-
 export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -103,20 +30,16 @@ export default function Notifications() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'inventory' | 'orders' | 'financial' | 'system'>('all');
 
-  // Fetch notifications from backend API
+  // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await apiClient.get('/tenant/notifications');
       const items = res.data.success?.data?.notifications || [];
-      if (items.length > 0) {
-        setNotifications(items);
-      } else {
-        setNotifications(FALLBACK_NOTIFICATIONS);
-      }
+      setNotifications(items);
     } catch (err) {
-      console.warn('Could not load live notifications, using local store items:', err);
-      setNotifications(FALLBACK_NOTIFICATIONS);
+      console.warn('Could not load notifications:', err);
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +65,7 @@ export default function Notifications() {
     try {
       await apiClient.patch(`/tenant/notifications/${id}/read`);
     } catch (err) {
-      // local optimistic update
+      // optimistic update
     }
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item))
@@ -153,13 +76,18 @@ export default function Notifications() {
     try {
       await apiClient.delete(`/tenant/notifications/${id}`);
     } catch (err) {
-      // local optimistic delete
+      // optimistic delete
     }
     setNotifications((prev) => prev.filter((item) => item.id !== id));
     toast.success('Notification dismissed');
   };
 
-  const clearAllRead = () => {
+  const clearAllRead = async () => {
+    try {
+      await apiClient.delete('/tenant/notifications/clear-read');
+    } catch (err) {
+      // optimistic clear
+    }
     setNotifications((prev) => prev.filter((item) => !item.read));
     toast.success('Cleared read notifications');
   };
@@ -197,30 +125,30 @@ export default function Notifications() {
     return notifications.filter((n) => !n.read).length;
   }, [notifications]);
 
-  const getCategoryTheme = (category: NotificationItem['category'], type: NotificationItem['type']) => {
+  const getCategoryTheme = (category: NotificationItem['category']) => {
     switch (category) {
       case 'inventory':
         return {
-          icon: <Package className="h-4 w-4 text-amber-500" />,
+          icon: <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-amber-500" />,
           bg: 'bg-amber-500/10 border-amber-500/20',
           badgeText: 'Inventory',
         };
       case 'orders':
         return {
-          icon: <ShoppingBag className="h-4 w-4 text-emerald-500" />,
+          icon: <Icon icon="solar:bag-3-linear" className="h-5 w-5 text-emerald-500" />,
           bg: 'bg-emerald-500/10 border-emerald-500/20',
           badgeText: 'Orders',
         };
       case 'financial':
         return {
-          icon: <DollarSign className="h-4 w-4 text-rose-500" />,
+          icon: <Icon icon="solar:wallet-money-linear" className="h-5 w-5 text-rose-500" />,
           bg: 'bg-rose-500/10 border-rose-500/20',
           badgeText: 'Financial',
         };
       case 'system':
       default:
         return {
-          icon: <Info className="h-4 w-4 text-blue-500" />,
+          icon: <Icon icon="solar:shield-warning-linear" className="h-5 w-5 text-blue-500" />,
           bg: 'bg-blue-500/10 border-blue-500/20',
           badgeText: 'System',
         };
@@ -249,7 +177,7 @@ export default function Notifications() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search alerts by title, order, or keyword..."
@@ -268,7 +196,7 @@ export default function Notifications() {
                   onClick={markAllAsRead}
                   className="h-8 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  <Icon icon="solar:check-read-linear" className="h-4 w-4" />
                   <span>Mark all as read</span>
                 </Button>
               )}
@@ -279,7 +207,7 @@ export default function Notifications() {
                   onClick={clearAllRead}
                   className="h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4 mr-1" />
                   <span>Clear read</span>
                 </Button>
               )}
@@ -380,7 +308,7 @@ export default function Notifications() {
             <Card className="border-border/60 bg-card">
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground mb-3">
-                  <Bell className="h-5 w-5 opacity-60" />
+                  <Icon icon="solar:bell-linear" className="h-6 w-6 opacity-60" />
                 </div>
                 <h3 className="text-base font-bold text-foreground">No Notifications</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">
@@ -390,7 +318,7 @@ export default function Notifications() {
             </Card>
           ) : (
             filteredNotifications.map((item) => {
-              const theme = getCategoryTheme(item.category, item.type);
+              const theme = getCategoryTheme(item.category);
 
               return (
                 <div
@@ -450,7 +378,7 @@ export default function Notifications() {
                         className="h-8 px-3 text-xs font-semibold gap-1.5 border-border/80 hover:bg-muted text-foreground"
                       >
                         <span>{item.actionLabel || 'View Details'}</span>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        <Icon icon="solar:arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                     )}
 
@@ -461,7 +389,7 @@ export default function Notifications() {
                           title="Mark as read"
                           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         >
-                          <Check className="h-4 w-4" />
+                          <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
                         </button>
                       )}
                       <button
@@ -469,7 +397,7 @@ export default function Notifications() {
                         title="Dismiss notification"
                         className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
                       </button>
                     </div>
                   </div>

@@ -3798,6 +3798,173 @@ export function setupMockApi() {
     return [404, { error: { status: "NOT_FOUND", message: "Supplier credit record not found", code: 404 } }];
   });
 
+  // ═══════════════════════════════════════════════════════════════════
+  // TENANT NOTIFICATIONS MOCKS
+  // ═══════════════════════════════════════════════════════════════════
+  let mockNotifications = [
+    {
+      id: 'n1',
+      title: 'Low Stock Alert',
+      message: 'Nido Milk stock level reached threshold (4 units remaining). Consider placing a purchase order.',
+      category: 'inventory',
+      type: 'warning',
+      timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+      read: false,
+      actionUrl: '/inventory/stock',
+      actionLabel: 'Restock Item',
+    },
+    {
+      id: 'n2',
+      title: 'New Online Order #ORD-8821',
+      message: 'Customer Adelaide Afful placed an order for 2x Graphic T-Shirt via Paystack (GHS 50.00).',
+      category: 'orders',
+      type: 'success',
+      timestamp: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+      read: false,
+      actionUrl: '/transactions',
+      actionLabel: 'View Order',
+    },
+    {
+      id: 'n3',
+      title: 'Purchase Order In-Transit (PO-2026-004)',
+      message: 'Guinness Brewery confirmed shipment. Expected arrival within 24 hours.',
+      category: 'inventory',
+      type: 'info',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+      read: false,
+      actionUrl: '/inventory/purchase-orders',
+      actionLabel: 'Inspect PO',
+    },
+    {
+      id: 'n4',
+      title: 'Cash Drawer Reconciliation Warning',
+      message: 'Shift closing recorded a variance of -GHS 5.00 on Cash Drawer #1.',
+      category: 'financial',
+      type: 'alert',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      read: true,
+      actionUrl: '/transactions',
+      actionLabel: 'Review Shift',
+    },
+    {
+      id: 'n5',
+      title: 'System Security Update',
+      message: 'POS receipt printing and end-of-day reconciliation engine upgraded to v2.4.0.',
+      category: 'system',
+      type: 'info',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      read: true,
+      actionUrl: '/settings',
+      actionLabel: 'System Settings',
+    },
+  ];
+
+  // GET /tenant/notifications
+  mock.onGet(/\/tenant\/notifications$/).reply((config) => {
+    const params = config.params || {};
+    let filtered = [...mockNotifications];
+
+    if (params.is_read !== undefined) {
+      const isRead = String(params.is_read) === 'true';
+      filtered = filtered.filter((n) => n.read === isRead);
+    }
+
+    if (params.category) {
+      filtered = filtered.filter((n) => n.category === params.category);
+    }
+
+    if (params.search) {
+      const q = String(params.search).toLowerCase();
+      filtered = filtered.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          n.message.toLowerCase().includes(q)
+      );
+    }
+
+    const unreadCount = mockNotifications.filter((n) => !n.read).length;
+
+    return [
+      200,
+      {
+        success: {
+          message: 'Notifications fetched successfully',
+          data: {
+            notifications: filtered,
+            unreadCount,
+            total: filtered.length,
+          },
+        },
+      },
+    ];
+  });
+
+  // PATCH /tenant/notifications/:id/read
+  mock.onPatch(/\/tenant\/notifications\/[^/]+\/read$/).reply((config) => {
+    const url = config.url || '';
+    const parts = url.split('/');
+    const id = parts[parts.length - 2];
+
+    const idx = mockNotifications.findIndex((n) => n.id === id);
+    if (idx !== -1) {
+      mockNotifications[idx].read = true;
+    }
+
+    return [
+      200,
+      {
+        success: {
+          message: 'Notification marked as read',
+          data: { id, read: true },
+        },
+      },
+    ];
+  });
+
+  // POST /tenant/notifications/read-all
+  mock.onPost('/tenant/notifications/read-all').reply(() => {
+    mockNotifications = mockNotifications.map((n) => ({ ...n, read: true }));
+    return [
+      200,
+      {
+        success: {
+          message: 'All notifications marked as read',
+        },
+      },
+    ];
+  });
+
+  // DELETE /tenant/notifications/clear-read
+  mock.onDelete('/tenant/notifications/clear-read').reply(() => {
+    mockNotifications = mockNotifications.filter((n) => !n.read);
+    return [
+      200,
+      {
+        success: {
+          message: 'Read notifications cleared',
+        },
+      },
+    ];
+  });
+
+  // DELETE /tenant/notifications/:id
+  mock.onDelete(/\/tenant\/notifications\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const parts = url.split('/');
+    const id = parts[parts.length - 1];
+
+    mockNotifications = mockNotifications.filter((n) => n.id !== id);
+
+    return [
+      200,
+      {
+        success: {
+          message: 'Notification deleted successfully',
+        },
+      },
+    ];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
   mock.onPost(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
