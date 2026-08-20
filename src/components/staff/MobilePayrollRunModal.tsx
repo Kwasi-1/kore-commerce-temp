@@ -241,7 +241,7 @@ export default function MobilePayrollRunModal({
 
             {/* Excluded unconfigured staff callout */}
             {excludedCount > 0 && (
-              <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-400/30 bg-amber-400/5 text-xs">
+              <div className="flex items-start gap-2 p-3 rounded-md border border-amber-400/30 bg-amber-400/5 text-sm">
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-amber-700 dark:text-amber-300">
                   <strong>{excludedCount} staff member{excludedCount > 1 ? 's' : ''}</strong> with incomplete profiles {excludedCount > 1 ? 'are' : 'is'} excluded. Complete their profiles in the <strong>Salary Profiles</strong> tab.

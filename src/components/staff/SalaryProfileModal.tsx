@@ -177,8 +177,8 @@ export default function SalaryProfileModal({
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 px-2">
       {/* Incomplete profile banner */}
       {initialData?.id && isIncomplete && (
-        <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-400/30 bg-amber-400/5 text-xs">
-          <svg
+        <div className="flex items-start gap-2.5 p-3 rounded-md border border-amber-400/30 bg-amber-400/5 text-sm">
+          {/* <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-4 w-4 text-amber-500 shrink-0 mt-0.5"
             viewBox="0 0 24 24"
@@ -191,7 +191,7 @@ export default function SalaryProfileModal({
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
+          </svg> */}
           <p className="text-amber-700 dark:text-amber-300">
             <strong>This profile is incomplete.</strong> Fill in all required fields to enable this staff member for payroll runs.
           </p>
