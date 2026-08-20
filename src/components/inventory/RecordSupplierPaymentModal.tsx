@@ -125,7 +125,7 @@ export default function RecordSupplierPaymentModal({
           <h2 className="text-lg font-bold text-foreground">Record Supplier Payment</h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">
             Supplier: <strong className="text-foreground">{selectedCredit.supplier_name}</strong> · PO:{' '}
-            <span className="font-mono">{selectedCredit.purchase_order_ref}</span>
+            <span>{selectedCredit.purchase_order_ref}</span>
           </p>
         </div>
       }

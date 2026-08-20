@@ -80,9 +80,9 @@ export default function SupplierCreditDetailModal({
               {selectedCredit.status}
             </span>
           </div>
-          <p className="text-[12px] md:text-sm text-muted-foreground mt-0.5">
+          <p className="text-[12px] md:text-[13px] text-muted-foreground mt-0.5">
             Supplier: <strong className="text-foreground">{selectedCredit.supplier_name}</strong> · PO:{' '}
-            <span className="font-mono">{selectedCredit.purchase_order_ref}</span>
+            <span>{selectedCredit.purchase_order_ref}</span>
           </p>
         </div>
       }

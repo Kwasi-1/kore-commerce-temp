@@ -60,12 +60,10 @@ export default function SupplierCredit() {
   const fetchSummary = async () => {
     try {
       const response = await apiClient.get('/tenant/supplier-credit/summary');
-      setSummary(response.data.data || {
-        total_outstanding: 0,
-        total_suppliers_with_debt: 0,
-        overdue_count: 0,
-        upcoming_due_7_days: 0
-      });
+      const data = response.data.success?.data || response.data.data;
+      if (data) {
+        setSummary(data);
+      }
     } catch (err) {
       console.error("Failed to load credit summary:", err);
     }
@@ -230,19 +228,19 @@ export default function SupplierCredit() {
     return {
       id: s.id,
       name: <span className="font-semibold text-foreground">{s.supplier_name}</span>,
-      po_ref: <span className="font-mono text-xs font-semibold">{s.purchase_order_ref}</span>,
+      po_ref: <span className="text-sm font-medium">{s.purchase_order_ref}</span>,
       total: <CurrencyDisplay amount={s.total_amount} showStyling={false} />,
       paid: <CurrencyDisplay amount={s.amount_paid} showStyling={false} />,
       balance: (
-        <span className={`font-bold ${s.status === 'settled' ? 'text-green-500' : isOverdue ? 'text-destructive' : 'text-foreground'}`}>
+        <span className={`font-bold ${s.status === 'settled' ? 'text-foreground' : isOverdue ? 'text-destructive' : 'text-foreground'}`}>
           <CurrencyDisplay amount={s.balance_remaining} showStyling={false} />
         </span>
       ),
       status: (
-        <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
-          s.status === 'settled' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
-          s.status === 'partial' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
-          'bg-red-500/10 text-red-600 border-red-500/20'
+        <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+          s.status === 'settled' ? 'bg-green-500/5 text-green-600' : 
+          s.status === 'partial' ? 'bg-amber-500/5 text-amber-600' : 
+          'bg-red-500/5 text-red-600'
         }`}>
           {s.status}
         </span>
@@ -299,25 +297,25 @@ export default function SupplierCredit() {
             title="Total Outstanding Owed"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} />}
             className="border border-border"
-            action={<Coins className="text-muted-foreground/50 h-5 w-5" />}
+            // action={<Coins className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Suppliers with Credit"
             value={isLoading ? '...' : summary.total_suppliers_with_debt.toString()}
             className="border border-border"
-            action={<CreditCard className="text-muted-foreground/50 h-5 w-5" />}
+            // action={<CreditCard className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Overdue Balances"
             value={isLoading ? '...' : summary.overdue_count.toString()}
             className="border border-border text-destructive"
-            action={<AlertTriangle className="text-destructive/50 h-5 w-5" />}
+            // action={<AlertTriangle className="text-destructive/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Upcoming Due (7 Days)"
             value={isLoading ? '...' : summary.upcoming_due_7_days.toString()}
             className="border border-border text-amber-500"
-            action={<Clock className="text-amber-500/50 h-5 w-5" />}
+            // action={<Clock className="text-amber-500/50 h-5 w-5" />}
           />
         </div>
 
