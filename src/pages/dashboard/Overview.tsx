@@ -36,7 +36,27 @@ export default function Overview() {
   const hasEcommerce = modules.ecommerce || hasModule('ecommerce');
   
   const [isLoading, setIsLoading] = useState(true);
-  const [desktopView, setDesktopView] = useState<'pos' | 'ecommerce'>('pos');
+  const [desktopView, setDesktopView] = useState<'pos' | 'ecommerce'>(() => {
+    try {
+      const saved = localStorage.getItem('vysion_dashboard_view');
+      if (saved === 'pos' || saved === 'ecommerce') return saved;
+    } catch (e) {
+      console.error('Failed to read dashboard view preference:', e);
+    }
+    return 'pos';
+  });
+
+  const toggleDesktopView = () => {
+    setDesktopView(prev => {
+      const next = prev === 'pos' ? 'ecommerce' : 'pos';
+      try {
+        localStorage.setItem('vysion_dashboard_view', next);
+      } catch (e) {
+        console.error('Failed to save dashboard view preference:', e);
+      }
+      return next;
+    });
+  };
   
   // Dashboard State
   const [todaySales, setTodaySales] = useState({ revenue: 0, orders: 0 });
@@ -566,7 +586,7 @@ export default function Overview() {
           {hasPos && hasEcommerce && (
             <Button
               size="sm"
-              onClick={() => setDesktopView(prev => prev === 'pos' ? 'ecommerce' : 'pos')}
+              onClick={toggleDesktopView}
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 font-semibold text-foreground transition-all duration-200 shadow-xs cursor-pointer group"
             >
               {desktopView === 'pos' ? (
