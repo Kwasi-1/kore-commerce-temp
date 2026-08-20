@@ -413,13 +413,22 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     [selectedRow, enableRowExpansion, onclick],
   );
 
+  // Check if global rowActions or row-specific actions exist
+  const hasRowActions = useMemo(() => {
+    return (
+      rowActions.length > 0 ||
+      rows.some((r) => r.rowActions && r.rowActions.length > 0)
+    );
+  }, [rowActions, rows]);
+
   // Process rows to add actions dropdown if rowActions are provided
   const processedRows = useMemo(() => {
-    if (rowActions.length === 0) return rows;
+    if (!hasRowActions) return rows;
 
     return rows.map((row) => {
       // Use row-specific actions if available, otherwise use the global rowActions
       const actions = row.rowActions || rowActions;
+      if (!actions || actions.length === 0) return row;
 
       return {
         ...row,
@@ -444,10 +453,19 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   }
                 }}
               >
-                {actions.map((action) => (
+                {actions.map((action: any) => (
                   <DropdownItem
                     key={action.key}
-                    className={action.className}
+                    className={
+                      action.className ||
+                      (action.destructive || action.color === "danger"
+                        ? "text-danger"
+                        : undefined)
+                    }
+                    color={
+                      action.color ||
+                      (action.destructive ? "danger" : undefined)
+                    }
                     startContent={
                       action.icon ? (
                         <Icon icon={action.icon} className="text-lg" />
@@ -465,14 +483,14 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
         ),
       };
     });
-  }, [rows, rowActions, rowActionsDisabledKeys, onRowActionClick]);
+  }, [rows, hasRowActions, rowActions, rowActionsDisabledKeys, onRowActionClick]);
 
   // Enhanced columns to include actions and handle column hiding
   const enhancedColumns = useMemo(() => {
     let baseColumns = columns;
 
     // Add actions column if rowActions are provided
-    if (rowActions.length > 0) {
+    if (hasRowActions) {
       const hasActionsColumn = columns.some((col) => col.key === "actions");
       if (!hasActionsColumn) {
         baseColumns = [...columns, { key: "actions", label: "" }];
@@ -487,7 +505,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     return baseColumns;
   }, [
     columns,
-    rowActions,
+    hasRowActions,
     enableRowExpansion,
     selectedRow,
     columnsToHideOnExpansion,

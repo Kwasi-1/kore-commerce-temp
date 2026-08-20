@@ -13,6 +13,7 @@ import PaySlipDrawer from '@/components/staff/PaySlipDrawer';
 import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDrawer';
 import PayrollRunDetailsDrawer from '@/components/staff/PayrollRunDetailsDrawer';
 import ImportStaffToPayrollModal from '@/components/staff/ImportStaffToPayrollModal';
+import { RemoveSalaryProfileModal } from '@/components/staff/RemoveSalaryProfileModal';
 import { CurrencyDisplay } from '@/hooks';
 import { isProfileConfigured } from '@/utils/payrollHelpers';
 import apiClient from '@/api/client';
@@ -67,6 +68,9 @@ export default function PayrollManagement() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isOffPlatformModalOpen, setIsOffPlatformModalOpen] = useState(false);
   const [isImportStaffModalOpen, setIsImportStaffModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState<any>(null);
+  const [isDeletingProfile, setIsDeletingProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [singleRecipientId, setSingleRecipientId] = useState<string | undefined>(undefined);
 
@@ -185,16 +189,22 @@ export default function PayrollManagement() {
   }, [salaryProfiles, profileFilter]);
 
   // Delete staff profile handler
-  const handleDeleteSalaryProfile = async (profile: any) => {
-    if (!profile?.id) return;
+  const handleDeleteSalaryProfile = async (profile?: any) => {
+    const target = profile || profileToDelete;
+    if (!target?.id) return;
+    setIsDeletingProfile(true);
     try {
-      await apiClient.delete(`/tenant/payroll/profile/${profile.id}`);
+      await apiClient.delete(`/tenant/payroll/profile/${target.id}`);
       toast.success('Staff profile removed from payroll');
+      setIsRemoveModalOpen(false);
+      setProfileToDelete(null);
       setIsStaffDetailsOpen(false);
       fetchPayrollData();
     } catch (error) {
       console.error('Delete profile error:', error);
       toast.error('Failed to remove staff profile');
+    } finally {
+      setIsDeletingProfile(false);
     }
   };
 
@@ -242,12 +252,12 @@ export default function PayrollManagement() {
         </span>
       ),
       method: (
-        <span className="capitalize text-xs font-semibold text-muted-foreground px-2 py-0.5 rounded bg-muted/60">
+        <span className="capitalize text-xs font-semibold text-muted-foreground px-2 py-1.5 rounded bg-muted/60">
           {row.payment_method?.replace(/_/g, ' ') || 'Cash'}
         </span>
       ),
       date: (
-        <span className="text-xs text-muted-foreground font-medium">
+        <span className="text-[12px] text-muted-foreground font-medium">
           {row.disbursal_date ? format(new Date(row.disbursal_date), 'MMM dd, yyyy') : '—'}
         </span>
       ),
@@ -332,7 +342,7 @@ export default function PayrollManagement() {
         </div>
       ),
       role: (
-        <span className="capitalize text-xs font-medium text-foreground px-2 py-0.5 rounded bg-muted/60">
+        <span className="capitalize text-xs font-medium text-foreground px-2 py-1.5 rounded bg-muted/60">
           {p.role_title || (p.is_off_platform ? 'Contractor' : 'Staff')}
         </span>
       ),
@@ -344,7 +354,7 @@ export default function PayrollManagement() {
         <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">—</span>
       ),
       cycle: (
-        <span className="capitalize text-xs font-semibold text-muted-foreground">
+        <span className="capitalize text-sm font-semibold text-muted-foreground">
           {configured ? p.compensation_type?.replace(/_/g, ' ') || 'Monthly Salary' : '—'}
         </span>
       ),
@@ -397,9 +407,8 @@ export default function PayrollManagement() {
     } else if (actionKey === 'pay_now') {
       navigate(`/staff/payroll/run?staff_id=${record.id}`, { state: { profiles: salaryProfiles } });
     } else if (actionKey === 'delete') {
-      if (window.confirm(`Are you sure you want to remove ${record.full_name || record.name} from payroll?`)) {
-        handleDeleteSalaryProfile(record);
-      }
+      setProfileToDelete(record);
+      setIsRemoveModalOpen(true);
     }
   };
 
@@ -763,7 +772,10 @@ export default function PayrollManagement() {
           setSingleRecipientId(p.id);
           setIsProcessModalOpen(true);
         }}
-        onDeleteProfile={handleDeleteSalaryProfile}
+        onDeleteProfile={(p) => {
+          setProfileToDelete(p);
+          setIsRemoveModalOpen(true);
+        }}
       />
 
       {/* Modal 4: Import Platform Staff Modal */}
@@ -774,6 +786,20 @@ export default function PayrollManagement() {
         existingProfiles={salaryProfiles}
         onSuccess={fetchPayrollData}
         isMobileView={isMobileView}
+      />
+
+      {/* Modal 5: Remove Salary Profile Modal */}
+      <RemoveSalaryProfileModal
+        isOpen={isRemoveModalOpen}
+        onClose={() => {
+          if (!isDeletingProfile) {
+            setIsRemoveModalOpen(false);
+            setProfileToDelete(null);
+          }
+        }}
+        profile={profileToDelete}
+        onConfirm={() => handleDeleteSalaryProfile(profileToDelete)}
+        isDeleting={isDeletingProfile}
       />
     </PageLayout>
   );
