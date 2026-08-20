@@ -316,7 +316,7 @@ export default function ImportStaffToPayrollModal({
                 placeholder="Search by name, email, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-2 text-[13px] rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <button
@@ -771,9 +771,8 @@ export default function ImportStaffToPayrollModal({
     <CustomModal
       isOpen={isOpen}
       onOpenChange={onClose}
-      size="lg"
+      size="xl"
       placement="center"
-      classNames={{ base: 'max-w-xl' }}
       header={
         <div className="pt-2 px-1 border-b border-border/70 pb-0">
           <div className="flex items-center gap-2 pb-2">
@@ -781,8 +780,8 @@ export default function ImportStaffToPayrollModal({
               <Icon icon="solar:user-plus-linear" className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">{headerTitle}</h2>
-              <p className="text-xs text-muted-foreground font-normal">{headerSubtitle}</p>
+              <h2 className="text-lg font-bold text-foreground">{headerTitle}</h2>
+              <p className="text-xs md:text-[13px] text-muted-foreground font-normal">{headerSubtitle}</p>
             </div>
           </div>
           {!isMobileView && <StepBar />}
