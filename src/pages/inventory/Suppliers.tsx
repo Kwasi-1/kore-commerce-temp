@@ -88,6 +88,7 @@ export default function Suppliers() {
 
   const rows = suppliers.map((s: any) => {
     const debtAmount = s.total_debt ?? s.outstanding_balance ?? 0;
+    const isActive = s.is_active !== undefined ? s.is_active : (s.isActive !== undefined ? s.isActive : true);
     return {
       id: s.id,
       name: <span className="font-semibold text-foreground">{s.name}</span>,
@@ -101,10 +102,10 @@ export default function Suppliers() {
       ),
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-          s.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
+          isActive ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
           : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
         }`}>
-          {s.is_active ? 'Active' : 'Inactive'}
+          {isActive ? 'Active' : 'Inactive'}
         </span>
       ),
       rowActions: [

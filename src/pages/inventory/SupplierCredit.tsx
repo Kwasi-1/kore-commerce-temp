@@ -343,7 +343,7 @@ export default function SupplierCredit() {
       ),
       rowActions: [
         { key: 'view', label: 'View Details', icon: 'mdi:eye-outline' },
-        ...(s.status !== 'settled' ? [{ key: 'pay', label: 'Record Payment', icon: 'mdi:credit-card-outline', className: 'text-primary font-semibold' }] : [])
+        ...(s.status !== 'settled' ? [{ key: 'pay', label: 'Record Payment', icon: 'mdi:credit-card-outline' }] : [])
       ],
       __record: s
     };
