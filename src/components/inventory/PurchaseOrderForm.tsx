@@ -714,25 +714,25 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
         size="sm"
         header={
           <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2 text-destructive">
-            <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" />
-            <h3 className="text-sm font-bold text-foreground">Discard Draft Purchase Order?</h3>
+            {/* <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" /> */}
+            <h3 className="text-base font-bold text-foreground">Discard Draft Purchase Order?</h3>
           </div>
         }
         body={
           <div className="py-2">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               You have unsaved changes ({items.length} line item{items.length !== 1 ? 's' : ''}). If you close now, your draft will be lost.
             </p>
           </div>
         }
         footer={
-          <div className="flex justify-end gap-2 w-full pt-1">
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
             <Button
               variant="outline"
               size="sm"
               type="button"
               onClick={() => setShowDiscardConfirm(false)}
-              className="text-xs font-medium"
+              className="font-medium"
             >
               Keep Editing
             </Button>
@@ -740,7 +740,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
               size="sm"
               type="button"
               onClick={forceClose}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold"
             >
               Discard Order
             </Button>

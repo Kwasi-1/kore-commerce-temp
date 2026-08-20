@@ -27,8 +27,8 @@ export default function PurchaseOrderCancelModal({
       size="sm"
       header={
         <div className="pt-2 px-1 border-b border-border/50 pb-2 flex items-center gap-2 text-destructive">
-          <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" />
-          <h3 className="text-sm font-bold text-foreground">Cancel Purchase Order?</h3>
+          {/* <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 shrink-0" /> */}
+          <h3 className="text-lg font-bold text-foreground">Cancel Purchase Order?</h3>
         </div>
       }
       body={
