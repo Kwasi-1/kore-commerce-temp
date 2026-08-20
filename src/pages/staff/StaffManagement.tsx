@@ -3,6 +3,8 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import StaffForm from '@/components/staff/StaffForm';
+import StaffStatusModal from '@/components/staff/StaffStatusModal';
+import ChangeStaffRoleModal from '@/components/staff/ChangeStaffRoleModal';
 import NumPad from '@/components/pos/NumPad';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -13,10 +15,20 @@ export default function StaffManagement() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Modals state
+  // Slide-over Edit/Create Staff Modal
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   
+  // Quick Change Role Modal
+  const [roleModalStaff, setRoleModalStaff] = useState<any>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+
+  // Activate / Deactivate Modal
+  const [statusModalStaff, setStatusModalStaff] = useState<any>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
+
+  // Set POS PIN Modal
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [selectedCashier, setSelectedCashier] = useState<any>(null);
 
@@ -52,15 +64,21 @@ export default function StaffManagement() {
     setIsFormModalOpen(true);
   };
 
-  const handleDelete = async (staffId: string) => {
-    if (!window.confirm('Are you sure you want to deactivate this staff member? They will lose access to the system immediately.')) return;
+  const handleConfirmStatus = async () => {
+    if (!statusModalStaff) return;
+    setIsStatusLoading(true);
     try {
-      await apiClient.delete(`/tenant/staff/${staffId}`);
-      toast.success('Staff member deactivated');
+      await apiClient.put(`/tenant/staff/${statusModalStaff.id}/status`, {});
+      const nextActive = statusModalStaff.is_active === false;
+      toast.success(`Staff member ${nextActive ? 'activated' : 'deactivated'}`);
+      setIsStatusModalOpen(false);
+      setStatusModalStaff(null);
       fetchStaff();
     } catch (error: any) {
-      console.error('Delete staff error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to deactivate staff');
+      console.error('Toggle staff status error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to update staff status');
+    } finally {
+      setIsStatusLoading(false);
     }
   };
 
@@ -94,18 +112,23 @@ export default function StaffManagement() {
   const rows = staffList.map((s: any) => {
     const isCashier = s.role === 'cashier';
     const isOwner = s.role === 'owner';
+    const isActive = s.is_active !== false;
 
     const rowActions = [
-      { key: 'edit', label: 'Change Role', icon: 'mdi:shield-account-outline' },
+      { key: 'edit_staff', label: 'Edit Staff', icon: 'mdi:pencil-outline' },
+      { key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' },
     ];
     
     if (isCashier) {
       rowActions.push({ key: 'set_pin', label: 'Set POS PIN', icon: 'mdi:dialpad' });
     }
     
-    if (!isOwner) { // Owners usually can't be deactivated easily via standard UI
-      rowActions.push({ key: 'edit', label: 'Edit Role', icon: 'mdi:pencil-outline' });
-      rowActions.push({ key: 'delete', label: 'Deactivate', icon: 'mdi:account-off-outline' });
+    if (!isOwner) {
+      rowActions.push({
+        key: 'toggle_status',
+        label: isActive ? 'Deactivate' : 'Activate',
+        icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline'
+      });
     }
 
     return {
@@ -140,9 +163,16 @@ export default function StaffManagement() {
   });
 
   const handleRowActionClick = (actionKey: string, row: any) => {
-    if (actionKey === 'edit') handleEdit(row.__record);
+    if (actionKey === 'edit_staff') handleEdit(row.__record);
+    if (actionKey === 'change_role') {
+      setRoleModalStaff(row.__record);
+      setIsRoleModalOpen(true);
+    }
     if (actionKey === 'set_pin') openPinModal(row.__record);
-    if (actionKey === 'delete') handleDelete(row.id);
+    if (actionKey === 'toggle_status') {
+      setStatusModalStaff(row.__record);
+      setIsStatusModalOpen(true);
+    }
   };
 
   return (
@@ -173,7 +203,7 @@ export default function StaffManagement() {
         classNames={{ base: "sm:w-[500px]" }}
         header={
           <div className="pt-3 px-2 pb-2 border-b border-border/60">
-            <h2 className="text-xl font-bold">{editingStaff ? 'Edit Staff Role' : 'Add New Staff'}</h2>
+            <h2 className="text-xl font-bold">{editingStaff ? 'Edit Staff Details' : 'Add New Staff'}</h2>
             <p className="text-sm text-muted-foreground font-normal">Manage team access and permissions.</p>
           </div>
         }
@@ -184,6 +214,31 @@ export default function StaffManagement() {
             onCancel={() => setIsFormModalOpen(false)} 
           />
         }
+      />
+
+      {/* Quick Change Role Modal */}
+      <ChangeStaffRoleModal
+        isOpen={isRoleModalOpen}
+        onClose={() => {
+          setIsRoleModalOpen(false);
+          setRoleModalStaff(null);
+        }}
+        staff={roleModalStaff}
+        onSuccess={fetchStaff}
+      />
+
+      {/* Activate / Deactivate Staff Modal */}
+      <StaffStatusModal
+        isOpen={isStatusModalOpen}
+        onClose={() => {
+          if (!isStatusLoading) {
+            setIsStatusModalOpen(false);
+            setStatusModalStaff(null);
+          }
+        }}
+        staff={statusModalStaff}
+        onConfirm={handleConfirmStatus}
+        isLoading={isStatusLoading}
       />
 
       {/* Set PIN Modal (Centered) */}

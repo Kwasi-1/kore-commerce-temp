@@ -45,9 +45,12 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
 
     try {
       if (isEditing) {
-        // Backend only supports role update
-        await apiClient.put(`/tenant/staff/${initialData.id}/role`, { role: formData.role });
-        toast.success('Staff role updated');
+        await apiClient.put(`/tenant/staff/${initialData.id}`, {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          role: formData.role
+        });
+        toast.success('Staff details updated');
       } else {
         if (!formData.email || !formData.password || !formData.first_name) {
           toast.error('First name, Email, and Password are required for new staff');
@@ -70,37 +73,34 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
     <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card pb-4 p-2 space-y-6">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
         
-        {!isEditing && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <CustomInputTextField
-                label="First Name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                required
-                placeholder="Jane"
-              />
-              <CustomInputTextField
-                label="Last Name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                placeholder="Doe"
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <CustomInputTextField
+            label="First Name"
+            name="first_name"
+            value={formData.first_name}
+            onChange={handleChange}
+            required
+            placeholder="Jane"
+          />
+          <CustomInputTextField
+            label="Last Name"
+            name="last_name"
+            value={formData.last_name}
+            onChange={handleChange}
+            placeholder="Doe"
+          />
+        </div>
 
-            <CustomInputTextField
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="staff@example.com"
-            />
-          </>
-        )}
+        <CustomInputTextField
+          label="Email Address"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+          disabled={isEditing}
+          placeholder="staff@example.com"
+        />
 
         <CustomSelectField
           label="Role"
@@ -157,12 +157,6 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
           />
         )}
 
-        {isEditing && (
-          <div className="p-3 bg-muted/50 text-muted-foreground rounded-lg text-xs border border-border">
-            You can update the role of existing staff members. To deactivate, use the deactivate option in the table.
-          </div>
-        )}
-
       </div>
 
       <div className="pt-4 flex justify-end gap-3 mt-auto">
@@ -174,11 +168,11 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
           Cancel
         </Button>
         <Button 
-          type="submit"
+          type="submit" 
           disabled={isLoading}
           className="bg-primary text-primary-foreground font-bold px-6"
         >
-          {isEditing ? 'Update Role' : 'Create Staff'}
+          {isEditing ? 'Save Changes' : 'Create Staff'}
         </Button>
       </div>
     </form>
