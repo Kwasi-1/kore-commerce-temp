@@ -14,6 +14,7 @@ import StaffPayrollDetailsDrawer from '@/components/staff/StaffPayrollDetailsDra
 import PayrollRunDetailsDrawer from '@/components/staff/PayrollRunDetailsDrawer';
 import ImportStaffToPayrollModal from '@/components/staff/ImportStaffToPayrollModal';
 import { CurrencyDisplay } from '@/hooks';
+import { isProfileConfigured } from '@/utils/payrollHelpers';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -294,24 +295,37 @@ export default function PayrollManagement() {
   ];
 
   const rowsProfiles = filteredProfiles.map((p: any) => {
-    const rowActions = [
-      { key: 'view_details', label: 'View Profile & History', icon: 'mdi:account-details-outline' },
-      { key: 'pay_now', label: 'Pay Now (Single Disbursal)', icon: 'mdi:cash-send' },
-      { key: 'edit', label: 'Edit Salary Profile', icon: 'mdi:pencil-outline' },
-      { key: 'delete', label: 'Remove from Payroll', icon: 'mdi:trash-can-outline', destructive: true },
-    ];
+    const configured = isProfileConfigured(p);
+
+    // Unconfigured profiles get a narrower action set — no pay, no view history
+    const rowActions = configured
+      ? [
+          { key: 'view_details', label: 'View Profile & History', icon: 'mdi:account-details-outline' },
+          { key: 'pay_now', label: 'Pay Now (Single Disbursal)', icon: 'mdi:cash-send' },
+          { key: 'edit', label: 'Edit Salary Profile', icon: 'mdi:pencil-outline' },
+          { key: 'delete', label: 'Remove from Payroll', icon: 'mdi:trash-can-outline', destructive: true },
+        ]
+      : [
+          { key: 'edit', label: 'Complete Profile Setup', icon: 'mdi:pencil-outline' },
+          { key: 'delete', label: 'Remove from Payroll', icon: 'mdi:trash-can-outline', destructive: true },
+        ];
 
     return {
       id: p.id,
       staff: (
         <div className="flex flex-col cursor-pointer">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-foreground hover:text-primary transition-colors">
               {p.full_name || p.name}
             </span>
             {p.is_off_platform && (
               <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-600 dark:text-purple-400">
-                External Staff
+                External
+              </span>
+            )}
+            {!configured && (
+              <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-600 dark:text-amber-400">
+                Unconfigured
               </span>
             )}
           </div>
@@ -322,17 +336,19 @@ export default function PayrollManagement() {
           {p.role_title || (p.is_off_platform ? 'Contractor' : 'Staff')}
         </span>
       ),
-      base_amount: (
+      base_amount: configured ? (
         <span className="font-bold text-foreground">
           <CurrencyDisplay amount={p.base_amount || 0} showStyling={false} />
         </span>
+      ) : (
+        <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">—</span>
       ),
       cycle: (
         <span className="capitalize text-xs font-semibold text-muted-foreground">
-          {p.compensation_type?.replace(/_/g, ' ') || 'Monthly Salary'}
+          {configured ? p.compensation_type?.replace(/_/g, ' ') || 'Monthly Salary' : '—'}
         </span>
       ),
-      payment_info: (
+      payment_info: configured ? (
         <div className="flex flex-col text-xs">
           {p.payment_method === 'cash' ? (
             <span className="font-semibold text-foreground">Cash</span>
@@ -348,6 +364,8 @@ export default function PayrollManagement() {
             </>
           )}
         </div>
+      ) : (
+        <span className="text-xs text-muted-foreground italic">Tap row to configure</span>
       ),
       rowActions,
       __record: p,
@@ -403,7 +421,12 @@ export default function PayrollManagement() {
 
   const handleProfileRowClick = (key: any) => {
     const found = salaryProfiles.find((p) => p.id === key);
-    if (found) {
+    if (!found) return;
+    if (!isProfileConfigured(found)) {
+      // Unconfigured: route directly to the profile editor
+      setEditingProfile(found);
+      setIsProfileModalOpen(true);
+    } else {
       setSelectedStaffProfile(found);
       setIsStaffDetailsOpen(true);
     }
@@ -428,7 +451,8 @@ export default function PayrollManagement() {
     .filter((p) => p.is_off_platform)
     .reduce((acc, curr) => acc + (Number(curr.base_amount) || 0), 0);
 
-  const configuredCount = salaryProfiles.length;
+  const readyCount = salaryProfiles.filter(isProfileConfigured).length;
+  const unconfiguredCount = salaryProfiles.length - readyCount;
   const platformCount = salaryProfiles.filter((p) => !p.is_off_platform).length;
   const externalCount = salaryProfiles.filter((p) => p.is_off_platform).length;
   const lastDisbursalDate = disbursalLog[0]?.date_paid || payrollRuns[0]?.disbursal_date;
@@ -467,7 +491,7 @@ export default function PayrollManagement() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            Salary Profiles ({configuredCount})
+            Salary Profiles ({salaryProfiles.length})
           </button>
         </div>
       }
@@ -513,7 +537,13 @@ export default function PayrollManagement() {
             />
             <DashboardCard
               title="Roster Status"
-              value={isLoading ? '...' : `${configuredCount} Active on Payroll`}
+              value={
+                isLoading
+                  ? '...'
+                  : unconfiguredCount > 0
+                  ? `${readyCount} Ready · ${unconfiguredCount} Unconfigured`
+                  : `${readyCount} Ready`
+              }
               valueStyle={!isLoading ? 'lg:text-lg xl:text-lg font-header tracking-tight' : ''}
             />
           </>
@@ -567,7 +597,7 @@ export default function PayrollManagement() {
             {
               title: 'Import Platform Staff',
               icon: 'solar:user-plus-linear',
-              variant: 'solid',
+              variant: 'flat',
               onPress: () => setIsImportStaffModalOpen(true),
               className: 'rounded',
             },
@@ -597,7 +627,8 @@ export default function PayrollManagement() {
               setSingleRecipientId(undefined);
               if (isRunRoute) navigate('/staff/payroll', { replace: true });
             }}
-            profiles={salaryProfiles}
+            profiles={salaryProfiles.filter(isProfileConfigured)}
+            excludedCount={salaryProfiles.length - salaryProfiles.filter(isProfileConfigured).length}
             initialSelectedId={staffIdParam || singleRecipientId}
             onSuccess={() => {
               fetchPayrollData();
@@ -619,7 +650,8 @@ export default function PayrollManagement() {
               setSingleRecipientId(undefined);
               if (isRunRoute) navigate('/staff/payroll', { replace: true });
             }}
-            profiles={salaryProfiles}
+            profiles={salaryProfiles.filter(isProfileConfigured)}
+            excludedCount={salaryProfiles.length - salaryProfiles.filter(isProfileConfigured).length}
             initialSelectedId={staffIdParam || singleRecipientId}
             onSuccess={() => {
               fetchPayrollData();
@@ -741,14 +773,7 @@ export default function PayrollManagement() {
         staffList={staffMembers}
         existingProfiles={salaryProfiles}
         onSuccess={fetchPayrollData}
-        onConfigureSingle={(staff) => {
-          setEditingProfile({
-            staff_id: staff.id,
-            full_name: staff.name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim(),
-            role_title: staff.role ? String(staff.role).toUpperCase() : 'Staff',
-          });
-          setIsProfileModalOpen(true);
-        }}
+        isMobileView={isMobileView}
       />
     </PageLayout>
   );

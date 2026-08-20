@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PillSidebar, PillSidebarOption } from '@/components/shared/pill-sidebar';
+import { useAuthStore } from '@/store/authStore';
 
-const DRAFT_STORAGE_KEY = 'vysion_payroll_draft';
 
 const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
@@ -35,6 +35,7 @@ interface ProcessPayrollModalProps {
   isOpen: boolean;
   onClose: () => void;
   profiles: any[];
+  excludedCount?: number;
   initialSelectedId?: string;
   onSuccess: () => void;
 }
@@ -55,23 +56,38 @@ export default function ProcessPayrollModal({
   isOpen,
   onClose,
   profiles,
+  excludedCount = 0,
   initialSelectedId,
   onSuccess,
 }: ProcessPayrollModalProps) {
+  // Tenant-scoped draft key prevents cross-account draft pollution
+  const tenantId = useAuthStore((s) => s.tenant?.id ?? 'unknown');
+  const DRAFT_KEY = `vysion_payroll_draft_${tenantId}`;
+
   const [activeStepKey, setActiveStepKey] = useState<string>('1');
   const [loading, setLoading] = useState(false);
   const [payPeriod, setPayPeriod] = useState(format(new Date(), 'MMMM yyyy'));
   const [disbursalDate, setDisbursalDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
+  const validProfileIds = new Set(profiles.map((p) => p.id));
+
   // Initialize line items state array from draft or salary profiles
   const [itemStates, setItemStates] = useState<ItemState[]>(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const key = `vysion_payroll_draft_${tenantId}`;
+      const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.items && Array.isArray(parsed.items)) {
-          return parsed.items;
+          // Only restore if ALL draft profile_ids belong to this tenant's profiles
+          const draftIds: string[] = parsed.items.map((i: any) => i.profile_id);
+          const allMatch = draftIds.every((id) => validProfileIds.has(id));
+          if (allMatch && draftIds.length > 0) {
+            return parsed.items;
+          }
+          // Draft is stale (different tenant) — discard it silently
+          localStorage.removeItem(key);
         }
       }
     } catch (e) {
@@ -115,11 +131,11 @@ export default function ProcessPayrollModal({
   useEffect(() => {
     if (itemStates.length > 0) {
       localStorage.setItem(
-        DRAFT_STORAGE_KEY,
+        DRAFT_KEY,
         JSON.stringify({ payPeriod, disbursalDate, items: itemStates })
       );
     }
-  }, [payPeriod, disbursalDate, itemStates]);
+  }, [payPeriod, disbursalDate, itemStates, DRAFT_KEY]);
 
   // Check if form has dirty modifications compared to defaults
   const isFormDirty = itemStates.some(
@@ -135,7 +151,7 @@ export default function ProcessPayrollModal({
   };
 
   const handleConfirmDiscard = () => {
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_KEY);
     setShowDiscardConfirm(false);
     onClose();
   };
@@ -228,7 +244,7 @@ export default function ProcessPayrollModal({
         })),
       });
 
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      localStorage.removeItem(DRAFT_KEY);
       toast.success(`Payroll run executed! ${selectedItems.length} disbursements recorded.`);
       onSuccess();
     } catch (error: any) {
@@ -340,6 +356,18 @@ export default function ProcessPayrollModal({
                 {/* STEP 1: GROSS PAY & LINE ITEMS */}
                 {activeStepKey === '1' && (
                   <div className="space-y-6">
+
+                    {/* Excluded unconfigured staff callout */}
+                    {excludedCount > 0 && (
+                      <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-400/30 bg-amber-400/5 text-xs">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-amber-700 dark:text-amber-300">
+                          <strong>{excludedCount} staff member{excludedCount > 1 ? 's have' : ' has'} an incomplete salary profile</strong> and {excludedCount > 1 ? 'are' : 'is'} excluded from this run.
+                          {' '}Go to <strong>Salary Profiles</strong> tab and click their row to complete setup.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Pay Period & Date Controls */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl bg-card p-4 rounded-lg border border-border/80 shadow-xs">
                       <CustomInputTextField

@@ -8,8 +8,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Check, Edit3, X, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-
-const DRAFT_STORAGE_KEY = 'vysion_payroll_draft';
+import { useAuthStore } from '@/store/authStore';
 
 const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
@@ -21,6 +20,7 @@ interface MobilePayrollRunModalProps {
   isOpen: boolean;
   onClose: () => void;
   profiles: any[];
+  excludedCount?: number;
   initialSelectedId?: string;
   onSuccess: () => void;
   onCancel: () => void;
@@ -42,24 +42,39 @@ export default function MobilePayrollRunModal({
   isOpen,
   onClose,
   profiles,
+  excludedCount = 0,
   initialSelectedId,
   onSuccess,
   onCancel,
 }: MobilePayrollRunModalProps) {
+  // Tenant-scoped draft key prevents cross-account draft pollution
+  const tenantId = useAuthStore((s) => s.tenant?.id ?? 'unknown');
+  const DRAFT_KEY = `vysion_payroll_draft_${tenantId}`;
+
   const [loading, setLoading] = useState(false);
   const [payPeriod, setPayPeriod] = useState(format(new Date(), 'MMMM yyyy'));
   const [disbursalDate, setDisbursalDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [editingRecipient, setEditingRecipient] = useState<RecipientItem | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
+  const validProfileIds = new Set(profiles.map((p) => p.id));
+
   // Initialize state from localStorage draft or props
   const [items, setItems] = useState<RecipientItem[]>(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const key = `vysion_payroll_draft_${tenantId}`;
+      const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.items && Array.isArray(parsed.items)) {
-          return parsed.items;
+          // Only restore if ALL draft profile_ids belong to this tenant's profiles
+          const draftIds: string[] = parsed.items.map((i: any) => i.profile_id);
+          const allMatch = draftIds.every((id) => validProfileIds.has(id));
+          if (allMatch && draftIds.length > 0) {
+            return parsed.items;
+          }
+          // Draft is stale (different tenant) — discard it silently
+          localStorage.removeItem(key);
         }
       }
     } catch (e) {
@@ -102,11 +117,11 @@ export default function MobilePayrollRunModal({
   useEffect(() => {
     if (items.length > 0) {
       localStorage.setItem(
-        DRAFT_STORAGE_KEY,
+        DRAFT_KEY,
         JSON.stringify({ payPeriod, disbursalDate, items })
       );
     }
-  }, [payPeriod, disbursalDate, items]);
+  }, [payPeriod, disbursalDate, items, DRAFT_KEY]);
 
   // Check if form has dirty modifications compared to defaults
   const isFormDirty = items.some(
@@ -143,7 +158,7 @@ export default function MobilePayrollRunModal({
   };
 
   const handleConfirmDiscard = () => {
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_KEY);
     setShowDiscardConfirm(false);
     onCancel();
   };
@@ -173,7 +188,7 @@ export default function MobilePayrollRunModal({
         })),
       });
 
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      localStorage.removeItem(DRAFT_KEY);
       toast.success('Payroll run executed successfully & expenses logged');
       onSuccess();
     } catch (error: any) {
@@ -223,6 +238,16 @@ export default function MobilePayrollRunModal({
                 required
               />
             </div>
+
+            {/* Excluded unconfigured staff callout */}
+            {excludedCount > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-400/30 bg-amber-400/5 text-xs">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-amber-700 dark:text-amber-300">
+                  <strong>{excludedCount} staff member{excludedCount > 1 ? 's' : ''}</strong> with incomplete profiles {excludedCount > 1 ? 'are' : 'is'} excluded. Complete their profiles in the <strong>Salary Profiles</strong> tab.
+                </p>
+              </div>
+            )}
 
             {/* Staff Selection & Edit List */}
             <div>

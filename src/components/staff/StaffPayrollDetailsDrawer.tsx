@@ -3,6 +3,7 @@ import CustomModal from '@/components/modals/modal';
 import { CurrencyDisplay } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { isProfileConfigured } from '@/utils/payrollHelpers';
 import {
   User,
   ShieldCheck,
@@ -36,6 +37,8 @@ export default function StaffPayrollDetailsDrawer({
   onDeleteProfile,
 }: StaffPayrollDetailsDrawerProps) {
   if (!profile) return null;
+
+  const configured = isProfileConfigured(profile);
 
   // Filter disbursal history specifically for this employee
   const staffDisbursals = disbursalHistory.filter((item) => {
@@ -107,10 +110,16 @@ export default function StaffPayrollDetailsDrawer({
             <div>
               <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Base Compensation</span>
               <div className="text-2xl font-extrabold text-foreground mt-0.5">
-                <CurrencyDisplay amount={profile.base_amount || 0} />
+                {configured ? (
+                  <CurrencyDisplay amount={profile.base_amount || 0} />
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400">Not set</span>
+                )}
               </div>
               <span className="text-xs text-muted-foreground capitalize font-medium">
-                Structure: {profile.compensation_type?.replace(/_/g, ' ') || 'Monthly Salary'}
+                {configured
+                  ? `Structure: ${profile.compensation_type?.replace(/_/g, ' ') || 'Monthly Salary'}`
+                  : 'Profile incomplete — configure salary to enable payroll'}
               </span>
             </div>
 
@@ -124,24 +133,36 @@ export default function StaffPayrollDetailsDrawer({
                   onEditProfile(profile);
                 }}
                 className="gap-1 text-xs font-bold"
-                title="Edit Salary Structure"
+                title={configured ? 'Edit Salary Structure' : 'Complete Profile Setup'}
               >
-                <Pencil className="h-3.5 w-3.5" /> Edit
+                <Pencil className="h-3.5 w-3.5" /> {configured ? 'Edit' : 'Complete Setup'}
               </Button>
 
-              <Button
-                size="sm"
-                onClick={() => {
-                  onClose();
-                  onSingleDisburse(profile);
-                }}
-                className="gap-1 text-xs font-bold"
-                title="Pay Salary Now"
-              >
-                <Send className="h-3.5 w-3.5" /> Pay Now
-              </Button>
+              {configured && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    onSingleDisburse(profile);
+                  }}
+                  className="gap-1 text-xs font-bold"
+                  title="Pay Salary Now"
+                >
+                  <Send className="h-3.5 w-3.5" /> Pay Now
+                </Button>
+              )}
             </div>
           </div>
+
+          {/* Incomplete profile banner */}
+          {!configured && (
+            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-400/30 bg-amber-400/5 text-xs">
+              <CheckCircle2 className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-amber-700 dark:text-amber-300">
+                <strong>This staff member cannot be included in payroll runs</strong> until their salary profile is complete. Click <strong>Complete Setup</strong> above to finish configuration.
+              </p>
+            </div>
+          )}
 
           {/* Account Details */}
           <div className="p-3.5 rounded-md bg-muted/30 space-y-2 text-sm">
