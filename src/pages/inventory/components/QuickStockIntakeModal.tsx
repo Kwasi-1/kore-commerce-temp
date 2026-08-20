@@ -84,9 +84,10 @@ export function QuickStockIntakeModal({
   useEffect(() => {
     if (isOpen) {
       apiClient
-        .get("/tenant/suppliers?limit=100")
+        .get("/tenant/suppliers?limit=100&status=active")
         .then((res) => {
-          setSuppliers(res.data.success?.data?.suppliers || []);
+          const list = res.data.success?.data?.suppliers || res.data.data?.suppliers || [];
+          setSuppliers(list.filter((s: any) => (s.is_active !== undefined ? s.is_active : (s.isActive !== undefined ? s.isActive : true))));
         })
         .catch(console.error);
     }

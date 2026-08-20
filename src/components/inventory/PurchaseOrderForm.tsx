@@ -112,9 +112,13 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
       }
 
       apiClient
-        .get('/tenant/suppliers?limit=100')
+        .get('/tenant/suppliers?limit=100&status=active')
         .then((res) => {
-          const active = res.data.success?.data?.suppliers || [];
+          const list = res.data.success?.data?.suppliers || res.data.data?.suppliers || [];
+          const active = list.filter((s: any) => {
+            const isActive = s.is_active !== undefined ? s.is_active : (s.isActive !== undefined ? s.isActive : true);
+            return isActive || s.id === initialPO?.supplier_id || s.id === initialPO?.supplierId;
+          });
           setSuppliers(active.map((s: any) => ({ label: s.name, value: s.id })));
         })
         .catch(console.error);

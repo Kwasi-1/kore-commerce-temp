@@ -35,9 +35,10 @@ export function BulkStockUploadModal({ isOpen, onClose }: BulkStockUploadModalPr
   // Load suppliers when modal is open
   useEffect(() => {
     if (isOpen) {
-      apiClient.get("/tenant/suppliers?limit=100")
+      apiClient.get("/tenant/suppliers?limit=100&status=active")
         .then((res) => {
-          const fetchedSuppliers = res.data.success?.data?.suppliers || [];
+          const list = res.data.success?.data?.suppliers || res.data.data?.suppliers || [];
+          const fetchedSuppliers = list.filter((s: any) => (s.is_active !== undefined ? s.is_active : (s.isActive !== undefined ? s.isActive : true)));
           setSuppliers(fetchedSuppliers);
           if (fetchedSuppliers.length > 0) {
             setSupplierId(fetchedSuppliers[0].id);
