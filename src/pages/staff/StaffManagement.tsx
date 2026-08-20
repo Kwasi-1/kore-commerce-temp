@@ -5,10 +5,10 @@ import CustomModal from '@/components/modals/modal';
 import StaffForm from '@/components/staff/StaffForm';
 import StaffStatusModal from '@/components/staff/StaffStatusModal';
 import ChangeStaffRoleModal from '@/components/staff/ChangeStaffRoleModal';
-import NumPad from '@/components/pos/NumPad';
+import ResetStaffPinModal from '@/components/staff/ResetStaffPinModal';
+import ResetStaffPasswordModal from '@/components/staff/ResetStaffPasswordModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { KeyRound } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function StaffManagement() {
@@ -23,14 +23,18 @@ export default function StaffManagement() {
   const [roleModalStaff, setRoleModalStaff] = useState<any>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
+  // Reset POS PIN Modal
+  const [pinModalStaff, setPinModalStaff] = useState<any>(null);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
+  // Reset Password Modal
+  const [passwordModalStaff, setPasswordModalStaff] = useState<any>(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
   // Activate / Deactivate Modal
   const [statusModalStaff, setStatusModalStaff] = useState<any>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
-
-  // Set POS PIN Modal
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [selectedCashier, setSelectedCashier] = useState<any>(null);
 
   const fetchStaff = async () => {
     setIsLoading(true);
@@ -82,25 +86,6 @@ export default function StaffManagement() {
     }
   };
 
-  const handleSetPin = async (pin: string) => {
-    if (!selectedCashier) return;
-    
-    try {
-      await apiClient.post(`/tenant/staff/${selectedCashier.id}/set-pin`, { pin });
-      toast.success('PIN set successfully');
-      setIsPinModalOpen(false);
-      setSelectedCashier(null);
-    } catch (error: any) {
-      console.error('Set PIN error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to set PIN');
-    }
-  };
-
-  const openPinModal = (staff: any) => {
-    setSelectedCashier(staff);
-    setIsPinModalOpen(true);
-  };
-
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
@@ -110,18 +95,15 @@ export default function StaffManagement() {
   ];
 
   const rows = staffList.map((s: any) => {
-    const isCashier = s.role === 'cashier';
     const isOwner = s.role === 'owner';
     const isActive = s.is_active !== false;
 
     const rowActions = [
       { key: 'edit_staff', label: 'Edit Staff', icon: 'mdi:pencil-outline' },
       { key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' },
+      { key: 'reset_pin', label: 'Reset POS PIN', icon: 'mdi:dialpad' },
+      { key: 'reset_password', label: 'Reset Password', icon: 'mdi:lock-reset' },
     ];
-    
-    if (isCashier) {
-      rowActions.push({ key: 'set_pin', label: 'Set POS PIN', icon: 'mdi:dialpad' });
-    }
     
     if (!isOwner) {
       rowActions.push({
@@ -168,7 +150,14 @@ export default function StaffManagement() {
       setRoleModalStaff(row.__record);
       setIsRoleModalOpen(true);
     }
-    if (actionKey === 'set_pin') openPinModal(row.__record);
+    if (actionKey === 'reset_pin') {
+      setPinModalStaff(row.__record);
+      setIsPinModalOpen(true);
+    }
+    if (actionKey === 'reset_password') {
+      setPasswordModalStaff(row.__record);
+      setIsPasswordModalOpen(true);
+    }
     if (actionKey === 'toggle_status') {
       setStatusModalStaff(row.__record);
       setIsStatusModalOpen(true);
@@ -227,6 +216,28 @@ export default function StaffManagement() {
         onSuccess={fetchStaff}
       />
 
+      {/* Reset POS PIN Modal */}
+      <ResetStaffPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => {
+          setIsPinModalOpen(false);
+          setPinModalStaff(null);
+        }}
+        staff={pinModalStaff}
+        onSuccess={fetchStaff}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetStaffPasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => {
+          setIsPasswordModalOpen(false);
+          setPasswordModalStaff(null);
+        }}
+        staff={passwordModalStaff}
+        onSuccess={fetchStaff}
+      />
+
       {/* Activate / Deactivate Staff Modal */}
       <StaffStatusModal
         isOpen={isStatusModalOpen}
@@ -239,38 +250,6 @@ export default function StaffManagement() {
         staff={statusModalStaff}
         onConfirm={handleConfirmStatus}
         isLoading={isStatusLoading}
-      />
-
-      {/* Set PIN Modal (Centered) */}
-      <CustomModal
-        isOpen={isPinModalOpen}
-        onOpenChange={() => setIsPinModalOpen(!isPinModalOpen)}
-        placement="center"
-        size="md"
-        classNames={{ base: "max-w-[400px]" }}
-        header={
-          <div className="flex items-center gap-2 pt-2">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <KeyRound className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold">Set POS PIN</h2>
-              <p className="text-sm text-muted-foreground font-normal">For {selectedCashier?.first_name} {selectedCashier?.last_name}</p>
-            </div>
-          </div>
-        }
-        body={
-          <div className="p-6 pt-0">
-            <p className="text-sm text-muted-foreground mb-6 text-center">
-              Enter a secure 4-digit PIN. Cashiers use this to quickly unlock the register.
-            </p>
-            <NumPad 
-              onComplete={handleSetPin} 
-              maxLength={4}
-              mask={true} 
-            />
-          </div>
-        }
       />
 
     </PageLayout>

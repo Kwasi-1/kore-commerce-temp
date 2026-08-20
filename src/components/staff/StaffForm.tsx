@@ -17,6 +17,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
   const isEditing = !!initialData;
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showPin, setShowPin] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: initialData?.first_name || '',
@@ -147,13 +148,27 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
           <CustomInputTextField
             label="4-Digit POS Access PIN"
             name="pos_pin"
-            type="text"
+            type={showPin ? "text" : "password"}
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={4}
             value={formData.pos_pin}
             onChange={handleChange}
             placeholder="1234"
+            endContent={
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="text-muted-foreground hover:text-foreground p-1 transition-colors focus:outline-none cursor-pointer"
+                title={showPin ? "Hide PIN" : "Show PIN"}
+              >
+                {showPin ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            }
           />
         )}
 
