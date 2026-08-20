@@ -67,9 +67,18 @@ export default function ImportStaffToPayrollModal({
 }: ImportStaffToPayrollModalProps) {
   const [step, setStep] = useState<Step>(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
   const [configMap, setConfigMap] = useState<Record<string, ConfigDraft>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Staff not already on any payroll profile
   const availableStaff = useMemo(() => {
@@ -82,8 +91,8 @@ export default function ImportStaffToPayrollModal({
   }, [staffList, existingProfiles]);
 
   const filteredStaff = useMemo(() => {
-    if (!searchQuery.trim()) return availableStaff;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedSearchQuery.trim()) return availableStaff;
+    const q = debouncedSearchQuery.toLowerCase();
     return availableStaff.filter(
       (s) =>
         s.name?.toLowerCase().includes(q) ||
@@ -92,7 +101,7 @@ export default function ImportStaffToPayrollModal({
         s.email?.toLowerCase().includes(q) ||
         s.role?.toLowerCase().includes(q)
     );
-  }, [availableStaff, searchQuery]);
+  }, [availableStaff, debouncedSearchQuery]);
 
   const selectedStaff = useMemo(
     () => availableStaff.filter((s) => selectedStaffIds.includes(s.id)),
@@ -104,6 +113,7 @@ export default function ImportStaffToPayrollModal({
     if (isOpen) {
       setStep(1);
       setSearchQuery('');
+      setDebouncedSearchQuery('');
       setSelectedStaffIds([]);
       setConfigMap({});
     }
@@ -255,9 +265,9 @@ export default function ImportStaffToPayrollModal({
   const renderStep1 = () => (
     <div className="space-y-3 text-xs">
       {availableStaff.length === 0 ? (
-        <div className="py-12 text-center space-y-2 rounded-xl border border-dashed border-border/80 bg-muted/20">
-          <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center mx-auto">
-            <Icon icon="solar:check-circle-linear" className="h-5 w-5 text-emerald-500" />
+        <div className="py-12 text-center space-y-2 bg-muted/20">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <Icon icon="solar:check-circle-linear" className="h-5 w-5 text-muted-foreground" />
           </div>
           <h3 className="text-sm font-bold text-foreground">All Staff Are on Payroll</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -277,13 +287,13 @@ export default function ImportStaffToPayrollModal({
                 placeholder="Search by name, email, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-[13px] rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-2 text-[13px] rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none"
               />
             </div>
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="text-xs font-semibold text-primary hover:underline shrink-0 flex items-center gap-1.5 py-1 px-1 cursor-pointer select-none"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground shrink-0 flex items-center gap-1.5 py-1 px-1 cursor-pointer select-none transition-colors"
             >
               <Checkbox
                 checked={
@@ -301,10 +311,10 @@ export default function ImportStaffToPayrollModal({
             </button>
           </div>
 
-          <div className="space-y-1.5 max-h-[calc(100dvh-19rem)] md:max-h-[calc(90dvh-19rem)] overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-[calc(100dvh-19.5rem)] md:max-h-[calc(90dvh-19rem)] md:min-h-[250px] overflow-y-auto pr-1">
             {filteredStaff.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
-                No staff matching "{searchQuery}"
+                No staff matching "{debouncedSearchQuery || searchQuery}"
               </div>
             ) : (
               filteredStaff.map((staff) => {
@@ -314,10 +324,10 @@ export default function ImportStaffToPayrollModal({
                     key={staff.id}
                     onClick={() => toggleStaff(staff.id)}
                     className={clsx(
-                      'flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none',
+                      'flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none',
                       isSelected
-                        ? 'bg-primary/5 border-primary/40 shadow-xs'
-                        : 'bg-card border-border/80 hover:bg-muted/40'
+                        ? 'bg-muted/40 border-foreground/5 shadow-xs'
+                        : 'bg-card border-border hover:bg-muted/30 hover:border-border/80'
                     )}
                   >
                     <Checkbox
@@ -330,14 +340,14 @@ export default function ImportStaffToPayrollModal({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground text-xs truncate">
+                        <span className="font-semibold text-foreground text-xs truncate">
                           {getDisplayName(staff)}
                         </span>
-                        <span className="capitalize text-[10px] font-semibold px-1.5 rounded bg-muted/60 text-muted-foreground border border-border/50 shrink-0">
+                        <span className="capitalize text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60 shrink-0">
                           {staff.role || 'Staff'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                         {staff.email || 'No email registered'}
                       </p>
                     </div>
@@ -354,13 +364,13 @@ export default function ImportStaffToPayrollModal({
   // ─── Step 2: Configure (Desktop only) ────────────────────────────────────────
   const renderStep2 = () => (
     <div className="space-y-3 text-xs">
-      {/* Progress chip */}
-      <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted-foreground">
-          Configure each staff member's salary and payment details. You may skip any card — they'll be added as <span className="font-bold text-amber-600 dark:text-amber-400">Unconfigured</span>.
-        </p>
-        <span className="shrink-0 ml-3 text-[11px] font-bold px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground border border-border/60 whitespace-nowrap">
-          {configuredCount} / {selectedStaff.length} Complete
+      {/* Subtle Counter Bar */}
+      <div className="flex items-center justify-between px-1 pb-0.5">
+        <span className="text-xs text-muted-foreground font-medium">
+          {selectedStaff.length} staff member{selectedStaff.length > 1 ? 's' : ''} to configure
+        </span>
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/60">
+          {configuredCount} of {selectedStaff.length} configured
         </span>
       </div>
 
@@ -374,12 +384,7 @@ export default function ImportStaffToPayrollModal({
           return (
             <div
               key={staff.id}
-              className={clsx(
-                'rounded-xl border p-3.5 space-y-3 transition-colors',
-                configured
-                  ? 'border-emerald-400/30 bg-emerald-400/5'
-                  : 'border-border/80 bg-card'
-              )}
+              className="rounded-lg border border-border bg-card p-3.5 space-y-3 transition-colors"
             >
               {/* Staff header */}
               <div className="flex items-center justify-between">
@@ -388,15 +393,16 @@ export default function ImportStaffToPayrollModal({
                     {getInitials(staff)}
                   </div>
                   <div className="min-w-0">
-                    <span className="font-bold text-foreground text-xs block truncate">
+                    <span className="font-semibold text-foreground text-xs block truncate">
                       {getDisplayName(staff)}
                     </span>
                     <span className="text-[10px] text-muted-foreground capitalize">{staff.role || 'Staff'}</span>
                   </div>
                 </div>
                 {configured ? (
-                  <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <Icon icon="solar:check-circle-linear" className="h-3 w-3" /> Ready
+                  <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded bg-muted/40 text-foreground border border-border/80 flex items-center gap-1">
+                    <Icon icon="solar:check-circle-linear" className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    Ready
                   </span>
                 ) : (
                   <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-600 dark:text-amber-400">
@@ -408,7 +414,7 @@ export default function ImportStaffToPayrollModal({
               {/* Compensation row */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  <label className="block text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                     Structure
                   </label>
                   <select
@@ -422,7 +428,7 @@ export default function ImportStaffToPayrollModal({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  <label className="block text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                     Base Amount *
                   </label>
                   <input
@@ -438,7 +444,7 @@ export default function ImportStaffToPayrollModal({
 
                 {/* Payment method */}
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  <label className="block text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                     Payment Method
                   </label>
                   <select
@@ -453,12 +459,11 @@ export default function ImportStaffToPayrollModal({
                 </div>
               </div>
 
-
               {/* Account details */}
               {draft.payment_method !== 'cash' && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
                   <div>
-                    <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                    <label className="block text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                       {draft.payment_method === 'bank_transfer' ? 'Bank Name' : 'MoMo Network'}
                     </label>
                     <select
@@ -481,7 +486,7 @@ export default function ImportStaffToPayrollModal({
                     )}
                   </div>
                   <div>
-                    <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                    <label className="block text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                       {draft.payment_method === 'bank_transfer' ? 'Account No.' : 'Phone No.'}
                     </label>
                     <input
@@ -503,69 +508,55 @@ export default function ImportStaffToPayrollModal({
 
   // ─── Step 3: Review ───────────────────────────────────────────────────────────
   const renderStep3 = () => (
-    <div className="space-y-4 text-xs">
-      <p className="text-xs text-muted-foreground">
-        Review your import summary before completing.
-      </p>
-
-      <div className="space-y-2">
-        {configuredCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-md border border-emerald-400/30 bg-emerald-400/5">
-            <div className="h-8 w-8 rounded-full bg-emerald-400/10 flex items-center justify-center shrink-0">
-              <Icon icon="solar:check-circle-linear" className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="font-bold text-foreground">
-                {configuredCount} staff member{configuredCount > 1 ? 's' : ''} configured
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Ready to be included in payroll runs immediately.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {unconfiguredCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-md border border-amber-400/30 bg-amber-400/5">
-            <div className="h-8 w-8 rounded-full bg-amber-400/10 flex items-center justify-center shrink-0">
-              <Icon icon="solar:danger-triangle-linear" className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="font-bold text-foreground">
-                {unconfiguredCount} staff member{unconfiguredCount > 1 ? 's' : ''} unconfigured
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Added to roster as drafts. Click their row in the Salary Profiles table to complete setup before including them in payroll runs.
-              </p>
-            </div>
-          </div>
-        )}
+    <div className="space-y-3 -mt-2 text-xs">
+      {/* Compact Metrics Strip */}
+      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-md bg-muted/30 text-center">
+        <div className="flex flex-col">
+          <span className="text-base font-bold text-foreground">{selectedStaff.length}</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Total</span>
+        </div>
+        <div className="flex flex-col border-x border-border/60">
+          <span className="text-base font-bold text-foreground">{configuredCount}</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Ready</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-base font-bold text-muted-foreground">{unconfiguredCount}</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Draft</span>
+        </div>
       </div>
 
       {/* Staff summary list */}
-      <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
+      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
         {selectedStaff.map((staff) => {
           const draft = configMap[staff.id];
           const configured = draft && isDraftConfigured(draft);
           return (
-            <div key={staff.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-muted/30">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-bold text-[9px] text-foreground shrink-0 border border-border/70">
+            <div
+              key={staff.id}
+              className="flex items-center justify-between py-2 px-3 rounded-lg border border-border/60 bg-card hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center font-bold text-[9px] text-foreground shrink-0 border border-border/70">
                   {getInitials(staff)}
                 </div>
-                <span className="font-semibold text-foreground text-xs truncate">
-                  {getDisplayName(staff)}
-                </span>
+                <div className="min-w-0">
+                  <span className="font-semibold text-foreground text-sm truncate block">
+                    {getDisplayName(staff)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground capitalize">
+                    {staff.role || 'Staff'}
+                  </span>
+                </div>
               </div>
               <span
                 className={clsx(
-                  'shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded',
+                  'shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border',
                   configured
-                    ? 'bg-emerald-400/10 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-amber-400/10 text-amber-600 dark:text-amber-400'
+                    ? 'bg-muted text-foreground border-border/80'
+                    : 'bg-muted/40 text-muted-foreground border-border/50'
                 )}
               >
-                {configured ? 'Configured' : 'Unconfigured'}
+                {configured ? 'Ready' : 'Draft'}
               </span>
             </div>
           );
