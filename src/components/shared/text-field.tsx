@@ -100,10 +100,13 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
 
   // Determine if label should float
   const hasValue =
-    value &&
+    value !== undefined &&
+    value !== null &&
     (typeof value === "string"
       ? value.length > 0
-      : (value as string[]).length > 0);
+      : Array.isArray(value)
+      ? value.length > 0
+      : String(value).length > 0);
   const shouldFloat = isFocused || hasValue || isDisabled;
 
   if (labelPlacement === "inside") {
@@ -321,7 +324,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
   // Determine if label should be in "floated" state
-  const hasValue = value && value.length > 0;
+  const hasValue = value !== undefined && value !== null && String(value).length > 0;
   const shouldFloat = isFocused || hasValue || disabled;
 
   const stepVal = step || inputProps?.step || (type === "number" ? "any" : undefined);
@@ -631,7 +634,7 @@ export const CustomTextareaField = ({
   const [isFocused, setIsFocused] = useState(false);
 
   // Determine if label should be in "floated" state
-  const hasValue = value && value.length > 0;
+  const hasValue = value !== undefined && value !== null && String(value).length > 0;
   const shouldFloat = isFocused || hasValue || disabled;
 
   const handleFocus = (e: any) => {
