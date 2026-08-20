@@ -669,7 +669,7 @@ export default function ProcessPayrollModal({
           isOpen={showDiscardConfirm}
           onOpenChange={() => setShowDiscardConfirm(false)}
           placement="center"
-          size="sm"
+          size="md"
           classNames={{ base: 'sm:w-[400px]' }}
           header={
             <div className="pt-3 px-2 flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-lg">
@@ -678,7 +678,7 @@ export default function ProcessPayrollModal({
           }
           body={
             <div className="space-y-4 pt-1 px-2 pb-4">
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 You have modified custom adjustments or notes in this payroll draft. Are you sure you want to discard your draft and exit?
               </p>
 
