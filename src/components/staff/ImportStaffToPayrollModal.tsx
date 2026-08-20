@@ -166,7 +166,7 @@ export default function ImportStaffToPayrollModal({
           // Always persist compensation_type and payment_method — even for unconfigured
           // drafts — so the profile pre-fills correctly when the manager opens it later.
           compensation_type: draft?.compensation_type || 'monthly_salary',
-          payment_method: draft?.payment_method || 'cash',
+          payment_method: draft?.payment_method || 'bank_transfer',
           // Only fully-configured profiles get a real base_amount and bank details.
           base_amount: configured ? parseFloat(draft.base_amount) : null,
           bank_or_momo_name: configured ? draft.bank_or_momo_name : null,
