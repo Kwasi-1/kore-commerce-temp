@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -166,7 +167,7 @@ export default function ImportStaffToPayrollModal({
           // Always persist compensation_type and payment_method — even for unconfigured
           // drafts — so the profile pre-fills correctly when the manager opens it later.
           compensation_type: draft?.compensation_type || 'monthly_salary',
-          payment_method: draft?.payment_method || 'bank_transfer',
+          payment_method: draft?.payment_method || 'cash',
           // Only fully-configured profiles get a real base_amount and bank details.
           base_amount: configured ? parseFloat(draft.base_amount) : null,
           bank_or_momo_name: configured ? draft.bank_or_momo_name : null,
@@ -250,46 +251,6 @@ export default function ImportStaffToPayrollModal({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
-  // ─── Step Progress Bar ────────────────────────────────────────────────────────
-  const StepBar = () => (
-    <div className="flex items-center justify-center gap-2 py-3">
-      {([1, 2, 3] as Step[]).map((s, i) => (
-        <React.Fragment key={s}>
-          <div className="flex items-center gap-1.5">
-            <div
-              className={clsx(
-                'h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all border',
-                step === s
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : step > s
-                  ? 'bg-primary/20 text-primary border-primary/40'
-                  : 'bg-muted/50 text-muted-foreground border-border/60'
-              )}
-            >
-              {step > s ? <Icon icon="solar:check-linear" className="h-3.5 w-3.5" /> : s}
-            </div>
-            <span
-              className={clsx(
-                'text-[11px] font-semibold hidden sm:inline',
-                step === s ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            >
-              {s === 1 ? 'Select Staff' : s === 2 ? 'Configure' : 'Confirm'}
-            </span>
-          </div>
-          {i < 2 && (
-            <div
-              className={clsx(
-                'flex-1 h-px max-w-[48px] transition-colors',
-                step > s ? 'bg-primary/50' : 'bg-border/60'
-              )}
-            />
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-
   // ─── Step 1: Select Staff ─────────────────────────────────────────────────────
   const renderStep1 = () => (
     <div className="space-y-3 text-xs">
@@ -322,16 +283,25 @@ export default function ImportStaffToPayrollModal({
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="text-xs font-semibold text-primary hover:underline shrink-0 flex items-center gap-1"
+              className="text-xs font-semibold text-primary hover:underline shrink-0 flex items-center gap-1.5 py-1 px-1 cursor-pointer select-none"
             >
-              <Icon icon="solar:check-square-linear" className="h-3.5 w-3.5" />
-              {selectedStaffIds.length === filteredStaff.length && filteredStaff.length > 0
-                ? 'Deselect All'
-                : `Select All (${filteredStaff.length})`}
+              <Checkbox
+                checked={
+                  selectedStaffIds.length === filteredStaff.length &&
+                  filteredStaff.length > 0
+                }
+                onCheckedChange={toggleSelectAll}
+                className="pointer-events-none"
+              />
+              <span>
+                {selectedStaffIds.length === filteredStaff.length && filteredStaff.length > 0
+                  ? 'Deselect All'
+                  : `Select All (${filteredStaff.length})`}
+              </span>
             </button>
           </div>
 
-          <div className="space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-[calc(100dvh-19rem)] md:max-h-[calc(90dvh-19rem)] overflow-y-auto pr-1">
             {filteredStaff.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 No staff matching "{searchQuery}"
@@ -350,11 +320,10 @@ export default function ImportStaffToPayrollModal({
                         : 'bg-card border-border/80 hover:bg-muted/40'
                     )}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={isSelected}
-                      onChange={() => {}}
-                      className="h-4 w-4 rounded border-border text-primary shrink-0"
+                      onCheckedChange={() => toggleStaff(staff.id)}
+                      className="shrink-0 pointer-events-none"
                     />
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-bold text-[11px] text-foreground shrink-0 border border-border/70">
                       {getInitials(staff)}
@@ -395,7 +364,7 @@ export default function ImportStaffToPayrollModal({
         </span>
       </div>
 
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[calc(100dvh-25rem)] overflow-y-auto pr-1">
         {selectedStaff.map((staff) => {
           const draft = configMap[staff.id] || defaultDraft();
           const configured = isDraftConfigured(draft);
@@ -437,7 +406,7 @@ export default function ImportStaffToPayrollModal({
               </div>
 
               {/* Compensation row */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                     Structure
@@ -466,23 +435,24 @@ export default function ImportStaffToPayrollModal({
                     className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
+                {/* Payment method */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={draft.payment_method}
+                    onChange={(e) => handlePaymentMethodChange(staff.id, e.target.value)}
+                    className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {PAYMENT_METHODS.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* Payment method */}
-              <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={draft.payment_method}
-                  onChange={(e) => handlePaymentMethodChange(staff.id, e.target.value)}
-                  className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
 
               {/* Account details */}
               {draft.payment_method !== 'cash' && (
@@ -540,7 +510,7 @@ export default function ImportStaffToPayrollModal({
 
       <div className="space-y-2">
         {configuredCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-400/30 bg-emerald-400/5">
+          <div className="flex items-center gap-3 p-3 rounded-md border border-emerald-400/30 bg-emerald-400/5">
             <div className="h-8 w-8 rounded-full bg-emerald-400/10 flex items-center justify-center shrink-0">
               <Icon icon="solar:check-circle-linear" className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
@@ -556,7 +526,7 @@ export default function ImportStaffToPayrollModal({
         )}
 
         {unconfiguredCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-xl border border-amber-400/30 bg-amber-400/5">
+          <div className="flex items-center gap-3 p-3 rounded-md border border-amber-400/30 bg-amber-400/5">
             <div className="h-8 w-8 rounded-full bg-amber-400/10 flex items-center justify-center shrink-0">
               <Icon icon="solar:danger-triangle-linear" className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
@@ -616,7 +586,7 @@ export default function ImportStaffToPayrollModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs font-semibold">
+            <Button type="button" variant="ghost" size="sm" onClick={onClose} className="font-semibold">
               Cancel
             </Button>
             <Button
@@ -624,7 +594,7 @@ export default function ImportStaffToPayrollModal({
               size="sm"
               disabled={selectedStaffIds.length === 0 || isSubmitting}
               onClick={() => submitImport(true)}
-              className="text-xs font-semibold gap-1.5"
+              className="font-semibold gap-1.5"
             >
               {isSubmitting && (
                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-background border-t-transparent" />
@@ -641,7 +611,7 @@ export default function ImportStaffToPayrollModal({
     if (step === 1) {
       return (
         <div className="w-full flex items-center justify-between gap-3 pt-2 border-t border-border/70">
-          <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs font-semibold">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} className="font-semibold">
             Cancel
           </Button>
           <div className="flex items-center gap-2">
@@ -652,7 +622,7 @@ export default function ImportStaffToPayrollModal({
                 size="sm"
                 disabled={isSubmitting}
                 onClick={() => submitImport(true)}
-                className="text-xs font-semibold"
+                className="font-semibold"
               >
                 {isSubmitting && (
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-foreground border-t-transparent mr-1" />
@@ -686,7 +656,7 @@ export default function ImportStaffToPayrollModal({
             variant="ghost"
             size="sm"
             onClick={() => setStep(1)}
-            className="text-xs font-semibold gap-1"
+            className="font-semibold gap-1"
           >
             <Icon icon="solar:arrow-left-linear" className="h-4 w-4" />
             Back
@@ -698,7 +668,7 @@ export default function ImportStaffToPayrollModal({
               size="sm"
               disabled={isSubmitting}
               onClick={() => submitImport(false)}
-              className="text-xs font-semibold"
+              className="font-semibold"
             >
               {isSubmitting && (
                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-foreground border-t-transparent mr-1" />
@@ -709,7 +679,7 @@ export default function ImportStaffToPayrollModal({
               type="button"
               size="sm"
               onClick={() => setStep(3)}
-              className="text-xs font-semibold gap-1.5"
+              className="font-semibold gap-1.5"
             >
               Next: Review
               <Icon icon="solar:arrow-right-linear" className="h-4 w-4" />
@@ -727,7 +697,7 @@ export default function ImportStaffToPayrollModal({
           variant="ghost"
           size="sm"
           onClick={() => setStep(2)}
-          className="text-xs font-semibold gap-1"
+          className="font-semibold gap-1"
         >
           <Icon icon="solar:arrow-left-linear" className="h-4 w-4" />
           Back
@@ -737,7 +707,7 @@ export default function ImportStaffToPayrollModal({
           size="sm"
           disabled={isSubmitting}
           onClick={() => submitImport(false)}
-          className="text-xs font-semibold gap-1.5"
+          className="font-semibold gap-1.5"
         >
           {isSubmitting ? (
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-background border-t-transparent" />
@@ -771,20 +741,32 @@ export default function ImportStaffToPayrollModal({
     <CustomModal
       isOpen={isOpen}
       onOpenChange={onClose}
-      size="xl"
+      size={step === 2 ? "2xl" : "xl"}
+      classNames={{
+        base: "min-h-[calc(100dvh-0.75rem)] md:min-h-min"
+      }}
       placement="center"
       header={
-        <div className="pt-2 px-1 border-b border-border/70 pb-0">
-          <div className="flex items-center gap-2 pb-2">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-              <Icon icon="solar:user-plus-linear" className="h-5 w-5" />
-            </div>
+        <div className="pt-3 md:pt-2 px-1 border-b border-border/50 pb-3 ">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-foreground">{headerTitle}</h2>
-              <p className="text-xs md:text-[13px] text-muted-foreground font-normal">{headerSubtitle}</p>
+              <p className="text-[12px] md:text-[13px]  text-muted-foreground leading-normal mt-1">{headerSubtitle}</p>
             </div>
+            {!isMobileView && (
+              <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border/50 shrink-0">
+                Step {step} of 3
+              </span>
+            )}
           </div>
-          {!isMobileView && <StepBar />}
+          {!isMobileView && (
+            <div className="w-full bg-muted/60 h-[2.5px] rounded-full overflow-hidden mt-4">
+              <div
+                className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                style={{ width: `${(step / 3) * 100}%` }}
+              />
+            </div>
+          )}
         </div>
       }
       body={
