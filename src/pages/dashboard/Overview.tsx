@@ -9,7 +9,7 @@ import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
-import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone, History as HistoryIcon } from 'lucide-react';
+import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone, History as HistoryIcon, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
 import {
   BarChart,
@@ -36,6 +36,7 @@ export default function Overview() {
   const hasEcommerce = modules.ecommerce || hasModule('ecommerce');
   
   const [isLoading, setIsLoading] = useState(true);
+  const [desktopView, setDesktopView] = useState<'pos' | 'ecommerce'>('pos');
   
   // Dashboard State
   const [todaySales, setTodaySales] = useState({ revenue: 0, orders: 0 });
@@ -545,227 +546,256 @@ export default function Overview() {
       {/* ========================================================================= */}
       <div className="hidden md:block">
 
-      {/* POS Module Overview */}
-      {hasPos && (
-        <div className="mb-6 md:mb-10 mt-1 md:mt-2">
-          <h3 className="text-lg md:text-xl font-bold mb-3 text-foreground flex items-center gap-2">
-            <MonitorSmartphone className="h-5 w-5 text-primary" />
-            Point of Sale Overview
+        {/* Section Header with View Switcher */}
+        <div className="flex items-center justify-between mb-4 mt-1 md:mt-2">
+          <h3 className="text-lg md:text-xl font-bold text-foreground flex items-center gap-2">
+            {(hasPos && (!hasEcommerce || desktopView === 'pos')) ? (
+              <>
+                <MonitorSmartphone className="h-5 w-5 text-primary" />
+                Point of Sale Overview
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-5 w-5 text-primary" />
+                Ecommerce Overview
+              </>
+            )}
           </h3>
-          {/* Top Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4">
-            <DashboardCard
-              title="Today's Revenue"
-              value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
-            />
-            <DashboardCard
-              title="Today's Orders"
-              value={isLoading ? <Spinner className="py-1" /> : todaySales.orders.toString()}
-            />
-            <DashboardCard
-              title="Active Shifts"
-              value={isLoading ? <Spinner className="py-1" /> : activeShiftsCount.toString()}
-              className='border-foreground/10 bg-secondary/30 hover:md:ring-1 ring-foreground/10'
-              // subvalue={activeShiftsCount > 0 ? "Registers are open" : "All registers closed"}
-              collapsibleContent={
-                activeShiftsCount > 0 ? (
-                  <div className="space-y-2 mt-2">
-                    <span className="font-bold text-muted-foreground uppercase text-[10px]">Active Cashiers</span>
-                    <div className="flex flex-col gap-1.5">
-                      {activeShifts.map((shift: any, idx: number) => {
-                        const name = shift.cashier?.name || shift.staff_member?.name || shift.staff?.name || `Cashier #${idx + 1}`;
-                        return (
-                          <div key={shift.id || idx} className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                            <span>{name}</span>
-                          </div>
-                        );
-                      })}
+
+          {/* Toggle Switcher Button (when tenant has both POS & Ecommerce) */}
+          {hasPos && hasEcommerce && (
+            <Button
+              size="sm"
+              onClick={() => setDesktopView(prev => prev === 'pos' ? 'ecommerce' : 'pos')}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 font-semibold text-foreground transition-all duration-200 shadow-xs cursor-pointer group"
+            >
+              {desktopView === 'pos' ? (
+                <>
+                  <ShoppingBag className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                  <span>Switch to Ecommerce</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                </>
+              ) : (
+                <>
+                  <MonitorSmartphone className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                  <span>Switch to Point of Sale</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        {/* POS Module Overview */}
+        {hasPos && (!hasEcommerce || desktopView === 'pos') && (
+          <div className="mb-6 md:mb-10">
+            {/* Top Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4">
+              <DashboardCard
+                title="Today's Revenue"
+                value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
+              />
+              <DashboardCard
+                title="Today's Orders"
+                value={isLoading ? <Spinner className="py-1" /> : todaySales.orders.toString()}
+              />
+              <DashboardCard
+                title="Active Shifts"
+                value={isLoading ? <Spinner className="py-1" /> : activeShiftsCount.toString()}
+                className='border-foreground/10 bg-secondary/30 hover:md:ring-1 ring-foreground/10'
+                collapsibleContent={
+                  activeShiftsCount > 0 ? (
+                    <div className="space-y-2 mt-2">
+                      <span className="font-bold text-muted-foreground uppercase text-[10px]">Active Cashiers</span>
+                      <div className="flex flex-col gap-1.5">
+                        {activeShifts.map((shift: any, idx: number) => {
+                          const name = shift.cashier?.name || shift.staff_member?.name || shift.staff?.name || `Cashier #${idx + 1}`;
+                          return (
+                            <div key={shift.id || idx} className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                              <span>{name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground mt-2">"All registers closed. <br/> No cashiers currently on active shifts.</div>
+                  )
+                }
+              />
+              <DashboardCard
+                title="Low Stock Items"
+                value={isLoading ? <Spinner className="py-1" /> : lowStockProducts.length.toString()}
+                className="border border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10 shadow-sm"
+                collapsibleContent={
+                  lowStockProducts.length > 0 ? (
+                    <div className="space-y-2 mt-2">
+                      <span className="font-bold text-red-600 dark:text-red-400 uppercase text-[10px]">Low stock list</span>
+                      <div className="flex flex-col gap-1.5">
+                        {lowStockProducts.slice(0, 5).map((product: any) => (
+                          <div
+                            key={`${product.id}-${product.sku}`}
+                            onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
+                            className="flex items-center justify-between text-xs text-foreground font-semibold hover:underline cursor-pointer"
+                          >
+                            <span className="truncate pr-2">{product.name}</span>
+                            <span className="text-red-500 font-bold shrink-0">{product.stock_quantity} left</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground mt-2">All stock levels are healthy!</div>
+                  )
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+              {/* 7-Day Revenue Chart */}
+              <div className="lg:col-span-2 bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm text-card-foreground">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold">Revenue (Last 7 Days)</h3>
+                </div>
+                <div className="h-[220px] md:h-[300px] w-full">
+                  {isLoading ? (
+                    <div className="h-full flex items-center justify-center"><Spinner className="scale-125" /></div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                        <XAxis 
+                          dataKey="date" 
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: '#6B7280', fontSize: 12 }}
+                          dy={10}
+                        />
+                        <YAxis 
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: '#6B7280', fontSize: 12 }}
+                          tickFormatter={(val) => formatAmount(val)}
+                        />
+                        <Tooltip
+                          cursor={{ fill: '#F3F4F6', opacity: 0.4 }}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#fff', color: '#111827' }}
+                        />
+                        <Bar dataKey="revenue" fill="#00C853" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Critical Alerts */}
+              <div className="bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
+                <div className="flex items-center justify-between gap-2 mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+                    <h3 className="text-lg font-bold text-foreground font-header">Critical alerts</h3>
                   </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground mt-2">"All registers closed. <br/> No cashiers currently on active shifts.</div>
-                )
-              }
-            />
-            <DashboardCard
-              title="Low Stock Items"
-              value={isLoading ? <Spinner className="py-1" /> : lowStockProducts.length.toString()}
-              // subvalue="Items below reorder point"
-              className="border border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10 shadow-sm"
-              collapsibleContent={
-                lowStockProducts.length > 0 ? (
-                  <div className="space-y-2 mt-2">
-                    <span className="font-bold text-red-600 dark:text-red-400 uppercase text-[10px]">Low stock list</span>
-                    <div className="flex flex-col gap-1.5">
-                      {lowStockProducts.slice(0, 5).map((product: any) => (
-                        <div
-                          key={`${product.id}-${product.sku}`}
+                  {!isLoading && lowStockProducts.length > 0 && (
+                    <span className="bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-2 py-0.5 rounded font-mono">
+                      {lowStockProducts.length}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex-1 overflow-x-hidden">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8"><Spinner /></div>
+                  ) : lowStockProducts.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8 flex flex-col items-center">
+                      <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-3 text-green-500">
+                        <PackagePlus className="w-6 h-6" />
+                      </div>
+                      <p>Stock levels are healthy!</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/60">
+                      {lowStockProducts.slice(0, 5).map(product => (
+                        <div 
+                          key={`${product.id}-${product.sku}`} 
                           onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
-                          className="flex items-center justify-between text-xs text-foreground font-semibold hover:underline cursor-pointer"
+                          className="flex justify-between items-center py-3 first:pt-0 last:pb-0 cursor-pointer hover:bg-muted/20 px-2 rounded-md -mx-2 transition-colors duration-200"
                         >
-                          <span className="truncate pr-2">{product.name}</span>
-                          <span className="text-red-500 font-bold shrink-0">{product.stock_quantity} left</span>
+                          <div>
+                            <p className="font-semibold text-foreground text-sm leading-snug">{product.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{product.sku}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-red-500 dark:text-red-400 font-bold text-sm leading-snug">{product.stock_quantity} left</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Reorder at {product.reorder_point || 5}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground mt-2">All stock levels are healthy!</div>
-                )
-              }
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            {/* 7-Day Revenue Chart */}
-            <div className="lg:col-span-2 bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm text-card-foreground">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold">Revenue (Last 7 Days)</h3>
-              </div>
-              <div className="h-[220px] md:h-[300px] w-full">
-                {isLoading ? (
-                  <div className="h-full flex items-center justify-center"><Spinner className="scale-125" /></div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
-                      <XAxis 
-                        dataKey="date" 
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
-                        dy={10}
-                      />
-                      <YAxis 
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
-                        tickFormatter={(val) => formatAmount(val)}
-                      />
-                      <Tooltip
-                        cursor={{ fill: '#F3F4F6', opacity: 0.4 }}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#fff', color: '#111827' }}
-                      />
-                      <Bar dataKey="revenue" fill="#00C853" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-
-            {/* Critical Alerts */}
-            <div className="bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm flex flex-col text-card-foreground">
-              <div className="flex items-center justify-between gap-2 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
-                  <h3 className="text-lg font-bold text-foreground font-header">Critical alerts</h3>
+                  )}
                 </div>
-                {!isLoading && lowStockProducts.length > 0 && (
-                  <span className="bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold px-2 py-0.5 rounded font-mono">
-                    {lowStockProducts.length}
-                  </span>
+                
+                {lowStockProducts.length > 0 && (
+                  <button 
+                    onClick={() => navigate('/inventory/stock')}
+                    className="mt-4 pt-3 border-t border-border/60 w-full text-left text-sm font-semibold text-primary hover:underline transition-colors"
+                  >
+                    → Manage stock levels
+                  </button>
                 )}
               </div>
-              
-              <div className="flex-1 overflow-x-hidden">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8"><Spinner /></div>
-                ) : lowStockProducts.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8 flex flex-col items-center">
-                    <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-3 text-green-500">
-                      <PackagePlus className="w-6 h-6" />
-                    </div>
-                    <p>Stock levels are healthy!</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/60">
-                    {lowStockProducts.slice(0, 5).map(product => (
-                      <div 
-                        key={`${product.id}-${product.sku}`} 
-                        onClick={() => navigate(`/inventory/products/${product.id}/edit`)}
-                        className="flex justify-between items-center py-3 first:pt-0 last:pb-0 cursor-pointer hover:bg-muted/20 px-2 rounded-md -mx-2 transition-colors duration-200"
-                      >
-                        <div>
-                          <p className="font-semibold text-foreground text-sm leading-snug">{product.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono mt-0.5">{product.sku}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-red-500 dark:text-red-400 font-bold text-sm leading-snug">{product.stock_quantity} left</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Reorder at {product.reorder_point || 5}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {lowStockProducts.length > 0 && (
+            </div>
+          </div>
+        )}
+
+        {/* Ecommerce Module Overview */}
+        {hasEcommerce && (!hasPos || desktopView === 'ecommerce') && (
+          <div className="mb-6 md:mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-4">
+              <DashboardCard
+                title="Online Revenue Today"
+                value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
+              />
+              <DashboardCard
+                title="Online Orders Today"
+                value={isLoading ? <Spinner className="py-1" /> : ecomStats.todayOrders.toString()}
+              />
+              <DashboardCard
+                title="New Customers Today"
+                value={isLoading ? <Spinner className="py-1" /> : ecomStats.newCustomers.toString()}
+                action={<Users className="w-4 h-4" />}
+              />
+              <DashboardCard
+                title="Active Discounts"
+                value={isLoading ? <Spinner className="py-1" /> : ecomStats.activeDiscounts.toString()}
+                action={<Tag className="w-4 h-4" />}
+              />
+            </div>
+
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden p-1">
+              <div className="p-4 pb-0 flex justify-between items-center">
+                <h3 className="font-bold text-foreground">Recent Online Orders</h3>
                 <button 
-                  onClick={() => navigate('/inventory/stock')}
-                  className="mt-4 pt-3 border-t border-border/60 w-full text-left text-sm font-semibold text-primary hover:underline transition-colors"
+                  onClick={() => navigate('/ecommerce/orders')}
+                  className="text-sm font-medium text-muted-foreground hover:opacity-85 hover:underline transition duration-300 cursor-pointer"
                 >
-                  → Manage stock levels
+                  View all orders &rarr;
                 </button>
-              )}
+              </div>
+              
+              <EnhancedTableComponent
+                columns={orderColumns}
+                rows={orderRows}
+                isLoading={isLoading}
+                showTopContent={false}
+                isPaginated={false}
+                mobileFriendly={true}
+                onclick={() => navigate('/ecommerce/orders')}
+                containerStyles="shadow-none border-0"
+              />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Ecommerce Module Overview */}
-      {hasEcommerce && (
-        <div className="mb-6 md:mb-10">
-          <h3 className="text-lg md:text-xl font-bold mb-3 text-foreground flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
-            Ecommerce Overview
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-4">
-            <DashboardCard
-              title="Online Revenue Today"
-              value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={ecomStats.todayRevenue} />}
-            />
-            <DashboardCard
-              title="Online Orders Today"
-              value={isLoading ? <Spinner className="py-1" /> : ecomStats.todayOrders.toString()}
-            />
-            <DashboardCard
-              title="New Customers Today"
-              value={isLoading ? <Spinner className="py-1" /> : ecomStats.newCustomers.toString()}
-              action={<Users className="w-4 h-4" />}
-            />
-            <DashboardCard
-              title="Active Discounts"
-              value={isLoading ? <Spinner className="py-1" /> : ecomStats.activeDiscounts.toString()}
-              action={<Tag className="w-4 h-4" />}
-            />
-          </div>
-
-          <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden p-1">
-            <div className="p-4 pb-0 flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Recent Online Orders</h3>
-              <button 
-                onClick={() => navigate('/ecommerce/orders')}
-                className="text-sm font-medium text-muted-foreground hover:opacity-85 hover:underline transition duration-300 cursor-pointer"
-              >
-                View all orders &rarr;
-              </button>
-            </div>
-            
-            <EnhancedTableComponent
-              columns={orderColumns}
-              rows={orderRows}
-              isLoading={isLoading}
-              showTopContent={false}
-              isPaginated={false}
-              mobileFriendly={true}
-              onclick={() => navigate('/ecommerce/orders')}
-              containerStyles="shadow-none border-0"
-            />
-          </div>
-        </div>
-      )}
+        )}
 
       </div>
 
