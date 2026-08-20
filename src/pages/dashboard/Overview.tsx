@@ -263,7 +263,7 @@ export default function Overview() {
           {/* 2. Horizontal Metric Carousel */}
           <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 pt-2 -mx-1 px-1">
             {/* Orders Metric Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Orders</span>
                 <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
@@ -277,7 +277,7 @@ export default function Overview() {
             </div>
 
             {/* Active Shifts Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Shifts</span>
                 <div className="p-1 rounded-md bg-blue-500/10 text-blue-500">
@@ -291,7 +291,7 @@ export default function Overview() {
             </div>
 
             {/* Low Stock Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Low Stock</span>
                 <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
@@ -306,7 +306,7 @@ export default function Overview() {
 
             {/* Ecommerce Card (if enabled) */}
             {hasEcommerce && (
-              <div className="min-w-[130px] flex-1 bg-muted/40 border border-border/60 rounded-xl p-3 text-left shrink-0">
+              <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase">Online</span>
                   <div className="p-1 rounded-md bg-purple-500/10 text-purple-500">
