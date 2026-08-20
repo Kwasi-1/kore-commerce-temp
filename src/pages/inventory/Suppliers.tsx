@@ -5,6 +5,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import SupplierForm from '@/components/inventory/SupplierForm';
+import SupplierStatusModal from '@/components/inventory/SupplierStatusModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
@@ -25,6 +26,11 @@ export default function Suppliers() {
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
+
+  // Status Modal state
+  const [statusModalSupplier, setStatusModalSupplier] = useState<any>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -65,15 +71,21 @@ export default function Suppliers() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (supplierId: string) => {
-    if (!window.confirm('Are you sure you want to deactivate this supplier?')) return;
+  const handleConfirmStatus = async () => {
+    if (!statusModalSupplier) return;
+    setIsStatusLoading(true);
     try {
-      await apiClient.delete(`/tenant/suppliers/${supplierId}`);
-      toast.success('Supplier deactivated');
+      await apiClient.put(`/tenant/suppliers/${statusModalSupplier.id}/status`, {});
+      const nextActive = statusModalSupplier.is_active === false || statusModalSupplier.isActive === false;
+      toast.success(`Supplier ${nextActive ? 'activated' : 'deactivated'}`);
+      setIsStatusModalOpen(false);
+      setStatusModalSupplier(null);
       fetchSuppliers();
-    } catch (error) {
-      console.error('Delete supplier error:', error);
-      toast.error('Failed to deactivate supplier');
+    } catch (error: any) {
+      console.error('Toggle supplier status error:', error);
+      toast.error(error.response?.data?.error?.message || 'Failed to update supplier status');
+    } finally {
+      setIsStatusLoading(false);
     }
   };
 
@@ -109,8 +121,12 @@ export default function Suppliers() {
         </span>
       ),
       rowActions: [
-        { key: 'edit', label: 'Edit', icon: 'mdi:pencil' },
-        { key: 'delete', label: 'Deactivate', icon: 'mdi:trash', className: 'text-danger' }
+        { key: 'edit', label: 'Edit', icon: 'mdi:pencil-outline' },
+        { 
+          key: 'toggle_status', 
+          label: isActive ? 'Deactivate' : 'Activate', 
+          icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline'
+        }
       ],
       __record: s
     };
@@ -118,7 +134,10 @@ export default function Suppliers() {
 
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'edit') handleEdit(row.__record);
-    if (actionKey === 'delete') handleDelete(row.id);
+    if (actionKey === 'toggle_status') {
+      setStatusModalSupplier(row.__record);
+      setIsStatusModalOpen(true);
+    }
   };
 
   return (
@@ -160,7 +179,7 @@ export default function Suppliers() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         
-        showFilter={false} // No specific enums to filter on besides search
+        showFilter={false}
         
         showAddButton={true}
         addButtonText="New Supplier"
@@ -170,6 +189,7 @@ export default function Suppliers() {
         mobileFriendly={true}
       />
 
+      {/* Supplier Form Modal */}
       <CustomModal
         isOpen={isModalOpen}
         onOpenChange={() => setIsModalOpen(!isModalOpen)}
@@ -189,6 +209,20 @@ export default function Suppliers() {
             onCancel={() => setIsModalOpen(false)} 
           />
         }
+      />
+
+      {/* Activate / Deactivate Supplier Modal */}
+      <SupplierStatusModal
+        isOpen={isStatusModalOpen}
+        onClose={() => {
+          if (!isStatusLoading) {
+            setIsStatusModalOpen(false);
+            setStatusModalSupplier(null);
+          }
+        }}
+        supplier={statusModalSupplier}
+        onConfirm={handleConfirmStatus}
+        isUpdating={isStatusLoading}
       />
     </PageLayout>
   );
