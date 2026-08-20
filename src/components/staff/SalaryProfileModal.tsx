@@ -46,11 +46,11 @@ export default function SalaryProfileModal({
     base_amount: initialData?.base_amount || '',
     payment_method: initialData?.payment_method || 'bank_transfer',
     account_number: initialData?.account_number || '',
-    bank_or_momo_name: initialData?.bank_or_momo_name || 'Ecobank Ghana',
+    bank_or_momo_name: initialData?.bank_or_momo_name || '',
   });
 
   const [providerSelect, setProviderSelect] = useState<string>(
-    initialData?.bank_or_momo_name || 'Ecobank Ghana'
+    initialData?.bank_or_momo_name || ''
   );
   const [customProviderInput, setCustomProviderInput] = useState<string>('');
 

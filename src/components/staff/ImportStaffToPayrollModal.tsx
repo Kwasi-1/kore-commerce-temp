@@ -163,9 +163,12 @@ export default function ImportStaffToPayrollModal({
           full_name: fullName,
           role_title: roleTitle,
           is_off_platform: false,
-          compensation_type: configured ? draft.compensation_type : 'monthly_salary',
+          // Always persist compensation_type and payment_method — even for unconfigured
+          // drafts — so the profile pre-fills correctly when the manager opens it later.
+          compensation_type: draft?.compensation_type || 'monthly_salary',
+          payment_method: draft?.payment_method || 'cash',
+          // Only fully-configured profiles get a real base_amount and bank details.
           base_amount: configured ? parseFloat(draft.base_amount) : null,
-          payment_method: configured ? draft.payment_method : null,
           bank_or_momo_name: configured ? draft.bank_or_momo_name : null,
           account_number: configured ? draft.account_number : null,
         });
