@@ -172,7 +172,7 @@ export default function StaffManagement() {
         size="lg"
         classNames={{ base: "sm:w-[500px]" }}
         header={
-          <div className="pt-4 px-2">
+          <div className="pt-3 px-2 pb-2 border-b border-border/60">
             <h2 className="text-xl font-bold">{editingStaff ? 'Edit Staff Role' : 'Add New Staff'}</h2>
             <p className="text-sm text-muted-foreground font-normal">Manage team access and permissions.</p>
           </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
-import { Button, Tooltip } from '@nextui-org/react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, RefreshCw, Info, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface StaffFormProps {
   initialData?: any;
@@ -11,10 +11,7 @@ interface StaffFormProps {
   onCancel: () => void;
 }
 
-const generateDefaultPassword = () => {
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  return `Staff#${randomNum}`;
-};
+const DEFAULT_PASSWORD = 'Welcome@123';
 
 export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFormProps) {
   const isEditing = !!initialData;
@@ -25,16 +22,10 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
     first_name: initialData?.first_name || '',
     last_name: initialData?.last_name || '',
     email: initialData?.email || '',
-    password: isEditing ? '' : generateDefaultPassword(),
+    password: isEditing ? '' : DEFAULT_PASSWORD,
     pos_pin: '1234',
     role: initialData?.role || 'cashier'
   });
-
-  const handleRegeneratePassword = () => {
-    const newPass = generateDefaultPassword();
-    setFormData(prev => ({ ...prev, password: newPass }));
-    toast.success('Generated new initial password');
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -126,108 +117,65 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
         />
 
         {!isEditing && (
-          <div className="space-y-1 pt-1">
-            <div className="flex items-center justify-end px-0.5">
-              {/* <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-foreground">Initial Password</span>
-                <Tooltip
-                  content={
-                    <div className="px-2 py-1.5 max-w-[230px] text-xs space-y-1">
-                      <p className="font-bold text-foreground">Password Hints:</p>
-                      <ul className="list-disc pl-3 text-muted-foreground text-[11px] space-y-0.5">
-                        <li>Minimum 6 characters required.</li>
-                        <li>Prefilled with a secure default.</li>
-                        <li>Staff can change it anytime after login.</li>
-                      </ul>
-                    </div>
-                  }
-                  placement="top"
-                >
-                  <span className="cursor-pointer text-muted-foreground hover:text-primary transition-colors">
-                    <HelpCircle className="h-3.5 w-3.5" />
-                  </span>
-                </Tooltip>
-              </div> */}
+          <CustomInputTextField
+            label="Initial Password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={handleChange}
+            required
+            placeholder="Secure password"
+            inputProps={{ minLength: 6 }}
+            endContent={
               <button
                 type="button"
-                onClick={handleRegeneratePassword}
-                className="text-[11px] font-semibold text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer"
-                title="Generate new random password"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-muted-foreground hover:text-foreground p-1 transition-colors focus:outline-none cursor-pointer"
+                title={showPassword ? "Hide password" : "Show password"}
               >
-                <RefreshCw className="h-3 w-3" />
-                Randomize
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
-            </div>
-
-            <CustomInputTextField
-              label="Initial Password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="Secure password"
-              inputProps={{ minLength: 6 }}
-              endContent={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-muted-foreground hover:text-foreground p-1 transition-colors focus:outline-none cursor-pointer"
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              }
-            />
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 font-medium">
-              <Info className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span>Share this initial password with the staff member for their first login.</span>
-            </p>
-          </div>
+            }
+          />
         )}
 
         {!isEditing && (
-          <div className="space-y-1">
-            <CustomInputTextField
-              label="4-Digit POS Access PIN"
-              name="pos_pin"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              value={formData.pos_pin}
-              onChange={handleChange}
-              placeholder="1234"
-            />
-            <p className="text-[11px] text-muted-foreground font-medium">
-              Default is <strong>1234</strong>. Staff will be prompted to set a personal PIN on first terminal unlock.
-            </p>
-          </div>
+          <CustomInputTextField
+            label="4-Digit POS Access PIN"
+            name="pos_pin"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            value={formData.pos_pin}
+            onChange={handleChange}
+            placeholder="1234"
+          />
         )}
 
         {isEditing && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-lg text-sm border border-blue-100 dark:border-blue-900/30">
-            <strong>Note:</strong> You can only update the role of existing staff members. To deactivate this user, use the deactivate button on the main table.
+          <div className="p-3 bg-muted/50 text-muted-foreground rounded-lg text-xs border border-border">
+            You can update the role of existing staff members. To deactivate, use the deactivate option in the table.
           </div>
         )}
 
       </div>
 
-      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto">
+      <div className="pt-4 flex justify-end gap-3 mt-auto">
         <Button 
-          variant="flat" 
-          onPress={onCancel}
-          className="bg-gray-100 dark:bg-gray-800 text-gray-700 font-medium px-6"
+          variant="ghost" 
+          onClick={onCancel}
+          className="font-medium px-6"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
-          isLoading={isLoading}
+          disabled={isLoading}
           className="bg-primary text-primary-foreground font-bold px-6"
         >
           {isEditing ? 'Update Role' : 'Create Staff'}
