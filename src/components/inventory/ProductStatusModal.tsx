@@ -33,7 +33,7 @@ export function ProductStatusModal({
       }}
       size="md"
       header={
-        <div className="pt-2 px-1 border-b border-border/50 pb-2.5">
+        <div className="pt-1 px-1 border-b border-border/50 pb-2">
           <div className="flex items-center gap-2">
             {/* <div
               className={`h-8 w-8 rounded-full flex items-center justify-center ${
@@ -78,14 +78,14 @@ export function ProductStatusModal({
         </div>
       }
       footer={
-        <div className="flex items-center justify-end gap-2 w-full pt-1">
+        <div className="flex items-center justify-end gap-2 w-full pt-1 pb-2">
           <Button
             variant="outline"
             size="sm"
             type="button"
             onClick={onClose}
             disabled={isUpdating}
-            className="text-xs font-medium"
+            className="font-medium w-full"
           >
             Cancel
           </Button>
@@ -94,7 +94,7 @@ export function ProductStatusModal({
             type="button"
             onClick={onConfirm}
             disabled={isUpdating}
-            className={`text-xs font-semibold flex items-center gap-1.5 ${
+            className={`font-semibold flex items-center gap-1.5 w-full ${
               isActive
                 ? "bg-foreground text-background hover:bg-foreground/90"
                 : ""
@@ -107,14 +107,14 @@ export function ProductStatusModal({
               </>
             ) : (
               <>
-                <Icon
+                {/* <Icon
                   icon={
                     isActive
                       ? "solar:pause-circle-linear"
                       : "solar:check-circle-linear"
                   }
                   className="h-4 w-4"
-                />
+                /> */}
                 <span>
                   {isActive ? "Set to Draft" : "Activate Product"}
                 </span>
