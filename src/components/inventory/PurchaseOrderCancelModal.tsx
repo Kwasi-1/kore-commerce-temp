@@ -32,17 +32,17 @@ export default function PurchaseOrderCancelModal({
         </div>
       }
       body={
-        <div className="py-2 space-y-1 text-xs text-muted-foreground">
-          <p>
+        <div className="py-2 space-y-1 text-sm text-muted-foreground inline">
+          <p className='inline mr-1'>
             Are you sure you want to cancel purchase order <strong className="text-foreground">{poToCancel?.referenceNumber || poToCancel?.reference_number || 'this PO'}</strong>?
           </p>
-          <p className="text-[11px] text-destructive/80 font-medium">
+          {/* <p className="text-destructive/80 font-medium inline">
             This action cannot be undone.
-          </p>
+          </p> */}
         </div>
       }
       footer={
-        <div className="flex justify-end gap-2 w-full pt-1">
+        <div className="grid grid-cols-2 gap-2 w-full pt-1 pb-1">
           <Button
             variant="outline"
             size="sm"
@@ -67,7 +67,7 @@ export default function PurchaseOrderCancelModal({
               </>
             ) : (
               <>
-                <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
+                {/* <Icon icon="solar:close-circle-linear" className="h-4 w-4" /> */}
                 <span>Cancel PO</span>
               </>
             )}
