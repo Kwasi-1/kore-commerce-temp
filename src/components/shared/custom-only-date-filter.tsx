@@ -41,6 +41,7 @@ interface IDateFilter {
   showLabelOnMobile?: boolean;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
+  excludeShortcuts?: string[];
 }
 
 interface DateShortcutConfig {
@@ -69,7 +70,9 @@ export const CustomOnlyDateFilterComponent = ({
   showLabelOnMobile = false,
   align = "end",
   side = "bottom",
+  excludeShortcuts = [],
 }: IDateFilter) => {
+  const visibleShortcuts = DATE_SHORTCUTS.filter((s) => !excludeShortcuts?.includes(s.id));
   const [date, setDate] = useState<DateRange | undefined>(
     value?.active === "custom" && value.start_date 
       ? { from: value.start_date, to: value.end_date || undefined } 
@@ -250,7 +253,7 @@ export const CustomOnlyDateFilterComponent = ({
           {/* Left sidebar with shortcuts (Desktop) */}
           <div className="hidden md:block pt-6 py-4 px-4 min-w-[140px] tracking-tighter border-r border-border/60">
             <div className="space-y-3">
-              {DATE_SHORTCUTS.map((shortcut) => (
+              {visibleShortcuts.map((shortcut) => (
                 <button
                   key={shortcut.id}
                   onClick={() => handleShortcutClick(shortcut.id)}
@@ -437,7 +440,7 @@ export const CustomOnlyDateFilterComponent = ({
           {/* Mobile bottom shortcuts */}
           <div className="block md:hidden border-t border-border py-3 px-4 max-w-full overflow-hidden">
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {DATE_SHORTCUTS.map((shortcut) => (
+              {visibleShortcuts.map((shortcut) => (
                 <button
                   key={shortcut.id}
                   onClick={() => handleShortcutClick(shortcut.id)}

@@ -49,6 +49,8 @@ export default function EndOfDay() {
         queryParams = `date=${todayStr}`;
       } else if (filter.start_date && filter.end_date) {
         queryParams = `start_date=${filter.start_date.toISOString()}&end_date=${filter.end_date.toISOString()}`;
+      } else if (filter.start_date) {
+        queryParams = `start_date=${filter.start_date.toISOString()}`;
       } else {
         const todayStr = new Date().toISOString().split('T')[0];
         queryParams = `date=${todayStr}`;
@@ -104,6 +106,7 @@ export default function EndOfDay() {
           onChange={(val) => setDateFilter(val)}
           defaultDate="today"
           showLabelOnMobile={true}
+          excludeShortcuts={['all_time']}
         />
       }
     >
