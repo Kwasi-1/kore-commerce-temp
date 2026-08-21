@@ -3965,6 +3965,539 @@ export function setupMockApi() {
     ];
   });
 
+  // ─── REPORTS & TRANSACTIONS MOCKS ──────────────────────────────────────────
+  // GET /tenant/reports/sales
+  mock.onGet(/\/tenant\/reports\/sales/).reply(() => {
+    const timeseries = [
+      { date: 'Aug 11', sales: 240, orders: 2 },
+      { date: 'Aug 12', sales: 620, orders: 5 },
+      { date: 'Aug 13', sales: 1450, orders: 12 },
+      { date: 'Aug 14', sales: 160, orders: 2 },
+      { date: 'Aug 15', sales: 0, orders: 0 },
+      { date: 'Aug 16', sales: 0, orders: 0 },
+      { date: 'Aug 17', sales: 0, orders: 0 },
+      { date: 'Aug 18', sales: 0, orders: 0 },
+      { date: 'Aug 19', sales: 0, orders: 0 },
+      { date: 'Aug 20', sales: 0, orders: 0 },
+      { date: 'Aug 21', sales: 31.5, orders: 1 },
+    ];
+
+    const summary = {
+      gross_sales: 3280.37,
+      total_refunds: 941.37,
+      net_sales: 2339.00,
+      total_discounts: 3.50,
+      cogs: 556.05,
+      gross_profit: 1782.95,
+      gross_margin_pct: 76.2,
+      cost_coverage_pct: 69,
+      total_orders: 29,
+      completed_orders_count: 22,
+      refunded_orders_count: 7,
+      average_order_value: 106.32,
+      max_order_value: 1028.00,
+      costed_items_count: 29,
+      costed_revenue: 1652.50,
+      uncosted_items_count: 13,
+      uncosted_revenue: 690.00,
+      period_expenses: 0.0,
+      net_operating_profit: 1782.95,
+      breakdown_by_channel: {
+        pos: { count: 29, gross: 3280.37, total: 2339.00 },
+        online: { count: 0, gross: 0, total: 0 }
+      },
+      payment_distribution: [
+        { name: 'Cash', value: 2420.37, percentage: 73.8, color: '#10b981' },
+        { name: 'MoMo', value: 45.00, percentage: 1.4, color: '#f59e0b' },
+        { name: 'MoMo (Manual)', value: 815.00, percentage: 24.8, color: '#64748b' }
+      ]
+    };
+
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            summary,
+            timeseries,
+            payment_distribution: summary.payment_distribution
+          }
+        }
+      }
+    ];
+  });
+
+  // GET /tenant/reports/products
+  mock.onGet(/\/tenant\/reports\/products/).reply((config) => {
+    const url = new URL(`http://localhost${config.url || ''}`);
+    const sort = url.searchParams.get('sort') || 'top_selling';
+    const search = (url.searchParams.get('search') || '').toLowerCase();
+
+    let products = [
+      {
+        id: 'p1',
+        name: 'Graphic Cotton T-Shirt',
+        sku: 'TSH-BLK-01',
+        category: 'Apparel',
+        image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=200',
+        units_sold: 30,
+        revenue: 1029.00,
+        cost_of_goods: 450.00,
+        cost_price: 15.00,
+        gross_profit: 579.00,
+        gross_margin: 56.3,
+        has_cost: true,
+        stock_quantity: 45,
+        low_stock_threshold: 5,
+        stock_status: 'in_stock'
+      },
+      {
+        id: 'p2',
+        name: 'Voltic Mineral Water 500ml',
+        sku: 'WAT-VOL-01',
+        category: 'Beverages',
+        image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200',
+        units_sold: 14,
+        revenue: 360.00,
+        cost_of_goods: 140.00,
+        cost_price: 10.00,
+        gross_profit: 220.00,
+        gross_margin: 61.1,
+        has_cost: true,
+        stock_quantity: 75,
+        low_stock_threshold: 10,
+        stock_status: 'in_stock'
+      },
+      {
+        id: 'p3',
+        name: 'Coca Cola 330ml Can',
+        sku: 'BEV-COK-02',
+        category: 'Beverages',
+        image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200',
+        units_sold: 13,
+        revenue: 506.50,
+        cost_of_goods: 260.00,
+        cost_price: 20.00,
+        gross_profit: 246.50,
+        gross_margin: 48.7,
+        has_cost: true,
+        stock_quantity: 54,
+        low_stock_threshold: 10,
+        stock_status: 'in_stock'
+      },
+      {
+        id: 'p4',
+        name: 'Wireless Mouse',
+        sku: 'ACC-MOU-03',
+        category: 'Accessories',
+        image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=200',
+        units_sold: 4,
+        revenue: 180.00,
+        cost_of_goods: 80.00,
+        cost_price: 20.00,
+        gross_profit: 100.00,
+        gross_margin: 55.6,
+        has_cost: true,
+        stock_quantity: 114,
+        low_stock_threshold: 15,
+        stock_status: 'in_stock'
+      },
+      {
+        id: 'p5',
+        name: 'Sugar Bread',
+        sku: 'BRD-001',
+        category: 'Bakery',
+        image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200',
+        units_sold: 3,
+        revenue: 36.00,
+        cost_of_goods: 24.00,
+        cost_price: 8.00,
+        gross_profit: 12.00,
+        gross_margin: 33.3,
+        has_cost: true,
+        stock_quantity: 4,
+        low_stock_threshold: 5,
+        stock_status: 'low_stock'
+      },
+      {
+        id: 'p6',
+        name: 'Nido Milk 400g',
+        sku: 'NID-002',
+        category: 'Groceries',
+        image: null,
+        units_sold: 0,
+        revenue: 0.00,
+        cost_of_goods: 0.00,
+        cost_price: 35.00,
+        gross_profit: 0.00,
+        gross_margin: null,
+        has_cost: true,
+        stock_quantity: 12,
+        low_stock_threshold: 5,
+        stock_status: 'in_stock'
+      },
+      {
+        id: 'p7',
+        name: 'Premium Leather Wallet',
+        sku: 'ACC-WAL-05',
+        category: 'Accessories',
+        image: null,
+        units_sold: 0,
+        revenue: 0.00,
+        cost_of_goods: 0.00,
+        cost_price: 40.00,
+        gross_profit: 0.00,
+        gross_margin: null,
+        has_cost: true,
+        stock_quantity: 0,
+        low_stock_threshold: 3,
+        stock_status: 'out_of_stock'
+      }
+    ];
+
+    if (search) {
+      products = products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search) ||
+          p.sku.toLowerCase().includes(search) ||
+          p.category.toLowerCase().includes(search)
+      );
+    }
+
+    if (sort === 'units_sold') {
+      products.sort((a, b) => b.units_sold - a.units_sold);
+    } else if (sort === 'margin') {
+      products.sort((a, b) => (b.gross_margin || -999) - (a.gross_margin || -999));
+    } else if (sort === 'slow_movers') {
+      products.sort((a, b) => a.units_sold - b.units_sold);
+    } else if (sort === 'low_stock') {
+      products.sort((a, b) => a.stock_quantity - b.stock_quantity);
+    } else {
+      products.sort((a, b) => b.revenue - a.revenue);
+    }
+
+    const summary = {
+      total_revenue: 2342.50,
+      total_units_sold: 66.5,
+      total_cogs: 541.05,
+      total_gross_profit: 1801.45,
+      overall_gross_margin_pct: 76.9,
+      cost_coverage_pct: 100,
+      unique_products_sold: 9,
+      total_catalog_products: 13
+    };
+
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            summary,
+            products
+          }
+        }
+      }
+    ];
+  });
+
+  // GET /tenant/reports/cashiers
+  mock.onGet(/\/tenant\/reports\/cashiers/).reply((config) => {
+    const url = new URL(`http://localhost${config.url || ''}`);
+    const sort = url.searchParams.get('sort') || 'highest_sales';
+
+    let cashiers = [
+      {
+        staff_id: '1',
+        name: 'test tenant',
+        first_name: 'test',
+        last_name: 'tenant',
+        email: 'test@gmail.com',
+        phone: '+233 24 123 4567',
+        role: 'owner',
+        is_active: true,
+        transaction_count: 29,
+        completed_count: 22,
+        refunded_count: 7,
+        total_sales: 2339.00,
+        gross_sales: 3280.37,
+        refunds_amount: 941.37,
+        avg_transaction: 106.32,
+        avg_ticket_value: 106.32,
+        payment_breakdown: {
+          cash: 1479.00,
+          mobile_money: 45.00,
+          mobile_money_manual: 815.00,
+          card: 0.0,
+          credit: 0.0
+        },
+        shifts_count: 2,
+        closed_shifts_count: 1,
+        till_variance: 0.00
+      },
+      {
+        staff_id: '2',
+        name: 'Jane Cashier',
+        first_name: 'Jane',
+        last_name: 'Cashier',
+        email: 'jane@example.com',
+        phone: '+233 20 987 6543',
+        role: 'cashier',
+        is_active: true,
+        transaction_count: 0,
+        completed_count: 0,
+        refunded_count: 0,
+        total_sales: 0.00,
+        gross_sales: 0.00,
+        refunds_amount: 0.00,
+        avg_transaction: 0.00,
+        avg_ticket_value: 0.00,
+        payment_breakdown: {
+          cash: 0.0,
+          mobile_money: 0.0,
+          mobile_money_manual: 0.0,
+          card: 0.0,
+          credit: 0.0
+        },
+        shifts_count: 0,
+        closed_shifts_count: 0,
+        till_variance: 0.00
+      },
+      {
+        staff_id: '3',
+        name: 'Junior Manager',
+        first_name: 'Junior',
+        last_name: 'Manager',
+        email: 'junior@example.com',
+        phone: '+233 50 111 2233',
+        role: 'manager',
+        is_active: true,
+        transaction_count: 0,
+        completed_count: 0,
+        refunded_count: 0,
+        total_sales: 0.00,
+        gross_sales: 0.00,
+        refunds_amount: 0.00,
+        avg_transaction: 0.00,
+        avg_ticket_value: 0.00,
+        payment_breakdown: {
+          cash: 0.0,
+          mobile_money: 0.0,
+          mobile_money_manual: 0.0,
+          card: 0.0,
+          credit: 0.0
+        },
+        shifts_count: 0,
+        closed_shifts_count: 0,
+        till_variance: 0.00
+      }
+    ];
+
+    if (sort === 'most_txns') {
+      cashiers.sort((a, b) => b.completed_count - a.completed_count);
+    } else if (sort === 'highest_ticket') {
+      cashiers.sort((a, b) => b.avg_ticket_value - a.avg_ticket_value);
+    } else if (sort === 'till_variance') {
+      cashiers.sort((a, b) => Math.abs(b.till_variance) - Math.abs(a.till_variance));
+    } else if (sort === 'refunds') {
+      cashiers.sort((a, b) => b.refunds_amount - a.refunds_amount);
+    } else {
+      cashiers.sort((a, b) => b.total_sales - a.total_sales);
+    }
+
+    const summary = {
+      total_revenue: 2339.00,
+      total_transactions: 22,
+      overall_avg_ticket: 106.32,
+      active_cashiers: 1,
+      total_staff: 3,
+      top_performer: 'test tenant'
+    };
+
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            summary,
+            cashiers
+          }
+        }
+      }
+    ];
+  });
+
+  // GET /tenant/reports/end-of-day
+  mock.onGet(/\/tenant\/reports\/end-of-day/).reply(() => {
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            date: new Date().toISOString().split('T')[0],
+            summary: {
+              gross_sales: { source: '31.50', parsedValue: 31.50 },
+              total_sales: 31.50,
+              sales: { source: '31.50', parsedValue: 31.50 },
+              refunds: 0.00,
+              pos: { count: 1, transactions: 1, sales: 31.50 },
+              ecommerce: { count: 0, transactions: 0, sales: 0 },
+              average_order_value: { source: '31.50', parsedValue: 31.50 },
+              payment_breakdown: {
+                cash: { source: '31.50', parsedValue: 31.50 },
+                mobile_money: { source: '0.0', parsedValue: 0 },
+                mobile_money_manual: { source: '0.0', parsedValue: 0 },
+                card: { source: '0.0', parsedValue: 0 },
+                credit: { source: '0.0', parsedValue: 0 }
+              },
+              expenses: { total: 0, records: [] },
+              paid_in: { total: 0, records: [] },
+              shifts: {
+                total_shifts: 1,
+                open_shifts: 0,
+                closed_shifts: 1,
+                total_variance: 0.0,
+                records: [
+                  {
+                    id: 'shift_1',
+                    cashier_name: 'test tenant',
+                    status: 'CLOSED',
+                    opened_at: new Date().toISOString(),
+                    closed_at: new Date().toISOString(),
+                    opening_float: 0.0,
+                    closing_count: 31.50,
+                    expected_cash: 31.50,
+                    variance: 0.0
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ];
+  });
+
+  // GET /pos/transactions
+  mock.onGet(/\/pos\/transactions/).reply(() => {
+    const summary = {
+      gross_sales: 3280.37,
+      total_sales: 2339.00,
+      net_sales: 2339.00,
+      total_refunds: 941.37,
+      total_discounts: 3.50,
+      total_transactions: 29,
+      completed_count: 22,
+      refunded_count: 7,
+      payment_breakdown: {
+        cash: 1479.00,
+        mobile_money: 45.00,
+        mobile_money_manual: 815.00,
+        card: 0.00,
+        credit: 0.00
+      }
+    };
+
+    const transactions = [
+      {
+        id: 'tx_1',
+        orderNumber: 'CPZ-20260821-2022D6E6',
+        date_created: new Date().toISOString(),
+        cashierName: 'test tenant',
+        paymentMethod: 'cash',
+        amount_tendered: { source: '32.00', parsedValue: 32.00 },
+        change_given: { source: '0.50', parsedValue: 0.50 },
+        totalAmount: 31.50,
+        discount: 3.50,
+        subtotal: 35.00,
+        status: 'completed',
+        itemCount: 1,
+        items: [
+          {
+            productName: 'Graphic Cotton T-Shirt',
+            quantity: 1,
+            unitPrice: 35.00,
+            subtotal: 35.00
+          }
+        ]
+      }
+    ];
+
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            summary,
+            transactions,
+            pagination: {
+              page: 1,
+              pages: 1,
+              perPage: 20,
+              total: 1,
+              hasNext: false,
+              hasPrev: false
+            }
+          }
+        }
+      }
+    ];
+  });
+
+  // POST /pos/transactions
+  mock.onPost('/pos/transactions').reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const items = body.items || [];
+    const discount = body.discount || 0;
+    const subtotal = items.reduce((acc: number, it: any) => acc + (Number(it.unit_price || 0) * Number(it.quantity || 1)), 0);
+    const finalTotal = Math.max(0, subtotal - discount);
+    const amountTendered = body.amountTendered || finalTotal;
+    const changeGiven = Math.max(0, amountTendered - finalTotal);
+
+    const receipt = {
+      id: `tx_${Date.now()}`,
+      orderNumber: `CPZ-${Date.now().toString().slice(-8)}`,
+      status: 'completed',
+      date: new Date().toISOString(),
+      storeName: 'VYSION STORE',
+      storeAddress: '123 Commerce St, Accra, Ghana',
+      storePhone: '+233 24 123 4567',
+      cashierName: 'test tenant',
+      paymentMethod: body.paymentMethod || 'cash',
+      amountTendered,
+      changeGiven,
+      subtotal,
+      discount,
+      totalAmount: finalTotal,
+      total: finalTotal,
+      items: items.map((it: any) => ({
+        productName: it.product_name || 'Product Item',
+        quantity: it.quantity || 1,
+        unitPrice: it.unit_price || 0,
+        subtotal: (it.unit_price || 0) * (it.quantity || 1)
+      }))
+    };
+
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          message: 'Sale completed successfully',
+          data: {
+            receipt,
+            orderId: receipt.id,
+            transactionId: receipt.id
+          }
+        }
+      }
+    ];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
   mock.onPost(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
