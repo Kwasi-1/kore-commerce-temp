@@ -1,176 +1,416 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-picker';
-import DashboardCard from '@/components/ui/dashboard-card';
-import { CustomSelectField } from '@/components/shared/text-field';
+import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
+import { DashboardCard } from '@/components/ui/dashboard-card';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { subDays, startOfDay, endOfDay, format } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
+import { Icon } from '@iconify/react';
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from 'recharts';
 
 export default function SalesSummary() {
-  const [dateRange, setDateRange] = useState<DateRangeValue>({
-    startDate: subDays(new Date(), 30),
-    endDate: new Date()
+  // Global Date Filter for Page Header
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    active: 'this_month',
+    start_date: startOfMonth(new Date()),
+    end_date: endOfMonth(new Date()),
   });
-  
-  const [channel, setChannel] = useState('All');
+
+  // Scoped Channel Filter for Charts & Stats
+  const [channel, setChannel] = useState<'all' | 'pos' | 'online'>('all');
   const [summaryData, setSummaryData] = useState<any>(null);
+  const [timeseriesData, setTimeseriesData] = useState<any[]>([]);
+  const [paymentDistribution, setPaymentDistribution] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Generate mock chart data since backend /sales only returns total aggregates
-  const [chartData, setChartData] = useState<any[]>([]);
+  const fetchSalesReport = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const startIso = dateFilter.start_date ? dateFilter.start_date.toISOString() : '';
+      const endIso = dateFilter.end_date ? dateFilter.end_date.toISOString() : '';
+
+      const params = new URLSearchParams();
+      if (startIso) params.set('start_date', startIso);
+      if (endIso) params.set('end_date', endIso);
+      if (channel !== 'all') params.set('channel', channel);
+
+      const response = await apiClient.get(`/tenant/reports/sales?${params.toString()}`);
+      const data = response.data.success?.data || response.data.data || {};
+
+      setSummaryData(data.summary || {});
+      setTimeseriesData(data.timeseries || []);
+      setPaymentDistribution(data.payment_distribution || []);
+    } catch (error) {
+      console.error('Failed to fetch sales summary:', error);
+      toast.error('Failed to load sales report');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dateFilter, channel]);
 
   useEffect(() => {
-    const fetchSales = async () => {
-      setIsLoading(true);
-      try {
-        const startStr = startOfDay(dateRange.startDate).toISOString();
-        const endStr = endOfDay(dateRange.endDate).toISOString();
-        
-        const response = await apiClient.get(`/tenant/reports/sales?start_date=${startStr}&end_date=${endStr}`);
-        const data = response.data.success.data.summary;
-        setSummaryData(data);
+    fetchSalesReport();
+  }, [fetchSalesReport]);
 
-        // Build mock timeseries chart data using the total (since API lacks timeseries)
-        const daysDiff = Math.max(1, Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 3600 * 24)));
-        const dailyAvg = (data.total_sales || 0) / daysDiff;
-        
-        const generatedChartData = [];
-        let runningDate = new Date(dateRange.startDate);
-        for (let i = 0; i <= daysDiff; i++) {
-          // Add some randomness around the average
-          const randomFactor = 0.5 + Math.random();
-          generatedChartData.push({
-            date: format(runningDate, 'MMM dd'),
-            revenue: Math.round(dailyAvg * randomFactor)
-          });
-          runningDate.setDate(runningDate.getDate() + 1);
-        }
-        setChartData(generatedChartData);
+  const summary = summaryData || {};
+  const costCoveragePct = summary.cost_coverage_pct ?? 100;
+  const isHighCoverage = costCoveragePct >= 80;
 
-      } catch (error) {
-        console.error('Failed to fetch sales summary:', error);
-        toast.error('Failed to load sales report');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSales();
-  }, [dateRange]);
-
-  // Compute stats based on channel filter
-  let displayRevenue = 0;
-  let displayOrders = 0;
-
-  if (summaryData) {
-    if (channel === 'All') {
-      displayRevenue = summaryData.total_sales || 0;
-      displayOrders = summaryData.total_transactions || 0;
-    } else {
-      const channelKey = channel === 'POS' ? 'pos' : 'storefront';
-      const cData = summaryData.breakdown_by_channel?.[channelKey];
-      if (cData) {
-        displayRevenue = cData.total || 0;
-        displayOrders = cData.count || 0;
-      }
-    }
-  }
-
-  const avgOrderValue = displayOrders > 0 ? (displayRevenue / displayOrders) : 0;
+  // Chart formatters
+  const formatGHS = (val: number) => `GHS ${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <PageLayout title="Sales Summary">
-      
-      {/* Top Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-card text-card-foreground p-4 rounded-xl border border-border items-center">
-        <div className="w-full md:w-80">
-          <DateRangePicker
-            label="Date Range"
-            mode="range"
-            value={dateRange}
-            onChange={setDateRange}
+    <PageLayout
+      title="Sales Summary"
+      actions={
+        <CustomOnlyDateFilterComponent
+          defaultDate="this_month"
+          value={dateFilter}
+          onChange={setDateFilter}
+          align="end"
+          showLabelOnMobile={true}
+        />
+      }
+    >
+      <div className="space-y-6">
+        {/* 4 Enhanced Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Card 1: Total Gross Revenue */}
+          <DashboardCard
+            title="Total Gross Revenue"
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_sales || 0} />}
+            subvalue={`${summary.total_orders || 0} completed orders`}
+            collapsibleContent={
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>POS Sales:</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.total || 0} /> ({summary.breakdown_by_channel?.pos?.count || 0})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Online Sales:</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.total || 0} /> ({summary.breakdown_by_channel?.online?.count || 0})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
+                  <span>Total Discounts:</span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                    <CurrencyDisplay amount={summary.total_discounts || 0} />
+                  </span>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Card 2: Net Revenue */}
+          <DashboardCard
+            title="Net Revenue"
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary.net_sales || 0} />}
+            subvalue="After discounts & reductions"
+            collapsibleContent={
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Gross Sales:</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.gross_sales || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Less Discounts:</span>
+                  <span className="font-semibold text-destructive">
+                    - <CurrencyDisplay amount={summary.total_discounts || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Less Refunds / Returns:</span>
+                  <span className="font-semibold text-muted-foreground">
+                    - <CurrencyDisplay amount={summary.total_refunds || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-border/40 font-bold text-foreground">
+                  <span>Net Sales:</span>
+                  <span>
+                    <CurrencyDisplay amount={summary.net_sales || 0} />
+                  </span>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Card 3: Gross Profit & Cost Coverage */}
+          <DashboardCard
+            title="Gross Profit"
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_profit || 0} />}
+            subvalue={
+              <div className="space-y-1.5 mt-0.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {summary.gross_margin_pct || 0}% Margin
+                  </span>
+                  <span className="text-muted-foreground">
+                    {costCoveragePct}% Cost Coverage
+                  </span>
+                </div>
+                {/* Cost Coverage Progress Bar */}
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      isHighCoverage ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.max(0, costCoveragePct))}%` }}
+                  />
+                </div>
+              </div>
+            }
+            collapsibleContent={
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Tracked COGS:</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.cogs || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Costed Items:</span>
+                  <span className="font-medium text-foreground">
+                    {summary.costed_items_count || 0} items ({formatGHS(summary.costed_revenue || 0)})
+                  </span>
+                </div>
+                {summary.uncosted_items_count > 0 && (
+                  <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
+                    <strong>{summary.uncosted_items_count} items</strong> sold without a recorded cost price ({formatGHS(summary.uncosted_revenue || 0)}). Profit is estimated with 0 COGS for these items.
+                  </div>
+                )}
+                {summary.period_expenses > 0 && (
+                  <div className="pt-2 border-t border-border/40 space-y-1.5">
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Period Operating Expenses:</span>
+                      <span className="font-semibold text-destructive">
+                        - <CurrencyDisplay amount={summary.period_expenses || 0} />
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold text-foreground">
+                      <span>Net Operating Profit:</span>
+                      <span className={summary.net_operating_profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
+                        <CurrencyDisplay amount={summary.net_operating_profit || 0} />
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            }
+          />
+
+          {/* Card 4: Total Orders & Sales Tickets */}
+          <DashboardCard
+            title="Total Orders"
+            value={isLoading ? '...' : (summary.total_orders || 0).toString()}
+            subvalue="Completed sales volume"
+            collapsibleContent={
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Avg Order Value (AOV):</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.average_order_value || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Highest Order Ticket:</span>
+                  <span className="font-semibold text-foreground">
+                    <CurrencyDisplay amount={summary.max_order_value || 0} />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
+                  <span>Total Items Sold:</span>
+                  <span className="font-semibold text-foreground">
+                    {(summary.costed_items_count || 0) + (summary.uncosted_items_count || 0)} units
+                  </span>
+                </div>
+              </div>
+            }
           />
         </div>
-        <div className="w-full md:w-48">
-          <CustomSelectField
-            label="Channel Filter"
-            options={[
-              { label: 'All Channels', value: 'All' },
-              { label: 'POS', value: 'POS' },
-              { label: 'Online', value: 'Online' }
-            ]}
-            value={channel}
-            inputProps={{
-              onSelectionChange: (keys) => setChannel(Array.from(keys)[0] as string)
-            }}
-          />
+
+        {/* Visualizations Grid: Left (70%) Revenue Chart + Right (30%) Payment Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Revenue by Day Chart Card */}
+          <div className="lg:col-span-8 bg-card/60 backdrop-blur-md text-card-foreground p-5 md:p-6 rounded-xl border border-border dark:border-border/60 flex flex-col shadow-sm min-h-[420px]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <h3 className="text-base md:text-lg font-bold text-foreground">Revenue by Day</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Daily sales trend across selected date range</p>
+              </div>
+
+              {/* Scoped Channel Selector Switcher */}
+              <div className="inline-flex p-1 rounded-lg bg-muted/50 border border-border/60 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setChannel('all')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    channel === 'all'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  All Channels
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChannel('pos')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    channel === 'pos'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  POS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChannel('online')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    channel === 'online'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Online
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-[280px]">
+              {timeseriesData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={timeseriesData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-muted/30" />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: 'currentColor', fontSize: 11 }}
+                      className="text-muted-foreground"
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: 'currentColor', fontSize: 11 }}
+                      className="text-muted-foreground"
+                      tickFormatter={(val) => `${val}`}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                      formatter={(val: number) => formatGHS(val)}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--card)',
+                        color: 'var(--card-foreground)',
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                      }}
+                    />
+                    <Bar dataKey="revenue" fill="#00C853" radius={[4, 4, 0, 0]} maxBarSize={45} name="Revenue" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-xs text-muted-foreground">
+                  <Icon icon="solar:chart-2-linear" className="h-10 w-10 mb-2 opacity-40" />
+                  <span>No revenue recorded in this date range</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Payment Method Distribution Donut Card */}
+          <div className="lg:col-span-4 bg-card/60 backdrop-blur-md text-card-foreground p-5 md:p-6 rounded-xl border border-border dark:border-border/60 flex flex-col justify-between shadow-sm min-h-[420px]">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-foreground">Payment Distribution</h3>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                  Top: {summary.top_payment_method || 'Cash'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">Revenue share by payment type</p>
+            </div>
+
+            <div className="flex-1 min-h-[220px]">
+              {paymentDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="amount"
+                      nameKey="name"
+                    >
+                      {paymentDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(val: number) => formatGHS(val)}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--card)',
+                        color: 'var(--card-foreground)',
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                      }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-xs text-muted-foreground">
+                  <Icon icon="solar:wallet-money-linear" className="h-10 w-10 mb-2 opacity-40" />
+                  <span>No payment transactions recorded</span>
+                </div>
+              )}
+            </div>
+
+            {/* Payment List Breakdown */}
+            {paymentDistribution.length > 0 && (
+              <div className="pt-3 border-t border-border/40 space-y-1.5">
+                {paymentDistribution.map((pm) => (
+                  <div key={pm.id} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: pm.color }} />
+                      <span className="text-muted-foreground font-medium">{pm.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground">{formatGHS(pm.amount)}</span>
+                      <span className="text-[11px] text-muted-foreground w-9 text-right font-semibold">({pm.percentage}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <DashboardCard
-          title="Total Revenue"
-          value={isLoading ? '...' : <CurrencyDisplay amount={displayRevenue} />}
-          className="border border-border"
-        />
-        <DashboardCard
-          title="Total Orders"
-          value={isLoading ? '...' : displayOrders.toString()}
-          className="border border-border"
-        />
-        <DashboardCard
-          title="Avg Order Value"
-          value={isLoading ? '...' : <CurrencyDisplay amount={avgOrderValue} />}
-          className="border border-border"
-        />
-        <DashboardCard
-          title="Top Payment Method"
-          value={isLoading ? '...' : 'Cash'}
-          subvalue="Derived from recent POS sales"
-          className="border border-border"
-        />
-      </div>
-
-      {/* Chart */}
-      <div className="bg-card text-card-foreground p-6 rounded-xl border border-border h-[400px]">
-        <h3 className="text-lg font-semibold mb-6 text-foreground">Revenue by Day</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-            <XAxis 
-              dataKey="date" 
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#6B7280', fontSize: 12 }}
-              dy={10}
-            />
-            <YAxis 
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#6B7280', fontSize: 12 }}
-              tickFormatter={(val) => `GHS ${val}`}
-            />
-            <Tooltip
-              cursor={{ fill: '#F3F4F6' }}
-              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            />
-            <Bar dataKey="revenue" fill="#00C853" radius={[4, 4, 0, 0]} maxBarSize={50} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
     </PageLayout>
   );
 }
