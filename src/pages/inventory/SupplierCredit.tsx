@@ -323,7 +323,7 @@ export default function SupplierCredit() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          title="Supplier Credit Ledger"
+          // title="Supplier Credit Ledger"
           showSearch={true}
           searchPlaceholder="Search by supplier or PO number..."
           searchValue={searchQuery}
