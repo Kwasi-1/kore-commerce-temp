@@ -96,26 +96,26 @@ export default function SalesSummary() {
             subvalue={
               summary.total_refunds > 0
                 ? `${summary.total_orders || 0} transactions (${summary.completed_orders_count || 0} completed · ${summary.refunded_orders_count || 0} refunded)`
-                : `${summary.total_orders || 0} transactions rung up`
+                : undefined
             }
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>POS Gross Sales:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} /> ({summary.breakdown_by_channel?.pos?.count || 0})
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} showStyling={false} /> ({summary.breakdown_by_channel?.pos?.count || 0})
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Online Gross Sales:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} /> ({summary.breakdown_by_channel?.online?.count || 0})
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} showStyling={false} /> ({summary.breakdown_by_channel?.online?.count || 0})
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
                   <span>Total Discounts:</span>
                   <span className="font-semibold text-amber-600 dark:text-amber-400">
-                    <CurrencyDisplay amount={summary.total_discounts || 0} />
+                    <CurrencyDisplay amount={summary.total_discounts || 0} showStyling={false} />
                   </span>
                 </div>
               </div>
@@ -126,31 +126,31 @@ export default function SalesSummary() {
           <DashboardCard
             title="Net Revenue"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.net_sales || 0} />}
-            subvalue="Gross Sales minus Refunds & Discounts"
+            subvalue={
+              summary.total_refunds > 0 ? (
+                <span className="text-[11px] text-muted-foreground">
+                  Less <span className="text-destructive font-semibold">-<CurrencyDisplay amount={summary.total_refunds} symbolClassName="mr-0.5" /></span> in refunds
+                </span>
+              ) : undefined
+            }
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Gross Sales:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.gross_sales || 0} />
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Less Discounts:</span>
-                  <span className="font-semibold text-destructive">
-                    - <CurrencyDisplay amount={summary.total_discounts || 0} />
+                    <CurrencyDisplay amount={summary.gross_sales || 0} showStyling={false} />
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Less Refunds / Returns:</span>
                   <span className="font-semibold text-destructive">
-                    - <CurrencyDisplay amount={summary.total_refunds || 0} />
+                    - <CurrencyDisplay amount={summary.total_refunds || 0} showStyling={false} />
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-border/40 font-bold text-foreground">
                   <span>Net Sales:</span>
                   <span className="text-emerald-600 dark:text-emerald-400">
-                    <CurrencyDisplay amount={summary.net_sales || 0} />
+                    <CurrencyDisplay amount={summary.net_sales || 0} showStyling={false} />
                   </span>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function SalesSummary() {
                   </span>
                 </div>
                 {/* Cost Coverage Progress Bar */}
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="w-full h-[5px] bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       isHighCoverage ? 'bg-emerald-500' : 'bg-amber-500'
@@ -187,7 +187,7 @@ export default function SalesSummary() {
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Tracked COGS:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.cogs || 0} />
+                    <CurrencyDisplay amount={summary.cogs || 0} showStyling={false}/>
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
@@ -206,13 +206,13 @@ export default function SalesSummary() {
                     <div className="flex justify-between items-center text-muted-foreground">
                       <span>Period Operating Expenses:</span>
                       <span className="font-semibold text-destructive">
-                        - <CurrencyDisplay amount={summary.period_expenses || 0} />
+                        - <CurrencyDisplay amount={summary.period_expenses || 0} showStyling={false}/>
                       </span>
                     </div>
                     <div className="flex justify-between items-center font-bold text-foreground">
                       <span>Net Operating Profit:</span>
                       <span className={summary.net_operating_profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
-                        <CurrencyDisplay amount={summary.net_operating_profit || 0} />
+                        <CurrencyDisplay amount={summary.net_operating_profit || 0} showStyling={false}/>
                       </span>
                     </div>
                   </div>
@@ -225,19 +225,23 @@ export default function SalesSummary() {
           <DashboardCard
             title="Total Orders"
             value={isLoading ? '...' : (summary.completed_orders_count || summary.total_orders || 0).toString()}
-            subvalue={`${summary.completed_orders_count || summary.total_orders || 0} completed sales`}
+            subvalue={
+              summary.refunded_orders_count > 0
+                ? `${summary.refunded_orders_count} refunds excluded`
+                : undefined
+            }
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Avg Order Value (AOV):</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.average_order_value || 0} />
+                    <CurrencyDisplay amount={summary.average_order_value || 0} showStyling={false}/>
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Highest Order Ticket:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.max_order_value || 0} />
+                    <CurrencyDisplay amount={summary.max_order_value || 0} showStyling={false}/>
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">

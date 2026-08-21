@@ -131,16 +131,20 @@ export default function EndOfDay() {
               <span className="text-[11px] text-muted-foreground">
                 {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Txns &bull; Refunded: <CurrencyDisplay amount={totalRefunds} symbolClassName="mr-1 text-rose-500 font-semibold" />
               </span>
-            ) : (
-              `${(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Total Transactions`
-            )
+            ) : undefined
           }
           className="border border-border"
         />
         <DashboardCard
           title="Net Revenue"
           value={<CurrencyDisplay amount={netSales} />}
-          subvalue="Gross Sales minus Refunds"
+          subvalue={
+            totalRefunds > 0 ? (
+              <span className="text-[11px] text-muted-foreground">
+                Less <span className="text-destructive font-semibold">-<CurrencyDisplay amount={totalRefunds} symbolClassName="mr-0.5" /></span> in refunds
+              </span>
+            ) : undefined
+          }
           className="border border-border"
         />
         <DashboardCard
@@ -159,14 +163,14 @@ export default function EndOfDay() {
           <DashboardCard
             title="Avg Order Value"
             value={<CurrencyDisplay amount={avgOrderValue} />}
-            subvalue="Revenue per POS transaction"
+            // subvalue="Revenue per POS transaction"
             className="border border-border"
           />
         ) : (
           <DashboardCard
             title="POS vs E-Commerce"
             value={`${eodData?.pos?.transactions || 0} / ${eodData?.ecommerce?.transactions || 0}`}
-            subvalue="Transaction volume split"
+            // subvalue="Transaction volume split"
             className="border border-border"
           />
         )}
