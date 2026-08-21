@@ -120,6 +120,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         unit_price: item.unit_price,
         price_type: item.price_type,
       })),
+      discount: discount || 0,
       // When offline, mobile_money is recorded as manual MoMo
       paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
       isCreditSale,
@@ -186,6 +187,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           unit_price: item.unit_price,
           price_type: item.price_type
         })),
+        discount: discount || 0,
         paymentMethod: isCreditSale ? 'credit' : activeTab,
         isCreditSale,
         customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined
