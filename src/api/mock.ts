@@ -4498,6 +4498,22 @@ export function setupMockApi() {
     ];
   });
 
+  // POST /pos/transactions/:id/refund
+  mock.onPost(/\/pos\/transactions\/[^/]+\/refund$/).reply((config) => {
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          message: 'Refund processed successfully',
+          data: {
+            status: 'refunded'
+          }
+        }
+      }
+    ];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
   mock.onPost(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });

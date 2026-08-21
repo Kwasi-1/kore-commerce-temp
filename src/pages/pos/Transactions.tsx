@@ -10,7 +10,6 @@ import { format, startOfToday, endOfToday } from "date-fns";
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import TransactionSidePanel from "@/components/pos/TransactionSidePanel";
 import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
-import ReturnModal from "@/components/pos/ReturnModal";
 import { useAuthStore } from "@/store/authStore";
 import { useFeaturesStore } from "@/store/featuresStore";
 import { X } from "lucide-react";
@@ -65,20 +64,10 @@ export default function Transactions() {
     [paymentFilter],
   );
 
-  // Receipt Side Panel
+  // Receipt Side Panel & Refund State
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedReceiptData, setSelectedReceiptData] = useState<any>(null);
-
-  // Refund State
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
-  const [refundType, setRefundType] = useState<"full" | "partial">("full");
-  const [partialRefundAmount, setPartialRefundAmount] = useState<string>("");
-  const [isRefunding, setIsRefunding] = useState(false);
-
-  // Return State
-  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
-  const [selectedTransactionForReturn, setSelectedTransactionForReturn] =
-    useState<any>(null);
 
   const handlePrintReceipt = () => {
     window.print();
@@ -344,12 +333,16 @@ export default function Transactions() {
         label: "View Receipt",
         icon: "mdi:receipt-text-outline",
       },
-      {
-        key: "process_return",
-        label: "Process Return",
-        icon: "mdi:keyboard-backspace",
-        className: "text-destructive font-semibold",
-      },
+      ...(t.status !== "refunded"
+        ? [
+            {
+              key: "issue_refund",
+              label: "Issue Refund",
+              icon: "lucide:rotate-ccw",
+              className: "text-destructive font-semibold",
+            },
+          ]
+        : []),
     ],
     __record: t,
   }));
@@ -357,9 +350,9 @@ export default function Transactions() {
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === "view_receipt") {
       handleViewReceipt(row.id);
-    } else if (actionKey === "process_return") {
-      setSelectedTransactionForReturn(row.__record);
-      setIsReturnModalOpen(true);
+    } else if (actionKey === "issue_refund" || actionKey === "process_return") {
+      setSelectedReceiptData(row.__record);
+      setIsRefundModalOpen(true);
     }
   };
 
@@ -600,19 +593,6 @@ export default function Transactions() {
         receiptData={selectedReceiptData}
         onSuccess={handleRefundSuccess}
       />
-
-      {/* Return Modal */}
-      {selectedTransactionForReturn && (
-        <ReturnModal
-          isOpen={isReturnModalOpen}
-          onClose={() => {
-            setIsReturnModalOpen(false);
-            setSelectedTransactionForReturn(null);
-          }}
-          transaction={selectedTransactionForReturn}
-          onSuccess={fetchTransactions}
-        />
-      )}
     </PageLayout>
   );
 }
