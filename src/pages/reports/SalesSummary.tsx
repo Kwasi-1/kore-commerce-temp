@@ -6,6 +6,7 @@ import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { Icon } from '@iconify/react';
 import {
   BarChart,
@@ -22,6 +23,11 @@ import {
 } from 'recharts';
 
 export default function SalesSummary() {
+  const { hasModule } = useFeaturesStore();
+  const hasPos = hasModule('pos');
+  const hasEcommerce = hasModule('ecommerce');
+  const isMultiChannel = hasPos && hasEcommerce;
+
   // Global Date Filter for Page Header
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
     active: 'this_month',
@@ -45,7 +51,7 @@ export default function SalesSummary() {
       const params = new URLSearchParams();
       if (startIso) params.set('start_date', startIso);
       if (endIso) params.set('end_date', endIso);
-      if (channel !== 'all') params.set('channel', channel);
+      if (isMultiChannel && channel !== 'all') params.set('channel', channel);
 
       const response = await apiClient.get(`/tenant/reports/sales?${params.toString()}`);
       const data = response.data.success?.data || response.data.data || {};
@@ -100,20 +106,32 @@ export default function SalesSummary() {
             }
             collapsibleContent={
               <div className="space-y-2 text-xs pt-0.5">
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>POS Sales</span>
-                  <span className="font-medium text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} showStyling={false} />
-                    <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.pos?.count || 0})</span>
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Online Sales</span>
-                  <span className="font-medium text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} showStyling={false} />
-                    <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.online?.count || 0})</span>
-                  </span>
-                </div>
+                {isMultiChannel ? (
+                  <>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>POS Sales</span>
+                      <span className="font-medium text-foreground">
+                        <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} showStyling={false} />
+                        <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.pos?.count || 0})</span>
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Online Sales</span>
+                      <span className="font-medium text-foreground">
+                        <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} showStyling={false} />
+                        <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.online?.count || 0})</span>
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>{hasPos ? 'In-Store POS Sales' : 'Online Store Sales'}</span>
+                    <span className="font-medium text-foreground">
+                      <CurrencyDisplay amount={summary.gross_sales || 0} showStyling={false} />
+                      <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.total_orders || 0})</span>
+                    </span>
+                  </div>
+                )}
                 {summary.total_discounts > 0 && (
                   <div className="flex justify-between items-center text-muted-foreground pt-1.5 border-t border-border/40">
                     <span>Total Discounts</span>
@@ -270,42 +288,44 @@ export default function SalesSummary() {
                 <p className="text-xs text-muted-foreground mt-0.5">Daily sales trend across selected date range</p>
               </div>
 
-              {/* Scoped Channel Selector Switcher */}
-              <div className="inline-flex p-1 rounded-lg bg-muted/50 border border-border/60 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setChannel('all')}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                    channel === 'all'
-                      ? 'bg-background text-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  All Channels
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChannel('pos')}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                    channel === 'pos'
-                      ? 'bg-background text-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  POS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChannel('online')}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                    channel === 'online'
-                      ? 'bg-background text-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Online
-                </button>
-              </div>
+              {/* Scoped Channel Selector Switcher - Only shown when tenant has both POS & E-Commerce */}
+              {isMultiChannel && (
+                <div className="inline-flex p-1 rounded-lg bg-muted/50 border border-border/60 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setChannel('all')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                      channel === 'all'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All Channels
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChannel('pos')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                      channel === 'pos'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    POS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChannel('online')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                      channel === 'online'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Online
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 min-h-[280px]">
