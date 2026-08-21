@@ -99,25 +99,29 @@ export default function SalesSummary() {
                 : undefined
             }
             collapsibleContent={
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2 text-xs pt-0.5">
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>POS Gross Sales:</span>
-                  <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} showStyling={false} /> ({summary.breakdown_by_channel?.pos?.count || 0})
+                  <span>POS Sales</span>
+                  <span className="font-medium text-foreground">
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} showStyling={false} />
+                    <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.pos?.count || 0})</span>
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Online Gross Sales:</span>
-                  <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} showStyling={false} /> ({summary.breakdown_by_channel?.online?.count || 0})
+                  <span>Online Sales</span>
+                  <span className="font-medium text-foreground">
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} showStyling={false} />
+                    <span className="text-muted-foreground/60 text-[11px] ml-1">({summary.breakdown_by_channel?.online?.count || 0})</span>
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
-                  <span>Total Discounts:</span>
-                  <span className="font-semibold text-amber-600 dark:text-amber-400">
-                    <CurrencyDisplay amount={summary.total_discounts || 0} showStyling={false} />
-                  </span>
-                </div>
+                {summary.total_discounts > 0 && (
+                  <div className="flex justify-between items-center text-muted-foreground pt-1.5 border-t border-border/40">
+                    <span>Total Discounts</span>
+                    <span className="font-medium text-foreground">
+                      <CurrencyDisplay amount={summary.total_discounts || 0} showStyling={false} />
+                    </span>
+                  </div>
+                )}
               </div>
             }
           />
@@ -129,27 +133,29 @@ export default function SalesSummary() {
             subvalue={
               summary.total_refunds > 0 ? (
                 <span className="text-[11px] text-muted-foreground">
-                  Less <span className="text-destructive font-semibold">-<CurrencyDisplay amount={summary.total_refunds} symbolClassName="mr-0.5" /></span> in refunds
+                  Less -<CurrencyDisplay amount={summary.total_refunds} showStyling={false} /> in refunds
                 </span>
               ) : undefined
             }
             collapsibleContent={
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2 text-xs pt-0.5">
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Gross Sales:</span>
-                  <span className="font-semibold text-foreground">
+                  <span>Gross Sales</span>
+                  <span className="font-medium text-foreground">
                     <CurrencyDisplay amount={summary.gross_sales || 0} showStyling={false} />
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Less Refunds / Returns:</span>
-                  <span className="font-semibold text-destructive">
-                    - <CurrencyDisplay amount={summary.total_refunds || 0} showStyling={false} />
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-1 border-t border-border/40 font-bold text-foreground">
-                  <span>Net Sales:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">
+                {summary.total_refunds > 0 && (
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Less Refunds</span>
+                    <span className="font-medium text-foreground">
+                      - <CurrencyDisplay amount={summary.total_refunds || 0} showStyling={false} />
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1.5 border-t border-border/40 font-semibold text-foreground">
+                  <span>Net Revenue</span>
+                  <span>
                     <CurrencyDisplay amount={summary.net_sales || 0} showStyling={false} />
                   </span>
                 </div>
@@ -163,56 +169,54 @@ export default function SalesSummary() {
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_profit || 0} />}
             subvalue={
               <div className="space-y-1.5 mt-0.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground">
                     {summary.gross_margin_pct || 0}% Margin
                   </span>
-                  <span className="text-muted-foreground">
+                  <span>
                     {costCoveragePct}% Cost Coverage
                   </span>
                 </div>
-                {/* Cost Coverage Progress Bar */}
-                <div className="w-full h-[5px] bg-muted rounded-full overflow-hidden">
+                {/* Minimalist Monochrome Progress Line */}
+                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isHighCoverage ? 'bg-emerald-500' : 'bg-amber-500'
-                    }`}
+                    className="h-full rounded-full bg-foreground/70 transition-all duration-500"
                     style={{ width: `${Math.min(100, Math.max(0, costCoveragePct))}%` }}
                   />
                 </div>
               </div>
             }
             collapsibleContent={
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2 text-xs pt-0.5">
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Tracked COGS:</span>
-                  <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.cogs || 0} showStyling={false}/>
+                  <span>Tracked COGS</span>
+                  <span className="font-medium text-foreground">
+                    <CurrencyDisplay amount={summary.cogs || 0} showStyling={false} />
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Costed Items:</span>
+                  <span>Costed Items</span>
                   <span className="font-medium text-foreground">
                     {summary.costed_items_count || 0} items ({formatGHS(summary.costed_revenue || 0)})
                   </span>
                 </div>
                 {summary.uncosted_items_count > 0 && (
-                  <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
-                    <strong>{summary.uncosted_items_count} items</strong> sold without a recorded cost price ({formatGHS(summary.uncosted_revenue || 0)}). Profit is estimated with 0 COGS for these items.
+                  <div className="text-[11px] text-muted-foreground/80 pt-1.5 border-t border-border/30 italic">
+                    * {summary.uncosted_items_count} items sold without recorded cost price ({formatGHS(summary.uncosted_revenue || 0)})
                   </div>
                 )}
                 {summary.period_expenses > 0 && (
-                  <div className="pt-2 border-t border-border/40 space-y-1.5">
+                  <div className="pt-1.5 border-t border-border/40 space-y-1.5">
                     <div className="flex justify-between items-center text-muted-foreground">
-                      <span>Period Operating Expenses:</span>
-                      <span className="font-semibold text-destructive">
-                        - <CurrencyDisplay amount={summary.period_expenses || 0} showStyling={false}/>
+                      <span>Operating Expenses</span>
+                      <span className="font-medium text-foreground">
+                        - <CurrencyDisplay amount={summary.period_expenses || 0} showStyling={false} />
                       </span>
                     </div>
-                    <div className="flex justify-between items-center font-bold text-foreground">
-                      <span>Net Operating Profit:</span>
-                      <span className={summary.net_operating_profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
-                        <CurrencyDisplay amount={summary.net_operating_profit || 0} showStyling={false}/>
+                    <div className="flex justify-between items-center font-semibold text-foreground">
+                      <span>Net Operating Profit</span>
+                      <span>
+                        <CurrencyDisplay amount={summary.net_operating_profit || 0} showStyling={false} />
                       </span>
                     </div>
                   </div>
@@ -231,22 +235,22 @@ export default function SalesSummary() {
                 : undefined
             }
             collapsibleContent={
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2 text-xs pt-0.5">
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Avg Order Value (AOV):</span>
-                  <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.average_order_value || 0} showStyling={false}/>
+                  <span>Avg Order Value</span>
+                  <span className="font-medium text-foreground">
+                    <CurrencyDisplay amount={summary.average_order_value || 0} showStyling={false} />
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Highest Order Ticket:</span>
-                  <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.max_order_value || 0} showStyling={false}/>
+                  <span>Highest Order Ticket</span>
+                  <span className="font-medium text-foreground">
+                    <CurrencyDisplay amount={summary.max_order_value || 0} showStyling={false} />
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
-                  <span>Total Items Sold:</span>
-                  <span className="font-semibold text-foreground">
+                <div className="flex justify-between items-center text-muted-foreground pt-1.5 border-t border-border/40">
+                  <span>Total Items Sold</span>
+                  <span className="font-medium text-foreground">
                     {(summary.costed_items_count || 0) + (summary.uncosted_items_count || 0)} units
                   </span>
                 </div>
