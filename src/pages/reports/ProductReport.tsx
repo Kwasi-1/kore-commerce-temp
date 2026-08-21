@@ -351,7 +351,9 @@ export default function ProductReport() {
           isLoading={isLoading}
           title="Product Performance Breakdown"
           showSearch={true}
+          searchPlaceholder="Search product by name, SKU or category..."
           showFilter={false}
+          showAddButton={false}
           mobileFriendly={true}
         />
 

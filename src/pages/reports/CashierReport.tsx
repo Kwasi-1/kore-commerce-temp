@@ -268,8 +268,9 @@ export default function CashierReport() {
           rows={rows}
           isLoading={isLoading}
           title="Staff Performance & Audit Breakdown"
-          showSearch={true}
+          showSearch={false}
           showFilter={false}
+          showAddButton={false}
           mobileFriendly={true}
         />
 
