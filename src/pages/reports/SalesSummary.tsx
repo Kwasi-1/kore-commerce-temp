@@ -85,7 +85,7 @@ export default function SalesSummary() {
         />
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* 4 Enhanced Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           
@@ -93,19 +93,23 @@ export default function SalesSummary() {
           <DashboardCard
             title="Total Gross Revenue"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_sales || 0} />}
-            subvalue={`${summary.total_orders || 0} completed orders`}
+            subvalue={
+              summary.total_refunds > 0
+                ? `${summary.total_orders || 0} transactions (${summary.completed_orders_count || 0} completed · ${summary.refunded_orders_count || 0} refunded)`
+                : `${summary.total_orders || 0} transactions rung up`
+            }
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>POS Sales:</span>
+                  <span>POS Gross Sales:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.total || 0} /> ({summary.breakdown_by_channel?.pos?.count || 0})
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.pos?.gross || summary.breakdown_by_channel?.pos?.total || 0} /> ({summary.breakdown_by_channel?.pos?.count || 0})
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Online Sales:</span>
+                  <span>Online Gross Sales:</span>
                   <span className="font-semibold text-foreground">
-                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.total || 0} /> ({summary.breakdown_by_channel?.online?.count || 0})
+                    <CurrencyDisplay amount={summary.breakdown_by_channel?.online?.gross || summary.breakdown_by_channel?.online?.total || 0} /> ({summary.breakdown_by_channel?.online?.count || 0})
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground pt-1 border-t border-border/40">
@@ -122,7 +126,7 @@ export default function SalesSummary() {
           <DashboardCard
             title="Net Revenue"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.net_sales || 0} />}
-            subvalue="After discounts & reductions"
+            subvalue="Gross Sales minus Refunds & Discounts"
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
@@ -139,13 +143,13 @@ export default function SalesSummary() {
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Less Refunds / Returns:</span>
-                  <span className="font-semibold text-muted-foreground">
+                  <span className="font-semibold text-destructive">
                     - <CurrencyDisplay amount={summary.total_refunds || 0} />
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-border/40 font-bold text-foreground">
                   <span>Net Sales:</span>
-                  <span>
+                  <span className="text-emerald-600 dark:text-emerald-400">
                     <CurrencyDisplay amount={summary.net_sales || 0} />
                   </span>
                 </div>
@@ -220,8 +224,8 @@ export default function SalesSummary() {
           {/* Card 4: Total Orders & Sales Tickets */}
           <DashboardCard
             title="Total Orders"
-            value={isLoading ? '...' : (summary.total_orders || 0).toString()}
-            subvalue="Completed sales volume"
+            value={isLoading ? '...' : (summary.completed_orders_count || summary.total_orders || 0).toString()}
+            subvalue={`${summary.completed_orders_count || summary.total_orders || 0} completed sales`}
             collapsibleContent={
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
@@ -248,7 +252,7 @@ export default function SalesSummary() {
         </div>
 
         {/* Visualizations Grid: Left (70%) Revenue Chart + Right (30%) Payment Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           
           {/* Revenue by Day Chart Card */}
           <div className="lg:col-span-8 bg-card/60 backdrop-blur-md text-card-foreground p-5 md:p-6 rounded-xl border border-border dark:border-border/60 flex flex-col shadow-sm min-h-[420px]">

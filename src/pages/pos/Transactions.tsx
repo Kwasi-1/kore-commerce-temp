@@ -90,6 +90,8 @@ export default function Transactions() {
     fetchTransactions();
   };
 
+  const [serverSummary, setServerSummary] = useState<any>(null);
+
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -97,7 +99,7 @@ export default function Transactions() {
         paymentFilter === "all"
           ? ["all"]
           : Array.from(paymentFilter as Set<string>);
-      let url = "/pos/transactions?limit=100";
+      let url = "/pos/transactions?per_page=100";
       if (methodArr[0] !== "all") {
         url += `&payment_method=${methodArr[0]}`;
       }
@@ -117,6 +119,8 @@ export default function Transactions() {
       }
       const response = await apiClient.get(url);
       let data = response.data.success?.data?.transactions || [];
+      const summaryData = response.data.success?.data?.summary || null;
+      setServerSummary(summaryData);
 
       // Client-side search by receipt number or cashier
       if (searchQuery.trim()) {
@@ -157,12 +161,31 @@ export default function Transactions() {
     }
   };
 
-  // Summary stats derived from all (unfiltered) transactions — fetched once
+  // Summary stats derived from backend global aggregate or fallback
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
   const isPaystackEnabled = posSettings.pos_paystack_enabled ?? true;
 
   const stats = useMemo(() => {
+    if (serverSummary && !searchQuery.trim()) {
+      return {
+        total: serverSummary.net_sales || 0,
+        grossTotal: serverSummary.gross_sales || 0,
+        refundTotal: serverSummary.total_refunds || 0,
+        completedCount: serverSummary.completed_count || 0,
+        refundedCount: serverSummary.refunded_count || 0,
+        count: serverSummary.completed_count || 0,
+        avg: serverSummary.average_order_value || 0,
+        cashTotal: serverSummary.payment_breakdown?.cash || 0,
+        momoAutomatedTotal: serverSummary.payment_breakdown?.mobile_money || 0,
+        momoManualTotal: serverSummary.payment_breakdown?.mobile_money_manual || 0,
+        cardTotal: serverSummary.payment_breakdown?.card || 0,
+        creditTotal: serverSummary.payment_breakdown?.credit || 0,
+        topCashier: serverSummary.top_cashier || "None",
+        topCashierSales: serverSummary.top_cashier_sales || 0,
+      };
+    }
+
     const netTransactions = transactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
@@ -211,8 +234,10 @@ export default function Transactions() {
       momoManualTotal,
       cardTotal,
       creditTotal,
+      topCashier: "None",
+      topCashierSales: 0,
     };
-  }, [transactions]);
+  }, [serverSummary, transactions, searchQuery]);
 
   const paymentBreakdownList = useMemo(() => {
     const definitions = [
@@ -445,11 +470,13 @@ export default function Transactions() {
           ) : (
             <DashboardCard
               title="Top Cashier"
-              value={isLoading ? "..." : cashierStats[0]?.name || "N/A"}
+              value={isLoading ? "..." : cashierStats[0]?.name || stats.topCashier || "N/A"}
               subvalue={
-                cashierStats[0]
-                  ?  <CurrencyDisplay amount={cashierStats[0].total} showStyling={false}/>
-                  : undefined
+                cashierStats[0] ? (
+                  <CurrencyDisplay amount={cashierStats[0].total} showStyling={false}/>
+                ) : stats.topCashierSales > 0 ? (
+                  <CurrencyDisplay amount={stats.topCashierSales} showStyling={false}/>
+                ) : undefined
               }
               toggleIcon={
                 isCashierFiltered ? (

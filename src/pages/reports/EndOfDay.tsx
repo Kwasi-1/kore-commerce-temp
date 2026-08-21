@@ -70,17 +70,18 @@ export default function EndOfDay() {
 
   // Helper: API interceptor wraps Decimal fields in {source, parsedValue} — unwrap safely
   const parseVal = (v: any): number => (v && typeof v === 'object' && 'parsedValue' in v ? v.parsedValue : (v ?? 0));
-
-  const totalSales = parseVal(eodData?.total_sales);
+  const grossSales = parseVal(eodData?.pos?.gross_sales ?? eodData?.total_sales);
+  const totalRefunds = parseVal(eodData?.pos?.refunds ?? 0);
+  const netSales = parseVal(eodData?.total_sales);
   const expenseRecords = eodData?.expenses?.records || [];
   const totalExpenses = parseVal(eodData?.expenses?.total);
-  const netRevenue = totalSales - totalExpenses;
+  const netRevenue = netSales - totalExpenses;
   const avgOrderValue = parseVal(eodData?.average_order_value);
 
   const pb = eodData?.payment_breakdown || {};
   const paymentBreakdownChartData = [
     { name: 'Cash', value: pb.cash || 0, color: '#10B981' },
-    { name: 'MoMo', value: pb.mobile_money || 0, color: '#EAB308' },
+    { name: 'MoMo', value: (pb.mobile_money || 0) + (pb.mobile_money_manual || 0), color: '#EAB308' },
     { name: 'Card', value: pb.card || 0, color: '#3B82F6' },
     { name: 'Credit', value: pb.credit || 0, color: '#A855F7' }
   ].filter(item => item.value > 0);
@@ -108,13 +109,11 @@ export default function EndOfDay() {
     >
       
       {!hasClosedShifts && !isLoading && (
-        <div className="hidden bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl borde border-yellow-200 dark:border-yellow-900/30 mb-6 flex items-center justify-between shadowsm">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400" />
-            <div>
-              <h3 className="font-bold text-sm md:text-base">No Closed Shifts for Selected Period</h3>
-              <p className="text-xs md:text-sm opacity-90 mt-0.5">Cashiers must close their shifts from the Register module for complete daily till reconciliation.</p>
-            </div>
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-700 dark:text-amber-300 text-xs">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-bold">No shifts were formally reconciled for this date.</p>
+            <p className="opacity-90 mt-0.5">Below figures are calculated directly from registered sales and payments.</p>
           </div>
         </div>
       )}
@@ -123,14 +122,22 @@ export default function EndOfDay() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <DashboardCard
           title="Total Gross Sales"
-          value={<CurrencyDisplay amount={totalSales} />}
-          subvalue={`${(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Total Transactions`}
+          value={<CurrencyDisplay amount={grossSales} />}
+          subvalue={
+            totalRefunds > 0 ? (
+              <span className="text-[11px] text-muted-foreground">
+                {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Txns &bull; Refunded: <CurrencyDisplay amount={totalRefunds} symbolClassName="mr-1 text-rose-500 font-semibold" />
+              </span>
+            ) : (
+              `${(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Total Transactions`
+            )
+          }
           className="border border-border"
         />
         <DashboardCard
           title="Net Revenue"
-          value={<CurrencyDisplay amount={netRevenue} />}
-          subvalue="Gross Sales minus Expenses"
+          value={<CurrencyDisplay amount={netSales} />}
+          subvalue="Gross Sales minus Refunds"
           className="border border-border"
         />
         <DashboardCard
