@@ -37,9 +37,9 @@ export default function CashierReport() {
       params.set('sort', sortPreset);
 
       const response = await apiClient.get(`/tenant/reports/cashiers?${params.toString()}`);
-      const data = response.data?.success?.data || {};
+      const data = response.data?.success?.data || response.data?.data || {};
 
-      setReportData(data.cashiers || []);
+      setReportData(data.cashiers || data.cashier_performance || []);
       setSummaryData(data.summary || {});
     } catch (error) {
       console.error('Failed to fetch cashier report:', error);

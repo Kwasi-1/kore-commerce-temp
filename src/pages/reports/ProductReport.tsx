@@ -45,9 +45,9 @@ export default function ProductReport() {
       if (isMultiChannel && channel !== 'all') params.set('channel', channel);
 
       const response = await apiClient.get(`/tenant/reports/products?${params.toString()}`);
-      const data = response.data?.success?.data || {};
+      const data = response.data?.success?.data || response.data?.data || {};
 
-      setReportData(data.products || []);
+      setReportData(data.products || data.top_products || []);
       setSummaryData(data.summary || {});
     } catch (error) {
       console.error('Failed to fetch product report:', error);
