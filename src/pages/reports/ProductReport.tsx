@@ -293,7 +293,7 @@ export default function ProductReport() {
                   onClick={() => setSortPreset(tab.key)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                     isActive
-                      ? 'bg-foreground text-background shadow-xs'
+                      ? 'dark:bg-foreground bg-sidebar text-background shadow-xs'
                       : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
