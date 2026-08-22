@@ -292,7 +292,7 @@ export default function CreditReceiptModal({
       <CustomModal
         isOpen={isOpen}
         onOpenChange={onClose}
-        size="2xl"
+        size="3xl"
         classNames={{
           body: "p-0 overflow-hidden max-h-[90vh]"
         }}
