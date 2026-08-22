@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { CurrencyDisplay, useReceiptHeader } from '@/hooks';
 import DebtSettlementModal from '@/components/pos/DebtSettlementModal';
 import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
+import CustomerCreditDetailModal from '@/components/pos/CustomerCreditDetailModal';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Wallet, History, AlertCircle, Download, Info } from 'lucide-react';
@@ -386,196 +387,24 @@ export default function CreditLedger() {
           onclick={handleRowClick}
         />
 
-        {/* Side Panel Drawer for Debtor details */}
-        <CustomModal
+        {/* Customer Credit Detail Drawer Modal */}
+        <CustomerCreditDetailModal
           isOpen={isDrawerOpen}
-          onOpenChange={() => setIsDrawerOpen(false)}
-          placement="right"
-          size="md"
-          header={
-            <div className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">Ledger Account</span>
-            </div>
-          }
-          body={
-            <div className="flex-1 overflow-y-auto px-1 py-4">
-              {selectedDebtor ? (
-                <>
-                  {/* Layer 1: Customer Overview */}
-                  <div className="text-center mb-6 border-b border-border/50 pb-6">
-                    <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mb-3">
-                      {selectedDebtor.name.charAt(0).toUpperCase()}
-                    </div>
-                    <h3 className="text-xl font-bold">{selectedDebtor.name}</h3>
-                    <p className="text-muted-foreground text-sm">{selectedDebtor.phone || selectedDebtor.email}</p>
-                    
-                    <div className="mt-6 bg-muted/50 p-4 rounded-xl border border-border inline-block w-full max-w-[250px]">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Total Outstanding Balance</p>
-                      <p className="text-2xl font-bold text-foreground tracking-tight">
-                        <CurrencyDisplay amount={selectedDebtor.outstanding_debt} />
-                      </p>
-                    </div>
-
-                    <div className="mt-4">
-                      <Button 
-                        onClick={() => {
-                          setSettlementMode('all');
-                          setIsSettleModalOpen(true);
-                        }}
-                        disabled={selectedDebtor.outstanding_debt <= 0}
-                        className="w-full max-w-[250px] rounded-full"
-                      >
-                        <Wallet className="h-4 w-4 mr-2" />
-                        Settle Debt
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Layer 2: Credit Purchases List */}
-                  <div>
-                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/50">
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <History className="h-4 w-4" />
-                        Credit Purchases
-                      </h4>
-                      {creditPurchases.length > 0 && (
-                        <button
-                          onClick={handleViewLatestReceipt}
-                          className="text-xs text-primary hover:underline font-semibold"
-                        >
-                          View Latest Receipt
-                        </button>
-                      )}
-                    </div>
-
-                    {isPurchasesLoading ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">Loading credit purchases...</div>
-                    ) : creditPurchases.length === 0 ? (
-                      <div className="py-8 text-center text-sm text-muted-foreground">No credit purchases on record.</div>
-                    ) : (
-                      <div className="space-y-4">
-                        {creditPurchases.map((p) => {
-                          const isExpanded = expandedPurchaseId === p.id;
-                          return (
-                            <div key={p.id} className="border border-border rounded-xl overflow-hidden bg-card text-card-foreground">
-                              {/* Accordion Header */}
-                              <div 
-                                onClick={() => setExpandedPurchaseId(isExpanded ? null : p.id)}
-                                className="p-4 cursor-pointer hover:bg-muted/30 transition-colors flex flex-col gap-2"
-                              >
-                                <div className="flex justify-between items-center">
-                                  <span className="font-mono text-sm font-bold text-foreground">{p.reference}</span>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                                    p.status === 'settled' 
-                                      ? 'bg-green-500/10 text-green-600 border-green-500/20' 
-                                      : p.status === 'partial' 
-                                        ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
-                                        : 'bg-red-500/10 text-red-600 border-red-500/20'
-                                  }`}>
-                                    {p.status}
-                                  </span>
-                                </div>
-                                
-                                <div className="grid grid-cols-3 text-xs text-muted-foreground mt-1">
-                                  <div>
-                                    <p className="text-[10px] uppercase text-zinc-400">Date</p>
-                                    <p className="font-semibold">{format(new Date(p.date), 'MMM dd, yyyy')}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase text-zinc-400">Original</p>
-                                    <p className="font-semibold"><CurrencyDisplay amount={p.original_amount} /></p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-[10px] uppercase text-zinc-400">Remaining</p>
-                                    <p className="font-bold text-foreground"><CurrencyDisplay amount={p.outstanding_debt} /></p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Accordion Expanded Panel */}
-                              {isExpanded && (
-                                <div className="p-4 border-t border-border bg-muted/20 space-y-4">
-                                  {/* Items Table */}
-                                  <div>
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Items Purchased</p>
-                                    <div className="border border-border/50 rounded-lg overflow-hidden bg-card text-xs">
-                                      <table className="w-full text-left">
-                                        <thead>
-                                          <tr className="bg-muted text-muted-foreground text-[10px] uppercase border-b border-border/50">
-                                            <th className="p-2">Item</th>
-                                            <th className="p-2 text-center">Qty</th>
-                                            <th className="p-2 text-right">Total</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {p.items?.map((item: any, idx: number) => (
-                                            <tr key={idx} className="border-b border-border/50 last:border-none">
-                                              <td className="p-2 font-medium">{item.name}</td>
-                                              <td className="p-2 text-center text-muted-foreground">{item.quantity}</td>
-                                              <td className="p-2 text-right font-semibold"><CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} /></td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-
-                                  {/* Repayments History */}
-                                  <div>
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments Made</p>
-                                    {p.repayments && p.repayments.length > 0 ? (
-                                      <div className="space-y-2 bg-card border border-border/50 rounded-lg p-3">
-                                        {p.repayments.map((r: any) => (
-                                          <div 
-                                            key={r.id}
-                                            onClick={() => handleDownloadPaymentPDF(r, p.reference)}
-                                            className="flex items-center justify-between text-xs cursor-pointer hover:bg-muted/40 p-2 -mx-2 rounded transition-colors group"
-                                          >
-                                            <div className="flex items-center gap-2">
-                                              <Download className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                                              <div>
-                                                <p className="font-semibold text-foreground">{r.reference}</p>
-                                                <p className="text-[10px] text-muted-foreground">{format(new Date(r.date), 'MMM dd, yyyy')}</p>
-                                              </div>
-                                            </div>
-                                            <span className="font-bold text-foreground">-<CurrencyDisplay amount={r.amount} /></span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-muted-foreground italic">No payments recorded against this purchase.</p>
-                                    )}
-                                  </div>
-
-                                  {/* Settle Specific Button */}
-                                  {p.outstanding_debt > 0 && (
-                                    <Button
-                                      onClick={() => {
-                                        setSettlementMode('specific');
-                                        setActiveSettlePurchase(p);
-                                        setIsSettleModalOpen(true);
-                                      }}
-                                      size="sm"
-                                      className="w-full mt-2"
-                                      variant="outline"
-                                    >
-                                      <Wallet className="h-3.5 w-3.5 mr-2" />
-                                      Settle This Purchase
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          }
+          onClose={() => setIsDrawerOpen(false)}
+          selectedDebtor={selectedDebtor}
+          creditPurchases={creditPurchases}
+          isPurchasesLoading={isPurchasesLoading}
+          onSettleAll={() => {
+            setSettlementMode('all');
+            setIsSettleModalOpen(true);
+          }}
+          onSettleSpecific={(p) => {
+            setSettlementMode('specific');
+            setActiveSettlePurchase(p);
+            setIsSettleModalOpen(true);
+          }}
+          onViewLatestReceipt={handleViewLatestReceipt}
+          onDownloadPaymentPDF={handleDownloadPaymentPDF}
         />
       </div>
 
