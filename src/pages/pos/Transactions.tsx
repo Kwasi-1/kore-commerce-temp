@@ -347,12 +347,24 @@ export default function Transactions() {
     __record: t,
   }));
 
-  const handleRowActionClick = (actionKey: string, row: any) => {
+  const handleRowActionClick = async (actionKey: string, row: any) => {
     if (actionKey === "view_receipt") {
       handleViewReceipt(row.id);
     } else if (actionKey === "issue_refund" || actionKey === "process_return") {
-      setSelectedReceiptData(row.__record);
-      setIsRefundModalOpen(true);
+      try {
+        if (!row.__record?.items || row.__record.items.length === 0) {
+          const res = await apiClient.get(`/pos/transactions/${row.id}/receipt`);
+          const fullReceipt = res.data.success?.data?.receipt;
+          setSelectedReceiptData(fullReceipt || row.__record);
+        } else {
+          setSelectedReceiptData(row.__record);
+        }
+        setIsRefundModalOpen(true);
+      } catch (err) {
+        console.error("Failed to load receipt details for refund:", err);
+        setSelectedReceiptData(row.__record);
+        setIsRefundModalOpen(true);
+      }
     }
   };
 
