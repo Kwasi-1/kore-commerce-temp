@@ -4514,6 +4514,200 @@ export function setupMockApi() {
     ];
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CUSTOMER CREDIT LEDGER & CREDIT PURCHASES MOCKS
+  // ─────────────────────────────────────────────────────────────────────────────
+  const mockDebtorsData: Record<string, any> = {
+    'cust-1': {
+      id: 'cust-1',
+      name: 'John Doe',
+      phone: '0241112222',
+      email: 'johndoe@gmail.com',
+      outstanding_debt: 765.00,
+      last_credit_date: '2026-08-07T10:15:00Z',
+      purchases: [
+        {
+          id: 'pur-101',
+          reference: 'CP-2026-0807-A101',
+          date: '2026-08-07T10:15:00Z',
+          original_amount: 450.00,
+          amount_paid: 0.00,
+          outstanding_debt: 450.00,
+          status: 'outstanding',
+          items: [
+            { name: 'Graphic Cotton T-Shirt', quantity: 3, price: 35.00, subtotal: 105.00 },
+            { name: 'Wireless Bluetooth Speaker', quantity: 1, price: 345.00, subtotal: 345.00 }
+          ],
+          repayments: []
+        },
+        {
+          id: 'pur-102',
+          reference: 'CP-2026-0722-B204',
+          date: '2026-07-22T14:30:00Z',
+          original_amount: 415.00,
+          amount_paid: 100.00,
+          outstanding_debt: 315.00,
+          status: 'partial',
+          items: [
+            { name: 'Voltic Mineral Water Pack', quantity: 5, price: 23.00, subtotal: 115.00 },
+            { name: 'Coke 500ml Crate', quantity: 2, price: 150.00, subtotal: 300.00 }
+          ],
+          repayments: [
+            {
+              id: 'rep-101',
+              reference: 'REC-20260728-981',
+              amount: 100.00,
+              date: '2026-07-28T11:00:00Z',
+              payment_method: 'cash'
+            }
+          ]
+        }
+      ]
+    },
+    'cust-2': {
+      id: 'cust-2',
+      name: 'Kwame Nkrumah',
+      phone: '0275556666',
+      email: 'kwame@gmail.com',
+      outstanding_debt: 1200.50,
+      last_credit_date: '2026-08-20T16:45:00Z',
+      purchases: [
+        {
+          id: 'pur-201',
+          reference: 'CP-2026-0820-C309',
+          date: '2026-08-20T16:45:00Z',
+          original_amount: 1200.50,
+          amount_paid: 0.00,
+          outstanding_debt: 1200.50,
+          status: 'outstanding',
+          items: [
+            { name: 'Sugar Bread Loaf', quantity: 10, price: 15.00, subtotal: 150.00 },
+            { name: 'Graphic T-Shirt', quantity: 7, price: 150.07, subtotal: 1050.50 }
+          ],
+          repayments: []
+        }
+      ]
+    }
+  };
+
+  // GET /pos/credit-ledger or /tenant/credit-ledger
+  mock.onGet(/\/pos\/credit-ledger|\/tenant\/credit-ledger/).reply(() => {
+    const debtors = Object.values(mockDebtorsData).map(d => ({
+      id: d.id,
+      name: d.name,
+      phone: d.phone,
+      email: d.email,
+      outstanding_debt: d.outstanding_debt,
+      last_credit_date: d.last_credit_date
+    }));
+
+    return [
+      200,
+      {
+        success: {
+          status: 'OK',
+          code: 200,
+          data: {
+            debtors,
+            total: debtors.length,
+            settled_this_month: 640.00
+          }
+        }
+      }
+    ];
+  });
+
+  // GET /tenant/customers/:id/credit-purchases
+  mock.onGet(/\/tenant\/customers\/[^/]+\/credit-purchases/).reply((config) => {
+    const parts = (config.url || '').split('/');
+    const custIdIndex = parts.indexOf('customers');
+    const customerId = custIdIndex !== -1 ? parts[custIdIndex + 1] : '';
+
+    let customer = mockDebtorsData[customerId];
+    if (!customer) {
+      // Fallback search by ID or name
+      customer = Object.values(mockDebtorsData).find((d: any) => d.id === customerId || d.name.toLowerCase() === customerId.toLowerCase());
+    }
+
+    const purchases = customer ? customer.purchases : mockDebtorsData['cust-1'].purchases;
+
+    return [
+      200,
+      {
+        success: {
+          status: 'OK',
+          code: 200,
+          data: {
+            purchases: purchases || []
+          }
+        }
+      }
+    ];
+  });
+
+  // POST /tenant/customers/:id/settle-all-debt
+  mock.onPost(/\/tenant\/customers\/[^/]+\/settle-all-debt/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const amount = Number(body.amount || 0);
+    const parts = (config.url || '').split('/');
+    const custIdIndex = parts.indexOf('customers');
+    const customerId = custIdIndex !== -1 ? parts[custIdIndex + 1] : 'cust-1';
+
+    const customer = mockDebtorsData[customerId] || mockDebtorsData['cust-1'];
+    customer.outstanding_debt = Math.max(0, customer.outstanding_debt - amount);
+
+    // Apply settlement across purchases
+    let rem = amount;
+    const settlements: any[] = [];
+    customer.purchases.forEach((p: any) => {
+      if (rem > 0 && p.outstanding_debt > 0) {
+        const toPay = Math.min(rem, p.outstanding_debt);
+        p.outstanding_debt -= toPay;
+        p.amount_paid += toPay;
+        p.status = p.outstanding_debt <= 0 ? 'settled' : 'partial';
+        rem -= toPay;
+        settlements.push({
+          purchase_id: p.id,
+          purchase_reference: p.reference,
+          amount: toPay
+        });
+      }
+    });
+
+    return [
+      200,
+      {
+        success: {
+          status: 'OK',
+          code: 200,
+          data: {
+            new_balance: customer.outstanding_debt,
+            settlements
+          }
+        }
+      }
+    ];
+  });
+
+  // POST /tenant/credit-ledger/:id/settle
+  mock.onPost(/\/tenant\/credit-ledger\/[^/]+\/settle/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const amount = Number(body.amount || 0);
+
+    return [
+      200,
+      {
+        success: {
+          status: 'OK',
+          code: 200,
+          data: {
+            new_balance: Math.max(0, 765 - amount)
+          }
+        }
+      }
+    ];
+  });
+
   // Catch-all for any other GET requests to prevent errors during design
   mock.onGet(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
   mock.onPost(/.*/).reply(200, { success: { status: 'OK', code: 200, data: {} } });
