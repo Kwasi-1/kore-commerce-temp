@@ -9,7 +9,7 @@ import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks
 import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
-import { CustomInputTextField } from '@/components/shared/text-field';
+import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -29,10 +29,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [momoNumber, setMomoNumber] = useState('');
   const [showOffline, setShowOffline] = useState(false);
 
-  // Credit Toggle
+  // Credit Toggle & Customer Autocomplete
   const [isCreditSale, setIsCreditSale] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [debtorsList, setDebtorsList] = useState<any[]>([]);
+  const [isLoadingDebtors, setIsLoadingDebtors] = useState(false);
 
   // Processing & Success State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -106,6 +108,32 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setMobileItemsExpanded(false);
     }
   }, [isOpen, defaultMethod]);
+
+  // Load existing debtors for credit autocomplete
+  useEffect(() => {
+    if (isOpen && featureSettings.pos_credit_enabled) {
+      const loadDebtors = async () => {
+        setIsLoadingDebtors(true);
+        try {
+          const res = await apiClient.get('/pos/credit-ledger');
+          const debtors = res.data.success?.data?.debtors || [];
+          setDebtorsList(debtors);
+        } catch (err) {
+          console.error('Failed to load debtors for credit selector', err);
+        } finally {
+          setIsLoadingDebtors(false);
+        }
+      };
+      loadDebtors();
+    }
+  }, [isOpen, featureSettings.pos_credit_enabled]);
+
+  const customerOptions = debtorsList.map((d: any) => ({
+    label: d.name,
+    value: d.name,
+    description: d.phone ? `${d.phone}${d.outstanding_debt ? ` · Debt: GHS ${Number(d.outstanding_debt).toFixed(2)}` : ''}` : undefined,
+    phone: d.phone || '',
+  }));
 
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
@@ -318,7 +346,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
                   <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
                   <span className="w-20 text-right font-semibold">
-                    <CurrencyDisplay amount={item.price * item.quantity} />
+                    <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
                   </span>
                 </div>
                 <span className="text-[10px] text-zinc-400 text-left font-medium">
@@ -333,7 +361,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         <div className="space-y-1.5 text-xs text-zinc-800 pt-3 border-t border-dashed border-zinc-200">
           <div className="flex justify-between font-medium">
             <span>Subtotal</span>
-            <span><CurrencyDisplay amount={displaySubtotal} /></span>
+            <span><CurrencyDisplay amount={displaySubtotal} showStyling={false} /></span>
           </div>
           {displayDiscount > 0 && (
             <div className="flex justify-between font-medium">
@@ -454,7 +482,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-6">
         {/* Credit Toggle Section — only shown when pos_credit_enabled */}
         {featureSettings.pos_credit_enabled && (
         <div>
@@ -479,13 +507,30 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
           {isCreditSale && (
             <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-              <CustomInputTextField
+              <SearchableSelectField
                 label="Customer Name"
                 labelPlacement="outside"
-                placeholder="Enter customer name..."
+                placeholder="Select or enter customer name..."
+                options={customerOptions}
                 value={customerName}
-                onChange={(e: any) => setCustomerName(e.target.value)}
-                className="bg-secondary/30 rounded-xl border-border/50"
+                inputValue={customerName}
+                allowsCustomValue={true}
+                isLoading={isLoadingDebtors}
+                onInputChange={(val) => {
+                  setCustomerName(val);
+                }}
+                onValueChange={(selectedVal) => {
+                  if (!selectedVal) return;
+                  setCustomerName(selectedVal);
+                  const found = debtorsList.find((d: any) => d.name === selectedVal || d.id === selectedVal);
+                  if (found && found.phone) {
+                    setCustomerPhone(found.phone);
+                  }
+                }}
+                onClear={() => {
+                  setCustomerName('');
+                  setCustomerPhone('');
+                }}
               />
               <CustomInputTextField
                 label="Phone Number"
@@ -493,7 +538,6 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 placeholder="+233"
                 value={customerPhone}
                 onChange={(e: any) => setCustomerPhone(e.target.value)}
-                className="bg-secondary/30 rounded-xl border-border/50"
               />
             </div>
           )}

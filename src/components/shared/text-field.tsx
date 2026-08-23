@@ -1098,10 +1098,14 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
   const filterFn = filterFunction || defaultFilter;
   const filteredOptions = filterFn(options, currentInputValue);
 
+  const isOptionValue = options.some(
+    (opt: any) => (typeof opt === "string" ? opt : opt?.value) === value,
+  );
+
   return (
-    <div>
+    <div className="flex flex-col w-full">
       <Autocomplete
-        variant="faded"
+        variant="bordered"
         size="md"
         aria-label={label}
         isDisabled={isDisabled}
@@ -1120,11 +1124,17 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
         isLoading={isLoading}
         allowsCustomValue={allowsCustomValue}
         defaultSelectedKey={defaultSelectedKey}
-        selectedKey={value}
+        selectedKey={isOptionValue ? value : null}
         inputValue={currentInputValue}
         onInputChange={(val) => handleInputChange(val)}
         onSelectionChange={(key) => {
-          const selectedValue = key ? String(key) : "";
+          if (key === null || key === undefined || key === "") {
+            if (!allowsCustomValue) {
+              onValueChange?.("");
+            }
+            return;
+          }
+          const selectedValue = String(key);
           // Find the selected option and update input to show its label
           const selected = options.find(
             (opt: any) =>
@@ -1145,27 +1155,34 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
           onValueChange?.(selectedValue);
         }}
         items={filteredOptions}
+        inputProps={{
+          classNames: {
+            mainWrapper: "w-full",
+            label: "text-[12px] !text-muted-foreground capitalize mb-1 font-medium select-none",
+            inputWrapper: cn(
+              "w-full bg-background border border-input rounded-lg shadow-none",
+              "hover:border-input focus-within:!border-foreground/40 focus-within:!ring-0 border-1",
+              "data-[hover=true]:border-input data-[hover=true]:bg-background",
+              "data-[focus=true]:border-foreground/40 data-[focus=true]:bg-background",
+              "h-11 px-3",
+              error && "!border-red-400 focus-within:!border-red-400",
+            ),
+            input: "text-sm text-foreground placeholder:text-muted-foreground",
+            ...selectProps?.inputProps?.classNames,
+          },
+          ...selectProps?.inputProps,
+        }}
         classNames={{
-          base: cn(
-            "rounded-lg bg-muted/30 border-gray-300/20",
-            className,
-          ),
-          // inputWrapper: cn(
-          //   "border dark:border-[#F5F5F580] bg-muted  rounded-lg",
-          //   className
-          // ),
-          selectorButton: cn(
-            `data-[hover=true]:shadow-none shadow-none border-0 bg-transparent p-0 min-w-0 w-auto h-auto text-[12px]`,
-            className,
-          ),
-          endContentWrapper: "bg-transparent border-0",
-          popoverContent: "rounded-lg",
+          base: cn("w-full", className),
+          selectorButton: "text-muted-foreground hover:text-foreground",
+          popoverContent: "rounded-lg border border-border bg-popover text-popover-foreground shadow-md",
+          listbox: "p-1",
           ...selectProps?.classNames,
         }}
         {...(selectProps
           ? Object.fromEntries(
               Object.entries(selectProps).filter(
-                ([key]) => key !== "classNames",
+                ([key]) => key !== "classNames" && key !== "inputProps",
               ),
             )
           : {})}
@@ -1218,11 +1235,12 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
               key={optionValue}
               value={optionValue}
               textValue={searchableText}
+              className="rounded-md data-[hover=true]:bg-muted/60 data-[focus=true]:bg-muted/60 text-foreground py-2 px-2.5"
             >
-              <div className="flex flex-col">
-                <span>{optionLabel}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-xs text-foreground">{optionLabel}</span>
                 {optionDescription && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground">
                     {optionDescription}
                   </span>
                 )}
