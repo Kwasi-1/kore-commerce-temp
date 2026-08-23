@@ -237,7 +237,7 @@ export default function CreditReceiptModal({
   const modalBody = (
     <div className="flex flex-col md:flex-row w-full h-full bg-card">
       {/* Left Column: Receipt Preview */}
-      <div className="w-full md:w-[380px] bg-zinc-50 dark:bg-black/40 border-r border-border p-6 flex-shrink-0 flex items-center justify-center">
+      <div className="w-full md:w-[380px] bg-zinc-50 dark:bg-black/40 p-6 flex-shrink-0 flex items-center justify-center">
          {renderReceiptContent(false)}
       </div>
 

@@ -28,6 +28,7 @@ export default function CreditLedger() {
   const [selectedDebtor, setSelectedDebtor] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [creditPurchases, setCreditPurchases] = useState<any[]>([]);
+  const [creditPayments, setCreditPayments] = useState<any[]>([]);
   const [isPurchasesLoading, setIsPurchasesLoading] = useState(false);
   const [expandedPurchaseId, setExpandedPurchaseId] = useState<string | null>(null);
 
@@ -76,7 +77,9 @@ export default function CreditLedger() {
     setIsPurchasesLoading(true);
     try {
       const response = await apiClient.get(`/tenant/customers/${customerId}/credit-purchases`);
-      setCreditPurchases(response.data.success?.data?.purchases || []);
+      const data = response.data.success?.data || {};
+      setCreditPurchases(data.purchases || []);
+      setCreditPayments(data.payments || []);
     } catch (error) {
       console.error('Failed to fetch credit purchases:', error);
       toast.error('Could not load credit purchases');
@@ -163,63 +166,32 @@ export default function CreditLedger() {
     }
   };
 
-  const handleViewLatestReceipt = () => {
-    if (!creditPurchases || creditPurchases.length === 0) return;
-    
-    // Collect all purchases and repayments
-    const allEvents: any[] = [];
-    creditPurchases.forEach(p => {
-      // Add purchase itself
-      allEvents.push({
-        ...p,
-        eventDate: new Date(p.date).getTime(),
-        eventType: 'purchase'
-      });
-      // Add repayments
-      if (p.repayments) {
-        p.repayments.forEach((r: any) => {
-          allEvents.push({
-            ...r,
-            eventDate: new Date(r.date).getTime(),
-            eventType: 'repayment',
-            purchaseRef: p.reference,
-            purchaseOriginalAmount: p.original_amount,
-            purchaseItems: p.items
-          });
-        });
-      }
+  const handleViewPurchaseReceipt = (purchase: any) => {
+    setSelectedCreditPurchase({
+      id: purchase.id,
+      reference: purchase.reference,
+      date: purchase.date,
+      amount: purchase.original_amount,
+      balance_after: purchase.outstanding_debt,
+      type: 'credit_purchase',
+      items: purchase.items
     });
-    
-    if (allEvents.length === 0) return;
-    
-    // Sort by date descending
-    allEvents.sort((a, b) => b.eventDate - a.eventDate);
-    
-    const latest = allEvents[0];
-    if (latest.eventType === 'purchase') {
-      setSelectedCreditPurchase({
-        id: latest.id,
-        reference: latest.reference,
-        date: latest.date,
-        amount: latest.original_amount,
-        balance_after: latest.outstanding_debt,
-        type: 'credit_purchase',
-        items: latest.items
-      });
-    } else {
-      setSelectedCreditPurchase({
-        id: latest.id,
-        reference: latest.reference,
-        date: latest.date,
-        amount: latest.amount,
-        balance_after: latest.balance_after,
-        payment_method: latest.payment_method,
-        type: 'settlement',
-        purchase_reference: latest.purchaseRef,
-        purchase_original_amount: latest.purchaseOriginalAmount,
-        items: latest.purchaseItems
-      });
-    }
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleViewPaymentReceipt = (payment: any) => {
+    setSelectedCreditPurchase({
+      id: payment.id,
+      reference: payment.reference,
+      date: payment.date,
+      amount: payment.amount,
+      balance_after: payment.balance_after ?? 0,
+      payment_method: payment.payment_method,
+      type: 'settlement',
+      purchase_reference: payment.purchase_reference,
+      purchase_original_amount: payment.purchase_original_amount,
+      items: payment.purchase_items
+    });
     setIsReceiptModalOpen(true);
   };
 
@@ -274,22 +246,21 @@ export default function CreditLedger() {
           <h4 style="font-weight: bold; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase;">Payment Details</h4>
           <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
             <span>Credit Purchase Balance:</span>
-            <span>GHS ${(payment.balance_after + payment.amount).toFixed(2)}</span>
+            <span>GHS ${((payment.balance_after || 0) + payment.amount).toFixed(2)}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 4px;">
             <span>Amount Paid:</span>
-            <span>-GHS ${payment.amount.toFixed(2)}</span>
+            <span>-GHS ${Number(payment.amount).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: ${(payment.balance_after || 0) <= 0 ? '#16a34a' : '#ea580c'};">
+            <span>Remaining Balance:</span>
+            <span>GHS ${(payment.balance_after || 0).toFixed(2)}</span>
           </div>
         </div>
         
-        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; text-transform: uppercase;">
-          <span>Remaining Balance:</span>
-          <span>GHS ${payment.balance_after.toFixed(2)}</span>
-        </div>
-        
-        <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #666; text-transform: uppercase;">
-          <span style="border: 1px solid #000; padding: 4px 8px; border-radius: 99px; font-weight: bold;">Payment Receipt</span>
-          <p style="margin-top: 10px; letter-spacing: 1px;">Thank you for your payment!</p>
+        <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #666;">
+          <p style="margin: 0 0 4px 0;">Thank you for your payment!</p>
+          <p style="margin: 0; font-size: 10px;">Keep this receipt for your records.</p>
         </div>
       `;
       
@@ -298,9 +269,10 @@ export default function CreditLedger() {
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        logging: false,
         backgroundColor: '#ffffff'
       });
+      
+      document.body.removeChild(container);
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -308,12 +280,10 @@ export default function CreditLedger() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Receipt_${payment.reference}.pdf`);
-      
-      document.body.removeChild(container);
-      toast.success('Payment receipt downloaded!', { id: toastId });
+      pdf.save(`Payment_Receipt_${payment.reference}.pdf`);
+      toast.success('Payment receipt downloaded', { id: toastId });
     } catch (err) {
-      console.error('PDF generation failed', err);
+      console.error('PDF generation error:', err);
       toast.error('Failed to generate PDF', { id: toastId });
     }
   };
@@ -324,20 +294,30 @@ export default function CreditLedger() {
     return { totalDebt, count, settledThisMonth };
   }, [debtors, settledThisMonth, viewMode, activeCount, settledCount]);
 
-  const columns = [
-    { key: 'avatar', label: '' },
-    { key: 'name', label: 'Customer Name' },
-    { key: 'phone', label: 'Phone Number' },
-    { key: 'last_credit', label: 'Last Credit Date' },
-    { key: 'debt', label: viewMode === 'active' ? 'Outstanding Balance' : 'Status' }
-  ];
+  const columns = useMemo(() => {
+    if (viewMode === 'settled') {
+      return [
+        { key: 'avatar', label: '' },
+        { key: 'name', label: 'Customer Name' },
+        { key: 'phone', label: 'Phone Number' },
+        { key: 'last_credit', label: 'Last Credit Date' },
+        { key: 'last_settled', label: 'Settled Date' },
+        { key: 'debt', label: 'Status' }
+      ];
+    }
+    return [
+      { key: 'avatar', label: '' },
+      { key: 'name', label: 'Customer Name' },
+      { key: 'phone', label: 'Phone Number' },
+      { key: 'last_credit', label: 'Last Credit Date' },
+      { key: 'debt', label: 'Outstanding Balance' }
+    ];
+  }, [viewMode]);
 
   const rows = debtors.map((d: any) => ({
     id: d.id,
     avatar: (
-      <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-        (d.outstanding_debt || 0) > 0 ? 'bg-muted text-foreground' : 'bg-muted text-foreground'
-      }`}>
+      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-bold text-xs shrink-0 text-foreground">
         {d.name.charAt(0).toUpperCase()}
       </div>
     ),
@@ -345,7 +325,7 @@ export default function CreditLedger() {
       <div className="flex items-center gap-2">
         <span className="font-semibold text-foreground">{d.name}</span>
         {(d.outstanding_debt || 0) <= 0.001 && (
-          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded">
             Settled
           </span>
         )}
@@ -353,6 +333,7 @@ export default function CreditLedger() {
     ),
     phone: <span className="text-muted-foreground">{d.phone || '—'}</span>,
     last_credit: <span className="text-muted-foreground">{d.last_credit_date ? format(new Date(d.last_credit_date), 'MMM dd, yyyy') : '—'}</span>,
+    last_settled: <span className="text-muted-foreground">{d.last_settled_date ? format(new Date(d.last_settled_date), 'MMM dd, yyyy') : '—'}</span>,
     debt: (d.outstanding_debt || 0) > 0 ? (
       <span className="font-semibold text-foreground"><CurrencyDisplay amount={d.outstanding_debt || 0} /></span>
     ) : (
@@ -424,6 +405,7 @@ export default function CreditLedger() {
           onClose={() => setIsDrawerOpen(false)}
           selectedDebtor={selectedDebtor}
           creditPurchases={creditPurchases}
+          creditPayments={creditPayments}
           isPurchasesLoading={isPurchasesLoading}
           onSettleAll={() => {
             setSettlementMode('all');
@@ -434,7 +416,8 @@ export default function CreditLedger() {
             setActiveSettlePurchase(p);
             setIsSettleModalOpen(true);
           }}
-          onViewLatestReceipt={handleViewLatestReceipt}
+          onViewPurchaseReceipt={handleViewPurchaseReceipt}
+          onViewPaymentReceipt={handleViewPaymentReceipt}
           onDownloadPaymentPDF={handleDownloadPaymentPDF}
         />
       </div>
