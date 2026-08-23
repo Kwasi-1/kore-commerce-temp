@@ -39,14 +39,19 @@ export default function CreditLedger() {
   // Receipt Modal state
   const [selectedCreditPurchase, setSelectedCreditPurchase] = useState<any>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'active' | 'settled'>('active');
+  const [activeCount, setActiveCount] = useState<number>(0);
+  const [settledCount, setSettledCount] = useState<number>(0);
 
-  const fetchDebtors = async () => {
+  const fetchDebtors = async (mode: 'active' | 'settled' = viewMode) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/pos/credit-ledger');
+      const response = await apiClient.get(`/pos/credit-ledger?status=${mode}`);
       const data = response.data.success?.data?.debtors || [];
       const settled = response.data.success?.data?.settled_this_month ?? 0;
       setSettledThisMonth(settled);
+      setActiveCount(response.data.success?.data?.active_count ?? 0);
+      setSettledCount(response.data.success?.data?.settled_count ?? 0);
       
       // Client-side search
       const filtered = data.filter((c: any) => 
@@ -64,8 +69,8 @@ export default function CreditLedger() {
   };
 
   useEffect(() => {
-    fetchDebtors();
-  }, [searchQuery]);
+    fetchDebtors(viewMode);
+  }, [searchQuery, viewMode]);
 
   const fetchCreditPurchases = async (customerId: string) => {
     setIsPurchasesLoading(true);
@@ -315,29 +320,44 @@ export default function CreditLedger() {
 
   const stats = useMemo(() => {
     const totalDebt = debtors.reduce((sum, d) => sum + (d.outstanding_debt || 0), 0);
-    const count = debtors.length;
+    const count = viewMode === 'active' ? (activeCount || debtors.length) : (settledCount || debtors.length);
     return { totalDebt, count, settledThisMonth };
-  }, [debtors, settledThisMonth]);
+  }, [debtors, settledThisMonth, viewMode, activeCount, settledCount]);
 
   const columns = [
     { key: 'avatar', label: '' },
     { key: 'name', label: 'Customer Name' },
     { key: 'phone', label: 'Phone Number' },
     { key: 'last_credit', label: 'Last Credit Date' },
-    { key: 'debt', label: 'Outstanding Balance' }
+    { key: 'debt', label: viewMode === 'active' ? 'Outstanding Balance' : 'Status' }
   ];
 
   const rows = debtors.map((d: any) => ({
     id: d.id,
     avatar: (
-      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-foreground font-bold text-xs shrink-0">
+      <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+        (d.outstanding_debt || 0) > 0 ? 'bg-muted text-foreground' : 'bg-muted text-foreground'
+      }`}>
         {d.name.charAt(0).toUpperCase()}
       </div>
     ),
-    name: <span className="font-semibold text-foreground">{d.name}</span>,
+    name: (
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-foreground">{d.name}</span>
+        {(d.outstanding_debt || 0) <= 0.001 && (
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+            Settled
+          </span>
+        )}
+      </div>
+    ),
     phone: <span className="text-muted-foreground">{d.phone || '—'}</span>,
     last_credit: <span className="text-muted-foreground">{d.last_credit_date ? format(new Date(d.last_credit_date), 'MMM dd, yyyy') : '—'}</span>,
-    debt: <span className="font-semibold text-foreground"><CurrencyDisplay amount={d.outstanding_debt || 0} /></span>,
+    debt: (d.outstanding_debt || 0) > 0 ? (
+      <span className="font-semibold text-foreground"><CurrencyDisplay amount={d.outstanding_debt || 0} /></span>
+    ) : (
+      <span className="font-medium text-emerald-600 dark:text-emerald-400 text-[13px]">Fully Settled</span>
+    ),
     __record: d
   }));
 
@@ -360,7 +380,7 @@ export default function CreditLedger() {
             action={<AlertCircle className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
-            title="Debtors"
+            title={viewMode === 'active' ? 'Debtors' : 'Settled Accounts'}
             value={isLoading ? '...' : stats.count.toString()}
             className="border border-border"
             action={<UsersIcon className="text-muted-foreground/50 h-5 w-5" />}
@@ -377,14 +397,25 @@ export default function CreditLedger() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          title="Customer Balances"
+          title={viewMode === 'active' ? 'Customer Balances' : 'Settled Accounts'}
           showSearch={true}
           searchPlaceholder="Search by name or phone..."
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           showAddButton={false}
-          onRefresh={fetchDebtors}
+          onRefresh={() => fetchDebtors(viewMode)}
           onclick={handleRowClick}
+          topActions={[
+            {
+              title: viewMode === 'active' 
+                ? `Settled Accounts (${settledCount})` 
+                : `Active Debtors (${activeCount})`,
+              icon: viewMode === 'active' ? 'stash:archive' : 'stash:user-check',
+              variant: 'flat',
+              className: 'bg-muted border border-border text-foreground hover:bg-muted/80 rounded-lg text-xs font-semibold h-[35px] md:h-[38px] px-3 transition-colors',
+              onPress: () => setViewMode(prev => prev === 'active' ? 'settled' : 'active')
+            }
+          ]}
         />
 
         {/* Customer Credit Detail Drawer Modal */}
