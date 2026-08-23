@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -6,7 +6,7 @@ import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks';
-import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock } from 'lucide-react';
+import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock, AlertTriangle, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
@@ -134,6 +134,24 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     description: d.phone ? `${d.phone}${d.outstanding_debt ? ` · Debt: GHS ${Number(d.outstanding_debt).toFixed(2)}` : ''}` : undefined,
     phone: d.phone || '',
   }));
+
+  // Normalize phone number (match last 9 digits or exact digits)
+  const normalizePhone = (p?: string) => (p ? p.replace(/\D/g, '').slice(-9) : '');
+
+  const matchedDebtorByPhone = useMemo(() => {
+    if (!customerPhone || customerPhone.replace(/\D/g, '').length < 8) return null;
+    const currentClean = normalizePhone(customerPhone);
+    return debtorsList.find((d: any) => {
+      const debtorClean = normalizePhone(d.phone);
+      return debtorClean && debtorClean === currentClean;
+    });
+  }, [customerPhone, debtorsList]);
+
+  // Is there a name mismatch between entered name and existing debtor for this phone number?
+  const hasNameMismatch = useMemo(() => {
+    if (!matchedDebtorByPhone || !customerName.trim()) return false;
+    return customerName.trim().toLowerCase() !== matchedDebtorByPhone.name.trim().toLowerCase();
+  }, [matchedDebtorByPhone, customerName]);
 
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
@@ -473,7 +491,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
       {/* Offline banner */}
       {!isOnline && showOffline && (
-        <div className="flex items-start gap-3 p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
+        <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
           <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-bold mb-0.5">No Internet Connection</p>
@@ -482,7 +500,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-fit pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-6">
         {/* Credit Toggle Section — only shown when pos_credit_enabled */}
         {featureSettings.pos_credit_enabled && (
         <div>
@@ -539,6 +557,54 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 value={customerPhone}
                 onChange={(e: any) => setCustomerPhone(e.target.value)}
               />
+
+              {/* Phone number match warning & switch prompt */}
+              {matchedDebtorByPhone && hasNameMismatch && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span>
+                        This number is already registered to <strong className="font-semibold text-amber-900 dark:text-amber-200">{matchedDebtorByPhone.name}</strong>
+                      </span>
+                      {Number(matchedDebtorByPhone.outstanding_debt || 0) > 0 && (
+                        <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                          Current Debt: GHS {Number(matchedDebtorByPhone.outstanding_debt).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerName(matchedDebtorByPhone.name);
+                      if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
+                    }}
+                    className="shrink-0 text-xs font-semibold px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-100 rounded-md transition-colors self-end sm:self-center"
+                  >
+                    Switch to {matchedDebtorByPhone.name}
+                  </button>
+                </div>
+              )}
+
+              {/* Quick autofill prompt when phone is typed but customer name is empty */}
+              {matchedDebtorByPhone && !customerName.trim() && (
+                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1">
+                  <span className="truncate">
+                    Found debtor: <strong className="font-semibold">{matchedDebtorByPhone.name}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerName(matchedDebtorByPhone.name);
+                      if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
+                    }}
+                    className="shrink-0 text-xs font-semibold px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-900 dark:text-blue-100 rounded transition-colors"
+                  >
+                    Use {matchedDebtorByPhone.name}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -643,7 +709,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       {/* Bottom Footer — sticky, never scrolls away */}
-      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 bg-card">
+      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
           <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
