@@ -64,8 +64,8 @@ export default function CreditReceiptModal({
   );
 
   const renderOutstandingFooter = (amount: number) => (
-    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-center font-bold text-[11px] uppercase tracking-wider">
-      Outstanding Balance: <CurrencyDisplay amount={amount} />
+    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 flex justify-center gap-2 rounded-md text-center font-bold text-[11px] uppercase tracking-wider">
+      Outstanding Balance: <CurrencyDisplay amount={amount} showStyling={false} />
     </div>
   );
 
@@ -76,7 +76,7 @@ export default function CreditReceiptModal({
     return (
       <div 
         id={isForPrint ? 'print-receipt-content' : `credit-receipt-${transaction.id}`}
-        className={`bg-white text-black p-6 rounded-xl font-sans text-sm max-w-sm mx-auto relative ${isForPrint ? 'w-[80mm] p-2 border-none' : 'border border-border/20 shadow-sm'}`}
+        className={`bg-white text-black p-6 w-full rounded-xl font-sans text-sm relative ${isForPrint ? 'w-[80mm] p-2 border-none' : 'border border-border/20 shadow-sm'}`}
       >
         {/* Header */}
         <div className="text-center mb-6 relative">
@@ -119,7 +119,7 @@ export default function CreditReceiptModal({
           /* CREDIT REPAYMENT RECEIPT */
           <>
             <div className="border-b border-dashed border-zinc-200 pb-3 mb-3 space-y-2 text-xs text-zinc-800">
-              <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+              <div className="bg-zinc-50 p-2.5 rounded-md border border-zinc-100">
                 <div className="flex justify-between mb-1">
                   <span className="text-zinc-500">Applied toward:</span>
                   <span className="font-mono font-bold text-zinc-900">{transaction.purchase_reference}</span>
@@ -127,7 +127,7 @@ export default function CreditReceiptModal({
                 {transaction.purchase_original_amount !== undefined && (
                   <div className="flex justify-between text-[11px]">
                     <span className="text-zinc-400">Original Purchase Amt:</span>
-                    <span className="font-semibold text-zinc-600"><CurrencyDisplay amount={transaction.purchase_original_amount} /></span>
+                    <span className="font-semibold text-zinc-600"><CurrencyDisplay amount={transaction.purchase_original_amount} showStyling={false}/></span>
                   </div>
                 )}
               </div>
@@ -136,11 +136,11 @@ export default function CreditReceiptModal({
             <div className="space-y-1 text-xs text-zinc-800">
               <div className="flex justify-between font-medium">
                 <span>Repayment Amount</span>
-                <span className="font-bold text-emerald-600">-<CurrencyDisplay amount={transaction.amount} /></span>
+                <span className="font-bold text-emerald-600">-<CurrencyDisplay amount={transaction.amount} showStyling={false} /></span>
               </div>
               <div className="flex justify-between font-bold text-sm pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
                 <span>Remaining Purchase Debt</span>
-                <span><CurrencyDisplay amount={balance} /></span>
+                <span><CurrencyDisplay amount={balance} showStyling={false}/></span>
               </div>
             </div>
           </>
@@ -157,7 +157,7 @@ export default function CreditReceiptModal({
                   <div key={idx} className="flex justify-between">
                     <span className="font-mono font-medium text-zinc-900">{s.purchase_reference || s.purchase_id}</span>
                     <span className="font-semibold text-zinc-700">
-                      <CurrencyDisplay amount={s.amount} />
+                      <CurrencyDisplay amount={s.amount} showStyling={false} />
                     </span>
                   </div>
                 ))}
@@ -167,11 +167,11 @@ export default function CreditReceiptModal({
             <div className="space-y-1 text-xs text-zinc-800">
               <div className="flex justify-between font-medium">
                 <span>Total Settlement</span>
-                <span className="font-bold text-emerald-600">-<CurrencyDisplay amount={transaction.amount} /></span>
+                <span className="font-bold text-emerald-600 text-sm">-<CurrencyDisplay amount={transaction.amount} showStyling={false}/></span>
               </div>
               <div className="flex justify-between font-bold text-sm pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
                 <span>Consolidated Remaining Debt</span>
-                <span><CurrencyDisplay amount={balance} /></span>
+                <span><CurrencyDisplay amount={balance} showStyling={false}/></span>
               </div>
             </div>
           </>
@@ -208,11 +208,11 @@ export default function CreditReceiptModal({
             <div className="space-y-1 text-xs text-zinc-800">
               <div className="flex justify-between font-medium">
                 <span>Total Purchase</span>
-                <span className="font-bold"><CurrencyDisplay amount={transaction.amount} /></span>
+                <span className="font-bold"><CurrencyDisplay amount={transaction.amount} showStyling={false} /></span>
               </div>
-              <div className="flex justify-between font-bold text-sm pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
+              <div className="flex justify-between gap-2 font-bold text-sm pt-2 border-t border-dashed border-zinc-200 mt-2 uppercase text-zinc-900">
                 <span>Remaining Purchase Debt</span>
-                <span><CurrencyDisplay amount={balance} /></span>
+                <span><CurrencyDisplay amount={balance} showStyling={false}/></span>
               </div>
             </div>
           </>

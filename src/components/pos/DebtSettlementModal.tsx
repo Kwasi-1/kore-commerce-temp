@@ -63,15 +63,15 @@ export default function DebtSettlementModal({
         base: 'max-w-[28rem]',
       }}
       header={
-        <div className="pt-2 px-1 border-b border-border/50 pb-2.5 text-left">
-          <h2 className="text-lg font-bold text-foreground">Settle Customer Debt</h2>
-          <p className="text-[12px] md:text-[13px] text-muted-foreground mt-0.5">
-            Customer: <strong className="text-foreground">{debtor?.name}</strong>
+        <div className="px1 border-b border-border/50 pb-2 text-left">
+          <h2 className="text-lg font-bold text-foreground !tracking-tighter">Settle Customer Debt</h2>
+          <p className="text-[11px] text-muted-foreground">
+            Account: <strong className="text-foreground capitalize">{debtor?.name}</strong>
           </p>
         </div>
       }
       body={
-        <form id="settle-debt-form" onSubmit={(e) => { e.preventDefault(); handleSettle(); }} className="space-y-4 py-2 text-left">
+        <form id="settle-debt-form" onSubmit={(e) => { e.preventDefault(); handleSettle(); }} className="space-y-4 pb-1 text-left">
           {/* Top Metric Header */}
           <div className="p-3.5 rounded-md bg-muted/20 flex items-center justify-between">
             <div>
@@ -135,12 +135,12 @@ export default function DebtSettlementModal({
         </form>
       }
       footer={
-        <div className="flex items-center justify-end gap-2 w-full pt-1 pb-1">
+        <div className="flex items-center justify-end gap-2 w-full pt-1">
           <Button
             type="submit"
             form="settle-debt-form"
             disabled={isSubmitting || !isValid}
-            className="bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-1.5 w-full"
+            className="flex items-center justify-center gap-1.5 w-full"
           >
             {isSubmitting && (
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
