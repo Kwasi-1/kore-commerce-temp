@@ -28,7 +28,7 @@ export default function DebtSettlementModal({
       setAmountStr(maxDebt > 0 ? maxDebt.toString() : '');
       setMethod('cash');
     }
-  }, [isOpen, debtor]);
+  }, [isOpen, debtor, maxDebt]);
 
   const handleSettle = async () => {
     const amount = parseFloat(amountStr);
@@ -63,82 +63,89 @@ export default function DebtSettlementModal({
         base: 'max-w-[28rem]',
       }}
       header={
-        <div className="flex flex-col gap-0.5 pb-2 border-b border-border/50">
-          <h3 className="text-lg font-bold text-foreground !tracking-tighter">Settle Customer Debt</h3>
-          <p className="text-xs text-muted-foreground font-normal">
-            Account: <strong className="text-foreground">{debtor?.name}</strong>
+        <div className="pt-2 px-1 border-b border-border/50 pb-2.5 text-left">
+          <h2 className="text-lg font-bold text-foreground">Settle Customer Debt</h2>
+          <p className="text-[12px] md:text-[13px] text-muted-foreground mt-0.5">
+            Customer: <strong className="text-foreground">{debtor?.name}</strong>
           </p>
         </div>
       }
       body={
-        <div className="flex flex-col gap-4 py-1 text-left">
-          {/* Outstanding Balance Info Box */}
-          <div className="bg-muted/30 p-3.5 rounded flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium">Outstanding Balance:</span>
-            <span className="text-base font-bold text-foreground">
-              <CurrencyDisplay amount={maxDebt} />
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            {/* Amount Field with Max Button */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground font-medium">Settlement Amount</span>
-                <button
-                  type="button"
-                  onClick={handleSetFullAmount}
-                  className="text-[11px] font-semibold text-foreground hover:underline"
-                >
-                  Pay Full ({maxDebt > 0 ? `GHS ${maxDebt.toFixed(2)}` : '0.00'})
-                </button>
-              </div>
-              <CustomInputTextField
-                type="number"
-                placeholder="0.00"
-                value={amountStr}
-                onChange={(e) => setAmountStr(e.target.value)}
-                startContent={<span className="text-muted-foreground text-xs font-medium">GHS</span>}
-                labelPlacement="outside"
-              />
+        <form id="settle-debt-form" onSubmit={(e) => { e.preventDefault(); handleSettle(); }} className="space-y-4 py-2 text-left">
+          {/* Top Metric Header */}
+          <div className="p-3.5 rounded-md bg-muted/20 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">
+                Owed Balance
+              </span>
+              <span className="text-xl font-bold text-foreground mt-0.5 block">
+                <CurrencyDisplay amount={maxDebt} />
+              </span>
             </div>
-
-            {/* Payment Method */}
-            <div className="space-y-1">
-              <CustomSelectField 
-                label="Payment Method" 
-                value={method}
-                options={[
-                  { label: 'Cash Payment', value: 'cash' },
-                  { label: 'Mobile Money (MoMo)', value: 'mobile_money' },
-                  { label: 'Card / POS Terminal', value: 'card' },
-                  { label: 'Bank Transfer', value: 'bank_transfer' }
-                ]}
-                inputProps={{
-                  onChange: (e: any) => setMethod(e.target.value)
-                }}
-                labelPlacement="inside"
-              />
+            <div className="text-right">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">
+                Account
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground mt-0.5 block truncate max-w-[130px]">
+                {debtor?.name || 'Customer'}
+              </span>
             </div>
           </div>
-        </div>
+
+          {/* Payment Amount */}
+          <CustomInputTextField
+            label="Payment Amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            max={maxDebt.toString()}
+            required
+            value={amountStr}
+            placeholder="0.00"
+            onChange={(e: any) => setAmountStr(e?.target ? e.target.value : e)}
+            endContent={
+              <button
+                type="button"
+                onClick={handleSetFullAmount}
+                className="text-[11px] font-semibold text-primary hover:underline cursor-pointer pr-1"
+              >
+                Pay in Full
+              </button>
+            }
+          />
+
+          {/* Payment Method */}
+          <CustomSelectField
+            label="Payment Method"
+            options={[
+              { label: 'Cash Payment', value: 'cash' },
+              { label: 'Mobile Money (MoMo)', value: 'mobile_money' },
+              { label: 'Card / POS Terminal', value: 'card' },
+              { label: 'Bank Transfer', value: 'bank_transfer' }
+            ]}
+            value={method}
+            required
+            inputProps={{
+              onSelectionChange: (keys: any) => {
+                const val = Array.from(keys)[0];
+                if (val) setMethod(String(val));
+              }
+            }}
+          />
+        </form>
       }
       footer={
-        <div className="flex gap-2 w-full justify-end pt-2 border-t border-border/40">
-          {/* <Button 
-            variant="outline" 
-            className="rounded-full px-5 text-xs font-semibold"
-            onClick={onClose} 
-            disabled={isSubmitting}
+        <div className="flex items-center justify-end gap-2 w-full pt-1 pb-1">
+          <Button
+            type="submit"
+            form="settle-debt-form"
+            disabled={isSubmitting || !isValid}
+            className="bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-1.5 w-full"
           >
-            Cancel
-          </Button> */}
-          <Button 
-            variant="default" 
-            className="px-5 w-full" 
-            onClick={handleSettle} disabled={isSubmitting || !isValid}
-          >
-            {isSubmitting ? 'Processing...' : 'Process Payment'}
+            {isSubmitting && (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            <span>Process Payment</span>
           </Button>
         </div>
       }
