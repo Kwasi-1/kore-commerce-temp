@@ -6,6 +6,7 @@ import { Printer, Download, Share2 } from 'lucide-react';
 import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter, formatPhoneNumber } from '@/hooks';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Icon } from '@iconify/react';
 
 interface CreditReceiptModalProps {
   isOpen: boolean;
@@ -249,16 +250,13 @@ export default function CreditReceiptModal({
       : 'Credit Sale Receipt';
 
   const modalBody = (
-    <div className="flex flex-col md:flex-row w-full h-full bg-card min-h-0 overflow-hidden">
+    <div className="flex flex-col md:flex-row w-full h-[95dvh] md:h-[540px] bg-card min-h-0 overflow-hidden">
       {/* Mobile-Only Header Bar */}
       <div className="md:hidden flex items-center justify-between p-3.5 border-b border-border/50 bg-background shrink-0">
         <div className="min-w-0 pr-2">
           <h4 className="font-bold text-lg text-foreground truncate font-['AtypDisplay']">
             {receiptTitle}
           </h4>
-          {/* <p className="text-[10px] text-muted-foreground truncate font-mono">
-            {transaction.reference}
-          </p> */}
         </div>
         <div className="flex items-center gap-1.5 shrink-0 mr-9">
           <Button
@@ -268,7 +266,7 @@ export default function CreditReceiptModal({
             onClick={handlePrint}
             title="Print Receipt"
           >
-            <Printer className="h-3.5 w-3.5" />
+            <Icon icon="solar:printer-minimalistic-linear" className="h-3.5 w-3.5" />
           </Button>
           <Button
             size="icon-sm"
@@ -304,7 +302,7 @@ export default function CreditReceiptModal({
             className="w-full h-12 rounded-full font-bold gap-2 bg-foreground text-background hover:bg-foreground/90 shadow-sm"
             onClick={handlePrint}
           >
-            <Printer className="h-4 w-4" />
+            <Icon icon="solar:printer-minimalistic-linear" className="h-4 w-4" />
             Print Receipt
           </Button>
 
@@ -337,8 +335,8 @@ export default function CreditReceiptModal({
         onOpenChange={onClose}
         size="3xl"
         classNames={{
-          base: 'min-h[calc(98dvh-0.75rem)] md:min-h-[520px] md:max-h-[90vh]',
-          body: "p-0 overflow-hidden"
+          base: 'min-h-[calc(98dvh-0.75rem)] md:min-h-[540px] md:max-h-[90vh]',
+          body: "p-0 overflow-hidden h-full"
         }}
         body={modalBody}
       />
