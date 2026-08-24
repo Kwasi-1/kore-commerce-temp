@@ -115,10 +115,10 @@ export default function ReturnDetailModal({
         </div>
       }
       body={
-        <div className="flex-1 overflow-y-auto px-1 pt-1 pb-4 text-left">
+        <div className="flex-1 overflow-y-auto px-1 pb-4 text-left">
           <div className="space-y-6">
             {/* Hero Summary Card */}
-            <div className="bg-gradient-to-b from-muted/30 to-muted/30 p-5 rounded-lg flex flex-col items-center text-center relative overflow-hidden shadow-xs">
+            <div className="border border-border/50 p-5 rounded flex flex-col items-center text-center relative overflow-hidden shadow-xs">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">
                 Refund Amount Issued
               </span>
@@ -150,23 +150,23 @@ export default function ReturnDetailModal({
             {/* Return Information Details */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-muted-foreground uppercase !tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
-                <FileText className="h-3.5 w-3.5 text-primary" /> Return Details
+                 Return Details
               </h4>
               
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
+                <div className="bg-muted/30 p-2.5 rounded-lg">
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Reason</span>
                   <span className="font-semibold text-foreground">{reasonLabels[selectedReturn.reason] || selectedReturn.reason || 'Other'}</span>
                 </div>
-                <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
+                <div className="bg-muted/30 p-2.5 rounded-lg">
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Refund Method</span>
                   <span className="font-semibold capitalize text-foreground">{selectedReturn.refund_method?.replace('_', ' ') || 'Cash'}</span>
                 </div>
-                <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
+                <div className="bg-muted/30 p-2.5 rounded-lg">
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Initiated By</span>
                   <span className="font-semibold text-foreground">{selectedReturn.initiated_by_name || 'Staff'}</span>
                 </div>
-                <div className="bg-muted/30 p-2.5 rounded-lg border border-muted/30">
+                <div className="bg-muted/30 p-2.5 rounded-lg">
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Created Date</span>
                   <span className="font-semibold text-foreground">
                     {selectedReturn.date_created ? format(new Date(selectedReturn.date_created), 'MMM dd, yyyy h:mm a') : '—'}
@@ -174,11 +174,11 @@ export default function ReturnDetailModal({
                 </div>
                 {selectedReturn.status === 'approved' && (
                   <>
-                    <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                    <div className="bg-muted/30 p-2.5 rounded-lg">
                       <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Authorized By</span>
                       <span className="font-semibold text-foreground">{selectedReturn.approved_by_name || 'System Admin'}</span>
                     </div>
-                    <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                    <div className="bg-muted/30 p-2.5 rounded-lg">
                       <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Approved At</span>
                       <span className="font-semibold text-foreground">
                         {selectedReturn.approved_at ? format(new Date(selectedReturn.approved_at), 'MMM dd, yyyy h:mm a') : '—'}
@@ -189,7 +189,7 @@ export default function ReturnDetailModal({
               </div>
 
               {selectedReturn.notes && (
-                <div className="bg-muted/40 p-3.5 rounded-xl border border-border/60 mt-2">
+                <div className="bg-muted/30 p-3.5 rounded-md mt-2">
                   <span className="text-muted-foreground block text-[10px] font-bold uppercase tracking-wider mb-1">Notes / Remarks</span>
                   <p className="text-xs leading-relaxed font-medium text-foreground">{selectedReturn.notes}</p>
                 </div>
@@ -199,10 +199,10 @@ export default function ReturnDetailModal({
             {/* Returned Items Table */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-muted-foreground uppercase !tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
-                <History className="h-3.5 w-3.5 text-primary" /> Returned Items
+                Returned Items
               </h4>
 
-              <div className="border border-border/60 rounded-xl overflow-hidden bg-card text-xs shadow-2xs">
+              <div className="border border-border/60 rounded-md overflow-hidden bg-card text-xs shadow-2xs">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-muted/60 text-muted-foreground text-[10px] uppercase border-b border-border/60 font-bold">
@@ -327,7 +327,7 @@ export default function ReturnDetailModal({
           <div className="w-full">
             <Button 
               onClick={handlePrintReceipt}
-              className="w-full text-primary-foreground font-semibold h-10 gap-2 text-xs shadow-xs transition-all"
+              className="w-full text-primary-foreground font-semibold gap-2 text-[13px] shadow-xs transition-all"
             >
               <Icon icon="solar:printer-minimalistic-linear" className="h-4 w-4" /> Reprint Refund Receipt
             </Button>
