@@ -3,6 +3,7 @@ import { useCartStore } from '@/store/cartStore';
 import { CurrencyDisplay } from '@/hooks';
 import { Minus, Plus, Box, X } from 'lucide-react';
 import React, { useRef, useState, useEffect } from "react";
+import { createPortal } from 'react-dom';
 import toast from "react-hot-toast";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 
@@ -151,6 +152,17 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     setInputValue(cartQuantity.toString());
   }, [cartQuantity]);
 
+  useEffect(() => {
+    if (!showTierSelector) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowTierSelector(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showTierSelector]);
+
   const handleIncrement = () => {
     if (!targetTier) return;
     const currentQtyInBaseUnits = cartQuantity * targetTier.units_per_tier;
@@ -244,33 +256,34 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       } ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
       onClick={handleCardClick}
     >
-      {/* Tier Selector Dropdown Modal */}
-      {showTierSelector && (
+      {/* Tier Selector Dropdown Modal (Portaled to document.body to prevent parent container clipping) */}
+      {showTierSelector && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
           onClick={(e) => {
             e.stopPropagation();
             setShowTierSelector(false);
           }}
         >
           <div 
-            className="bg-card border border-border rounded-2xl p-5 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-150"
+            className="bg-card border border-border rounded-2xl p-4 sm:p-5 max-w-[350px] sm:max-w-sm w-[calc(100%-1.5rem)] shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="font-bold text-base text-foreground capitalize">{product.name}</h3>
+            <div className="flex justify-between items-center mb-3 sm:mb-4 shrink-0">
+              <div className="min-w-0 pr-2">
+                <h3 className="font-bold text-sm sm:text-base text-foreground capitalize truncate">{product.name}</h3>
                 <p className="text-xs text-muted-foreground">Select unit to add to cart</p>
               </div>
               <button 
+                type="button"
                 onClick={() => setShowTierSelector(false)}
-                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2.5 overflow-y-auto max-h-[60vh] scrollbar-hide pr-0.5">
               {product.packaging_tiers.map((tier) => {
                 const tierPrice = defaultPriceType === 'wholesale' 
                   ? (tier.prices.wholesale ?? tier.prices.retail) 
@@ -285,6 +298,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
                     className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden"
                   >
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddToCart(product, tier);
@@ -364,7 +378,8 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
               })}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Out of Stock Overlay */}
