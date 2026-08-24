@@ -54,7 +54,7 @@ export function DashboardCard({
       )}
       {...props}
     >
-      <div className="flex-1 h-full min-h-[76.4px] md:min-h-[98.4px] flex flex-col justify-between">
+      <div className={`flex-1 h-full ${!subvalue ? 'min-h-[76.4px] md:min-h-[98.4px]' : 'min-h-[87.7px] md:min-h-[108.4px]'} flex flex-col justify-between`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="text-[10px] md:text-xs font-medium uppercase tracking-wide md:tracking-wider text-muted-foreground font-header">{title}</p>
