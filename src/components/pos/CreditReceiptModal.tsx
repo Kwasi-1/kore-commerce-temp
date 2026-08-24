@@ -294,6 +294,7 @@ export default function CreditReceiptModal({
         onOpenChange={onClose}
         size="3xl"
         classNames={{
+          base: 'min-h-[calc(98dvh-0.75rem)] md:min-h-[520px] md:max-h-[90vh]',
           body: "p-0 overflow-hidden max-h-[90vh]"
         }}
         body={modalBody}

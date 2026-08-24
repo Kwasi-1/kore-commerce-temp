@@ -69,7 +69,7 @@ export default function CustomerCreditDetailModal({
       header={
         <div className="flex items-center gap-2 pt-1 border-b border-border/50 pb-2">
           <Icon icon="solar:wallet-money-linear" className="h-4 w-4 text-foreground" />
-          <span className="text-lg font-bold text-foreground !tracking-tight">Credit Ledger Account</span>
+          {/* <span className="text-base md:text-lg font-bold text-foreground md:!tracking-tight hidden md:inline">Credit Ledger Account</span> */}
         </div>
       }
       body={
@@ -79,7 +79,7 @@ export default function CustomerCreditDetailModal({
             <div className="mx-auto h-12 w-12 rounded-2xl bg-muted/40 border border-border/30 flex items-center justify-center text-foreground font-bold text-base mb-2.5">
               {initials}
             </div>
-            <h3 className="text-lg font-bold text-foreground">{selectedDebtor.name}</h3>
+            <h3 className="text-lg font-bold text-foreground capitalize !tracking-normal">{selectedDebtor.name}</h3>
             <p className="text-xs text-muted-foreground">{selectedDebtor.phone || selectedDebtor.email || 'No contact info'}</p>
             
             <div className="mt-4 bg-muted/30 p-3.5 rounded-md inline-block w-full max-w-[320px]">
@@ -95,7 +95,7 @@ export default function CustomerCreditDetailModal({
               <Button 
                 onClick={onSettleAll}
                 disabled={selectedDebtor.outstanding_debt <= 0}
-                className="w-full max-w-[320px]"
+                className="w-full max-w-[300px]"
               >
                 <Icon icon="solar:wallet-money-linear" className="h-4 w-4" />
                 Settle Total Debt
@@ -143,9 +143,9 @@ export default function CustomerCreditDetailModal({
                             <span className="font-mono text-xs font-bold text-foreground">{p.reference}</span>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded uppercase ${
                               isSettled
-                                ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                                ? 'bg-green-500/5 text-green-600 dark:text-green-400 border-green-500/20'
                                 : isPartial
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                ? 'bg-amber-500/5 text-amber-600 dark:text-amber-400 border-amber-500/20'
                                 : 'text-destructive bg-destructive/5 border-destructive/20'
                             }`}>
                               {p.status}

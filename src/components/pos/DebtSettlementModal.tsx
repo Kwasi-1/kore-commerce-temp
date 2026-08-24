@@ -60,12 +60,12 @@ export default function DebtSettlementModal({
       placement="center"
       size="md"
       classNames={{
-        base: 'max-w-[28rem]',
+        base: 'max-w-[28rem] mx-2.5',        
       }}
       header={
-        <div className="px1 border-b border-border/50 pb-2 text-left">
-          <h2 className="text-lg font-bold text-foreground !tracking-tighter">Settle Customer Debt</h2>
-          <p className="text-[11px] text-muted-foreground">
+        <div className="border-b border-border/50 pb-2 text-left">
+          <h2 className="text-lg font-bold text-foreground !tracking-tight">Settle Customer Debt</h2>
+          <p className="text-[11px] text-muted-foreground md:hidden block">
             Account: <strong className="text-foreground capitalize">{debtor?.name}</strong>
           </p>
         </div>
@@ -73,20 +73,20 @@ export default function DebtSettlementModal({
       body={
         <form id="settle-debt-form" onSubmit={(e) => { e.preventDefault(); handleSettle(); }} className="space-y-4 pb-1 text-left">
           {/* Top Metric Header */}
-          <div className="p-3.5 rounded-md bg-muted/20 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">
+          <div className="px-3 py-1 md:px-3.5 md:py-3.5 rounded-md bg-muted/20 flex items-center justify-between">
+            <div className='flex flex-row md:flex-col justify-between items-baseline md:items-start w-full'>
+              <span className="text-[11px] font-medium text-muted-foreground uppercase !tracking-wider block">
                 Owed Balance
               </span>
-              <span className="text-xl font-bold text-foreground mt-0.5 block">
+              <span className="text-lg font-bold text-foreground md:mt-0.5 block">
                 <CurrencyDisplay amount={maxDebt} />
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">
+            <div className="text-right md:block hidden">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase !tracking-wider block">
                 Account
               </span>
-              <span className="text-xs font-semibold text-muted-foreground mt-0.5 block truncate max-w-[130px]">
+              <span className="text-xs capitalize font-semibold text-muted-foreground mt-0.5 block truncate max-w-[130px]">
                 {debtor?.name || 'Customer'}
               </span>
             </div>
