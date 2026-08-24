@@ -80,7 +80,7 @@ export default function CreditReceiptModal({
         className={
           isForPrint
             ? "bg-white text-black w-[80mm] p-2 font-sans text-sm relative border-none"
-            : "bg-white text-black p-4 sm:p-5 md:p-6 w-full h-full md:h-auto flex flex-col justify-between rounded-xl font-sans text-sm relative border border-border/20 shadow-sm min-h-0 overflow-hidden"
+            : "bg-white text-black p-4 sm:p-5 md:p-6 w-full h-full md:h-auto flex flex-col justify-between rounded-xl font-sans text-sm relative border border-border/20 shadow-sm min-h-0 overflow-y-auto scrollbar-hide"
         }
       >
         {/* Top Content: Header + Info */}
@@ -123,7 +123,7 @@ export default function CreditReceiptModal({
         </div>
 
         {/* Middle Content: Dynamically Sized Items / Breakdown Table */}
-        <div className={isForPrint ? "mb-3" : "overflow-y-auto scrollbar-hide mb-2.5 max-h-[36vh] md:max-h-[38vh] min-h-0"}>
+        <div className={isForPrint ? "mb-3" : "overflow-y-auto scrollbar-hide mb-2.5 min-h-[100px] max-h-[calc(90vh-424px)] md:max-h-[calc(90vh-424px)] xl:max-h-[38vh]"}>
           {transaction.type === 'settlement' ? (
             /* CREDIT REPAYMENT RECEIPT */
             <div className="space-y-2 text-xs text-zinc-800">
@@ -333,9 +333,9 @@ export default function CreditReceiptModal({
       <CustomModal
         isOpen={isOpen}
         onOpenChange={onClose}
-        size="3xl"
+        size="4xl"
         classNames={{
-          base: 'min-h-[calc(98dvh-0.75rem)] md:min-h-[540px] md:max-h-[90vh]',
+          base: 'max-w-[790px] md:max-h-[90vh]',
           body: "p-0 overflow-hidden md:max-h-[90vh]"
         }}
         body={modalBody}
