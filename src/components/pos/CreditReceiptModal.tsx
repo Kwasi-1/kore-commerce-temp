@@ -80,7 +80,7 @@ export default function CreditReceiptModal({
         className={
           isForPrint
             ? "bg-white text-black w-[80mm] p-2 font-sans text-sm relative border-none"
-            : "bg-white text-black p-4 sm:p-5 md:p-6 w-full h-full flex flex-col justify-between rounded-xl font-sans text-sm relative border border-border/20 shadow-sm min-h-0 overflow-hidden"
+            : "bg-white text-black p-4 sm:p-5 md:p-6 w-full h-full md:h-auto flex flex-col justify-between rounded-xl font-sans text-sm relative border border-border/20 shadow-sm min-h-0 overflow-hidden"
         }
       >
         {/* Top Content: Header + Info */}
@@ -123,7 +123,7 @@ export default function CreditReceiptModal({
         </div>
 
         {/* Middle Content: Dynamically Sized Items / Breakdown Table */}
-        <div className={isForPrint ? "mb-3" : "flex-1 min-h-0 overflow-y-auto scrollbar-hide mb-2.5"}>
+        <div className={isForPrint ? "mb-3" : "overflow-y-auto scrollbar-hide mb-2.5 max-h-[36vh] md:max-h-[38vh] min-h-0"}>
           {transaction.type === 'settlement' ? (
             /* CREDIT REPAYMENT RECEIPT */
             <div className="space-y-2 text-xs text-zinc-800">
@@ -250,7 +250,7 @@ export default function CreditReceiptModal({
       : 'Credit Sale Receipt';
 
   const modalBody = (
-    <div className="flex flex-col md:flex-row w-full h-[95dvh] md:h-[540px] bg-card min-h-0 overflow-hidden">
+    <div className="flex flex-col md:flex-row w-full h-[95dvh] md:h-auto md:max-h-[90vh] bg-card min-h-0 overflow-hidden">
       {/* Mobile-Only Header Bar */}
       <div className="md:hidden flex items-center justify-between p-3.5 border-b border-border/50 bg-background shrink-0">
         <div className="min-w-0 pr-2">
@@ -282,7 +282,7 @@ export default function CreditReceiptModal({
       </div>
 
       {/* Receipt Preview (Left Column on Desktop, Main on Mobile) */}
-      <div className="w-full md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 p-3 sm:p-4 md:p-5 flex-1 md:flex-initial flex flex-col min-h-0 h-full overflow-hidden">
+      <div className="w-full md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 p-3 sm:p-4 md:p-5 flex-1 md:flex-initial flex flex-col min-h-0 h-full md:h-auto md:max-h-[90vh] overflow-hidden">
          {renderReceiptContent(false)}
       </div>
 
@@ -336,7 +336,7 @@ export default function CreditReceiptModal({
         size="3xl"
         classNames={{
           base: 'min-h-[calc(98dvh-0.75rem)] md:min-h-[540px] md:max-h-[90vh]',
-          body: "p-0 overflow-hidden h-full"
+          body: "p-0 overflow-hidden md:max-h-[90vh]"
         }}
         body={modalBody}
       />
