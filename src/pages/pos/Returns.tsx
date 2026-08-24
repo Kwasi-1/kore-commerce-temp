@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
+import { Icon } from '@iconify/react';
 
 interface ReturnItem {
   variant_id: string;
@@ -162,12 +163,12 @@ export default function Returns() {
     items_count: <span className="font-medium">{r.items?.length || 0} items</span>,
     amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={r.total_refund_amount || 0} /></span>,
     status: (
-      <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
+      <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
         r.status === 'approved'
-          ? 'bg-green-500/10 text-green-600 border-green-500/20'
+          ? 'bg-green-500/5 text-green-600'
           : r.status === 'rejected'
-            ? 'bg-red-500/10 text-red-600 border-red-500/20'
-            : 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse'
+            ? 'bg-destructive/5 text-red-600'
+            : 'bg-amber-500/10 text-amber-600 animate-pulse'
       }`}>
         {r.status}
       </span>
@@ -297,7 +298,7 @@ export default function Returns() {
 
                   {/* Return Information Details */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase !tracking-wider flex items-center gap-1.5 border-b border-border/40 pb-2">
                       <FileText className="h-3.5 w-3.5 text-primary" /> Return Details
                     </h4>
                     
@@ -473,9 +474,9 @@ export default function Returns() {
                     <div className="pt-4 border-t border-border/40 flex justify-end">
                       <Button 
                         onClick={handlePrintReceipt}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl h-10 gap-2 text-xs shadow-xs transition-all"
+                        className="w-full text-primary-foreground font-semibold h-10 gap-2 text-xs shadow-xs transition-all"
                       >
-                        <Printer className="h-4 w-4" /> Reprint Refund Receipt
+                        <Icon icon="solar:printer-minimalistic-linear" className="h-4 w-4" /> Reprint Refund Receipt
                       </Button>
                     </div>
                   )}
