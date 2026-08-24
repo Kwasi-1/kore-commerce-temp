@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { loginWithPin, loginWithPassword } from '@/api/auth';
 import apiClient from '@/api/client';
+import { APP_CONFIG } from '@/config/app.config';
 import NumPad from '@/components/pos/NumPad';
 import { toast } from 'sonner';
 import { UserSquare2, ChevronLeft, Lock, Mail, Store, Eye, EyeOff } from 'lucide-react';
@@ -287,7 +288,7 @@ export default function Login() {
         <div className="mx-auto h-16 w-16 mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-white/10 shadow-lg text-primary backdrop-blur-sm">
           <Store className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">HeadlessPOS</h2>
+        <h2 className="text-2xl font-bold text-foreground">{APP_CONFIG.name}</h2>
         <p className="text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 

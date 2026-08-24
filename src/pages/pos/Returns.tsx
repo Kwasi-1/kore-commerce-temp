@@ -25,6 +25,7 @@ import {
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import { Icon } from '@iconify/react';
+import { APP_CONFIG } from '@/config/app.config';
 
 interface ReturnItem {
   variant_id: string;
@@ -413,7 +414,7 @@ export default function Returns() {
                         <span className="border border-red-500 text-red-500 font-extrabold px-3 py-1 rounded text-[10px] tracking-widest inline-block uppercase rotate-[-5deg] mb-3">
                           Customer Return
                         </span>
-                        <h4 className="font-bold text-sm tracking-wider uppercase">HeadlessPOS Store</h4>
+                        <h4 className="font-bold text-sm tracking-wider uppercase">{APP_CONFIG.defaultStoreName}</h4>
                         <p className="text-[9px] text-zinc-500">REFUND RECEIPT</p>
                       </div>
 

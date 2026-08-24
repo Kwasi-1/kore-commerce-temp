@@ -3,6 +3,7 @@ import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
 import { useCurrency, useReceiptHeader, useQuantityFormatter, formatPhoneNumber } from '@/hooks';
+import { APP_CONFIG } from '@/config/app.config';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -185,7 +186,7 @@ export default function TransactionSidePanel({
 
               <div className="mt-8 text-center text-[9px] font-semibold text-zinc-400 flex flex-col items-center gap-1 uppercase tracking-widest">
                 <span>Thank you for your business!</span>
-                <span>Powered by HeadlessPOS</span>
+                <span>{APP_CONFIG.receiptFooter}</span>
               </div>
             </div>
           ) : (

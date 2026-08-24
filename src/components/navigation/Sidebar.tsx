@@ -53,6 +53,8 @@ const decodeHtml = (str: string) => {
     .replace(/&gt;/g, '>');
 };
 
+import { APP_CONFIG } from '@/config/app.config';
+
 interface NavItem {
   name: string;
   to: string;
@@ -89,7 +91,7 @@ export default function Sidebar() {
   const [isPending, startTransition] = useTransition();
   const [logoError, setLogoError] = useState(false);
 
-  const rawTenantName = tenant?.name || tenant?.business_name || 'HeadlessPOS';
+  const rawTenantName = tenant?.name || tenant?.business_name || APP_CONFIG.name;
   const tenantName = decodeHtml(rawTenantName);
   const userName = staffUser?.name || `${staffUser?.first_name || ''} ${staffUser?.last_name || ''}`.trim() || 'Store User';
   const userRole = staffUser?.role || 'Staff';

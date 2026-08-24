@@ -7,6 +7,7 @@ import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter, formatPhoneNum
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Icon } from '@iconify/react';
+import { APP_CONFIG } from '@/config/app.config';
 
 interface CreditReceiptModalProps {
   isOpen: boolean;
@@ -236,7 +237,7 @@ export default function CreditReceiptModal({
                   ? 'CONSOLIDATED LEDGER RECORD' 
                   : 'CREDIT SALE RECORD'}
             </span>
-            <span>Powered by HeadlessPOS</span>
+            <span>{APP_CONFIG.receiptFooter}</span>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { CurrencyDisplay } from '@/hooks';
+import { APP_CONFIG } from '@/config/app.config';
 import apiClient from '@/api/client';
 import { Printer, FileText, CheckCircle2, AlertCircle, Clock, Store, User, Hash } from 'lucide-react';
 import { Spinner } from '../ui/spinner';
@@ -153,7 +154,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 {/* Receipt Header */}
                 <div className="text-center border-b border-dashed border-border pb-4 space-y-1">
                   <div className="flex justify-center items-center gap-1 text-primary font-black text-lg uppercase tracking-wider">
-                    <Store className="h-5 w-5" /> HeadlessPOS
+                    <Store className="h-5 w-5" /> {APP_CONFIG.name}
                   </div>
                   <h2 className="font-extrabold text-xl tracking-tight uppercase">
                     {isShiftOpen ? 'X-REPORT' : 'Z-REPORT'}
@@ -304,7 +305,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 )}
 
                 <div className="text-center text-[10px] text-muted-foreground font-semibold pt-4 border-t border-dashed border-border">
-                  {isShiftOpen ? 'X-Report Generated • Live Mid-Shift Snapshot' : 'Z-Report Generated • Final HeadlessPOS Till Audit'}
+                  {isShiftOpen ? 'X-Report Generated • Live Mid-Shift Snapshot' : `Z-Report Generated • Final ${APP_CONFIG.name} Till Audit`}
                 </div>
 
               </div>

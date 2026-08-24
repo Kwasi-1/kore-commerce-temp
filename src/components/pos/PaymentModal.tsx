@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueueStore } from '@/store/offlineQueueStore';
+import { APP_CONFIG } from '@/config/app.config';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -406,7 +407,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               CREDIT SALE RECORD
             </span>
           )}
-          <span>Powered by HeadlessPOS</span>
+          <span>{APP_CONFIG.receiptFooter}</span>
           {posSettings.receipt_footer && (
             <div className="mt-4 pt-3 border-t border-dashed border-zinc-200 w-full text-center text-[9px] leading-relaxed hidden print:block whitespace-pre-wrap text-zinc-500">
               {posSettings.receipt_footer}

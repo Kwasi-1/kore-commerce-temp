@@ -1,5 +1,6 @@
 import React from 'react';
-import { CurrencyDisplay } from '@/hooks/useCurrency';
+import { CurrencyDisplay } from '@/hooks';
+import { APP_CONFIG } from '@/config/app.config';
 
 interface EcommerceInvoiceProps {
   order: any;
@@ -9,19 +10,18 @@ export const EcommerceInvoice: React.FC<EcommerceInvoiceProps> = ({ order }) => 
   if (!order) return null;
 
   return (
-    <div id={`invoice-${order.id}`} className="bg-white text-black p-8 max-w-4xl mx-auto font-header spacing">
+    <div id="ecommerce-invoice-print" className="bg-white p-8 max-w-4xl mx-auto text-black font-sans">
       {/* Header */}
-      <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6">
+      <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 uppercase">INVOICE</h1>
           <p className="text-sm text-gray-500 mt-1">Order Ref: {order.reference}</p>
           <p className="text-sm text-gray-500">Date: {new Date(order.created_at).toLocaleDateString()}</p>
         </div>
         <div className="text-right">
-          <h2 className="text-xl font-bold text-gray-900">HeadlessPOS Store</h2>
-          <p className="text-sm text-gray-600">123 Commerce Ave, Accra, Ghana</p>
-          <p className="text-sm text-gray-600">contact@headlesspos.com</p>
-          <p className="text-sm text-gray-600">+233 24 123 4567</p>
+          <h2 className="text-xl font-bold text-gray-900">{APP_CONFIG.defaultStoreName}</h2>
+          <p className="text-sm text-gray-600">{APP_CONFIG.supportEmail}</p>
+          <p className="text-sm text-gray-600">{APP_CONFIG.website}</p>
         </div>
       </div>
 
