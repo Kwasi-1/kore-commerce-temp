@@ -30,7 +30,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3", className)}>
+    <div className={cn("flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3 custom-header", className)}>
       {(title || onViewAll) && (
         <div className="flex items-center justify-between">
           {title && <h3 className="text-sm font-bold text-foreground">{title}</h3>}
