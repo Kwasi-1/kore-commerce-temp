@@ -26,24 +26,24 @@ export const MobileMetricPill: React.FC<MobileMetricPillProps> = ({
     <div
       onClick={onClick}
       className={cn(
-        "min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0 transition-all",
+        "min-w-[130px] w-max shrink-0 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left transition-all",
         onClick && "cursor-pointer active:scale-98 hover:bg-muted/60",
         className
       )}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase">{title}</span>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap tracking-wider">{title}</span>
         {icon && (
-          <div className={cn("p-1 rounded-md", iconColorClass)}>
+          <div className={cn("p-1 rounded-md shrink-0", iconColorClass)}>
             {icon}
           </div>
         )}
       </div>
-      <span className="text-base font-extrabold text-foreground">
+      <div className="text-base font-extrabold text-foreground whitespace-nowrap capitalize">
         {isLoading ? '...' : value}
-      </span>
+      </div>
       {subtitle && (
-        <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">{subtitle}</p>
       )}
     </div>
   );

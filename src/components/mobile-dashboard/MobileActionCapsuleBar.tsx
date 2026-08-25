@@ -80,7 +80,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
               value={searchConfig.value}
               onChange={(e) => searchConfig.onChange(e.target.value)}
               placeholder={searchConfig.placeholder || "Search..."}
-              className="w-full h-9 pl-9 pr-8 rounded-full bg-white/10 text-white placeholder:text-white/50 text-xs font-medium border border-white/15 outline-none focus:border-primary/80 focus:bg-white/15 transition-all"
+              className="w-full h-9 pl-9 pr-8 rounded-full bg-white/10 text-white placeholder:text-white/50 text-xs font-medium border border-white/15 outline-none focus:borderprimary/80 focus:bg-white/15 transition-all"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   handleCloseSearch();
@@ -113,7 +113,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
               onChange={dateFilterConfig.onChange}
               showLabelOnMobile={dateFilterConfig.showLabelOnMobile ?? true}
               className={cn(
-                "!rounded-full !bg-white/10 hover:!bg-white/15 !border-none !text-white !py-1.5 !px-3.5 !h-8 !text-xs font-bold transition-all actionpill-button shadow-none",
+                "!rounded-full !bg-white/10 hover:!bg-white/15 !border-none !text-white !py-1.5 !px-3.5 !h-8 !text-xs font-bold transition-all actionpill-button shadow-none min-w-fit",
                 dateFilterConfig.className
               )}
               excludeShortcuts={dateFilterConfig.excludeShortcuts}

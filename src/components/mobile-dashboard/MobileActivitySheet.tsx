@@ -59,12 +59,13 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
                   "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
                   isActive
                     ? "bg-primary text-zinc-950 shadow-sm"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground",
+                  tab.count > 0 && 'pr-1'
                 )}
               >
                 {tab.label}
                 {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className="ml-1 bg-rose-500 text-white px-1.5 py-[2px] rounded-full text-[9px]">
+                  <span className="ml-1.5 bg-rose-500 text-white px-1.5 py-[2px] rounded-full text-[9px]">
                     {tab.count}
                   </span>
                 )}

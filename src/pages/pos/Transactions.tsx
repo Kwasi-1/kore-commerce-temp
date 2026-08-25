@@ -410,7 +410,7 @@ export default function Transactions() {
         <MobileHeroCard
           title={isCashier ? "My Sales" : "Total Sales"}
           badge={dateFilter.active?.replace('_', ' ') || 'Today'}
-          value={<CurrencyDisplay amount={stats.total} />}
+          value={<CurrencyDisplay amount={stats.total} className="!tracking-normal"/>}
           isLoading={isLoading}
         >
           <MobileMetricPill
@@ -466,7 +466,7 @@ export default function Transactions() {
                   </span>
                 ) : undefined
               }
-              // icon={<Users className="h-3.5 w-3.5" />}
+              icon={<Users className="h-3.5 w-3.5" />}
               iconColorClass="bg-purple-500/10 text-purple-500"
               isLoading={isLoading}
               onClick={() => setIsMobileCashiersOpen(true)}
@@ -575,12 +575,12 @@ export default function Transactions() {
                     <div className={cn(
                       "p-2 rounded-lg shrink-0",
                       isRefund 
-                        ? "bg-rose-500/10 text-rose-500" 
+                        ? "bg-rose-500/5 text-rose-500" 
                         : method === 'cash'
-                          ? "bg-emerald-500/10 text-emerald-500"
+                          ? "bg-emerald-500/5 text-emerald-500"
                           : method.includes('money')
-                            ? "bg-blue-500/10 text-blue-500"
-                            : "bg-purple-500/10 text-purple-500"
+                            ? "bg-blue-500/5 text-blue-500"
+                            : "bg-purple-500/5 text-purple-500"
                     )}>
                       {isRefund ? (
                         <AlertCircle className="h-4 w-4" />
@@ -589,21 +589,21 @@ export default function Transactions() {
                       )}
                     </div>
                     <div>
-                      <p className="font-bold text-foreground font-mono">
+                      <p className="font-bold text-foreground truncate max-w-[150px]">
                         {tx.orderNumber || `TX #${tx.id?.substring(0, 8)}`}
                       </p>
-                      <p className="text-[10px] text-muted-foreground capitalize">
-                        {method.replace('_', ' ')} • {tx.created_at ? format(new Date(tx.created_at), 'hh:mm a') : 'Today'} • {tx.cashierName || 'Cashier'}
+                      <p className="text-[10px] text-muted-foreground capitalize font-mono">
+                        {method === 'mobile_money_manual' ? 'MoMo (Manual)' : method.replace('_', ' ')} • {tx.date_created ? (isCashier ? format(new Date(tx.date_created), 'hh:mm a') : format(new Date(tx.date_created), 'MMM dd, yyyy hh:mm a')) : 'Today'}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className={cn(
-                      "font-extrabold text-sm block",
+                      "font-extrabold text-[12px] block",
                       isRefund ? "text-rose-600 dark:text-rose-400" : "text-foreground"
                     )}>
                       {isRefund && "-"}
-                      <CurrencyDisplay amount={amount} />
+                      <CurrencyDisplay amount={amount} symbolClassName="text-xs" />
                     </span>
                     {tx.status && (
                       <span className={cn(
