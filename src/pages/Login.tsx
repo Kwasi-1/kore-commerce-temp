@@ -8,6 +8,8 @@ import NumPad from '@/components/pos/NumPad';
 import { toast } from 'sonner';
 import { UserSquare2, ChevronLeft, Lock, Mail, Store, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CustomInputTextField } from '@/components/shared/text-field';
+import { Button } from '@/components/ui/button';
 
 interface StaffUser {
   id: string;
@@ -239,24 +241,18 @@ export default function Login() {
       </div>
 
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-10 py-3 border border-border rounded-xl bg-muted text-foreground focus:ring-primary focus:border-primary transition-colors"
-              placeholder="••••••••"
-              required
-            />
+        <CustomInputTextField
+          label="Password"
+          type={showPassword ? "text" : "password"}
+          required
+          value={password}
+          placeholder="••••••••"
+          onChange={(e: any) => setPassword(e?.target ? e.target.value : e)}
+          endContent={
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
+              className="text-muted-foreground/80 hover:text-foreground/80 p-1 transition-colors duration-300 focus:outline-none cursor-pointer"
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -264,8 +260,9 @@ export default function Login() {
                 <Eye className="h-5 w-5" />
               )}
             </button>
-          </div>
-        </div>
+          }
+        />
+
         <button
           type="submit"
           disabled={isAuthenticating}
@@ -293,41 +290,28 @@ export default function Login() {
       </div>
 
       <form onSubmit={handlePasswordSubmit} className="space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Email Address</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border rounded-lg bg-muted text-muted-foreground outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
-              placeholder="admin@store.com"
-              required
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-10 py-3 border rounded-lg bg-muted text-muted-foreground outline-none focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/60 transition-all text-sm"
-              placeholder="••••••••"
-              required
-            />
+        <CustomInputTextField
+          label="Email Address"
+          type="email"
+          required
+          value={email}
+          placeholder="admin@store.com"
+          onChange={(e: any) => setEmail(e?.target ? e.target.value : e)}
+          className='ml-10'
+        />
+
+        <CustomInputTextField
+          label="Password"
+          type={showPassword ? "text" : "password"}
+          required
+          value={password}
+          placeholder="••••••••"
+          onChange={(e: any) => setPassword(e?.target ? e.target.value : e)}
+          endContent={
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
+              className="text-muted-foreground/80 hover:text-foreground/80 p-1 transition-colors duration-300 focus:outline-none cursor-pointer"
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -335,16 +319,15 @@ export default function Login() {
                 <Eye className="h-5 w-5" />
               )}
             </button>
-          </div>
-        </div>
-
-        <button
+          }
+        /> 
+        <Button
           type="submit"
           disabled={isAuthenticating}
-          className="w-full py-3 px-4 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
+          className="w-full py-3 px-4 h-auto bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
         >
           {isAuthenticating ? 'Signing in...' : 'Sign In'}
-        </button>
+        </Button>
       </form>
 
       {staffList.length > 0 && (
@@ -365,7 +348,7 @@ export default function Login() {
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-background">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-background font-header spacing-sm">
       {/* Left side - Dynamic Auth Panel */}
       <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card text-card-foreground shadow-2xl m-2 lg:ml-5 lg:my-5 lg:mr-0 rounded-lg">
         <AnimatePresence mode="wait">

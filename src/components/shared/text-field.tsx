@@ -395,7 +395,7 @@ export const CustomInputTextField = (props: CustomInputTextFieldProps) => {
               !shouldFloat &&
                 (type === "date" || type === "time" || type === "datetime-local") &&
                 "text-transparent [&::-webkit-datetime-edit]:opacity-0 [&::-webkit-datetime-edit]:invisible",
-              "focus:border-foreground/60 focus:ring-1 focus:ring-primary-green outline-none focus:outline-none",
+              "focus:border-foreground/40 focus:ring1 focus:ring-primary-green outline-none focus:outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "transition-all duration-200",
               height.replace("h-", "min-h-"),
