@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import clsx from 'clsx';
+import { Icon } from '@iconify/react';
 
 export interface MobileTabOption {
   id: string;
@@ -21,7 +22,7 @@ export interface MobileActivitySheetProps {
 
 export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   title = "Recent Activity",
-  viewAllLabel = "View all →",
+  viewAllLabel = "View all",
   onViewAll,
   tabs,
   activeTab,
@@ -38,9 +39,10 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
             <button
               type="button"
               onClick={onViewAll}
-              className="text-xs font-semibold text-primary hover:underline"
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
             >
               {viewAllLabel}
+              <Icon icon='akar-icons:chevron-right' />
             </button>
           )}
         </div>

@@ -22,6 +22,7 @@ import {
   Layers,
   ChevronDown,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
@@ -35,6 +36,16 @@ import {
 import { Button } from "@/components/ui/button";
 import EnhancedTableComponent from "@/components/shared/MainTableComponent";
 import DashboardCard from "@/components/ui/dashboard-card";
+import { CurrencyDisplay } from "@/hooks";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import {
+  MobileDashboardWrapper,
+  MobileHeroCard,
+  MobileMetricPill,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from "@/components/mobile-dashboard";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -618,8 +629,209 @@ export default function Products() {
 
   return (
     <PageLayout title="Products Inventory" constrainHeight={true}>
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+      {/* ========================================================================= */}
+      {/* MOBILE PRODUCTS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)     */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper>
+        {/* 1. Hero Products Count / Overview Card + Carousel */}
+        <MobileHeroCard
+          title="Total Products"
+          badge={`${activeProductsCount} Active`}
+          value={`${isLoading ? '...' : totalProducts} Items`}
+          isLoading={isLoading}
+        >
+          <MobileMetricPill
+            title="Active"
+            value={activeProductsCount}
+            subtitle="Live in POS"
+            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            isLoading={isLoading}
+            onClick={() => setStatusFilter(new Set(["active"]))}
+          />
+
+          <MobileMetricPill
+            title="Low Stock"
+            value={lowStockCount}
+            subtitle="≤ 5 units left"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+            iconColorClass="bg-amber-500/10 text-amber-500"
+            isLoading={isLoading}
+          />
+
+          <MobileMetricPill
+            title="Out of Stock"
+            value={outOfStockCount}
+            subtitle="0 inventory"
+            icon={<XCircle className="h-3.5 w-3.5" />}
+            iconColorClass="bg-rose-500/10 text-rose-500"
+            isLoading={isLoading}
+          />
+
+          <MobileMetricPill
+            title="Categories"
+            value={categories.length}
+            subtitle="Total groups"
+            icon={<Layers className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/10 text-blue-500"
+            isLoading={isLoading}
+          />
+        </MobileHeroCard>
+
+        {/* 2. Quick Action Capsule Bar */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: "Search product, SKU, or category...",
+          }}
+          actions={[
+            {
+              label: 'Add Product',
+              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              onClick: openNewProduct,
+            },
+            {
+              label: 'Bulk Import',
+              icon: <Upload className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => setIsBulkModalOpen(true),
+            },
+            {
+              // label: 'Refresh',
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: fetchProducts,
+            },
+          ]}
+        />
+
+        {/* 3. Product Activity / Catalog List Sheet */}
+        <MobileActivitySheet
+          title="Products Catalog"
+          viewAllLabel="Manage Stock"
+          onViewAll={() => navigate("/inventory/stock")}
+          tabs={[
+            { id: "all", label: "All" },
+            { id: "active", label: "Active" },
+            { id: "draft", label: "Draft" },
+            { id: "archived", label: "Archived" },
+          ]}
+          activeTab={
+            statusFilter instanceof Set
+              ? (Array.from(statusFilter)[0] as string) || "all"
+              : (statusFilter as string) || "all"
+          }
+          onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <Spinner />
+            </div>
+          ) : products.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              No products found matching your filter or search.
+            </div>
+          ) : (
+            products.map((product: any) => {
+              const isActive = product.status
+                ? product.status.toLowerCase() === "active"
+                : product.is_active !== false;
+
+              const primaryVariant = product.variants?.[0];
+              const stockInfo = primaryVariant
+                ? getStockDisplay(primaryVariant)
+                : { value: product.total_stock_base_units ?? 0, unit: product.base_unit_name || "units" };
+              
+              const rawStock = stockInfo.value;
+              const numStock = typeof rawStock === 'number' ? rawStock : parseFloat(String(rawStock)) || 0;
+              const formattedStock = formatQty(numStock);
+              const unit = stockInfo.unit || product.base_unit_name || "units";
+              const tierBreakdown = getTierBreakdown(
+                numStock,
+                unit,
+                primaryVariant?.packaging_tiers || product.packaging_tiers
+              );
+
+              const isOutOfStock = numStock === 0;
+              const isLowStock = numStock > 0 && numStock <= 5;
+              const variantCount = product.variants?.length || 0;
+              const price = primaryVariant ? getRetailPrice(primaryVariant) : 0;
+              const sku = primaryVariant?.sku || product.sku || "—";
+
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => {
+                    setSelectedProductForDetail(product);
+                    setIsDetailModalOpen(true);
+                  }}
+                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-lg shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border">
+                      {product.images && product.images[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                        {product.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                        {product.category || "General"} • {sku} {variantCount > 1 ? `• ${variantCount} variants` : ""}
+                      </p>
+                      <div className="mt-0.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded",
+                            isOutOfStock
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              : isLowStock
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          )}
+                        >
+                          {isOutOfStock
+                            ? "Out of Stock"
+                            : `${formattedStock} ${unit}${tierBreakdown ? ` (${tierBreakdown})` : ""}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="font-extrabold text-[12px] text-foreground block">
+                      <CurrencyDisplay amount={price} symbolClassName="text-xs" />
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
+                        isActive
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {isActive ? "ACTIVE" : product.status?.toUpperCase() || "DRAFT"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP PRODUCTS VIEW (Hidden < md, Flex >= md)                           */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0">
+        {/* Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <DashboardCard
           title="Total Products"
           value={isLoading ? '...' : totalProducts}
@@ -806,6 +1018,7 @@ export default function Products() {
         mobileFriendly={false}
         // containerStyles=""
       />
+      </div>
 
       {/* Product Detail Modal */}
       <ProductDetailModal
