@@ -10,11 +10,20 @@ import CreditReceiptModal from '@/components/pos/CreditReceiptModal';
 import CustomerCreditDetailModal from '@/components/pos/CustomerCreditDetailModal';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { Wallet, History, AlertCircle, Download, Info } from 'lucide-react';
+import { Wallet, History, AlertCircle, Download, Info, RefreshCw, CheckCircle2, UserCheck, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
+import {
+  MobileDashboardWrapper,
+  MobileHeroCard,
+  MobileMetricPill,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export default function CreditLedger() {
   const { posSettings } = useFeaturesStore();
@@ -344,7 +353,149 @@ export default function CreditLedger() {
 
   return (
     <PageLayout title="Credit Ledger" constrainHeight={true}>
-      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE CREDIT LEDGER VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)*/}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper>
+        {/* 1. Hero Outstanding Debt Card + Metric Carousel */}
+        <MobileHeroCard
+          title="Total Outstanding Debt"
+          badge={`${activeCount} Active Debtors`}
+          value={<CurrencyDisplay amount={stats.totalDebt} className="!tracking-normal" />}
+          isLoading={isLoading}
+        >
+          <MobileMetricPill
+            title="Active Debtors"
+            value={activeCount}
+            subtitle="Pending balances"
+            icon={<AlertCircle className="h-3.5 w-3.5" />}
+            iconColorClass="bg-amber-500/10 text-amber-500"
+            isLoading={isLoading}
+            onClick={() => setViewMode('active')}
+          />
+
+          <MobileMetricPill
+            title="Settled Month"
+            value={<CurrencyDisplay amount={stats.settledThisMonth} symbolClassName="text-muted-foreground text-xs" />}
+            subtitle="Recovered"
+            icon={<Wallet className="h-3.5 w-3.5" />}
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            isLoading={isLoading}
+          />
+
+          <MobileMetricPill
+            title="Settled Accounts"
+            value={settledCount}
+            subtitle="Fully paid"
+            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/10 text-blue-500"
+            isLoading={isLoading}
+            onClick={() => setViewMode('settled')}
+          />
+        </MobileHeroCard>
+
+        {/* 2. Quick Action Capsule Bar */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: "Search customer name or phone...",
+          }}
+          actions={[
+            {
+              label: viewMode === 'active' ? 'Settled Accounts' : 'Active Debtors',
+              icon: viewMode === 'active' ? <UserCheck className="h-3.5 w-3.5 text-primary" /> : <AlertCircle className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => setViewMode((prev) => (prev === 'active' ? 'settled' : 'active')),
+            },
+            {
+              // label: 'Refresh',
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: () => fetchDebtors(viewMode),
+            },
+          ]}
+        />
+
+        {/* 3. Debtors Activity Sheet */}
+        <MobileActivitySheet
+          title="Customer Accounts"
+          tabs={[
+            { id: 'active', label: 'Active Debtors', count: activeCount },
+            { id: 'settled', label: 'Settled Accounts', count: settledCount },
+          ]}
+          activeTab={viewMode}
+          onTabChange={(tabId) => setViewMode(tabId as 'active' | 'settled')}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : debtors.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              {viewMode === 'active' ? 'No outstanding debtor balances.' : 'No settled customer records found.'}
+            </div>
+          ) : (
+            debtors.map((debtor: any) => {
+              const debt = debtor.outstanding_debt || 0;
+              const isOwing = debt > 0;
+              const initials = debtor.name
+                ? debtor.name
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)
+                : 'CU';
+
+              return (
+                <div
+                  key={debtor.id}
+                  onClick={() => handleRowClick(debtor.id)}
+                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn(
+                      "h-10 w-10 rounded-full shrink-0 flex items-center justify-center font-bold text-xs border",
+                      isOwing
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    )}>
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                        {debtor.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px] font-mono">
+                        {debtor.phone || 'No phone'} • {debtor.unpaid_purchases_count ? `${debtor.unpaid_purchases_count} invoice(s)` : (debtor.last_credit_date ? format(new Date(debtor.last_credit_date), 'MMM dd, yyyy') : 'No credit history')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className={cn(
+                      "font-extrabold text-[12px] block",
+                      isOwing ? "text-foreground" : "text-emerald-600 dark:text-emerald-400"
+                    )}>
+                      {isOwing ? <CurrencyDisplay amount={debt} symbolClassName="text-xs" /> : "Fully Settled"}
+                    </span>
+                    <span className={cn(
+                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
+                      isOwing
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    )}>
+                      {isOwing ? "OWING" : "SETTLED"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP CREDIT LEDGER VIEW (Hidden < md, Flex >= md)                      */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         {!posSettings.pos_credit_enabled && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium shrink-0">
             <Info className="w-4 h-4 shrink-0" />
@@ -398,29 +549,29 @@ export default function CreditLedger() {
             }
           ]}
         />
-
-        {/* Customer Credit Detail Drawer Modal */}
-        <CustomerCreditDetailModal
-          isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          selectedDebtor={selectedDebtor}
-          creditPurchases={creditPurchases}
-          creditPayments={creditPayments}
-          isPurchasesLoading={isPurchasesLoading}
-          onSettleAll={() => {
-            setSettlementMode('all');
-            setIsSettleModalOpen(true);
-          }}
-          onSettleSpecific={(p) => {
-            setSettlementMode('specific');
-            setActiveSettlePurchase(p);
-            setIsSettleModalOpen(true);
-          }}
-          onViewPurchaseReceipt={handleViewPurchaseReceipt}
-          onViewPaymentReceipt={handleViewPaymentReceipt}
-          onDownloadPaymentPDF={handleDownloadPaymentPDF}
-        />
       </div>
+
+      {/* Customer Credit Detail Drawer Modal */}
+      <CustomerCreditDetailModal
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        selectedDebtor={selectedDebtor}
+        creditPurchases={creditPurchases}
+        creditPayments={creditPayments}
+        isPurchasesLoading={isPurchasesLoading}
+        onSettleAll={() => {
+          setSettlementMode('all');
+          setIsSettleModalOpen(true);
+        }}
+        onSettleSpecific={(p) => {
+          setSettlementMode('specific');
+          setActiveSettlePurchase(p);
+          setIsSettleModalOpen(true);
+        }}
+        onViewPurchaseReceipt={handleViewPurchaseReceipt}
+        onViewPaymentReceipt={handleViewPaymentReceipt}
+        onDownloadPaymentPDF={handleDownloadPaymentPDF}
+      />
 
       <DebtSettlementModal 
         isOpen={isSettleModalOpen}

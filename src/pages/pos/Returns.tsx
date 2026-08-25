@@ -9,11 +9,21 @@ import {
   CheckCircle,
   Clock,
   ArrowRightLeft,
+  RefreshCw,
 } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import ReturnDetailModal, { ReturnRecord } from '@/components/pos/ReturnDetailModal';
 import { APP_CONFIG } from '@/config/app.config';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
+import {
+  MobileDashboardWrapper,
+  MobileHeroCard,
+  MobileMetricPill,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export default function Returns() {
   const { formatGHS, formatAmount } = useCurrency();
@@ -144,7 +154,152 @@ export default function Returns() {
 
   return (
     <PageLayout title="POS Returns History" constrainHeight={true}>
-      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE RETURNS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)      */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper>
+        {/* 1. Hero Total Refunds Approved Card + Metric Carousel */}
+        <MobileHeroCard
+          title="Total Refunds Approved"
+          badge={dateFilter.active?.replace('_', ' ') || 'All Time'}
+          value={<CurrencyDisplay amount={metrics.totalRefunded} className="!tracking-normal" />}
+          isLoading={isLoading}
+        >
+          <MobileMetricPill
+            title="Total Logged"
+            value={metrics.totalCount}
+            subtitle="Return records"
+            icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/10 text-blue-500"
+            isLoading={isLoading}
+            onClick={() => setStatusFilter(new Set(['all']))}
+          />
+
+          <MobileMetricPill
+            title="Pending"
+            value={metrics.pendingCount}
+            subtitle="Needs review"
+            icon={<Clock className="h-3.5 w-3.5" />}
+            iconColorClass="bg-amber-500/10 text-amber-500"
+            isLoading={isLoading}
+            onClick={() => setStatusFilter(new Set(['pending']))}
+          />
+
+          <MobileMetricPill
+            title="Approved"
+            value={returns.filter(r => r.status === 'approved').length}
+            subtitle="Processed"
+            icon={<CheckCircle className="h-3.5 w-3.5" />}
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            isLoading={isLoading}
+            onClick={() => setStatusFilter(new Set(['approved']))}
+          />
+        </MobileHeroCard>
+
+        {/* 2. Floating Quick Action Capsule Bar */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: "Search return ID, receipt ref, or notes...",
+          }}
+          dateFilterConfig={{
+            value: dateFilter,
+            onChange: setDateFilter,
+            showLabelOnMobile: true,
+          }}
+          actions={[
+            {
+              // label: 'Refresh',
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: fetchReturns,
+            },
+          ]}
+        />
+
+        {/* 3. Returns Activity Sheet */}
+        <MobileActivitySheet
+          title="Return Records"
+          tabs={[
+            { id: 'all', label: 'All' },
+            ...(metrics.pendingCount > 0 ? [{ id: 'pending', label: 'Pending', count: metrics.pendingCount }] : [{ id: 'pending', label: 'Pending' }]),
+            { id: 'approved', label: 'Approved' },
+            { id: 'rejected', label: 'Rejected' },
+          ]}
+          activeTab={
+            statusFilter instanceof Set
+              ? (Array.from(statusFilter)[0] as string) || 'all'
+              : (statusFilter as string) || 'all'
+          }
+          onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : returns.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              No return records found matching your filters.
+            </div>
+          ) : (
+            returns.map((r: ReturnRecord) => {
+              const isApproved = r.status === 'approved';
+              const isPending = r.status === 'pending';
+
+              return (
+                <div
+                  key={r.id}
+                  onClick={() => handleRowClick(r.id)}
+                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      isApproved
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : isPending
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    )}>
+                      <ArrowRightLeft className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground font-mono truncate max-w-[170px]">
+                        {r.id}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                        Orig: <span className="font-mono">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span> • {r.items?.length || 0} items
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        {r.date_created ? format(new Date(r.date_created), 'MMM dd, yyyy hh:mm a') : 'N/A'} {r.approved_by_name ? `• ${r.approved_by_name}` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="font-extrabold text-[12px] text-foreground block">
+                      <CurrencyDisplay amount={r.total_refund_amount || 0} symbolClassName="text-xs" />
+                    </span>
+                    <span className={cn(
+                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5 border",
+                      isApproved
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : isPending
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 animate-pulse"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    )}>
+                      {r.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP RETURNS VIEW (Hidden < md, Flex >= md)                            */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         {/* KPI Dashboard Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
@@ -194,14 +349,15 @@ export default function Returns() {
           onclick={handleRowClick}
           mobileFriendly={true}
         />
-
-        {/* Side Panel Drawer (Details Sheet) */}
-        <ReturnDetailModal
-          isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          selectedReturn={selectedReturn}
-        />
       </div>
+
+      {/* Side Panel Drawer (Details Sheet) */}
+      <ReturnDetailModal
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        selectedReturn={selectedReturn}
+      />
     </PageLayout>
   );
 }
+
