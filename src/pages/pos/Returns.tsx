@@ -210,8 +210,8 @@ export default function Returns() {
           }}
           actions={[
             {
-              // label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              label: 'Refresh',
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: fetchReturns,
             },
           ]}
@@ -252,12 +252,8 @@ export default function Returns() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={cn(
-                      "p-2 rounded-lg shrink-0",
-                      isApproved
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : isPending
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      "p-3 rounded-lg shrink-0 bg-muted/60 text-muted-foreground  flex items-center justify-center",
+                      
                     )}>
                       <ArrowRightLeft className="h-4 w-4" />
                     </div>
