@@ -10,6 +10,7 @@ import { UserSquare2, ChevronLeft, Lock, Mail, Store, Eye, EyeOff } from 'lucide
 import { motion, AnimatePresence } from 'framer-motion';
 import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@iconify/react';
 
 interface StaffUser {
   id: string;
@@ -282,8 +283,8 @@ export default function Login() {
       exit={{ opacity: 0, scale: 0.95 }}
     >
       <div className="text-center mb-8 fontheader spacing-sm">
-        <div className="mx-auto h-16 w-16 mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-white/10 shadow-lg text-primary backdrop-blur-sm">
-          <Store className="h-8 w-8" />
+        <div className="mx-auto h-16 w-16 mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-border/5 dark:border-white/10 shadow backdrop-blur-sm">
+          <Icon icon={'arcticons:shop-apotheke-redcare'} className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-bold text-foreground">{APP_CONFIG.name}</h2>
         <p className="text-muted-foreground mt-1">Sign in to your workspace</p>
@@ -324,7 +325,7 @@ export default function Login() {
         <Button
           type="submit"
           disabled={isAuthenticating}
-          className="w-full py-3 px-4 h-auto bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
+          className="w-full py-3 px-4 h-auto bg-primary text-primary-foreground font-bold rounded-xl shadow shadow-pos-accent/20 hover:shadow-pos-accent/40 active:scale-95 disabled:opacity-50 transition-all mt-4"
         >
           {isAuthenticating ? 'Signing in...' : 'Sign In'}
         </Button>
@@ -371,7 +372,7 @@ export default function Login() {
           <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
              <Store className="h-16 w-16 text-primary" />
           </div>
-          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 !tracking-tighter">
             Next-Gen Retail
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
