@@ -60,7 +60,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
                   isActive
                     ? "bg-primary text-zinc-950 shadow-sm"
                     : "bg-muted text-muted-foreground hover:text-foreground",
-                  tab.count > 0 && 'pr-1'
+                  tab.count > 0 && 'pr-1.5'
                 )}
               >
                 {tab.label}
