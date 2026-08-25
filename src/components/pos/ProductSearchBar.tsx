@@ -18,6 +18,7 @@ import {
 import { Drawer, DrawerContent, DrawerBody, DrawerHeader } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useProductCacheStore } from '@/store/productCacheStore';
+import { cn } from '@/lib/utils';
 
 interface ProductSearchBarProps {
   isCartCollapsed?: boolean;
@@ -28,6 +29,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [renderedCollapsed, setRenderedCollapsed] = useState(isCartCollapsed);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
 
   const { gridDensity, defaultPriceType, soundEffectsEnabled } = useRegisterPreferencesStore();
 
@@ -547,37 +549,58 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           </DropdownMenu>
         </div>
 
-        {/* Desktop Search Bar */}
+        {/* Desktop Expanding Search Bar */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-                    {isSearchActive ? (
-
-          <div className="relative">
-            <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative flex items-center">
+            <Icon 
+              icon="solar:magnifer-linear" 
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none transition-colors" 
+            />
             <input
+              ref={desktopSearchInputRef}
               type="text"
-              className="w-48 xl:w-64 pl-9 pr-10 py-2 border border-border rounded-full text-sm bg-transparent outline-none"
+              className={cn(
+                "h-9 rounded-full pl-9 text-sm bg-transparent border border-border outline-none transition-all duration-300 ease-in-out font-medium",
+                "focus:border-foreground",
+                isSearchActive || searchTerm
+                  ? "w-48 lg:w-60 xl:w-72 pr-8 placeholder:opacity-100 shadow-xs"
+                  : "w-9 pr-0 cursor-pointer placeholder:opacity-0 hover:bg-secondary"
+              )}
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setIsSearchActive(true)}
+              onBlur={() => {
+                if (!searchTerm.trim()) {
+                  setIsSearchActive(false);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  if (searchTerm) {
+                    setSearchTerm('');
+                  } else {
+                    setIsSearchActive(false);
+                    desktopSearchInputRef.current?.blur();
+                  }
+                }
+              }}
             />
             {searchTerm && (
               <button 
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setSearchTerm('');
+                  setIsSearchActive(false);
+                  desktopSearchInputRef.current?.blur();
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center p-0.5 rounded-full hover:bg-muted/80 transition-colors"
               >
-                <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
+                <Icon icon="ant-design:close-outlined" className="h-4 w-4" />
               </button>
             )}
           </div>
-           ) : (
-          <Button 
-            variant="outline"
-            size="icon"
-            onClick={() => setIsSearchActive(true)}
-            className="rounded-full shrink-0 animate-in zoom-in-50 duration-150"
-          >
-            <Icon icon="solar:magnifer-linear" className="h-4 w-4" />
-          </Button>)}
         </div>
 
       </div>
@@ -605,7 +628,15 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             </p>
             <div className="flex gap-3">
               {searchTerm && (
-                <Button variant="outline" className="rounded-full font-bold" onClick={() => setSearchTerm('')}>
+                <Button 
+                  variant="outline" 
+                  className="rounded-full font-bold" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setIsSearchActive(false);
+                    desktopSearchInputRef.current?.blur();
+                  }}
+                >
                   Clear Search
                 </Button>
               )}
