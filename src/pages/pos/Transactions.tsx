@@ -11,6 +11,7 @@ import { format, startOfToday, endOfToday } from "date-fns";
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import TransactionSidePanel from "@/components/pos/TransactionSidePanel";
 import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
+import CustomModal from "@/components/modals/modal";
 import { useAuthStore } from "@/store/authStore";
 import { useFeaturesStore } from "@/store/featuresStore";
 import { 
@@ -22,7 +23,8 @@ import {
   CreditCard, 
   AlertCircle, 
   RotateCcw, 
-  RefreshCw 
+  RefreshCw,
+  Users,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -89,6 +91,7 @@ export default function Transactions() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedReceiptData, setSelectedReceiptData] = useState<any>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isMobileCashiersOpen, setIsMobileCashiersOpen] = useState(false);
 
   const handlePrintReceipt = () => {
     window.print();
@@ -422,7 +425,7 @@ export default function Transactions() {
 
           <MobileMetricPill
             title="Cash"
-            value={<CurrencyDisplay amount={stats.cashTotal} />}
+            value={<CurrencyDisplay amount={stats.cashTotal} symbolClassName="text-muted-foreground text-xs" />}
             subtitle="Cash volume"
             icon={<Banknote className="h-3.5 w-3.5" />}
             iconColorClass="bg-emerald-500/10 text-emerald-500"
@@ -432,7 +435,7 @@ export default function Transactions() {
 
           <MobileMetricPill
             title="MoMo"
-            value={<CurrencyDisplay amount={stats.momoAutomatedTotal + stats.momoManualTotal} />}
+            value={<CurrencyDisplay amount={stats.momoAutomatedTotal + stats.momoManualTotal} symbolClassName="text-muted-foreground text-xs" />}
             subtitle="Mobile Money"
             icon={<Smartphone className="h-3.5 w-3.5" />}
             iconColorClass="bg-amber-500/10 text-amber-500"
@@ -443,12 +446,30 @@ export default function Transactions() {
           {stats.cardTotal > 0 && (
             <MobileMetricPill
               title="Card"
-              value={<CurrencyDisplay amount={stats.cardTotal} />}
+              value={<CurrencyDisplay amount={stats.cardTotal} symbolClassName="text-muted-foreground text-xs" />}
               subtitle="Card sales"
               icon={<CreditCard className="h-3.5 w-3.5" />}
               iconColorClass="bg-purple-500/10 text-purple-500"
               isLoading={isLoading}
               onClick={() => handleSelectPaymentFilter("card")}
+            />
+          )}
+
+          {!isCashier && cashierStats.length > 0 && (
+            <MobileMetricPill
+              title="Top Cashier"
+              value={cashierStats[0]?.name || "N/A"}
+              subtitle={
+                cashierStats[0] ? (
+                  <span className="flex items-center gap-1">
+                    <CurrencyDisplay amount={cashierStats[0].total} symbolClassName="mr-0.5" /> sold
+                  </span>
+                ) : undefined
+              }
+              // icon={<Users className="h-3.5 w-3.5" />}
+              iconColorClass="bg-purple-500/10 text-purple-500"
+              isLoading={isLoading}
+              onClick={() => setIsMobileCashiersOpen(true)}
             />
           )}
 
@@ -466,23 +487,57 @@ export default function Transactions() {
 
         {/* 2. Floating Quick Action Capsule Bar */}
         <MobileActionCapsuleBar
-          actions={[
-            {
-              label: 'Register',
-              icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
-              onClick: () => navigate('/pos/register'),
-            },
-            {
-              label: 'Returns',
-              icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
-              onClick: () => navigate('/pos/returns'),
-            },
-            {
-              label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
-              onClick: fetchTransactions,
-            },
-          ]}
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: isCashier ? "Search receipt number..." : "Search receipt, cashier, or total..."
+          }}
+          dateFilterConfig={
+            !isCashier
+              ? {
+                  value: dateFilter,
+                  onChange: setDateFilter,
+                  showLabelOnMobile: true,
+                }
+              : undefined
+          }
+          actions={
+            isCashier
+              ? [
+                  {
+                    label: 'Register',
+                    icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
+                    onClick: () => navigate('/pos/register'),
+                  },
+                  {
+                    label: 'Returns',
+                    icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+                    onClick: () => navigate('/pos/returns'),
+                  },
+                  {
+                    label: 'Refresh',
+                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+                    onClick: fetchTransactions,
+                  },
+                ]
+              : [
+                  {
+                    label: 'Cashiers',
+                    icon: <Users className="h-3.5 w-3.5 text-primary" />,
+                    onClick: () => setIsMobileCashiersOpen(true),
+                  },
+                  {
+                    label: 'Returns',
+                    icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+                    onClick: () => navigate('/pos/returns'),
+                  },
+                  {
+                    // label: 'Refresh',
+                    icon: <RefreshCw className="h-3.5 w-3.5 textprimary -mx-1" />,
+                    onClick: fetchTransactions,
+                  },
+                ]
+          }
         />
 
         {/* 3. Transaction Activity Feed Sheet */}
@@ -795,6 +850,64 @@ export default function Transactions() {
         onClose={() => setIsRefundModalOpen(false)}
         receiptData={selectedReceiptData}
         onSuccess={handleRefundSuccess}
+      />
+
+      {/* Mobile Cashiers Performance Modal */}
+      <CustomModal
+        isOpen={isMobileCashiersOpen}
+        onClose={() => setIsMobileCashiersOpen(false)}
+        onOpenChange={() => setIsMobileCashiersOpen((prev) => !prev)}
+        header={
+          <div>
+            <h3 className="text-base font-bold text-foreground">Cashier Performance</h3>
+            <p className="text-xs text-muted-foreground">Sales leaderboard by cashier staff for this period.</p>
+          </div>
+        }
+        body={
+          <div className="space-y-3 py-2 pb-4">
+            {cashierStats.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">No cashier sales recorded for this period.</p>
+            ) : (
+              cashierStats.map((c) => {
+                const share = stats.total > 0 ? Math.min(100, Math.round((c.total / stats.total) * 100)) : 0;
+                const isSelected = searchQuery.toLowerCase() === c.name.toLowerCase();
+
+                return (
+                  <div
+                    key={c.name}
+                    onClick={() => {
+                      setSearchQuery(isSelected ? "" : c.name);
+                      setIsMobileCashiersOpen(false);
+                    }}
+                    className={cn(
+                      "p-3 rounded-xl border transition-all cursor-pointer",
+                      isSelected ? "bg-primary/10 border-primary" : "bg-card border-border hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                      <span className="font-bold text-foreground text-sm">{c.name}</span>
+                      <span className="text-foreground font-extrabold text-sm">
+                        <CurrencyDisplay amount={c.total} />
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-primary h-full rounded-full transition-all duration-500"
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5">
+                      <span>{share}% of total sales</span>
+                      <span className="text-primary font-semibold">
+                        {isSelected ? "Active Filter (Tap to clear)" : "Tap to filter"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        }
       />
     </PageLayout>
   );

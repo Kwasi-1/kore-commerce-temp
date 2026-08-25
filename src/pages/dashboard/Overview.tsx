@@ -301,7 +301,7 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper className='-mt-6'>
         {/* 1. Hero Balance / Revenue Card + Carousel */}
         <MobileHeroCard
           title="Today's Sales Revenue"

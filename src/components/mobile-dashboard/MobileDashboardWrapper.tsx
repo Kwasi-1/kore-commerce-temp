@@ -11,7 +11,7 @@ export const MobileDashboardWrapper: React.FC<MobileDashboardWrapperProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("block md:hidden space-y-0 -mb-10 -mx-4 -mt-6 bg-action-bridge", className)}>
+    <div className={cn("block md:hidden space-y-0 -mb-10 -mx-4 -mt-2 bg-action-bridge", className)}>
       {children}
     </div>
   );

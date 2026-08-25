@@ -26,6 +26,7 @@ import {
   Calendar,
   ChevronUp,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface DateFilterValue {
   active: string;
@@ -234,12 +235,15 @@ export const CustomOnlyDateFilterComponent = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className={`flex items-center gap-1.5 px-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
-            showLabelOnMobile ? "rounded-md py-1.5" : "py-2.5 rounded-full sm:rounded-md"
-          } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue ${className}`}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 sm:px-4 sm:py-2 bg-muted/50 border",
+            showLabelOnMobile ? "rounded-md py-1.5" : "py-2.5 rounded-full sm:rounded-md",
+            "hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue",
+            className
+          )}
         >
-          <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px] text-foreground`}>{getButtonLabel()}</span>
+          <Calendar className="w-3.5 h-3.5 opacity-80 shrink-0" />
+          <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px]`}>{getButtonLabel()}</span>
         </button>
       </PopoverTrigger>
 

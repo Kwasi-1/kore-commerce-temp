@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 export interface MobileMetricPillProps {
   title: string;
   value: React.ReactNode;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   icon?: React.ReactNode;
   iconColorClass?: string;
   className?: string;

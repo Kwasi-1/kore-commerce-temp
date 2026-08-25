@@ -371,7 +371,7 @@ export default function Login() {
         
         <div className="max-w-md text-center relative z-10 px6">
           {/* Official Brand Logo Glass Tile */}
-          <div className="mb-6 inline-flex p-4 sm:p5 rounded-3xl bg-card/60 dark:bg-white/[0.04] backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
+          <div className="mb-6 inline-flex p-4 sm:p5 rounded-3xl bg-card/60 dark:bg-white/95 border border-border/20 dark:border-white/20 shadow-[0_20px_50px_rgba(180,247,94,0.12)] dark:shadow-[0_20px_60px_rgba(180,247,94,0.12)]">
             <img 
               src={koreLogo} 
               alt="Kore Commerce Logo" 
