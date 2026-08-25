@@ -76,6 +76,21 @@ export default function Overview() {
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
+  const getNumericValue = (val: any, fallback = 0): number => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'number') return isNaN(val) ? fallback : val;
+    if (typeof val === 'object') {
+      if (typeof val.parsedValue === 'number') return val.parsedValue;
+      if (typeof val.value === 'number') return val.value;
+      if (val.source) {
+        const p = parseFloat(val.source);
+        return isNaN(p) ? fallback : p;
+      }
+    }
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? fallback : parsed;
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
@@ -91,10 +106,19 @@ export default function Overview() {
             apiClient.get('/pos/transactions?limit=5')
           ]);
 
-          const salesData = salesRes.data.success?.data?.summary || { total_sales: 0, total_transactions: 0 };
+          const salesSummary = salesRes.data.success?.data?.summary || {};
+          const todayRev = getNumericValue(
+            salesSummary.net_sales ?? salesSummary.gross_sales ?? salesSummary.total_sales, 
+            0
+          );
+          const todayOrdersCount = getNumericValue(
+            salesSummary.total_transactions ?? salesSummary.total_orders ?? salesSummary.completed_orders_count, 
+            0
+          );
+
           setTodaySales({
-            revenue: salesData.total_sales || 0,
-            orders: salesData.total_transactions || 0
+            revenue: todayRev,
+            orders: todayOrdersCount
           });
 
           // Active Shifts
@@ -106,24 +130,32 @@ export default function Overview() {
           const transactions = txRes.data.success?.data?.transactions || [];
           setRecentPosTransactions(transactions);
           
-          // 4. Generate 7-Day Chart Data for POS
+          // 4. 7-Day Chart Data for POS
           const weekStart = startOfDay(subDays(new Date(), 6)).toISOString();
           const weekRes = await apiClient.get(`/tenant/reports/sales?start_date=${weekStart}&end_date=${todayEnd}`);
-          const weekData = weekRes.data.success?.data?.summary;
-          const totalWeekRev = weekData?.total_sales || 0;
+          const timeseries = weekRes.data.success?.data?.timeseries;
           
-          const dailyAvg = totalWeekRev / 7;
-          const generatedChartData = [];
-          let runningDate = subDays(new Date(), 6);
-          for (let i = 0; i < 7; i++) {
-            const randomFactor = totalWeekRev === 0 ? 0 : 0.5 + Math.random();
-            generatedChartData.push({
-              date: format(runningDate, 'EEE'),
-              revenue: Math.round(dailyAvg * randomFactor)
-            });
-            runningDate.setDate(runningDate.getDate() + 1);
+          if (Array.isArray(timeseries) && timeseries.length > 0) {
+            const mappedChartData = timeseries.map((entry: any) => ({
+              date: entry.date || (entry.full_date ? format(new Date(entry.full_date), 'EEE') : ''),
+              revenue: getNumericValue(entry.revenue ?? entry.gross_revenue, 0)
+            }));
+            setChartData(mappedChartData);
+          } else {
+            const weekSummary = weekRes.data.success?.data?.summary;
+            const totalWeekRev = getNumericValue(weekSummary?.net_sales ?? weekSummary?.gross_sales, 0);
+            const dailyAvg = totalWeekRev / 7;
+            const generatedChartData = [];
+            let runningDate = subDays(new Date(), 6);
+            for (let i = 0; i < 7; i++) {
+              generatedChartData.push({
+                date: format(runningDate, 'EEE'),
+                revenue: Math.round(dailyAvg)
+              });
+              runningDate.setDate(runningDate.getDate() + 1);
+            }
+            setChartData(generatedChartData);
           }
-          setChartData(generatedChartData);
         }
 
         if (hasEcommerce) {
