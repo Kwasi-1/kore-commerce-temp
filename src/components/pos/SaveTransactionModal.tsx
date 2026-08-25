@@ -92,10 +92,10 @@ export default function SaveTransactionModal({ isOpen, onClose }: SaveTransactio
       }
       footer={
         <div className="flex justify-end gap-2 w-full pt-2">
-          <Button variant="outline" onClick={onClose} className="rounded-full font-bold">
+          <Button variant="outline" onClick={onClose} className="rounded-full font-bold hidden md:flex">
             Cancel
           </Button>
-          <Button onClick={handleSave} className="rounded-full font-bold">
+          <Button onClick={handleSave} className="rounded-full font-bold w-full md:w-auto px-6">
             Save Transaction
           </Button>
         </div>

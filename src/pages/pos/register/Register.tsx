@@ -14,6 +14,7 @@ import { Icon } from '@iconify/react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 import PaymentModal from '@/components/pos/PaymentModal';
+import SaveTransactionModal from '@/components/pos/SaveTransactionModal';
 
 interface CartToast {
   id: string;
@@ -47,6 +48,14 @@ export default function Register() {
     if (method) setDefaultPaymentMethod(method);
     setIsMobileCartOpen(false); // Close mobile drawer so PaymentModal is the single active overlay
     setIsPaymentModalOpen(true);
+  };
+
+  // Top-level Save Transaction Modal State
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
+  const handleOpenSaveModal = () => {
+    setIsMobileCartOpen(false); // Close mobile drawer so SaveTransactionModal is the single active overlay
+    setIsSaveModalOpen(true);
   };
 
   // Desktop Collapsible Cart State
@@ -177,6 +186,7 @@ export default function Register() {
             onStateChange={setPanelState} 
             onHandleClick={handleDragHandleClick}
             onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenSaveModal={handleOpenSaveModal}
           />
           
           {/* Cart Block Overlay — only shown if shift is required and shift is closed */}
@@ -274,7 +284,11 @@ export default function Register() {
       >
         <DrawerContent className="bg-background h-full max-h-[100vh] outline-none">
           <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
-            <CartPanel isMobileView={true} onOpenPaymentModal={handleOpenPaymentModal} />
+            <CartPanel 
+              isMobileView={true} 
+              onOpenPaymentModal={handleOpenPaymentModal}
+              onOpenSaveModal={handleOpenSaveModal}
+            />
 
             {/* Cart Block Overlay (Mobile) */}
             { !isLoading && !currentShift && isShiftRequired && (
@@ -314,6 +328,11 @@ export default function Register() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         defaultMethod={defaultPaymentMethod}
+      />
+
+      <SaveTransactionModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
       />
     </div>
   );

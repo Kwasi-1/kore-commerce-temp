@@ -170,6 +170,7 @@ interface CartPanelProps {
   onStateChange?: (state: "collapsed" | "default" | "expanded") => void;
   onHandleClick?: () => void;
   onOpenPaymentModal?: (method?: "cash" | "mobile_money" | "card") => void;
+  onOpenSaveModal?: () => void;
 }
 
 export default function CartPanel({ 
@@ -177,7 +178,8 @@ export default function CartPanel({
   panelState = 'default',
   onStateChange,
   onHandleClick,
-  onOpenPaymentModal
+  onOpenPaymentModal,
+  onOpenSaveModal
 }: CartPanelProps) {
   const {
     items,
@@ -217,6 +219,14 @@ export default function CartPanel({
       onOpenPaymentModal(selMethod);
     } else {
       setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleOpenSave = () => {
+    if (onOpenSaveModal) {
+      onOpenSaveModal();
+    } else {
+      setIsSaveModalOpen(true);
     }
   };
 
@@ -577,7 +587,7 @@ export default function CartPanel({
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => setIsSaveModalOpen(true)}
+              onClick={handleOpenSave}
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border hover:bg-secondary h-9 px-4 text-[13px] font-semibold shadow-none text-muted-foreground hover:text-foreground"
             >
@@ -1132,7 +1142,7 @@ export default function CartPanel({
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsSaveModalOpen(true)}
+              onClick={handleOpenSave}
               disabled={items.length === 0}
               className="flex items-center gap-1.5 rounded-full bg-background border border-border hover:bg-secondary h-9 px-3 text-[13px] font-semibold shadow-none text-muted-foreground hover:text-foreground"
             >
