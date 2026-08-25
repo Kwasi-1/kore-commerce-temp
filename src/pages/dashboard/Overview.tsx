@@ -23,6 +23,13 @@ import {
 
 import { getModules } from '@/utils/permissions';
 import { useFeaturesStore } from '@/store/featuresStore';
+import {
+  MobileDashboardWrapper,
+  MobileHeroCard,
+  MobileMetricPill,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export default function Overview() {
   const navigate = useNavigate();
@@ -294,188 +301,91 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
       {/* ========================================================================= */}
-      <div className="block md:hidden space-y5 -mb-10 -mx-4 -mt-6 bg-action-bridge">
+      <MobileDashboardWrapper>
+        {/* 1. Hero Balance / Revenue Card + Carousel */}
+        <MobileHeroCard
+          title="Today's Sales Revenue"
+          badge={plan?.replace('_', ' ')}
+          value={<CurrencyDisplay amount={todaySales.revenue} />}
+          isLoading={isLoading}
+        >
+          <MobileMetricPill
+            title="Orders"
+            value={todaySales.orders}
+            subtitle="Completed today"
+            icon={<ShoppingCart className="h-3.5 w-3.5" />}
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            isLoading={isLoading}
+          />
 
-        {/* 1. Hero Balance / Revenue Card */}
-        <div className="bg-background rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Today's Sales Revenue
-            </span>
-            <span className="text-[11px] font-bold bg-primary/20 text-primary-foreground px-2.5 py-0.5 rounded-full capitalize">
-              {plan?.replace('_', ' ')}
-            </span>
-          </div>
+          <MobileMetricPill
+            title="Shifts"
+            value={activeShiftsCount}
+            subtitle="Registers open"
+            icon={<Clock className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/10 text-blue-500"
+            isLoading={isLoading}
+          />
 
-          <div className="py-2">
-            <h2 className="text-3xl font-extrabold font-header text-foreground tracking-tight">
-              {isLoading ? <Spinner className="mx-auto my-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
-            </h2>
-          </div>
+          <MobileMetricPill
+            title="Low Stock"
+            value={lowStockProducts.length}
+            subtitle="Items to reorder"
+            icon={<AlertCircle className="h-3.5 w-3.5" />}
+            iconColorClass="bg-amber-500/10 text-amber-500"
+            isLoading={isLoading}
+          />
 
-          {/* 2. Horizontal Metric Carousel */}
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 pt-2 -mx-1 px-1">
-            {/* Orders Metric Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Orders</span>
-                <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <span className="text-base font-extrabold text-foreground">
-                {isLoading ? '...' : todaySales.orders}
-              </span>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Completed today</p>
-            </div>
+          {hasEcommerce && (
+            <MobileMetricPill
+              title="Online"
+              value={ecomStats.todayOrders}
+              subtitle="Web orders"
+              icon={<ShoppingBag className="h-3.5 w-3.5" />}
+              iconColorClass="bg-purple-500/10 text-purple-500"
+              isLoading={isLoading}
+            />
+          )}
+        </MobileHeroCard>
 
-            {/* Active Shifts Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Shifts</span>
-                <div className="p-1 rounded-md bg-blue-500/10 text-blue-500">
-                  <Clock className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <span className="text-base font-extrabold text-foreground">
-                {isLoading ? '...' : activeShiftsCount}
-              </span>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Registers open</p>
-            </div>
+        {/* 2. Floating Quick Action Capsule Bar */}
+        <MobileActionCapsuleBar
+          actions={[
+            {
+              label: 'Register',
+              icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/pos/register'),
+            },
+            {
+              label: 'Product',
+              icon: <PackagePlus className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/inventory/products/new'),
+            },
+            {
+              label: 'Sales',
+              icon: <HistoryIcon className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/pos/transactions'),
+            },
+          ]}
+        />
 
-            {/* Low Stock Card */}
-            <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Low Stock</span>
-                <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <span className="text-base font-extrabold text-foreground">
-                {isLoading ? '...' : lowStockProducts.length}
-              </span>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Items to reorder</p>
-            </div>
-
-            {/* Ecommerce Card (if enabled) */}
-            {hasEcommerce && (
-              <div className="min-w-[130px] flex-1 bg-muted/40 border border-muted/40 rounded-xl p-3 text-left shrink-0">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Online</span>
-                  <div className="p-1 rounded-md bg-purple-500/10 text-purple-500">
-                    <ShoppingBag className="h-3.5 w-3.5" />
-                  </div>
-                </div>
-                <span className="text-base font-extrabold text-foreground">
-                  {isLoading ? '...' : ecomStats.todayOrders}
-                </span>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Web orders</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Floating Quick Action Capsule Bar (ZEN Style with Reusable Utility Classes) */}
-        <div className="bg-action-bridge text-white py-3 px-3 flex items-center justify-around shadow-xl gap-1">
-          <button
-            onClick={() => navigate('/pos/register')}
-            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
-          >
-            <ShoppingCart className="h-3.5 w-3.5 text-primary" />
-            Register
-          </button>
-          <button
-            onClick={() => navigate('/inventory/products/new')}
-            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
-          >
-            <PackagePlus className="h-3.5 w-3.5 text-primary" />
-            Product
-          </button>
-          <button
-            onClick={() => navigate('/pos/transactions')}
-            className="action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
-          >
-            <HistoryIcon className="h-3.5 w-3.5 text-primary" />
-            Sales
-          </button>
-        </div>
-
-        {/* 4. Recent Activity Feed Sheet (Flex-Fill to Bottom Nav) */}
-        <div className="flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
-            <button
-              onClick={() => navigate('/pos/transactions')}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              View all &rarr;
-            </button>
-          </div>
-
-          {/* Interactive Quick Filters */}
-          <div className="flex items-center gap-1.5 text-xs flex-wrap">
-            <button
-              type="button"
-              onClick={() => setActiveMobileFeedTab('all')}
-              className={clsx(
-                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
-                activeMobileFeedTab === 'all'
-                  ? "bg-primary text-zinc-950 shadow-sm"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMobileFeedTab('pos')}
-              className={clsx(
-                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
-                activeMobileFeedTab === 'pos'
-                  ? "bg-primary text-zinc-950 shadow-sm"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              POS Sales
-            </button>
-            {hasEcommerce && (
-              <button
-                type="button"
-                onClick={() => setActiveMobileFeedTab('online')}
-                className={clsx(
-                  "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
-                  activeMobileFeedTab === 'online'
-                    ? "bg-primary text-zinc-950 shadow-sm"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Online
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setActiveMobileFeedTab('alerts')}
-              className={clsx(
-                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
-                activeMobileFeedTab === 'alerts'
-                  ? "bg-primary text-zinc-950 shadow-sm"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Alerts
-              {lowStockProducts.length > 0 && (
-                <span className="ml-1 bg-rose-500 text-white px-1.5 py-[2px] rounded-full text-[9px]">
-                  {lowStockProducts.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Dynamic Feed List */}
-          <div className="flex-1 divide-y divide-border/50 pt-1">
-            {isLoading ? (
-              <div className="py-8 text-center"><Spinner /></div>
-            ) : (
+        {/* 3. Recent Activity Feed Sheet */}
+        <MobileActivitySheet
+          title="Recent Activity"
+          viewAllLabel="View all →"
+          onViewAll={() => navigate('/pos/transactions')}
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'pos', label: 'POS Sales' },
+            ...(hasEcommerce ? [{ id: 'online', label: 'Online' }] : []),
+            { id: 'alerts', label: 'Alerts', count: lowStockProducts.length },
+          ]}
+          activeTab={activeMobileFeedTab}
+          onTabChange={(tabId) => setActiveMobileFeedTab(tabId as any)}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : (
               (() => {
                 // Filter feed items based on activeMobileFeedTab
                 let items: any[] = [];
@@ -588,10 +498,8 @@ export default function Overview() {
                 });
               })()
             )}
-          </div>
-        </div>
-
-      </div>
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
 
       {/* ========================================================================= */}
       {/* DESKTOP DASHBOARD VIEW (Hidden < md, Block >= md)                        */}
