@@ -372,7 +372,7 @@ export default function Overview() {
         {/* 3. Recent Activity Feed Sheet */}
         <MobileActivitySheet
           title="Recent Activity"
-          viewAllLabel="View all →"
+          viewAllLabel="View all"
           onViewAll={() => navigate('/pos/transactions')}
           tabs={[
             { id: 'all', label: 'All' },
