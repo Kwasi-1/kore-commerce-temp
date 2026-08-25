@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@iconify/react';
+import koreLogo from '@/assets/images/kore.png';
 
 interface StaffUser {
   id: string;
@@ -290,7 +291,7 @@ export default function Login() {
         <p className="text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 
-      <form onSubmit={handlePasswordSubmit} className="space-y-5">
+      <form onSubmit={handlePasswordSubmit} className="space-y-5 max-w-md md:max-w-lg mx-auto">
         <CustomInputTextField
           label="Email Address"
           type="email"
@@ -298,7 +299,6 @@ export default function Login() {
           value={email}
           placeholder="admin@store.com"
           onChange={(e: any) => setEmail(e?.target ? e.target.value : e)}
-          className='ml-10'
         />
 
         <CustomInputTextField
@@ -361,16 +361,22 @@ export default function Login() {
       </div>
 
       {/* Right side - Hero / Branding (Hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-primary/5 dark:bg-background relative overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[100px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
-        </div>
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-muted/10 dark:bg-background relative overflow-hidden">
+        {/* Subtle Tech Grid Pattern with Radial Falloff */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:66px_66px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 dark:opacity-20 pointer-events-none" />
+
+        {/* Ambient Brand Halos */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-primary/10 dark:bg-primary/15 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[320px] h-[320px] rounded-full bg-blue-500/5 blur-[100px] pointer-events-none" />
         
-        <div className="max-w-md text-center relative z-10">
-          <div className="mb-8 inline-flex p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl">
-             <Store className="h-16 w-16 text-primary" />
+        <div className="max-w-md text-center relative z-10 px6">
+          {/* Official Brand Logo Glass Tile */}
+          <div className="mb-6 inline-flex p-4 sm:p5 rounded-3xl bg-card/60 dark:bg-white/[0.04] backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
+            <img 
+              src={koreLogo} 
+              alt="Kore Commerce Logo" 
+              className="h-20 w-20 object-contain"
+            />
           </div>
           <h2 className="text-4xl font-extrabold text-foreground mb-4 !tracking-tighter">
             Next-Gen Retail
