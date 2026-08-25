@@ -41,6 +41,7 @@ interface IDateFilter {
   showLabelOnMobile?: boolean;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
+  className?: string;
   excludeShortcuts?: string[];
 }
 
@@ -70,6 +71,7 @@ export const CustomOnlyDateFilterComponent = ({
   showLabelOnMobile = false,
   align = "end",
   side = "bottom",
+  className,
   excludeShortcuts = [],
 }: IDateFilter) => {
   const visibleShortcuts = DATE_SHORTCUTS.filter((s) => !excludeShortcuts?.includes(s.id));
@@ -234,7 +236,7 @@ export const CustomOnlyDateFilterComponent = ({
         <button
           className={`flex items-center gap-1.5 px-2.5 sm:px-4 sm:py-2 bg-muted/50 border ${
             showLabelOnMobile ? "rounded-md py-1.5" : "py-2.5 rounded-full sm:rounded-md"
-          } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue`}
+          } hover:bg-muted/30 transition-colors duration-300 shadow-badge-blue ${className}`}
         >
           <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px] text-foreground`}>{getButtonLabel()}</span>

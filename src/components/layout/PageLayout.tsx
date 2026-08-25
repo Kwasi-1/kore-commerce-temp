@@ -180,7 +180,7 @@ export default function PageLayout({
       )}
 
 
-      <div className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 overflow-y-auto md:overflow-hidden" : ""}`}>{children}</div>
+      <div className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden" : ""}`}>{children}</div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import EnhancedTableComponent from "@/components/shared/MainTableComponent";
 
@@ -12,9 +13,29 @@ import TransactionSidePanel from "@/components/pos/TransactionSidePanel";
 import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
 import { useAuthStore } from "@/store/authStore";
 import { useFeaturesStore } from "@/store/featuresStore";
-import { X } from "lucide-react";
+import { 
+  X, 
+  ShoppingCart, 
+  ShoppingBag, 
+  Banknote, 
+  Smartphone, 
+  CreditCard, 
+  AlertCircle, 
+  RotateCcw, 
+  RefreshCw 
+} from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import {
+  MobileDashboardWrapper,
+  MobileHeroCard,
+  MobileMetricPill,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from "@/components/mobile-dashboard";
 
 export default function Transactions() {
+  const navigate = useNavigate();
   const staffUser = useAuthStore((state) => state.staffUser);
   const isCashier = staffUser?.role === "cashier";
 
@@ -378,7 +399,177 @@ export default function Transactions() {
       subtitle={isCashier ? `Shift View: ${staffUser?.name}` : null}
       constrainHeight={true}
     >
-      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md) */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper>
+        {/* 1. Hero Balance / Revenue Card + Metric Carousel */}
+        <MobileHeroCard
+          title={isCashier ? "My Sales" : "Total Sales"}
+          badge={dateFilter.active?.replace('_', ' ') || 'Today'}
+          value={<CurrencyDisplay amount={stats.total} />}
+          isLoading={isLoading}
+        >
+          <MobileMetricPill
+            title="Orders"
+            value={stats.completedCount}
+            subtitle="Completed"
+            icon={<ShoppingBag className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/10 text-blue-500"
+            isLoading={isLoading}
+            onClick={() => handleSelectPaymentFilter("all")}
+          />
+
+          <MobileMetricPill
+            title="Cash"
+            value={<CurrencyDisplay amount={stats.cashTotal} />}
+            subtitle="Cash volume"
+            icon={<Banknote className="h-3.5 w-3.5" />}
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            isLoading={isLoading}
+            onClick={() => handleSelectPaymentFilter("cash")}
+          />
+
+          <MobileMetricPill
+            title="MoMo"
+            value={<CurrencyDisplay amount={stats.momoAutomatedTotal + stats.momoManualTotal} />}
+            subtitle="Mobile Money"
+            icon={<Smartphone className="h-3.5 w-3.5" />}
+            iconColorClass="bg-amber-500/10 text-amber-500"
+            isLoading={isLoading}
+            onClick={() => handleSelectPaymentFilter("mobile_money")}
+          />
+
+          {stats.cardTotal > 0 && (
+            <MobileMetricPill
+              title="Card"
+              value={<CurrencyDisplay amount={stats.cardTotal} />}
+              subtitle="Card sales"
+              icon={<CreditCard className="h-3.5 w-3.5" />}
+              iconColorClass="bg-purple-500/10 text-purple-500"
+              isLoading={isLoading}
+              onClick={() => handleSelectPaymentFilter("card")}
+            />
+          )}
+
+          {stats.refundTotal > 0 && (
+            <MobileMetricPill
+              title="Refunded"
+              value={<CurrencyDisplay amount={stats.refundTotal} />}
+              subtitle={`${stats.refundedCount} refund(s)`}
+              icon={<AlertCircle className="h-3.5 w-3.5" />}
+              iconColorClass="bg-rose-500/10 text-rose-500"
+              isLoading={isLoading}
+            />
+          )}
+        </MobileHeroCard>
+
+        {/* 2. Floating Quick Action Capsule Bar */}
+        <MobileActionCapsuleBar
+          actions={[
+            {
+              label: 'Register',
+              icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/pos/register'),
+            },
+            {
+              label: 'Returns',
+              icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/pos/returns'),
+            },
+            {
+              label: 'Refresh',
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+              onClick: fetchTransactions,
+            },
+          ]}
+        />
+
+        {/* 3. Transaction Activity Feed Sheet */}
+        <MobileActivitySheet
+          title="Recent Transactions"
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'cash', label: 'Cash' },
+            { id: 'mobile_money', label: 'MoMo' },
+            { id: 'card', label: 'Card' },
+            ...(stats.refundedCount > 0 ? [{ id: 'refunded', label: 'Refunds', count: stats.refundedCount }] : []),
+          ]}
+          activeTab={Array.from(paymentFilter as Set<string>)[0] || 'all'}
+          onTabChange={(tabId) => handleSelectPaymentFilter(tabId)}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : transactions.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              {getEmptyStateTitle()}
+            </div>
+          ) : (
+            transactions.map((tx: any, idx: number) => {
+              const amount = tx.total ?? (tx.amount_tendered?.parsedValue || tx.amount_tendered || 0);
+              const isRefund = tx.status === 'refunded';
+              const method = tx.payment_method || 'cash';
+              
+              return (
+                <div
+                  key={tx.id || idx}
+                  onClick={() => handleViewReceipt(tx.id)}
+                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      isRefund 
+                        ? "bg-rose-500/10 text-rose-500" 
+                        : method === 'cash'
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : method.includes('money')
+                            ? "bg-blue-500/10 text-blue-500"
+                            : "bg-purple-500/10 text-purple-500"
+                    )}>
+                      {isRefund ? (
+                        <AlertCircle className="h-4 w-4" />
+                      ) : (
+                        <ShoppingCart className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground font-mono">
+                        {tx.orderNumber || `TX #${tx.id?.substring(0, 8)}`}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground capitalize">
+                        {method.replace('_', ' ')} • {tx.created_at ? format(new Date(tx.created_at), 'hh:mm a') : 'Today'} • {tx.cashierName || 'Cashier'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={cn(
+                      "font-extrabold text-sm block",
+                      isRefund ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+                    )}>
+                      {isRefund && "-"}
+                      <CurrencyDisplay amount={amount} />
+                    </span>
+                    {tx.status && (
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                        isRefund ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      )}>
+                        {tx.status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP TRANSACTIONS VIEW (Hidden < md, Flex >= md)                       */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-start">
           <DashboardCard
             title={isCashier ? "My Sales" : "Total Sales"}
