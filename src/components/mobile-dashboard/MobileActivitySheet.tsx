@@ -31,10 +31,15 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3 custom-header", className)}>
-      {/* Sticky Header: Title + Filter Tabs */}
+    <div
+      className={cn(
+        "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-125px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden shadow-lg",
+        className
+      )}
+    >
+      {/* 1. Static Sheet Header (Title + Filter Tabs) */}
       {(title || onViewAll || (tabs && tabs.length > 0)) && (
-        <div className="sticky top-[58px] z-20 bg-background pt-1 pb-3 -mt-1 -mx-4 px-4 border-b border-border/40 shadow-sm space-y-3">
+        <div className="shrink-0 space-y-3 pb-1 border-b border-border/30">
           {(title || onViewAll) && (
             <div className="flex items-center justify-between">
               {title && <h3 className="text-sm font-bold text-foreground">{title}</h3>}
@@ -87,7 +92,8 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
         </div>
       )}
 
-      <div className="flex-1 divide-y divide-border/50 pt-1">
+      {/* 2. Internal Scrollable List */}
+      <div className="flex-1 overflow-y-auto divide-y divide-border/50 pt-1 pr-1 scrollbar-hide min-h-0">
         {children}
       </div>
     </div>

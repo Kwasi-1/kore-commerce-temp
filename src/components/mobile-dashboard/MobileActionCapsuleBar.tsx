@@ -69,7 +69,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
   };
 
   return (
-    <div className={cn("sticky top-0 z-30 bg-action-bridge text-white py-3 px-3 min-h-[58px] flex items-center justify-around shadow-xl gap-1.5 transition-all duration-300 overflow-x-auto scrollbar-hide", className)}>
+    <div className={cn("sticky top-[-8px] z-30 bg-action-bridge text-white py-3 px-3 min-h-[58px] flex items-center justify-around shadow-md gap-1.5 transition-all duration-300 overflow-x-auto scrollbar-hide", className)}>
       {searchConfig && isSearchActive ? (
         <div className="w-full flex items-center gap-2 px-1 animate-in fade-in zoom-in-95 duration-200">
           <div className="relative flex-1 flex items-center">
