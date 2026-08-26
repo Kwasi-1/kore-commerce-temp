@@ -25,6 +25,7 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
 
   // Recurring Expenses state
   const [recurringList, setRecurringList] = useState<any[]>([]);
@@ -44,7 +45,7 @@ export default function Expenses() {
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [editingRecurring, setEditingRecurring] = useState<any>(null);
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
       const startIso = dateFilter.start_date ? dateFilter.start_date.toISOString() : '';
@@ -57,24 +58,18 @@ export default function Expenses() {
       setSummary(summaryRes.data.success?.data || summaryRes.data.data || {});
 
       const catArr = categoryFilter === 'all' ? ['all'] : Array.from(categoryFilter);
-      const listParams = new URLSearchParams({ limit: '100' });
-      if (catArr[0] !== 'all') listParams.set('category', catArr[0] as string);
+      const listParams = new URLSearchParams({ page: String(pageNumber), per_page: '20' });
+      if (catArr[0] && catArr[0] !== 'all') listParams.set('category', catArr[0] as string);
       if (startIso) listParams.set('start_date', startIso);
       if (endIso) listParams.set('end_date', endIso);
+      if (searchQuery.trim()) listParams.set('search', searchQuery.trim());
 
       const listRes = await apiClient.get(`/tenant/expenses?${listParams.toString()}`);
-      let data = listRes.data.success?.data?.expenses || listRes.data.data?.expenses || [];
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        data = data.filter((e: any) =>
-          e.description?.toLowerCase().includes(q) ||
-          e.category?.toLowerCase().includes(q) ||
-          e.reason?.toLowerCase().includes(q)
-        );
-      }
+      const data = listRes.data.success?.data?.expenses || listRes.data.data?.expenses || [];
+      const pag = listRes.data.success?.data?.pagination || listRes.data.data?.pagination || null;
 
       setExpenses(data);
+      setPagination(pag);
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
       toast.error('Failed to load expenses');
@@ -99,7 +94,7 @@ export default function Expenses() {
 
   useEffect(() => {
     if (activeTab === 'log') {
-      const timer = setTimeout(() => fetchExpenses(), 300);
+      const timer = setTimeout(() => fetchExpenses(1), 300);
       return () => clearTimeout(timer);
     } else {
       fetchRecurringExpenses();
@@ -108,7 +103,7 @@ export default function Expenses() {
 
   const handleLogFormSuccess = () => {
     setIsLogModalOpen(false);
-    fetchExpenses();
+    fetchExpenses(1);
   };
 
   const handleRecurringFormSuccess = () => {
@@ -192,7 +187,11 @@ export default function Expenses() {
 
     return {
       id: exp.id,
-      date: dateRaw ? format(new Date(dateRaw), 'MMM dd, yyyy') : '—',
+      date: (
+        <span className="whitespace-nowrap inline-block font-medium text-foreground">
+          {dateRaw ? format(new Date(dateRaw), 'MMM dd, yyyy') : '—'}
+        </span>
+      ),
       category: (
         <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-foreground">
           {exp.category?.replace(/_/g, ' ')}
@@ -204,10 +203,10 @@ export default function Expenses() {
         <span className={clsx(
           'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border',
           isTillMovement
-            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+            ? 'bg-amber-500/5 text-amber-600 dark:text-amber-400 border-amber-500/5'
             : isAutoRecurring
-            ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+            ? 'bg-purple-500/5 text-purple-600 dark:text-purple-400 border-purple-500/5'
+            : 'bg-blue-500/5 text-blue-600 dark:text-blue-400 border-blue-500/5'
         )}>
           {isAutoRecurring && <Repeat className="h-3 w-3" />}
           {isTillMovement ? 'POS Till' : isAutoRecurring ? 'Auto-Recurring' : 'Backoffice'}
@@ -402,6 +401,8 @@ export default function Expenses() {
             columns={columnsLog}
             rows={rowsLog}
             isLoading={isLoading}
+            serverPagination={pagination}
+            onPageChange={(page) => fetchExpenses(page)}
             title=""
 
             showSearch={true}
@@ -432,7 +433,7 @@ export default function Expenses() {
             addButtonText="Log Expense"
             addButtonIcon="ph:plus-bold"
             onAddButtonClick={() => setIsLogModalOpen(true)}
-            onRefresh={fetchExpenses}
+            onRefresh={() => fetchExpenses(1)}
             onRowActionClick={handleRowActionClickLog}
 
             mobileFriendly={true}
