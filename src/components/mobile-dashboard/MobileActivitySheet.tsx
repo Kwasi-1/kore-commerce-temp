@@ -32,53 +32,58 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
 }) => {
   return (
     <div className={cn("flex-1 flex flex-col min-h-[360px] bg-background rounded-t-2xl p-4 space-y-3 custom-header", className)}>
-      {(title || onViewAll) && (
-        <div className="flex items-center justify-between">
-          {title && <h3 className="text-sm font-bold text-foreground">{title}</h3>}
-          {onViewAll && (
-            <button
-              type="button"
-              onClick={onViewAll}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-            >
-              {viewAllLabel}
-              <Icon icon='akar-icons:chevron-right' />
-            </button>
+      {/* Sticky Header: Title + Filter Tabs */}
+      {(title || onViewAll || (tabs && tabs.length > 0)) && (
+        <div className="sticky top-[58px] z-20 bg-background pt-1 pb-3 -mt-1 -mx-4 px-4 border-b border-border/40 shadow-sm space-y-3">
+          {(title || onViewAll) && (
+            <div className="flex items-center justify-between">
+              {title && <h3 className="text-sm font-bold text-foreground">{title}</h3>}
+              {onViewAll && (
+                <button
+                  type="button"
+                  onClick={onViewAll}
+                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                >
+                  {viewAllLabel}
+                  <Icon icon='akar-icons:chevron-right' />
+                </button>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {tabs && tabs.length > 0 && onTabChange && (
-        <div className="flex items-center gap-1.5 text-xs flex-wrap">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                className={clsx(
-                  "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
-                  isActive
-                    ? "bg-primary text-zinc-950 shadow-sm"
-                    : "bg-muted text-muted-foreground hover:text-foreground",
-                  tab.count > 0 && 'pr-1.5'
-                )}
-              >
-                {tab.label}
-                {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className={clsx(
-                    "ml-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-bold",
-                    isActive
-                      ? "bg-zinc-950/15 text-zinc-950"
-                      : "bg-foreground/10 text-foreground"
-                  )}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {tabs && tabs.length > 0 && onTabChange && (
+            <div className="flex items-center gap-1.5 text-xs flex-wrap">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => onTabChange(tab.id)}
+                    className={clsx(
+                      "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+                      isActive
+                        ? "bg-primary text-zinc-950 shadow-sm"
+                        : "bg-muted text-muted-foreground hover:text-foreground",
+                      tab.count && tab.count > 0 && 'pr-1.5'
+                    )}
+                  >
+                    {tab.label}
+                    {typeof tab.count === 'number' && tab.count > 0 && (
+                      <span className={clsx(
+                        "ml-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-bold",
+                        isActive
+                          ? "bg-zinc-950/15 text-zinc-950"
+                          : "bg-foreground/10 text-foreground"
+                      )}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
