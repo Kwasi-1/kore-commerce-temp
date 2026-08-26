@@ -229,7 +229,14 @@ export default function StockManagement() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          serverPagination={pagination}
+          serverPagination={
+            pagination
+              ? {
+                  ...pagination,
+                  total: pagination.totalVariants ?? pagination.total,
+                }
+              : undefined
+          }
           onPageChange={(page) => fetchProducts(page)}
           showSearch={true}
           searchPlaceholder="Search by name, SKU, or category..."
