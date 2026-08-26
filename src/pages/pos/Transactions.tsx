@@ -70,6 +70,7 @@ export default function Transactions() {
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
   const [paymentFilter, setPaymentFilter] = useState<any>(new Set(["all"]));
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
@@ -105,20 +106,26 @@ export default function Transactions() {
 
   const [serverSummary, setServerSummary] = useState<any>(null);
 
-  const fetchTransactions = useCallback(async () => {
+  const fetchTransactions = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
       const methodArr =
         paymentFilter === "all"
           ? ["all"]
           : Array.from(paymentFilter as Set<string>);
-      let url = "/pos/transactions?per_page=100";
+      let url = `/pos/transactions?page=${pageNumber}&per_page=20`;
       if (methodArr[0] !== "all") {
         url += `&payment_method=${methodArr[0]}`;
+      }
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
       if (isCashier) {
         url += `&start_date=${startOfToday().toISOString()}`;
         url += `&end_date=${endOfToday().toISOString()}`;
+        if (staffUser?.name) {
+          url += `&cashier_name=${encodeURIComponent(staffUser.name)}`;
+        }
       } else {
         if (dateFilter.start_date) {
           url += `&start_date=${dateFilter.start_date.toISOString()}`;
@@ -127,24 +134,12 @@ export default function Transactions() {
           url += `&end_date=${dateFilter.end_date.toISOString()}`;
         }
       }
-      if (isCashier && staffUser?.name) {
-        url += `&cashier_name=${encodeURIComponent(staffUser.name)}`;
-      }
       const response = await apiClient.get(url);
-      let data = response.data.success?.data?.transactions || [];
+      const data = response.data.success?.data?.transactions || [];
       const summaryData = response.data.success?.data?.summary || null;
+      const pag = response.data.success?.data?.pagination || null;
       setServerSummary(summaryData);
-
-      // Client-side search by receipt number or cashier
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        data = data.filter(
-          (t: any) =>
-            t.receiptNumber?.toLowerCase().includes(q) ||
-            t.cashierName?.toLowerCase().includes(q),
-        );
-      }
-
+      setPagination(pag);
       setTransactions(data);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
@@ -155,7 +150,7 @@ export default function Transactions() {
   }, [paymentFilter, searchQuery, dateFilter, isCashier, staffUser]);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchTransactions(), 300);
+    const timer = setTimeout(() => fetchTransactions(1), 300);
     return () => clearTimeout(timer);
   }, [fetchTransactions]);
 
@@ -796,6 +791,8 @@ export default function Transactions() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
+          serverPagination={pagination}
+          onPageChange={(page) => fetchTransactions(page)}
           title="Transaction History"
           emptyStateTitle={getEmptyStateTitle()}
           emptyStateDescription={
