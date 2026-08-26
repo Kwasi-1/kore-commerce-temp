@@ -70,6 +70,7 @@ export default function StockAdjustments() {
   // Page lists states
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("awaiting");
   
   // Table search & filters
@@ -118,10 +119,10 @@ export default function StockAdjustments() {
   };
 
   // Fetch Adjustments data
-  const fetchAdjustments = useCallback(async () => {
+  const fetchAdjustments = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
-      let url = "/tenant/adjustments?per_page=100";
+      let url = `/tenant/adjustments?page=${pageNumber}&per_page=20`;
       
       const statusVal = statusFilterSelection instanceof Set 
         ? Array.from(statusFilterSelection)[0] 
@@ -129,6 +130,10 @@ export default function StockAdjustments() {
         
       if (statusVal && statusVal !== "all") {
         url += `&status=${statusVal}`;
+      }
+
+      if (tableSearchQuery.trim()) {
+        url += `&search=${encodeURIComponent(tableSearchQuery.trim())}`;
       }
 
       if (dateFilter.start_date) {
@@ -140,16 +145,20 @@ export default function StockAdjustments() {
 
       const res = await apiClient.get(url);
       setAdjustments(res.data.success?.data?.adjustments || []);
+      setPagination(res.data.success?.data?.pagination || null);
     } catch (err) {
       console.error("Failed to load adjustments:", err);
       toast.error("Failed to load adjustments history");
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilterSelection, dateFilter]);
+  }, [statusFilterSelection, tableSearchQuery, dateFilter]);
 
   useEffect(() => {
-    fetchAdjustments();
+    const timer = setTimeout(() => {
+      fetchAdjustments(1);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [fetchAdjustments]);
 
   // Variant Search autocomplete handler inside New Adjustment drawer
@@ -568,6 +577,9 @@ export default function StockAdjustments() {
                 columns={columns}
                 rows={rows}
                 isLoading={isLoading}
+                serverPagination={pagination}
+                onPageChange={(page) => fetchAdjustments(page)}
+                onRefresh={() => fetchAdjustments(1)}
                 showSearch={true}
                 searchPlaceholder="Search product variant, SKU, reason, or notes..."
                 searchValue={tableSearchQuery}
@@ -598,10 +610,6 @@ export default function StockAdjustments() {
                 dateFilterValue={dateFilter}
                 onDateFilterChange={setDateFilter}
                 showAddButton={false}
-                // classNames={{
-                //   base: "min-h-[300px]"
-                // }}
-                onRefresh={fetchAdjustments}
                 onclick={handleRowClick}
                 mobileFriendly={true}
               />
@@ -612,6 +620,9 @@ export default function StockAdjustments() {
             columns={columns}
             rows={rows}
             isLoading={isLoading}
+            serverPagination={pagination}
+            onPageChange={(page) => fetchAdjustments(page)}
+            onRefresh={() => fetchAdjustments(1)}
             showSearch={true}
             searchPlaceholder="Search product variant, SKU, reason, or notes..."
             searchValue={tableSearchQuery}
@@ -645,7 +656,6 @@ export default function StockAdjustments() {
             classNames={{
               base: "min-h-[300px]"
             }}
-            onRefresh={fetchAdjustments}
             onclick={handleRowClick}
             mobileFriendly={true}
           />
