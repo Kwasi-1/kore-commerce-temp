@@ -33,7 +33,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   return (
     <div
       className={cn(
-        "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-125px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden shadow-lg",
+        "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-125px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden",
         className
       )}
     >

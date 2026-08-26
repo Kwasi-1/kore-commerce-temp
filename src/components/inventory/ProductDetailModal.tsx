@@ -221,22 +221,19 @@ export function ProductDetailModal({
               )}
 
               {/* Variants & Packaging Tiers Matrix */}
-              <div>
-                <div className="flex items-center justify-between">
-                  {/* <span className="text-xs font-bold text-foreground">
-                    Packaging Tiers & Pricing
-                  </span> */}
-                  {variants.length > 1 && (
-                    <div className="justify-end ml-auto flex items-center gap-1 overflow-x-auto max-w-[260px] pb-2.5">
+              <div className="space-y-3">
+                {variants.length > 1 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide flex-wrap">
                       {variants.map((v: any) => (
                         <button
                           key={v.id}
                           type="button"
                           onClick={() => setSelectedVariantId(v.id)}
-                          className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-[5px] border transition-all ${
+                          className={`px-3 py-1 text-xs font-semibold rounded-md border transition-all ${
                             activeVariant?.id === v.id
-                              ? "bg-foreground text-background border-foreground font-bold"
-                              : "bg-muted/40 text-muted-foreground border-border hover:text-foreground"
+                              ? "bg-foreground text-background border-foreground font-bold shadow-xs"
+                              : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
                           }`}
                         >
                           {Object.values(v.variant_attributes || {}).join(" / ") ||
@@ -244,97 +241,99 @@ export function ProductDetailModal({
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {activeVariant ? (
-                  <div className="border border-border/70 rounded overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-border/60 text-muted-foreground font-semibold text-[10px] uppercase tracking-wider bg-muted/20">
-                          <th className="p-2.5">Packaging Unit</th>
-                          <th className="p-2.5 text-center">Contains</th>
-                          <th className="p-2.5 text-right">Retail Price</th>
-                          <th className="p-2.5 text-right">Wholesale</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40">
-                        {(activeVariant.packaging_tiers || []).length === 0 ? (
-                          <tr>
-                            <td className="p-2.5 font-medium text-foreground">
-                              Base Unit ({activeVariant.base_unit_name || "unit"})
-                            </td>
-                            <td className="p-2.5 text-center font-mono text-muted-foreground">
-                              1 {activeVariant.base_unit_name || "unit"}
-                            </td>
-                            <td className="p-2.5 text-right font-semibold text-foreground">
-                              <CurrencyDisplay
-                                amount={Number(primaryRetailPrice || 0)}
-                                showStyling={false}
-                              />
-                            </td>
-                            <td className="p-2.5 text-right text-muted-foreground">
-                              —
-                            </td>
+                  <div className="border border-border/70 rounded-lg overflow-hidden bg-card">
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full min-w-[340px] text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-border/60 text-muted-foreground font-semibold text-[10px] uppercase tracking-wider bg-muted/20">
+                            <th className="p-2.5 whitespace-nowrap">Packaging Unit</th>
+                            <th className="p-2.5 text-center whitespace-nowrap">Contains</th>
+                            <th className="p-2.5 text-right whitespace-nowrap">Retail Price</th>
+                            <th className="p-2.5 text-right whitespace-nowrap">Wholesale</th>
                           </tr>
-                        ) : (
-                          activeVariant.packaging_tiers.map(
-                            (tier: any, tIdx: number) => {
-                              const retailPriceRec = tier.prices?.find(
-                                (p: any) => p.price_type === "retail"
-                              );
-                              const wholesalePriceRec = tier.prices?.find(
-                                (p: any) => p.price_type === "wholesale"
-                              );
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {(activeVariant.packaging_tiers || []).length === 0 ? (
+                            <tr>
+                              <td className="p-2.5 font-medium text-foreground">
+                                Base Unit ({activeVariant.base_unit_name || "unit"})
+                              </td>
+                              <td className="p-2.5 text-center font-mono text-muted-foreground">
+                                1 {activeVariant.base_unit_name || "unit"}
+                              </td>
+                              <td className="p-2.5 text-right font-semibold text-foreground">
+                                <CurrencyDisplay
+                                  amount={Number(primaryRetailPrice || 0)}
+                                  showStyling={false}
+                                />
+                              </td>
+                              <td className="p-2.5 text-right text-muted-foreground">
+                                —
+                              </td>
+                            </tr>
+                          ) : (
+                            activeVariant.packaging_tiers.map(
+                              (tier: any, tIdx: number) => {
+                                const retailPriceRec = tier.prices?.find(
+                                  (p: any) => p.price_type === "retail"
+                                );
+                                const wholesalePriceRec = tier.prices?.find(
+                                  (p: any) => p.price_type === "wholesale"
+                                );
 
-                              return (
-                                <tr key={tIdx} className="hover:bg-muted/10">
-                                  <td className="p-2.5 font-medium text-foreground">
-                                    <div className="flex items-center gap-1.5">
-                                      <span>{tier.name}</span>
-                                      {tier.is_base_unit && (
-                                        <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">
-                                          Base
-                                        </span>
+                                return (
+                                  <tr key={tIdx} className="hover:bg-muted/10">
+                                    <td className="p-2.5 font-medium text-foreground whitespace-nowrap">
+                                      <div className="flex items-center gap-1.5">
+                                        <span>{tier.name}</span>
+                                        {tier.is_base_unit && (
+                                          <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">
+                                            Base
+                                          </span>
+                                        )}
+                                        {tier.is_default_sale_unit && (
+                                          <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">
+                                            POS
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-2.5 text-center font-mono text-muted-foreground whitespace-nowrap">
+                                      {tier.units_per_tier}{" "}
+                                      {activeVariant.base_unit_name || "unit"}s
+                                    </td>
+                                    <td className="p-2.5 text-right font-semibold text-foreground whitespace-nowrap">
+                                      {retailPriceRec ? (
+                                        <CurrencyDisplay
+                                          amount={Number(retailPriceRec.price || 0)}
+                                          showStyling={false}
+                                        />
+                                      ) : (
+                                        "—"
                                       )}
-                                      {tier.is_default_sale_unit && (
-                                        <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">
-                                          POS
-                                        </span>
+                                    </td>
+                                    <td className="p-2.5 text-right text-muted-foreground whitespace-nowrap">
+                                      {wholesalePriceRec ? (
+                                        <CurrencyDisplay
+                                          amount={Number(wholesalePriceRec.price || 0)}
+                                          showStyling={false}
+                                        />
+                                      ) : (
+                                        "—"
                                       )}
-                                    </div>
-                                  </td>
-                                  <td className="p-2.5 text-center font-mono text-muted-foreground">
-                                    {tier.units_per_tier}{" "}
-                                    {activeVariant.base_unit_name || "unit"}s
-                                  </td>
-                                  <td className="p-2.5 text-right font-semibold text-foreground">
-                                    {retailPriceRec ? (
-                                      <CurrencyDisplay
-                                        amount={Number(retailPriceRec.price || 0)}
-                                        showStyling={false}
-                                      />
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-                                  <td className="p-2.5 text-right text-muted-foreground">
-                                    {wholesalePriceRec ? (
-                                      <CurrencyDisplay
-                                        amount={Number(wholesalePriceRec.price || 0)}
-                                        showStyling={false}
-                                      />
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            }
-                          )
-                        )}
-                      </tbody>
-                    </table>
+                                    </td>
+                                  </tr>
+                                );
+                              }
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-4 text-center text-muted-foreground border border-dashed border-border/70 rounded-lg">
