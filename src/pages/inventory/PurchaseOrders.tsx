@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
@@ -14,9 +14,11 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 export default function PurchaseOrders() {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
   
   // Filters
   const [statusFilter, setStatusFilter] = useState(new Set(['all']));
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,33 +37,37 @@ export default function PurchaseOrders() {
   const [isCancellingPO, setIsCancellingPO] = useState(false);
   const [isClosingPO, setIsClosingPO] = useState(false);
 
-  const fetchPOs = async () => {
+  const fetchPOs = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
       const statusArr = Array.from(statusFilter);
-      let url = '/tenant/purchase-orders?limit=50';
-      if (statusArr[0] !== 'all') {
-        url += `&status=${statusArr[0]}`;
+      let url = `/tenant/purchase-orders?page=${pageNumber}&limit=20`;
+      if (statusArr[0] && statusArr[0] !== 'all') {
+        url += `&status=${encodeURIComponent(statusArr[0])}`;
+      }
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
 
       const response = await apiClient.get(url);
       setPurchaseOrders(response.data.success?.data?.purchaseOrders || []);
+      setPagination(response.data.success?.data?.pagination || null);
     } catch (error) {
       console.error('Failed to fetch POs:', error);
       toast.error('Failed to load purchase orders');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery]);
 
   useEffect(() => {
-    fetchPOs();
-  }, [statusFilter]);
+    fetchPOs(1);
+  }, [fetchPOs]);
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
     setEditingPO(null);
-    fetchPOs();
+    fetchPOs(pagination?.page || 1);
   };
 
   const handleEdit = (po: any) => {
@@ -319,6 +325,13 @@ export default function PurchaseOrders() {
         rows={rows}
         isLoading={isLoading}
         title="All Orders"
+        serverPagination={pagination}
+        onPageChange={(page) => fetchPOs(page)}
+        showSearch={true}
+        searchPlaceholder="Search reference, supplier, or notes..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onRefresh={() => fetchPOs(1)}
         
         showFilter={true}
         filterLabel="Status"
