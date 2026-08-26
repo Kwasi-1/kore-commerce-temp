@@ -11,6 +11,9 @@ import toast from 'react-hot-toast';
 
 import { CurrencyDisplay } from '@/hooks';
 
+import { Button } from '@/components/ui/button';
+import { Icon } from '@iconify/react';
+
 export default function Suppliers() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,7 +86,7 @@ export default function Suppliers() {
       toast.success(`Supplier ${nextActive ? 'activated' : 'deactivated'}`);
       setIsStatusModalOpen(false);
       setStatusModalSupplier(null);
-      fetchSuppliers();
+      fetchSuppliers(pagination?.page || 1);
     } catch (error: any) {
       console.error('Toggle supplier status error:', error);
       toast.error(error.response?.data?.error?.message || 'Failed to update supplier status');
@@ -101,37 +104,54 @@ export default function Suppliers() {
     { key: 'status', label: 'Status' }
   ];
 
-  const rows = suppliers.map((s: any) => {
-    const debtAmount = s.total_debt ?? s.outstanding_balance ?? 0;
-    const isActive = s.is_active !== undefined ? s.is_active : (s.isActive !== undefined ? s.isActive : true);
+  const rows = suppliers.map((supplier) => {
+    const isActive = supplier.is_active !== undefined ? supplier.is_active : supplier.isActive;
+    
     return {
-      id: s.id,
-      name: <span className="font-semibold text-foreground">{s.name}</span>,
-      contact_person: s.contact_person || '—',
-      email: s.email ? <a href={`mailto:${s.email}`} className="text-blue-500 hover:underline">{s.email}</a> : '—',
-      phone: s.phone || '—',
+      id: supplier.id,
+      name: (
+        <span className="font-semibold text-foreground">
+          {supplier.name}
+        </span>
+      ),
+      contact_person: (
+        <span className="text-muted-foreground">
+          {supplier.contact_person || supplier.contactPerson || '—'}
+        </span>
+      ),
+      email: (
+        <span className="text-muted-foreground">
+          {supplier.email || '—'}
+        </span>
+      ),
+      phone: (
+        <span className="text-muted-foreground font-mono text-xs">
+          {supplier.phone || '—'}
+        </span>
+      ),
       outstanding_debt: (
-        <span className={`font-bold text-xs ${debtAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-          {debtAmount > 0 ? <CurrencyDisplay amount={debtAmount} showStyling={false} /> : '—'}
+        <span className="font-medium text-foreground">
+          {supplier.outstanding_debt ? (
+            <CurrencyDisplay amount={supplier.outstanding_debt} />
+          ) : '—'}
         </span>
       ),
       status: (
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-          isActive ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
-          : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+          isActive ? 'text-green-600 bg-green-50 dark:bg-green-950/30' : 'text-red-500 bg-red-50 dark:bg-red-950/30'
         }`}>
           {isActive ? 'Active' : 'Inactive'}
         </span>
       ),
       rowActions: [
-        { key: 'edit', label: 'Edit', icon: 'mdi:pencil-outline' },
+        { key: 'edit', label: 'Edit Supplier', icon: 'mdi:pencil-outline' },
         { 
           key: 'toggle_status', 
           label: isActive ? 'Deactivate' : 'Activate', 
-          icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline'
+          icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline' 
         }
       ],
-      __record: s
+      __record: supplier
     };
   });
 
@@ -145,32 +165,6 @@ export default function Suppliers() {
 
   return (
     <PageLayout title="Suppliers" constrainHeight={true}>
-      {/* Tab Switcher */}
-      {showCreditTab && (
-        <div className="flex border-b border-border mb-4">
-          <button
-            onClick={() => navigate('/inventory/suppliers')}
-            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
-              location.pathname === '/inventory/suppliers'
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Supplier Directory
-          </button>
-          <button
-            onClick={() => navigate('/inventory/supplier-credit')}
-            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
-              location.pathname === '/inventory/supplier-credit'
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Credit Ledger
-          </button>
-        </div>
-      )}
-
       <EnhancedTableComponent
         columns={columns}
         rows={rows}
@@ -186,6 +180,21 @@ export default function Suppliers() {
         onSearchChange={setSearchQuery}
         
         showFilter={false}
+        
+        showTopContent={true}
+        topActions={
+          showCreditTab
+            ? [
+                {
+                  title: "Credit Ledger",
+                  icon: "solar:card-recive-linear",
+                  variant: "flat",
+                  className: "border border-border/60 text-foreground font-semibold rounded-md h-[38px] px-3 bg-muted/60 hover:bg-muted text-xs",
+                  onPress: () => navigate('/inventory/supplier-credit'),
+                },
+              ]
+            : []
+        }
         
         showAddButton={true}
         addButtonText="New Supplier"

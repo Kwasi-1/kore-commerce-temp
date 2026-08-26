@@ -22,6 +22,8 @@ import SupplierCreditDetailModal, {
   SupplierCreditRecord 
 } from '@/components/inventory/SupplierCreditDetailModal';
 import RecordSupplierPaymentModal from '@/components/inventory/RecordSupplierPaymentModal';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@iconify/react';
 
 export default function SupplierCredit() {
   const navigate = useNavigate();
@@ -263,57 +265,27 @@ export default function SupplierCredit() {
 
   return (
     <PageLayout title="Suppliers" constrainHeight={true}>
-      {/* Tab Switcher */}
-      {showCreditTab && (
-        <div className="flex border-b border-border mb-4">
-          <button
-            onClick={() => navigate('/inventory/suppliers')}
-            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
-              location.pathname === '/inventory/suppliers'
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Supplier Directory
-          </button>
-          <button
-            onClick={() => navigate('/inventory/supplier-credit')}
-            className={`px-5 py-3 text-xs font-bold border-b-2 transition-all ${
-              location.pathname === '/inventory/supplier-credit'
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Credit Ledger
-          </button>
-        </div>
-      )}
-
       <div className="flex flex-col gap-5 relative flex-1">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <DashboardCard
             title="Total Outstanding Owed"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} />}
             className="border border-border"
-            // action={<Coins className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Suppliers with Credit"
             value={isLoading ? '...' : summary.total_suppliers_with_debt.toString()}
             className="border border-border"
-            // action={<CreditCard className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Overdue Balances"
             value={isLoading ? '...' : summary.overdue_count.toString()}
             className="border border-border text-destructive"
-            // action={<AlertTriangle className="text-destructive/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Upcoming Due (7 Days)"
             value={isLoading ? '...' : summary.upcoming_due_7_days.toString()}
             className="border border-border text-amber-500"
-            // action={<Clock className="text-amber-500/50 h-5 w-5" />}
           />
         </div>
 
@@ -337,6 +309,20 @@ export default function SupplierCredit() {
           ]}
           filterValue={statusFilter}
           onFilterChange={(keys: any) => setStatusFilter(keys)}
+          showTopContent={true}
+          topActions={
+            showCreditTab
+              ? [
+                  {
+                    title: "Supplier Directory",
+                    icon: "solar:users-group-two-rounded-linear",
+                    variant: "flat",
+                    className: "border border-border/60 text-foreground font-semibold rounded-md h-[38px] px-3 bg-muted/60 hover:bg-muted text-xs",
+                    onPress: () => navigate('/inventory/suppliers'),
+                  },
+                ]
+              : []
+          }
           showAddButton={false}
           onRefresh={() => fetchCredits(1)}
           onRowActionClick={handleRowActionClick}
