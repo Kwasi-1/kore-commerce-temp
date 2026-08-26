@@ -29,6 +29,12 @@ export default function Returns() {
   const { formatGHS, formatAmount } = useCurrency();
   const [returns, setReturns] = useState<ReturnRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
+  const [summary, setSummary] = useState<any>({
+    total_logged: 0,
+    total_refunds_approved: 0,
+    awaiting_count: 0
+  });
   
   // Filtering states
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
@@ -49,41 +55,35 @@ export default function Returns() {
   const [selectedReturn, setSelectedReturn] = useState<ReturnRecord | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const fetchReturns = useCallback(async () => {
+  const fetchReturns = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter as Set<string>);
-      let url = '/pos/returns';
+      let url = `/pos/returns?page=${pageNumber}&per_page=20`;
       
-      const response = await apiClient.get(url);
-      let data: ReturnRecord[] = response.data.success?.data?.returns || [];
-
-      // Client-side filtering by status
-      if (statusArr[0] !== 'all') {
-        data = data.filter(r => r.status === statusArr[0]);
+      if (statusArr[0] && statusArr[0] !== 'all') {
+        url += `&status=${encodeURIComponent(statusArr[0])}`;
       }
-
-      // Client-side filtering by date range
       if (dateFilter.start_date) {
-        const start = startOfDay(dateFilter.start_date).getTime();
-        data = data.filter(r => new Date(r.date_created || '').getTime() >= start);
+        url += `&start_date=${format(dateFilter.start_date, 'yyyy-MM-dd')}T00:00:00Z`;
       }
       if (dateFilter.end_date) {
-        const end = endOfDay(dateFilter.end_date).getTime();
-        data = data.filter(r => new Date(r.date_created || '').getTime() <= end);
+        url += `&end_date=${format(dateFilter.end_date, 'yyyy-MM-dd')}T23:59:59Z`;
+      }
+      if (debouncedSearchQuery.trim()) {
+        url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
       }
 
-      // Client-side search by return ID, transaction ref or notes using debounced query
-      if (debouncedSearchQuery.trim()) {
-        const q = debouncedSearchQuery.toLowerCase();
-        data = data.filter(r =>
-          r.id.toLowerCase().includes(q) ||
-          r.original_transaction_ref?.toLowerCase().includes(q) ||
-          (r.notes && r.notes.toLowerCase().includes(q))
-        );
-      }
+      const response = await apiClient.get(url);
+      const data: ReturnRecord[] = response.data.success?.data?.returns || [];
+      const pag = response.data.success?.data?.pagination || null;
+      const sum = response.data.success?.data?.summary || null;
 
       setReturns(data);
+      setPagination(pag);
+      if (sum) {
+        setSummary(sum);
+      }
     } catch (error) {
       console.error('Failed to fetch returns history:', error);
       toast.error('Failed to load returns history');
@@ -93,7 +93,7 @@ export default function Returns() {
   }, [statusFilter, debouncedSearchQuery, dateFilter]);
 
   useEffect(() => {
-    fetchReturns();
+    fetchReturns(1);
   }, [fetchReturns]);
 
   const handleRowClick = (key: any) => {
@@ -300,19 +300,19 @@ export default function Returns() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
             title="Total Returns Logged"
-            value={isLoading ? '...' : metrics.totalCount.toString()}
+            value={isLoading ? '...' : (summary?.total_logged ?? returns.length).toString()}
             className="border border-border"
             action={<ArrowRightLeft className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Total Refunds Approved"
-            value={isLoading ? '...' : <CurrencyDisplay amount={metrics.totalRefunded} />}
+            value={isLoading ? '...' : <CurrencyDisplay amount={summary?.total_refunds_approved ?? 0} />}
             className="border border-border"
             action={<CheckCircle className="text-muted-foreground/50 h-5 w-5" />}
           />
           <DashboardCard
             title="Awaiting Approval"
-            value={isLoading ? '...' : metrics.pendingCount.toString()}
+            value={isLoading ? '...' : (summary?.awaiting_count ?? 0).toString()}
             className="border border-border"
             action={<Clock className="text-muted-foreground/50 h-5 w-5" />}
           />
@@ -327,6 +327,8 @@ export default function Returns() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           isLoading={isLoading}
+          serverPagination={pagination}
+          onPageChange={(page) => fetchReturns(page)}
           showFilter={true}
           filterLabel="Status"
           filterOptions={[
@@ -341,7 +343,7 @@ export default function Returns() {
           dateFilterValue={dateFilter}
           onDateFilterChange={setDateFilter}
           showAddButton={false}
-          onRefresh={fetchReturns}
+          onRefresh={() => fetchReturns(1)}
           onclick={handleRowClick}
           mobileFriendly={true}
         />
