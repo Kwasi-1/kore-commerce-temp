@@ -652,7 +652,11 @@ export default function Products() {
   };
 
   // Calculate metrics
-  const totalProducts = pagination?.total ?? products.length;
+  const totalProductsCount = pagination?.totalProducts ?? pagination?.total ?? products.length;
+  const totalVariantsCount = pagination?.totalVariants ?? products.reduce((acc, p) => acc + (p.variants?.length || 1), 0);
+  const displayTotalCount = effectiveViewMode === "list" ? totalVariantsCount : totalProductsCount;
+  const displayTotalLabel = effectiveViewMode === "list" ? "Total Items / SKUs" : "Total Products";
+
   const outOfStockCount = products.filter(
     (p) => p.total_stock_base_units === 0,
   ).length;
@@ -680,9 +684,9 @@ export default function Products() {
       <MobileDashboardWrapper>
         {/* 1. Hero Products Count / Overview Card + Carousel */}
         <MobileHeroCard
-          title="Total Products"
+          title={displayTotalLabel}
           badge={`${activeProductsCount} Active`}
-          value={`${isLoading ? '...' : totalProducts} Items`}
+          value={`${isLoading ? '...' : displayTotalCount} ${displayTotalCount > 1 ? "Items" : "Item"}`}
           isLoading={isLoading}
         >
           <MobileMetricPill
@@ -894,8 +898,8 @@ export default function Products() {
         {/* Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <DashboardCard
-          title="Total Products"
-          value={isLoading ? '...' : totalProducts}
+          title={displayTotalLabel}
+          value={isLoading ? '...' : displayTotalCount}
           className="border border-border"
           action={<Package className="text-muted-foreground/50 h-5 w-5" />}
         />
@@ -945,7 +949,14 @@ export default function Products() {
         }
         rows={tableRows}
         isLoading={isLoading}
-        serverPagination={pagination}
+        serverPagination={
+          pagination
+            ? {
+                ...pagination,
+                total: effectiveViewMode === "list" && pagination.totalVariants ? pagination.totalVariants : pagination.total,
+              }
+            : undefined
+        }
         onPageChange={(newPage) => fetchProducts(newPage, false)}
         enableInlineAccordion={effectiveViewMode === "group"}
         expandedRowIds={effectiveViewMode === "group" ? expandedProductIds : undefined}
