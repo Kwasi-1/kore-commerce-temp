@@ -167,10 +167,10 @@ export default function Notifications() {
   return (
     <PageLayout
       title="Notifications & Activity Log"
-      subtitle="Real-time alerts, stock warnings, and transaction logs across your store."
-      className="max-w-4xl xl:max-w-5xl mx-auto"
+      // subtitle="Real-time alerts, stock warnings, and transaction logs across your store."
+      className="md:max-w-3xl mx-auto sm:px-4 md:px-8 xl:px-0"
     >
-      <div className="space-y-5 max-w-5xl mx-auto pb-10">
+      <div className="space-y-5 pb-10 sm:px-0">
         {/* Controls Card */}
         <div className="flex flex-col gap-3.5 p-3.5 sm:p-4 rounded-xl bg-card border border-border shadow-xs">
           {/* Top Row: Search & Global Actions */}
@@ -183,7 +183,7 @@ export default function Notifications() {
                 placeholder="Search alerts by title, order, or keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -221,7 +221,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'all'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -232,7 +232,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all flex items-center gap-1.5 shrink-0',
                 activeTab === 'unread'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -255,7 +255,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'inventory'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -266,7 +266,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'orders'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -277,7 +277,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'financial'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -288,7 +288,7 @@ export default function Notifications() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-all shrink-0',
                 activeTab === 'system'
-                  ? 'bg-foreground text-background font-bold shadow-xs'
+                  ? 'bg-muted text-foreground font-bold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
@@ -347,7 +347,7 @@ export default function Notifications() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4
                           className={clsx(
-                            'text-sm font-bold tracking-tight',
+                            'text-sm font-bold tracking-tight font-header',
                             item.read ? 'text-foreground/90' : 'text-foreground'
                           )}
                         >
