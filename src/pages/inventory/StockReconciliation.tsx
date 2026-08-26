@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Selection } from '@nextui-org/react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,9 @@ export default function StockReconciliation() {
   const [products, setProducts] = useState<ReconcileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pagination, setPagination] = useState<any>(null);
+  const [totalVariantsCount, setTotalVariantsCount] = useState<number>(0);
+  const [categories, setCategories] = useState<string[]>([]);
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [filterSelection, setFilterSelection] = useState<Selection>(new Set(['all']));
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
@@ -78,11 +81,28 @@ export default function StockReconciliation() {
     }
   }, [physicalCounts]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/tenant/products?limit=250');
+      let url = `/tenant/products?page=${pageNumber}&limit=20&status=active`;
+      if (tableSearchQuery.trim()) {
+        url += `&search=${encodeURIComponent(tableSearchQuery.trim())}`;
+      }
+      const catVal = typeof categoryFilter === 'string' ? categoryFilter : Array.from(categoryFilter)[0];
+      if (catVal && catVal !== 'all') {
+        url += `&category=${encodeURIComponent(catVal)}`;
+      }
+
+      const response = await apiClient.get(url);
       const rawProducts = response.data.success?.data?.products || [];
+      const pag = response.data.success?.data?.pagination || null;
+      const summary = response.data.success?.data?.summary || null;
+      const totalVar = summary?.total_variants ?? pag?.totalVariants ?? pag?.total ?? 0;
+
+      if (totalVar > 0) {
+        setTotalVariantsCount(totalVar);
+      }
+      setPagination(pag);
       
       const flatItems: ReconcileItem[] = [];
       rawProducts.forEach((p: any) => {
@@ -123,10 +143,22 @@ export default function StockReconciliation() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tableSearchQuery, categoryFilter]);
 
   useEffect(() => {
-    fetchProducts();
+    const timer = setTimeout(() => {
+      fetchProducts(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    apiClient.get('/tenant/products/categories')
+      .then(res => {
+        const cats = res.data.success?.data?.categories || [];
+        setCategories(cats);
+      })
+      .catch(console.error);
   }, []);
 
   const handleCountChange = (id: string, newValue: string) => {
@@ -223,11 +255,12 @@ export default function StockReconciliation() {
   }, [products]);
 
   const categoryFilterOptions = useMemo(() => {
+    const combined = Array.from(new Set([...categories, ...availableCategories]));
     return [
       { uid: 'all', name: 'All Categories' },
-      ...availableCategories.map(cat => ({ uid: cat, name: cat }))
+      ...combined.map(cat => ({ uid: cat, name: cat }))
     ];
-  }, [availableCategories]);
+  }, [categories, availableCategories]);
 
   // Computed summary metrics
   const countedCount = Object.keys(physicalCounts).length;
@@ -261,15 +294,9 @@ export default function StockReconciliation() {
     return Math.round((sum + Number.EPSILON) * 100) / 100;
   }, [discrepancyItems]);
 
-  // Filtered rows for the table
+  // Filtered rows for the current page table
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      // Category filter
-      const catVal = typeof categoryFilter === 'string' ? categoryFilter : Array.from(categoryFilter)[0];
-      if (catVal && catVal !== 'all' && p.category !== catVal) {
-        return false;
-      }
-
       // Status filter
       const isCounted = physicalCounts[p.id] !== undefined;
       const hasVariance = isCounted && physicalCounts[p.id] !== p.quantity;
@@ -279,16 +306,9 @@ export default function StockReconciliation() {
       if (filterVal === 'uncounted' && isCounted) return false;
       if (filterVal === 'discrepancies' && !hasVariance) return false;
 
-      // Text search
-      const q = tableSearchQuery.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [products, physicalCounts, categoryFilter, filterSelection, tableSearchQuery]);
+  }, [products, physicalCounts, filterSelection]);
 
   const handleApplyReconciliation = async () => {
     if (discrepancyItems.length === 0 && countedCount === 0) {
@@ -318,39 +338,43 @@ export default function StockReconciliation() {
       setIsReviewModalOpen(false);
       setAuditNotes('');
       setPhysicalCounts({});
-      fetchProducts();
+      localStorage.removeItem('recon_draft_counts');
+      fetchProducts(pagination?.page || 1);
     } catch (error: any) {
       console.error('Reconciliation error:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to apply stock reconciliation');
+      toast.error(error.response?.data?.error?.message || 'Failed to apply reconciliation');
     } finally {
       setIsSaving(false);
     }
   };
 
   const columns: TableColumn[] = [
-    { key: 'product', label: 'Product Variant' },
+    { key: 'name', label: 'Product / Variant' },
     { key: 'category', label: 'Category' },
-    { key: 'system_stock', label: 'Expected (System)' },
-    { key: 'physical_stock', label: 'Actual (Physical Count)' },
+    { key: 'current_stock', label: 'System Stock' },
+    { key: 'actual_count', label: 'Physical Count' },
     { key: 'variance', label: 'Variance' },
   ];
 
   const rows = useMemo(() => {
-    return filteredProducts.map((p) => {
+    return filteredProducts.map(p => {
       const isCounted = physicalCounts[p.id] !== undefined;
-      const actualVal = isCounted ? physicalCounts[p.id] : '';
-      const variance = isCounted ? (physicalCounts[p.id] - p.quantity) : 0;
-      const hasTiers = (p.packaging_tiers || []).some(t => t.units_per_tier > 1);
-      const systemTierBreakdown = getTierBreakdown(p.quantity, p.base_unit_name, p.packaging_tiers);
-      const actualTierBreakdown = isCounted ? getTierBreakdown(Number(actualVal), p.base_unit_name, p.packaging_tiers) : null;
-      const varianceTierBreakdown = isCounted && variance !== 0 ? getTierBreakdown(variance, p.base_unit_name, p.packaging_tiers) : null;
+      const count = physicalCounts[p.id];
+      const variance = isCounted ? count - p.quantity : 0;
+      const actualVal = isCounted ? String(count) : '';
+      const hasTiers = (p.packaging_tiers || []).length > 0;
+      const actualTierBreakdown = isCounted ? getTierBreakdown(count, p.base_unit_name, p.packaging_tiers) : null;
 
       return {
         id: p.id,
-        product: (
-          <div className="min-w-[180px]">
-            <p className="font-semibold text-foreground capitalize text-sm">{p.name}</p>
-            <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{p.sku}</p>
+        name: (
+          <div className="flex flex-col min-w-[180px]">
+            <span className="font-semibold text-foreground capitalize text-sm">
+              {p.name}
+            </span>
+            <span className="text-[11px] text-muted-foreground font-mono mt-0.5">
+              SKU: {p.sku}
+            </span>
           </div>
         ),
         category: (
@@ -358,7 +382,7 @@ export default function StockReconciliation() {
             {p.category}
           </span>
         ),
-        system_stock: (
+        current_stock: (
           <PackagingStockDisplay
             quantity={p.quantity}
             baseUnitName={p.base_unit_name}
@@ -367,18 +391,18 @@ export default function StockReconciliation() {
             tierClassName="text-[11px] text-muted-foreground/80 font-mono mt-0.5"
           />
         ),
-        physical_stock: (
+        actual_count: (
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <input 
+            <div className="flex items-center gap-1.5">
+              <input
                 type="number"
                 min="0"
                 step="any"
                 placeholder="Enter count..."
-                className={`w-28 px-3 py-1.5 rounded-md border text-sm focus:outline-none focus:ring-1 focus:ring-primary ${
+                className={`h-8 w-28 px-3 py-1.5 text-sm rounded-[5px] border focus:outline-none focus:border-foreground/10 ${
                   isCounted 
                     ? 'border-border bg-background font-medium text-foreground' 
-                    : 'border-border/60 bg-muted/40 text-muted-foreground'
+                    : 'border-border/60 bg-muted/30 text-muted-foreground'
                 }`}
                 value={actualVal}
                 onChange={(e) => handleCountChange(p.id, e.target.value)}
@@ -387,11 +411,10 @@ export default function StockReconciliation() {
                 <button
                   type="button"
                   onClick={() => handleOpenTierCalculator(p)}
-                  title="Count by Packs / Boxes & Units"
-                  className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 hover:text-foreground bg-muted/60 hover:bg-muted px-2 py-1.5 rounded-md border border-border transition-colors shadow-sm"
+                  className="p-1.5 hover:bg-muted rounded-md border border-border flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  title="Tier Calculator"
                 >
-                  <Boxes className="h-3.5 w-3.5" />
-                  <span>Tier Calc</span>
+                  <Boxes className="h-4 w-4" />
                 </button>
               )}
               {!isCounted && (
@@ -417,20 +440,17 @@ export default function StockReconciliation() {
             {!isCounted ? (
               <span className="text-muted-foreground font-normal text-xs">—</span>
             ) : variance === 0 ? (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-muted-foreground bg-muted/30 w-fit">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                0 Match
-              </span>
+              <span className="text-xs font-semibold text-green-600">0 Match</span>
             ) : (
               <PackagingStockDisplay
                 quantity={variance}
                 baseUnitName={p.base_unit_name}
                 packagingTiers={p.packaging_tiers}
                 showPrefixSign={true}
-                primaryClassName={`inline-flex items-center px-2 py-0.5 rounded text-[12px] font-bold font-mono w-fit ${
+                primaryClassName={`inline-flex items-center py-0.5 rounded text-[12px] font-bold w-fit ${
                   variance > 0 
-                    ? 'text-green-600 bg-green-400/10 border-green-500/20' 
-                    : 'text-destructive bg-destructive/5 border-destructive/20'
+                    ? 'text-green-600' 
+                    : 'text-destructive'
                 }`}
                 tierClassName="text-[11px] text-muted-foreground/80 font-mono mt-0.5"
               />
@@ -442,7 +462,8 @@ export default function StockReconciliation() {
     });
   }, [filteredProducts, physicalCounts]);
 
-  const countPercent = products.length > 0 ? Math.round((countedCount / products.length) * 100) : 0;
+  const totalCount = totalVariantsCount > 0 ? totalVariantsCount : (products.length || 0);
+  const countPercent = totalCount > 0 ? Math.round((countedCount / totalCount) * 100) : 0;
 
   return (
     <PageLayout 
@@ -455,19 +476,19 @@ export default function StockReconciliation() {
           <DashboardCard
             title="Items Counted"
             value={
-              isLoading ? (
+              isLoading && totalCount === 0 ? (
                 "..."
               ) : (
                 <>
                   {countedCount}
                   <span className="text-[75%] font-normal text-muted-foreground ml-1.5">
-                    / {products.length}
+                    / {totalCount}
                   </span>
                 </>
               )
             }
             subvalue={
-              !isLoading && products.length > 0 ? (
+              totalCount > 0 ? (
                 <div className="flex items-center gap-2.5 mt-1">
                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
@@ -487,7 +508,7 @@ export default function StockReconciliation() {
           <DashboardCard
             title="Discrepancies Detected"
             value={
-              isLoading ? (
+              isLoading && totalCount === 0 ? (
                 "..."
               ) : (
                 <>
@@ -502,7 +523,7 @@ export default function StockReconciliation() {
               <p className="text-[11px] text-muted-foreground mt-1">
                 {countedCount === 0 
                   ? 'No items counted yet' 
-                  : `${products.length - countedCount} uncounted remaining`}
+                  : `${Math.max(0, totalCount - countedCount)} uncounted remaining`}
               </p>
             }
             className="border border-border"
@@ -538,6 +559,11 @@ export default function StockReconciliation() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
+          serverPagination={{
+            ...pagination,
+            total: totalVariantsCount || pagination?.total || products.length
+          }}
+          onPageChange={(page) => fetchProducts(page)}
           showSearch={true}
           searchPlaceholder="Search product variant, SKU, or category..."
           searchValue={tableSearchQuery}
@@ -595,7 +621,7 @@ export default function StockReconciliation() {
           classNames={{
             base: "min-h-[350px]"
           }}
-          onRefresh={fetchProducts}
+          onRefresh={() => fetchProducts(1)}
           mobileFriendly={true}
         />
       </div>
