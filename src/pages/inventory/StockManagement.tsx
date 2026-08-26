@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
@@ -14,8 +14,9 @@ export default function StockManagement() {
   const [products, setProducts] = useState<ProductStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
-  
-  // Search & Filter state
+  const [pagination, setPagination] = useState<any>(null);
+
+  // Search & Filter state (server-side)
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
   const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set(['all']));
@@ -29,67 +30,117 @@ export default function StockManagement() {
   const [historyProduct, setHistoryProduct] = useState<ProductStockItem | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-  // Fetch products
-  const fetchProducts = useCallback(async () => {
+  /** Flatten a raw products API page into ProductStockItem rows */
+  const flattenProducts = (rawProducts: any[]): ProductStockItem[] => {
+    const flatItems: ProductStockItem[] = [];
+    rawProducts.forEach((p: any) => {
+      const variants = p.variants || [];
+      if (variants.length === 0) {
+        flatItems.push({
+          id: p.id,
+          variantId: p.id,
+          productId: p.id,
+          name: p.name,
+          category: p.category || 'General',
+          sku: p.sku || '—',
+          quantity: Number(p.stock_quantity ?? p.total_stock_base_units ?? 0),
+          base_unit_name: p.base_unit_name || 'units',
+          imageUrl: p.images?.[0] || p.imageUrl,
+          packaging_tiers: p.packaging_tiers || [],
+          cost_price: p.cost_price_per_base_unit || 0,
+        });
+      } else {
+        variants.forEach((v: any) => {
+          const attrVals = v.variant_attributes
+            ? Object.values(v.variant_attributes).filter(Boolean)
+            : [];
+          const fullName = attrVals.length > 0 ? `${p.name} (${attrVals.join(', ')})` : p.name;
+          flatItems.push({
+            id: v.id,
+            variantId: v.id,
+            productId: p.id,
+            name: fullName,
+            category: p.category || 'General',
+            sku: v.sku || p.sku || '—',
+            quantity: Number(v.stock_quantity ?? 0),
+            base_unit_name: v.base_unit_name || p.base_unit_name || 'units',
+            imageUrl: p.images?.[0] || p.imageUrl,
+            packaging_tiers: v.packaging_tiers || p.packaging_tiers || [],
+            cost_price: v.cost_price_per_base_unit || 0,
+          });
+        });
+      }
+    });
+    return flatItems;
+  };
+
+  /** Server-paginated fetch: search, category, and stock status are sent as query params */
+  const fetchProducts = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/tenant/products?limit=150');
-      const rawProducts = response.data.success?.data?.products || [];
-      
-      const flatItems: ProductStockItem[] = [];
-      const catSet = new Set<string>();
+      let url = `/tenant/products?page=${pageNumber}&limit=20`;
 
-      rawProducts.forEach((p: any) => {
-        if (p.category) catSet.add(p.category);
-        const variants = p.variants || [];
-        
-        if (variants.length === 0) {
-          flatItems.push({
-            id: p.id,
-            variantId: p.id,
-            productId: p.id,
-            name: p.name,
-            category: p.category || 'General',
-            sku: p.sku || '—',
-            quantity: Number(p.stock_quantity ?? p.total_stock_base_units ?? 0),
-            base_unit_name: p.base_unit_name || 'units',
-            imageUrl: p.images?.[0] || p.imageUrl,
-            packaging_tiers: p.packaging_tiers || [],
-            cost_price: p.cost_price_per_base_unit || 0
-          });
-        } else {
-          variants.forEach((v: any) => {
-            const attrVals = v.variant_attributes ? Object.values(v.variant_attributes).filter(Boolean) : [];
-            const fullName = attrVals.length > 0 ? `${p.name} (${attrVals.join(', ')})` : p.name;
-            flatItems.push({
-              id: v.id,
-              variantId: v.id,
-              productId: p.id,
-              name: fullName,
-              category: p.category || 'General',
-              sku: v.sku || p.sku || '—',
-              quantity: Number(v.stock_quantity ?? 0),
-              base_unit_name: v.base_unit_name || p.base_unit_name || 'units',
-              imageUrl: p.images?.[0] || p.imageUrl,
-              packaging_tiers: v.packaging_tiers || p.packaging_tiers || [],
-              cost_price: v.cost_price_per_base_unit || 0
-            });
-          });
+      if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+
+      const catVal = categoryFilter instanceof Set ? Array.from(categoryFilter)[0] : categoryFilter;
+      if (catVal && catVal !== 'all') url += `&category=${encodeURIComponent(String(catVal))}`;
+
+      // Stock status maps to the product status field on the server
+      const stockVal = stockStatusFilter instanceof Set
+        ? Array.from(stockStatusFilter)[0]
+        : stockStatusFilter;
+      if (stockVal && stockVal !== 'all') {
+        // 'in_stock' / 'low_stock' / 'out_of_stock' are client-side concepts;
+        // server only knows product status (active / inactive). We filter the
+        // stock quantity client-side after receiving the page.
+      }
+
+      const response = await apiClient.get(url);
+      const rawProducts = response.data.success?.data?.products || [];
+      const pag = response.data.success?.data?.pagination || null;
+      setPagination(pag);
+
+      let flatItems = flattenProducts(rawProducts);
+
+      // Apply stock status filter client-side (server doesn't have this concept)
+      if (stockVal && stockVal !== 'all') {
+        if (stockVal === 'in_stock') {
+          flatItems = flatItems.filter(p => p.quantity > 5);
+        } else if (stockVal === 'low_stock') {
+          flatItems = flatItems.filter(p => p.quantity > 0 && p.quantity <= 5);
+        } else if (stockVal === 'out_of_stock') {
+          flatItems = flatItems.filter(p => p.quantity <= 0);
         }
-      });
+      }
 
       setProducts(flatItems);
-      setCategories(Array.from(catSet));
     } catch (error) {
       console.error('Failed to fetch products for stock management:', error);
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
     }
+  }, [searchQuery, categoryFilter, stockStatusFilter]);
+
+  /** Fetch all categories once from the dedicated endpoint */
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/tenant/products/categories');
+      setCategories(res.data.success?.data?.categories || []);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
   }, []);
 
+  // Load categories once on mount
   useEffect(() => {
-    fetchProducts();
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Refetch products whenever search/filter changes (reset to page 1)
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProducts(1), 300);
+    return () => clearTimeout(timer);
   }, [fetchProducts]);
 
   // Open Quick Restock Modal
@@ -104,39 +155,6 @@ export default function StockManagement() {
     setIsHistoryModalOpen(true);
   };
 
-  // Filter products for table
-  const filteredProducts = useMemo(() => {
-    let result = products;
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        p.sku.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-      );
-    }
-
-    // Category filter
-    const catVal = categoryFilter instanceof Set ? Array.from(categoryFilter)[0] : categoryFilter;
-    if (catVal && catVal !== 'all') {
-      result = result.filter(p => p.category === catVal);
-    }
-
-    // Stock status filter
-    const stockVal = stockStatusFilter instanceof Set ? Array.from(stockStatusFilter)[0] : stockStatusFilter;
-    if (stockVal === 'in_stock') {
-      result = result.filter(p => p.quantity > 5);
-    } else if (stockVal === 'low_stock') {
-      result = result.filter(p => p.quantity > 0 && p.quantity <= 5);
-    } else if (stockVal === 'out_of_stock') {
-      result = result.filter(p => p.quantity <= 0);
-    }
-
-    return result;
-  }, [products, searchQuery, categoryFilter, stockStatusFilter]);
-
   // EnhancedTableComponent columns
   const columns: TableColumn[] = [
     { key: 'image', label: 'Image' },
@@ -144,12 +162,12 @@ export default function StockManagement() {
     { key: 'category', label: 'Category' },
     { key: 'sku', label: 'SKU' },
     { key: 'current_stock', label: 'Current Stock' },
-    { key: 'status', label: 'Stock Status' }
+    { key: 'status', label: 'Stock Status' },
   ];
 
   // EnhancedTableComponent rows mapping
   const rows = useMemo(() => {
-    return filteredProducts.map(p => {
+    return products.map(p => {
       const isOutOfStock = p.quantity <= 0;
       const isLowStock = p.quantity > 0 && p.quantity <= 5;
 
@@ -185,24 +203,24 @@ export default function StockManagement() {
         ),
         status: (
           <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-            isOutOfStock 
-              ? 'text-destructive bg-destructive/10 border border-destructive/20' 
-              : isLowStock 
-                ? 'text-amber-600 bg-amber-500/10 border border-amber-500/20' 
+            isOutOfStock
+              ? 'text-destructive bg-destructive/10 border border-destructive/20'
+              : isLowStock
+                ? 'text-amber-600 bg-amber-500/10 border border-amber-500/20'
                 : 'text-green-600 bg-green-400/10'
           }`}>
             {isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock' : 'In Stock'}
           </span>
         ),
-        __record: p
+        __record: p,
       };
     });
-  }, [filteredProducts]);
+  }, [products]);
 
   return (
-    <PageLayout 
-      title="Stock Management" 
-      subtitle="Quickly adjust physical stock levels across all your inventory." 
+    <PageLayout
+      title="Stock Management"
+      subtitle="Quickly adjust physical stock levels across all your inventory."
       constrainHeight={true}
     >
       <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
@@ -211,7 +229,8 @@ export default function StockManagement() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          // title="Product Stock Directory"
+          serverPagination={pagination}
+          onPageChange={(page) => fetchProducts(page)}
           showSearch={true}
           searchPlaceholder="Search by name, SKU, or category..."
           searchValue={searchQuery}
@@ -228,39 +247,39 @@ export default function StockManagement() {
           onFilterChange={(keys: any) => setStockStatusFilter(keys)}
           additionalFilters={[
             {
-              label: "Category",
+              label: 'Category',
               value: categoryFilter,
               onChange: (keys: any) => setCategoryFilter(keys),
               options: [
-                { uid: "all", name: "All Categories" },
+                { uid: 'all', name: 'All Categories' },
                 ...categories.map((c) => ({ uid: c, name: c })),
               ],
             },
           ]}
           rowActions={[
             {
-              key: "adjust",
-              label: "Adjust Stock Level",
-              icon: "fluent:arrow-swap-20-filled",
+              key: 'adjust',
+              label: 'Adjust Stock Level',
+              icon: 'fluent:arrow-swap-20-filled',
             },
             {
-              key: "history",
-              label: "View Audit Trail",
-              icon: "fluent:history-20-filled",
+              key: 'history',
+              label: 'View Audit Trail',
+              icon: 'fluent:history-20-filled',
             },
           ]}
           onRowActionClick={(actionKey, rowData) => {
             const originalProduct = rowData.__record;
-            if (actionKey === "adjust") {
+            if (actionKey === 'adjust') {
               handleOpenRestock(originalProduct);
-            } else if (actionKey === "history") {
+            } else if (actionKey === 'history') {
               handleOpenHistory(originalProduct);
             }
           }}
           showAddButton={true}
           addButtonText="Bulk Receive Stock"
           onAddButtonClick={() => setIsBulkStockModalOpen(true)}
-          onRefresh={fetchProducts}
+          onRefresh={() => fetchProducts(1)}
           onclick={(key: any) => {
             const prod = products.find(p => p.id === key || p.id === key?.toString());
             if (prod) handleOpenRestock(prod);
@@ -277,7 +296,7 @@ export default function StockManagement() {
           setSelectedProduct(null);
         }}
         product={selectedProduct}
-        onSuccess={fetchProducts}
+        onSuccess={() => fetchProducts(pagination?.page || 1)}
       />
 
       {/* STOCK HISTORY & AUDIT TRAIL MODAL */}
@@ -295,7 +314,7 @@ export default function StockManagement() {
       <BulkStockUploadModal
         isOpen={isBulkStockModalOpen}
         onClose={() => setIsBulkStockModalOpen(false)}
-        onSuccess={fetchProducts}
+        onSuccess={() => fetchProducts(1)}
       />
     </PageLayout>
   );
