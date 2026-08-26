@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -51,53 +51,55 @@ export default function Products() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"list" | "group">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("preferred_products_view_mode");
-      if (saved === "list" || saved === "group") {
-        return saved;
-      }
-    }
-    return "list";
-  });
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Search and filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Selection>(new Set(["all"]));
-  const [categoryFilter, setCategoryFilter] = useState<Selection>(
-    new Set(["all"]),
-  );
   const [categories, setCategories] = useState<string[]>([]);
-
-  // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-
-  // Detail Modal state
-  const [selectedProductForDetail, setSelectedProductForDetail] = useState<any | null>(null);
+  const [statusFilter, setStatusFilter] = useState<Selection>(new Set(["all"]));
+  const [categoryFilter, setCategoryFilter] = useState<Selection>(
+    new Set(["all"]),
+  );
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedProductForDetail, setSelectedProductForDetail] =
+    useState<any>(null);
 
-  // Row Actions state
+  // Status Modal State
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [productToToggleStatus, setProductToToggleStatus] = useState<any>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [productToToggleStatus, setProductToToggleStatus] = useState<any | null>(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Accordion / cache state for variants
+  // Preferred view mode for table: 'list' (flat variants) vs 'group' (parent product with accordion)
+  const [viewMode, setViewMode] = useState<"list" | "group">(() => {
+    return (
+      (localStorage.getItem(
+        "preferred_products_view_mode",
+      ) as "list" | "group") || "list"
+    );
+  });
+
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Pagination & Infinite Scroll State
+  const [pagination, setPagination] = useState<any>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Accordion expanded keys / IDs for grouped view
   const [expandedProductIds, setExpandedProductIds] = useState<
     Record<string, boolean>
   >({});
@@ -108,10 +110,14 @@ export default function Products() {
     Record<string, boolean>
   >({});
 
-  const fetchProducts = async () => {
-    setIsLoading(true);
+  const fetchProducts = async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
-      let url = "/tenant/products?limit=100";
+      let url = `/tenant/products?page=${pageNumber}&limit=20`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
       const statusVal =
         statusFilter instanceof Set
@@ -127,7 +133,14 @@ export default function Products() {
 
       const response = await apiClient.get(url);
       const data = response.data.success?.data?.products || [];
-      setProducts(data);
+      const pag = response.data.success?.data?.pagination || null;
+      setPagination(pag);
+
+      if (append) {
+        setProducts((prev) => [...prev, ...data]);
+      } else {
+        setProducts(data);
+      }
 
       // Extract categories for filter options
       const uniqueCats = Array.from(
@@ -142,12 +155,37 @@ export default function Products() {
       toast.error("Failed to load products");
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchProducts(nextPage, true);
+  };
+
+  // IntersectionObserver for infinite scrolling
+  useEffect(() => {
+    const target = sentinelRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && pagination?.hasNext && !isLoading && !isLoadingMore) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1, rootMargin: "120px" }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [pagination?.hasNext, pagination?.page, isLoading, isLoadingMore]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchProducts();
+      fetchProducts(1, false);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, statusFilter, categoryFilter]);
@@ -607,7 +645,7 @@ export default function Products() {
   };
 
   // Calculate metrics
-  const totalProducts = products.length;
+  const totalProducts = pagination?.total ?? products.length;
   const outOfStockCount = products.filter(
     (p) => p.total_stock_base_units === 0,
   ).length;
@@ -822,6 +860,22 @@ export default function Products() {
                 </div>
               );
             })
+          )}
+
+          {/* Infinite Scroll Sentinel & Loading indicator */}
+          {products.length > 0 && (
+            <div ref={sentinelRef} className="py-4 text-center">
+              {isLoadingMore ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Spinner className="h-4 w-4" />
+                  <span>Loading more products...</span>
+                </div>
+              ) : pagination && !pagination.hasNext ? (
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  All {pagination.total || products.length} products loaded
+                </span>
+              ) : null}
+            </div>
           )}
         </MobileActivitySheet>
       </MobileDashboardWrapper>
