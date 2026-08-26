@@ -938,6 +938,8 @@ export default function Products() {
         }
         rows={tableRows}
         isLoading={isLoading}
+        serverPagination={pagination}
+        onPageChange={(newPage) => fetchProducts(newPage, false)}
         enableInlineAccordion={effectiveViewMode === "group"}
         expandedRowIds={effectiveViewMode === "group" ? expandedProductIds : undefined}
         onRowExpandToggle={effectiveViewMode === "group" ? handleToggleExpand : undefined}

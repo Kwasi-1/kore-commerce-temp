@@ -86,6 +86,15 @@ export interface EnhancedTableProps {
     page: number;
   };
   setParams?: (params: any) => void;
+  serverPagination?: {
+    page: number;
+    pages: number;
+    total: number;
+    perPage: number;
+    hasNext?: boolean;
+    hasPrev?: boolean;
+  };
+  onPageChange?: (page: number) => void;
 
   // Expandable row props
   enableRowExpansion?: boolean;
@@ -214,6 +223,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   isPaginated = false,
   params,
   setParams,
+  serverPagination,
+  onPageChange,
 
   // Expandable row props
   enableRowExpansion = false,
@@ -825,12 +836,21 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     defaultDateFilterRange,
   ]);
 
-  // Client-side pagination
-  const totalPages = Math.ceil(processedRows.length / pageSize);
+  // Pagination logic (Server-side vs Client-side)
+  const isServerPaginated = Boolean(serverPagination && onPageChange);
+  const totalPages = isServerPaginated
+    ? (serverPagination?.pages || 1)
+    : Math.ceil(processedRows.length / (pageSize || 8));
+  const activePage = isServerPaginated
+    ? (serverPagination?.page || 1)
+    : currentPage;
+
   const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return processedRows.slice(start, start + pageSize);
-  }, [processedRows, currentPage, pageSize]);
+    if (isServerPaginated) return processedRows;
+    const size = pageSize || 8;
+    const start = (currentPage - 1) * size;
+    return processedRows.slice(start, start + size);
+  }, [processedRows, currentPage, pageSize, isServerPaginated]);
 
   return (
     <CustomContainerComponent styles={containerStyles}>
@@ -922,57 +942,90 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
               />
             </div>
 
-            {/* Client-side Pagination bar */}
-            {totalPages > 1 && (
+            {/* Pagination bar */}
+            {(isServerPaginated ? (serverPagination?.total ?? 0) > 0 : totalPages > 1) && (
               <div className="flex items-center justify-between px-2 pt-2 border-t border-border/70 mt-2">
                 <p className="text-xs text-muted-foreground">
-                  Showing {(currentPage - 1) * pageSize + 1}–
-                  {Math.min(currentPage * pageSize, processedRows.length)} of{" "}
-                  {processedRows.length}
-                </p>
-                <div className="flex items-center gap-1">
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="flat"
-                    isDisabled={currentPage === 1}
-                    onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="border border-border rounded-md"
-                  >
-                    <Icon icon="ph:caret-left" className="text-base" />
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <Button
-                        key={page}
-                        isIconOnly
-                        size="sm"
-                        variant={currentPage === page ? "solid" : "flat"}
-                        color={currentPage === page ? "primary" : "default"}
-                        onPress={() => setCurrentPage(page)}
-                        className={
-                          currentPage !== page
-                            ? "border border-border rounded-md"
-                            : "rounded-md"
-                        }
-                      >
-                        {page}
-                      </Button>
-                    ),
+                  {isServerPaginated ? (
+                    <>
+                      Showing {((serverPagination?.page ?? 1) - 1) * (serverPagination?.perPage ?? 20) + 1}–
+                      {Math.min(
+                        (serverPagination?.page ?? 1) * (serverPagination?.perPage ?? 20),
+                        serverPagination?.total ?? 0
+                      )}{" "}
+                      of {serverPagination?.total ?? processedRows.length}
+                    </>
+                  ) : (
+                    <>
+                      Showing {(currentPage - 1) * (pageSize || 8) + 1}–
+                      {Math.min(currentPage * (pageSize || 8), processedRows.length)} of{" "}
+                      {processedRows.length}
+                    </>
                   )}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="flat"
-                    isDisabled={currentPage === totalPages}
-                    onPress={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className="border border-border rounded-md"
-                  >
-                    <Icon icon="ph:caret-right" className="text-base" />
-                  </Button>
-                </div>
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="flat"
+                      isDisabled={activePage === 1}
+                      onPress={() => {
+                        const newPage = Math.max(1, activePage - 1);
+                        if (isServerPaginated) {
+                          onPageChange!(newPage);
+                        } else {
+                          setCurrentPage(newPage);
+                        }
+                      }}
+                      className="border border-border rounded-md"
+                    >
+                      <Icon icon="ph:caret-left" className="text-base" />
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          isIconOnly
+                          size="sm"
+                          variant={activePage === page ? "solid" : "flat"}
+                          color={activePage === page ? "primary" : "default"}
+                          onPress={() => {
+                            if (isServerPaginated) {
+                              onPageChange!(page);
+                            } else {
+                              setCurrentPage(page);
+                            }
+                          }}
+                          className={`border rounded-md ${
+                            activePage === page
+                              ? "bg-primary text-primary-foreground font-bold border-primary"
+                              : "border-border text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {page}
+                        </Button>
+                      ),
+                    )}
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="flat"
+                      isDisabled={activePage === totalPages}
+                      onPress={() => {
+                        const newPage = Math.min(totalPages, activePage + 1);
+                        if (isServerPaginated) {
+                          onPageChange!(newPage);
+                        } else {
+                          setCurrentPage(newPage);
+                        }
+                      }}
+                      className="border border-border rounded-md"
+                    >
+                      <Icon icon="ph:caret-right" className="text-base" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
