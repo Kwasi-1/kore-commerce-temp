@@ -132,7 +132,13 @@ export default function PageLayout({
                   <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
                 </Button>
                 
-                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10">
+                <Button
+                  onClick={() => navigate('/settings/account')}
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10"
+                  title="Account Settings"
+                >
                   <Settings className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
                 
@@ -151,6 +157,10 @@ export default function PageLayout({
                       <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={() => navigate('/settings/account')}>
+                      <User className="h-4 w-4" />
+                      Account Settings
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
                       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                       {isDark ? 'Light Mode' : 'Dark Mode'}

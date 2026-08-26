@@ -38,7 +38,8 @@ import {
   Lock,
   Bell,
   Banknote,
-  ClipboardCheck
+  ClipboardCheck,
+  User,
 } from 'lucide-react';
 
 import clsx from 'clsx';
@@ -226,6 +227,7 @@ export default function Sidebar() {
       icon: Settings,
       show: !isCashier,
       items: [
+        { name: 'Account Settings', to: '/settings/account', icon: User },
         { name: 'Business Profile', to: '/settings/profile', icon: Settings },
         { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
         { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },
@@ -545,13 +547,17 @@ export default function Sidebar() {
       {/* --- Bottom User Profile Card --- */}
       <div className="p-3 mt-auto">
         {!isCollapsed ? (
-          <div className="bg-white/[4%] border border-[#1a1b1e] rounded-xl p-2.5 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0">
+          <div className="bg-white/[4%] border border-[#1a1b1e] hover:border-white/10 rounded-xl p-2.5 flex items-center justify-between shadow-sm transition-all">
+            <div
+              onClick={() => startTransition(() => navigate('/settings/account'))}
+              className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1 group"
+              title="View Account Settings"
+            >
+              <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0 group-hover:border-primary/50 transition-colors">
                 {getUserInitials(userName)}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-white truncate max-w-[110px]">
+                <span className="text-xs font-bold text-white truncate max-w-[110px] group-hover:text-primary transition-colors">
                   {userName}
                 </span>
                 <span className="text-[10px] font-medium text-zinc-400 capitalize truncate">
@@ -566,21 +572,18 @@ export default function Sidebar() {
                 window.location.href = '/login';
               }}
               title="Logout"
-              className="p-1.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 ml-1"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         ) : (
           <button
-            onClick={() => {
-              logout();
-              window.location.href = '/login';
-            }}
-            title="Logout"
-            className="h-10 w-10 mx-auto rounded-2xl bg-[#1a1b1e] border border-white/5 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors"
+            onClick={() => startTransition(() => navigate('/settings/account'))}
+            title="Account Settings"
+            className="h-10 w-10 mx-auto rounded-2xl bg-[#1a1b1e] border border-white/5 text-zinc-400 hover:text-primary flex items-center justify-center transition-colors"
           >
-            <LogOut className="h-5 w-5" />
+            <User className="h-5 w-5" />
           </button>
         )}
       </div>

@@ -31,6 +31,7 @@ import {
   ClipboardList,
   Lock,
   Banknote,
+  User,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
@@ -184,8 +185,9 @@ export default function BottomNav() {
         },
         {
           title: 'Settings',
-          show: modules.settings,
+          show: true,
           items: [
+            { name: 'Account Settings', to: '/settings/account', icon: User },
             { name: 'Business Profile', to: '/settings/profile', icon: Settings },
             { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
             { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },

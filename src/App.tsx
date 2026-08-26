@@ -16,6 +16,8 @@ import ProductFormPage from '@/pages/inventory/ProductFormPage';
 import SupplierCredit from '@/pages/inventory/SupplierCredit';
 import PlanGraceModal from '@/components/shared/PlanGraceModal';
 import PlanBlockedWall from '@/components/shared/PlanBlockedWall';
+import ReloadPrompt from '@/components/shared/ReloadPrompt';
+import AccountSettings from '@/pages/settings/AccountSettings';
 
 // Pages — lazy with auto-retry for code splitting.
 const Login = lazyWithRetry(() => import('@/pages/Login'));
@@ -129,6 +131,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><Overview /></ProtectedRoute>} />
 
         {/* Settings */}
+        <Route path="/settings/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
         <Route path="/settings/profile" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><BusinessProfile /></ProtectedRoute>} />
         <Route path="/settings/pos" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><POSSettings /></ProtectedRoute>} />
         <Route path="/settings/plan" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PlanBilling /></ProtectedRoute>} />
@@ -186,6 +189,7 @@ export default function App() {
       <Suspense fallback={<PageLoader />}>
         <PlanBlockedWall />
         <PlanGraceModal />
+        <ReloadPrompt />
         <AppRoutes />
       </Suspense>
     </ChunkErrorBoundary>
