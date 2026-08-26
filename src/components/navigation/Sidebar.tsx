@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { getModules } from '@/utils/permissions';
 import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
 import apiClient from '@/api/client';
@@ -101,10 +102,12 @@ export default function Sidebar() {
   const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
   const [lowStockCount, setLowStockCount] = useState<number>(0);
+  const { unreadCount: unreadNotificationsCount, fetchUnreadCount } = useNotificationStore();
 
   useEffect(() => {
     if (!tenant?.id) return;
     let isMounted = true;
+    fetchUnreadCount();
     apiClient.get('/tenant/products?limit=100')
       .then((res) => {
         if (!isMounted) return;
@@ -138,7 +141,7 @@ export default function Sidebar() {
     return () => {
       isMounted = false;
     };
-  }, [tenant?.id, location.pathname]);
+  }, [tenant?.id, fetchUnreadCount, location.pathname]);
 
   const navSections: NavSection[] = [
     {
@@ -153,8 +156,8 @@ export default function Sidebar() {
       show: modules.pos,
       hasDividerAfter: true,
       items: [
-        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
-        { name: 'Transactions', to: '/pos/transactions', icon: History },
+        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, moduleKey: 'pos' },
+        { name: 'Transactions', to: '/pos/transactions', icon: History, moduleKey: 'pos' },
         { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
         { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
       ],
@@ -166,7 +169,7 @@ export default function Sidebar() {
       show: !isCashier && (modules.inventory || hasGraceModule('inventory_basic')),
       badge: lowStockCount > 0 ? lowStockCount : undefined,
       items: [
-        { name: 'Products', to: '/inventory/products', icon: Package },
+        { name: 'Products', to: '/inventory/products', icon: Package, moduleKey: 'inventory' },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
         { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation' },
@@ -198,8 +201,8 @@ export default function Sidebar() {
       title: 'Notifications',
       icon: Bell,
       show: true,
-      badge: 3,
-      items: [{ name: 'Activity Log', to: '/notifications', icon: Bell, badge: 3 }],
+      badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined,
+      items: [{ name: 'Activity Log', to: '/notifications', icon: Bell, badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined }],
     },
     {
       title: 'Staff',

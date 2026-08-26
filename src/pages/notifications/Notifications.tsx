@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { useNotificationStore } from '@/store/notificationStore';
 
 export interface NotificationItem {
   id: string;
@@ -36,7 +37,9 @@ export default function Notifications() {
     try {
       const res = await apiClient.get('/tenant/notifications');
       const items = res.data.success?.data?.notifications || [];
+      const unread = res.data.success?.data?.unreadCount ?? items.filter((i: any) => !i.read).length;
       setNotifications(items);
+      useNotificationStore.getState().setUnreadCount(unread);
     } catch (err) {
       console.warn('Could not load notifications:', err);
       setNotifications([]);
@@ -54,9 +57,11 @@ export default function Notifications() {
     try {
       await apiClient.post('/tenant/notifications/read-all');
       setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      useNotificationStore.getState().markAllRead();
       toast.success('All notifications marked as read');
     } catch (err) {
       setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      useNotificationStore.getState().markAllRead();
       toast.success('All notifications marked as read');
     }
   };
@@ -70,15 +75,20 @@ export default function Notifications() {
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
+    useNotificationStore.getState().decrementUnread();
   };
 
   const deleteNotification = async (id: string) => {
+    const target = notifications.find((n) => n.id === id);
     try {
       await apiClient.delete(`/tenant/notifications/${id}`);
     } catch (err) {
       // optimistic delete
     }
     setNotifications((prev) => prev.filter((item) => item.id !== id));
+    if (target && !target.read) {
+      useNotificationStore.getState().decrementUnread();
+    }
     toast.success('Notification dismissed');
   };
 

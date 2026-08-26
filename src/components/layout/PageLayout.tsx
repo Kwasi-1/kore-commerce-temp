@@ -16,6 +16,8 @@ import {
 import { Icon } from '@iconify/react';
 import { cn } from "@/lib/utils";
 
+import { useNotificationStore } from '@/store/notificationStore';
+
 interface PageLayoutProps {
   title?: React.ReactNode;
   titleClassName?: string;
@@ -54,6 +56,8 @@ export default function PageLayout({
     logout();
     navigate('/login');
   };
+
+  const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
 
   return (
     <div
@@ -129,7 +133,9 @@ export default function PageLayout({
                   className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10"
                 >
                   <Bell className="h-4 w-4 md:h-5 md:w-5" />
-                  <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+                  )}
                 </Button>
                 
                 <Button

@@ -24,6 +24,7 @@ import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import OfflineQueueDrawer from './OfflineQueueDrawer';
+import { useNotificationStore } from '@/store/notificationStore';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -39,6 +40,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
+  const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
   
   const { 
     showProductImages, 
@@ -106,7 +108,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
 
         <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="hidden md:flex relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
           <Bell className="h-4 w-4 md:h-5 md:w-5" />
-          <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2  rounded-full bg-red-500"></span>
+          {unreadNotificationsCount > 0 && (
+            <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+          )}
         </Button>
         
         <DropdownMenu>
