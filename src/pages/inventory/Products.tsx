@@ -142,14 +142,6 @@ export default function Products() {
         setProducts(data);
       }
 
-      // Extract categories for filter options
-      const uniqueCats = Array.from(
-        new Set(data.map((p: any) => p.category).filter(Boolean)),
-      ) as string[];
-      setCategories((prev) => {
-        const union = Array.from(new Set([...prev, ...uniqueCats]));
-        return union;
-      });
     } catch (error) {
       console.error("Failed to fetch products:", error);
       toast.error("Failed to load products");
@@ -182,6 +174,21 @@ export default function Products() {
     observer.observe(target);
     return () => observer.disconnect();
   }, [pagination?.hasNext, pagination?.page, isLoading, isLoadingMore]);
+
+  // Fetch all unique categories from the server once (not from paginated product data)
+  const fetchCategories = async () => {
+    try {
+      const res = await apiClient.get('/tenant/products/categories');
+      const cats = res.data.success?.data?.categories || [];
+      setCategories(cats);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -607,6 +607,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                     selectedKeys={localFilterValue}
                     selectionMode="single"
                     onSelectionChange={handleFilterChange}
+                    className="max-h-[320px] overflow-y-auto scrollbar-hide"
                   >
                     {filterOptions.map((option) => (
                       <DropdownItem key={option.uid} className="capitalize">
@@ -645,6 +646,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                       filter.onChange(keys);
                       setCurrentPage(1);
                     }}
+                    className="max-h-[320px] overflow-y-auto scrollbar-hide"
                   >
                     {filter.options.map((option) => (
                       <DropdownItem key={option.uid} className="capitalize">
