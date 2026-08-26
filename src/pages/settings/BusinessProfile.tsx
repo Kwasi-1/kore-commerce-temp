@@ -129,7 +129,7 @@ export default function BusinessProfile() {
 
   return (
     <PageLayout title="Business Profile">
-      <div className="max-w-4xl space-y-8">
+      <div className="max-w-4xl space-y-5 md:space-y-6 custom-header">
         
         {/* Profile Section */}
         <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
@@ -153,7 +153,7 @@ export default function BusinessProfile() {
               label="Business Description"
               value={profileData.description}
               onChange={(e) => setProfileData(p => ({ ...p, description: e.target.value }))}
-              rows={4}
+              rows={3}
               placeholder="Tell your customers about your business..."
             />
             <div className="pt-2">
