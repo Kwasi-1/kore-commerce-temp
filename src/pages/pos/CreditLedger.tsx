@@ -375,7 +375,7 @@ export default function CreditLedger() {
             value={activeCount}
             subtitle="Pending balances"
             icon={<AlertCircle className="h-3.5 w-3.5" />}
-            iconColorClass="bg-muted text-foreground"
+            iconColorClass="bg-amber-500/10 text-amber-500"
             isLoading={isLoading}
             onClick={() => setViewMode('active')}
           />
@@ -385,7 +385,7 @@ export default function CreditLedger() {
             value={<CurrencyDisplay amount={stats.settledThisMonth} symbolClassName="text-muted-foreground text-xs" />}
             subtitle="Recovered"
             icon={<Wallet className="h-3.5 w-3.5" />}
-            iconColorClass="bg-muted text-foreground"
+            iconColorClass="bg-emerald-500/10 text-emerald-500"
             isLoading={isLoading}
           />
 
@@ -394,7 +394,7 @@ export default function CreditLedger() {
             value={settledCount}
             subtitle="Fully paid"
             icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-            iconColorClass="bg-muted text-foreground"
+            iconColorClass="bg-blue-500/10 text-blue-500"
             isLoading={isLoading}
             onClick={() => setViewMode('settled')}
           />
@@ -410,12 +410,12 @@ export default function CreditLedger() {
           actions={[
             {
               label: viewMode === 'active' ? 'Settled Accounts' : 'Active Debtors',
-              icon: viewMode === 'active' ? <UserCheck className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />,
+              icon: viewMode === 'active' ? <UserCheck className="h-3.5 w-3.5 text-primary" /> : <AlertCircle className="h-3.5 w-3.5 text-primary" />,
               onClick: () => setViewMode((prev) => (prev === 'active' ? 'settled' : 'active')),
             },
             {
               label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
               onClick: () => fetchDebtors(viewMode),
             },
           ]}
@@ -424,10 +424,10 @@ export default function CreditLedger() {
         {/* 3. Debtors Activity Sheet */}
         <MobileActivitySheet
           title="Customer Accounts"
-          tabs={[
-            { id: 'active', label: 'Active Debtors', count: activeCount },
-            { id: 'settled', label: 'Settled Accounts', count: settledCount },
-          ]}
+          // tabs={[
+          //   { id: 'active', label: 'Active Debtors' },
+          //   { id: 'settled', label: 'Settled Accounts'}
+          // ]}
           activeTab={viewMode}
           onTabChange={(tabId) => setViewMode(tabId as 'active' | 'settled')}
         >
@@ -457,7 +457,7 @@ export default function CreditLedger() {
                   className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-full shrink-0 flex items-center justify-center font-bold text-xs bg-muted text-foreground border border-border">
+                    <div className="h-10 w-10 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs bg-muted text-foreground border border-border">
                       {initials}
                     </div>
                     <div className="min-w-0">
@@ -471,11 +471,11 @@ export default function CreditLedger() {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className="font-extrabold text-[12px] block text-foreground">
+                    <span className={`font-extrabold text-[12px] block ${isOwing ? "text-foreground" : "text-emerald-500 font-header"}`}>
                       {isOwing ? <CurrencyDisplay amount={debt} symbolClassName="text-xs" /> : "Fully Settled"}
                     </span>
                     <span className={cn(
-                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5 border",
+                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
                       isOwing
                         ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                         : "bg-muted text-muted-foreground border-border/50"

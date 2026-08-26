@@ -75,12 +75,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
                   >
                     {tab.label}
                     {typeof tab.count === 'number' && tab.count > 0 && (
-                      <span className={clsx(
-                        "ml-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-bold",
-                        isActive
-                          ? "bg-zinc-950/15 text-zinc-950"
-                          : "bg-foreground/10 text-foreground"
-                      )}>
+                      <span className="ml-1.5 bg-rose-500 text-white px-1.5 py-[2px] rounded-full text-[9px]">
                         {tab.count}
                       </span>
                     )}

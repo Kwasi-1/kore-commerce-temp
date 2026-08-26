@@ -275,7 +275,7 @@ export default function Returns() {
                       <CurrencyDisplay amount={r.total_refund_amount || 0} symbolClassName="text-xs" />
                     </span>
                     <span className={cn(
-                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5 border",
+                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
                       isApproved
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         : isPending
