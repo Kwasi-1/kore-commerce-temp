@@ -96,6 +96,7 @@ export default function Products() {
 
   // Pagination & Infinite Scroll State
   const [pagination, setPagination] = useState<any>(null);
+  const [serverSummary, setServerSummary] = useState<any>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -134,7 +135,9 @@ export default function Products() {
       const response = await apiClient.get(url);
       const data = response.data.success?.data?.products || [];
       const pag = response.data.success?.data?.pagination || null;
+      const summaryData = response.data.success?.data?.summary || null;
       setPagination(pag);
+      setServerSummary(summaryData);
 
       if (append) {
         setProducts((prev) => [...prev, ...data]);
@@ -651,22 +654,94 @@ export default function Products() {
     );
   };
 
-  // Calculate metrics
-  const totalProductsCount = pagination?.totalProducts ?? pagination?.total ?? products.length;
-  const totalVariantsCount = pagination?.totalVariants ?? products.reduce((acc, p) => acc + (p.variants?.length || 1), 0);
+  // Flattened items for mobile view (each variant becomes an individual card)
+  const flatMobileItems = useMemo(() => {
+    const items: any[] = [];
+    products.forEach((p) => {
+      const isProductActive = p.status
+        ? p.status.toLowerCase() === "active"
+        : p.is_active !== false;
+
+      const vars = p.variants || [];
+      if (vars.length === 0) {
+        items.push({
+          id: p.id,
+          product: p,
+          variant: null,
+          name: p.name,
+          category: p.category || "General",
+          sku: p.sku || "—",
+          image: p.images?.[0] || null,
+          price: 0,
+          stockQty: 0,
+          unit: p.base_unit_name || "units",
+          tierBreakdown: "",
+          isOutOfStock: true,
+          isLowStock: false,
+          isActive: isProductActive,
+          status: p.status || (isProductActive ? "Active" : "Draft"),
+        });
+        return;
+      }
+
+      vars.forEach((v: any) => {
+        const attrStr = Object.values(v.variant_attributes || {}).join(" / ");
+        const fullName = attrStr ? `${p.name} (${attrStr})` : p.name;
+        const stockInfo = getStockDisplay(v);
+        const rawStock = stockInfo.value;
+        const numStock = typeof rawStock === "number" ? rawStock : parseFloat(String(rawStock)) || 0;
+        const unit = stockInfo.unit || v.base_unit_name || p.base_unit_name || "units";
+        const tierBreakdown = getTierBreakdown(numStock, unit, v.packaging_tiers || p.packaging_tiers);
+        const retailPrice = getRetailPrice(v);
+        const isOutOfStock = numStock <= 0;
+        const isLowStock = numStock > 0 && numStock <= 5;
+        const isVariantActive = v.is_active !== false && isProductActive;
+
+        items.push({
+          id: `${p.id}-${v.id}`,
+          product: p,
+          variant: v,
+          name: fullName,
+          category: p.category || "General",
+          sku: v.sku || "—",
+          image: p.images?.[0] || null,
+          price: retailPrice,
+          stockQty: numStock,
+          unit,
+          tierBreakdown,
+          isOutOfStock,
+          isLowStock,
+          isActive: isVariantActive,
+          status: p.status || (isVariantActive ? "Active" : "Draft"),
+        });
+      });
+    });
+    return items;
+  }, [products]);
+
+  // Calculate metrics using server-aggregated summary (exact counts across entire database)
+  const totalProductsCount = serverSummary?.total_products ?? pagination?.totalProducts ?? pagination?.total ?? products.length;
+  const totalVariantsCount = serverSummary?.total_variants ?? pagination?.totalVariants ?? flatMobileItems.length;
   const displayTotalCount = effectiveViewMode === "list" ? totalVariantsCount : totalProductsCount;
   const displayTotalLabel = effectiveViewMode === "list" ? "Total Items / SKUs" : "Total Products";
 
-  const outOfStockCount = products.filter(
-    (p) => p.total_stock_base_units === 0,
-  ).length;
-  const lowStockCount = products.filter(
-    (p) => p.total_stock_base_units > 0 && p.total_stock_base_units <= 5,
-  ).length;
+  const outOfStockCount = serverSummary
+    ? (effectiveViewMode === "list" ? serverSummary.out_of_stock_variants : serverSummary.out_of_stock_variants)
+    : (effectiveViewMode === "list" ? flatMobileItems : products).filter(
+        (item: any) => (effectiveViewMode === "list" ? item.isOutOfStock : item.total_stock_base_units === 0),
+      ).length;
 
-  const activeProductsCount = products.filter(
-    (p) => (p.status ? p.status.toLowerCase() === "active" : p.is_active !== false),
-  ).length;
+  const lowStockCount = serverSummary
+    ? (effectiveViewMode === "list" ? serverSummary.low_stock_variants : serverSummary.low_stock_variants)
+    : (effectiveViewMode === "list" ? flatMobileItems : products).filter(
+        (item: any) => (effectiveViewMode === "list" ? item.isLowStock : item.total_stock_base_units > 0 && item.total_stock_base_units <= 5),
+      ).length;
+
+  const activeProductsCount = serverSummary
+    ? (effectiveViewMode === "list" ? serverSummary.active_variants : serverSummary.active_products)
+    : (effectiveViewMode === "list" ? flatMobileItems : products).filter(
+        (item: any) => (effectiveViewMode === "list" ? item.isActive : (item.status ? item.status.toLowerCase() === "active" : item.is_active !== false)),
+      ).length;
 
   // Status Filter Tabs
   const statuses = [
@@ -775,52 +850,29 @@ export default function Products() {
             <div className="py-8 text-center">
               <Spinner />
             </div>
-          ) : products.length === 0 ? (
+          ) : flatMobileItems.length === 0 ? (
             <div className="py-10 text-center text-xs text-muted-foreground">
               No products found matching your filter or search.
             </div>
           ) : (
-            products.map((product: any) => {
-              const isActive = product.status
-                ? product.status.toLowerCase() === "active"
-                : product.is_active !== false;
-
-              const primaryVariant = product.variants?.[0];
-              const stockInfo = primaryVariant
-                ? getStockDisplay(primaryVariant)
-                : { value: product.total_stock_base_units ?? 0, unit: product.base_unit_name || "units" };
-              
-              const rawStock = stockInfo.value;
-              const numStock = typeof rawStock === 'number' ? rawStock : parseFloat(String(rawStock)) || 0;
-              const formattedStock = formatQty(numStock);
-              const unit = stockInfo.unit || product.base_unit_name || "units";
-              const tierBreakdown = getTierBreakdown(
-                numStock,
-                unit,
-                primaryVariant?.packaging_tiers || product.packaging_tiers
-              );
-
-              const isOutOfStock = numStock === 0;
-              const isLowStock = numStock > 0 && numStock <= 5;
-              const variantCount = product.variants?.length || 0;
-              const price = primaryVariant ? getRetailPrice(primaryVariant) : 0;
-              const sku = primaryVariant?.sku || product.sku || "—";
+            flatMobileItems.map((item: any) => {
+              const formattedStock = formatQty(item.stockQty);
 
               return (
                 <div
-                  key={product.id}
+                  key={item.id}
                   onClick={() => {
-                    setSelectedProductForDetail(product);
+                    setSelectedProductForDetail(item.product);
                     setIsDetailModalOpen(true);
                   }}
                   className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-lg shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border">
-                      {product.images && product.images[0] ? (
+                      {item.image ? (
                         <img
-                          src={product.images[0]}
-                          alt={product.name}
+                          src={item.image}
+                          alt={item.name}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -829,25 +881,25 @@ export default function Products() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-foreground truncate max-w-[170px]">
-                        {product.name}
+                        {item.name}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
-                        {product.category || "General"} • {sku} {variantCount > 1 ? `• ${variantCount} variants` : ""}
+                        {item.category || "General"} • {item.sku}
                       </p>
                       <div className="mt-0.5">
                         <span
                           className={cn(
                             "inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded",
-                            isOutOfStock
+                            item.isOutOfStock
                               ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                              : isLowStock
+                              : item.isLowStock
                               ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           )}
                         >
-                          {isOutOfStock
+                          {item.isOutOfStock
                             ? "Out of Stock"
-                            : `${formattedStock} ${unit}${tierBreakdown ? ` (${tierBreakdown})` : ""}`}
+                            : `${formattedStock} ${item.unit}${item.tierBreakdown ? ` (${item.tierBreakdown})` : ""}`}
                         </span>
                       </div>
                     </div>
@@ -855,17 +907,17 @@ export default function Products() {
 
                   <div className="text-right shrink-0">
                     <span className="font-extrabold text-[12px] text-foreground block">
-                      <CurrencyDisplay amount={price} symbolClassName="text-xs" />
+                      <CurrencyDisplay amount={item.price} symbolClassName="text-xs" />
                     </span>
                     <span
                       className={cn(
                         "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
-                        isActive
+                        item.isActive
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           : "bg-muted text-muted-foreground"
                       )}
                     >
-                      {isActive ? "ACTIVE" : product.status?.toUpperCase() || "DRAFT"}
+                      {item.isActive ? "ACTIVE" : item.status?.toUpperCase() || "DRAFT"}
                     </span>
                   </div>
                 </div>
@@ -883,7 +935,7 @@ export default function Products() {
                 </div>
               ) : pagination && !pagination.hasNext ? (
                 <span className="text-[11px] text-muted-foreground font-medium">
-                  All {pagination.total || products.length} products loaded
+                  All {displayTotalCount} items loaded
                 </span>
               ) : null}
             </div>
