@@ -40,6 +40,7 @@ export default function SupplierCredit() {
   // Page data states
   const [credits, setCredits] = useState<SupplierCreditRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
   const [summary, setSummary] = useState({
     total_outstanding: 0,
     total_suppliers_with_debt: 0,
@@ -69,26 +70,23 @@ export default function SupplierCredit() {
     }
   };
 
-  const fetchCredits = useCallback(async () => {
+  const fetchCredits = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter as Set<string>);
-      let url = '/tenant/supplier-credit?limit=100';
-      if (statusArr[0] !== 'all') {
-        url += `&status=${statusArr[0]}`;
+      let url = `/tenant/supplier-credit?page=${pageNumber}&limit=20`;
+      if (statusArr[0] && statusArr[0] !== 'all') {
+        url += `&status=${encodeURIComponent(statusArr[0])}`;
+      }
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
       const response = await apiClient.get(url);
-      let data = response.data.success?.data?.supplierCredits || [];
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        data = data.filter((c: SupplierCreditRecord) =>
-          c.supplier_name.toLowerCase().includes(q) ||
-          c.purchase_order_ref.toLowerCase().includes(q)
-        );
-      }
+      const data = response.data.success?.data?.supplierCredits || [];
+      const pag = response.data.success?.data?.pagination || null;
 
       setCredits(data);
+      setPagination(pag);
     } catch (err) {
       console.error("Failed to load supplier credits:", err);
       toast.error("Failed to load credit ledger");
@@ -99,7 +97,7 @@ export default function SupplierCredit() {
 
   useEffect(() => {
     fetchSummary();
-    fetchCredits();
+    fetchCredits(1);
   }, [fetchCredits]);
 
   // Open Payment dialog
@@ -129,7 +127,7 @@ export default function SupplierCredit() {
 
   const handlePaymentSuccess = async (updatedCredit?: any) => {
     fetchSummary();
-    fetchCredits();
+    fetchCredits(pagination?.page || 1);
     if (updatedCredit?.id) {
       try {
         const res = await apiClient.get(`/tenant/supplier-credit/${updatedCredit.id}`);
@@ -323,7 +321,8 @@ export default function SupplierCredit() {
           columns={columns}
           rows={rows}
           isLoading={isLoading}
-          // title="Supplier Credit Ledger"
+          serverPagination={pagination}
+          onPageChange={(page) => fetchCredits(page)}
           showSearch={true}
           searchPlaceholder="Search by supplier or PO number..."
           searchValue={searchQuery}
@@ -339,7 +338,7 @@ export default function SupplierCredit() {
           filterValue={statusFilter}
           onFilterChange={(keys: any) => setStatusFilter(keys)}
           showAddButton={false}
-          onRefresh={fetchCredits}
+          onRefresh={() => fetchCredits(1)}
           onRowActionClick={handleRowActionClick}
           onclick={handleRowClick}
           mobileFriendly={true}

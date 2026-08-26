@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import PageLayout from '@/components/layout/PageLayout';
@@ -19,6 +19,7 @@ export default function Suppliers() {
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
   
   // Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,33 +33,35 @@ export default function Suppliers() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
-      let url = '/tenant/suppliers?limit=50';
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+      let url = `/tenant/suppliers?page=${pageNumber}&limit=20`;
+      if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
 
       const response = await apiClient.get(url);
       const suppliersList = response.data.data?.suppliers || response.data.success?.data?.suppliers || [];
+      const pag = response.data.data?.pagination || response.data.success?.data?.pagination || null;
       setSuppliers(suppliersList);
+      setPagination(pag);
     } catch (error) {
       console.error('Failed to fetch suppliers:', error);
       toast.error('Failed to load suppliers');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchSuppliers();
+      fetchSuppliers(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [fetchSuppliers]);
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
-    fetchSuppliers();
+    fetchSuppliers(pagination?.page || 1);
   };
 
   const handleEdit = (supplier: any) => {
@@ -173,6 +176,9 @@ export default function Suppliers() {
         rows={rows}
         isLoading={isLoading}
         title="Supplier Directory"
+        serverPagination={pagination}
+        onPageChange={(page) => fetchSuppliers(page)}
+        onRefresh={() => fetchSuppliers(1)}
         
         showSearch={true}
         searchPlaceholder="Search suppliers..."
