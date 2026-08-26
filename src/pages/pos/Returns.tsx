@@ -132,7 +132,7 @@ export default function Returns() {
 
   const rows = returns.map((r: ReturnRecord) => ({
     id: r.id,
-    date: r.date_created ? format(new Date(r.date_created), 'MMM dd, yyyy h:mm a') : 'N/A',
+    date: <span className="min-w-[150px] inline-block">{r.date_created ? format(new Date(r.date_created), 'MMM dd, yyyy h:mm a') : 'N/A'} </span>,
     id_display: <span className="font-mono text-xs font-semibold">{r.id}</span>,
     original_ref: <span className="font-mono text-xs font-semibold">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span>,
     items_count: <span className="font-medium">{r.items?.length || 0} items</span>,
