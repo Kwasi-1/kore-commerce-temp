@@ -402,6 +402,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   const totalActiveFilters = activeCategories.length + (hideOutOfStock ? 1 : 0);
 
+  const hasOutOfStockProducts = products.some(p => (p.stock_quantity ?? 0) <= 0);
+
   // The categories to display in the dropdown/drawer (filtered by the local search inside the filter UI)
   const displayCategories = categories.filter(c => c.name.toLowerCase().includes(filterSearchTerm.toLowerCase()));
 
@@ -521,22 +523,24 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             );
           })}
 
-          {/* Quick 1-Tap "In Stock Only" Toggle Pill (Neutral Minimalist) */}
-          <button
-            onClick={() => togglePreference('hideOutOfStock')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border whitespace-nowrap ${
-              hideOutOfStock
-                ? 'bg-muted text-muted-foreground border-border'
-                : 'border-border text-muted-foreground hover:bg-secondary'
-            }`}
-            title="Toggle to hide out of stock products"
-          >
-            <Icon icon={hideOutOfStock ? "solar:box-minimalistic-bold" : "solar:box-minimalistic-linear"} className="h-3.5 w-3.5" />
-            <span>In Stock Only</span>
-            {hideOutOfStock && (
-              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse ml-0.5" />
-            )}
-          </button>
+          {/* Quick 1-Tap "In Stock Only" Toggle Pill (Only shown if store has out-of-stock items or if currently active) */}
+          {(hasOutOfStockProducts || hideOutOfStock) && (
+            <button
+              onClick={() => togglePreference('hideOutOfStock')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border whitespace-nowrap ${
+                hideOutOfStock
+                  ? 'bg-muted text-muted-foreground border-border'
+                  : 'border-border text-muted-foreground hover:bg-secondary'
+              }`}
+              title="Toggle to hide out of stock products"
+            >
+              <Icon icon={hideOutOfStock ? "solar:box-minimalistic-bold" : "solar:box-minimalistic-linear"} className="h-3.5 w-3.5" />
+              <span>In Stock Only</span>
+              {hideOutOfStock && (
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse ml-0.5" />
+              )}
+            </button>
+          )}
 
           {/* Desktop Filter Dropdown */}
           <DropdownMenu>
@@ -558,24 +562,26 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-72 p-2.5 rounded-2xl border-border/60 shadow-lg">
-              {/* Stock Status Switch in Dropdown */}
-              <div 
-                onClick={() => togglePreference('hideOutOfStock')}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/60 cursor-pointer transition-colors mb-2.5 bg-muted/30 border border-border/40"
-              >
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:box-minimalistic-linear" className="h-4 w-4 text-foreground/80" />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-foreground">In Stock Only</span>
-                    <span className="text-[10px] text-muted-foreground">Hide 0-stock products</span>
+              {/* Stock Status Switch in Dropdown (shown if store has out of stock items or filter is active) */}
+              {(hasOutOfStockProducts || hideOutOfStock) && (
+                <div 
+                  onClick={() => togglePreference('hideOutOfStock')}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/60 cursor-pointer transition-colors mb-2.5 bg-muted/30 border border-border/40"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon icon="solar:box-minimalistic-linear" className="h-4 w-4 text-foreground/80" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-foreground">In Stock Only</span>
+                      <span className="text-[10px] text-muted-foreground">Hide 0-stock products</span>
+                    </div>
                   </div>
+                  <Switch 
+                    checked={hideOutOfStock} 
+                    onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </div>
-                <Switch 
-                  checked={hideOutOfStock} 
-                  onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
+              )}
 
               {/* Categories Search & List */}
               <div className="relative mb-2">
@@ -756,23 +762,25 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             </div>
 
             {/* Mobile In-Stock Switch */}
-            <div 
-              onClick={() => togglePreference('hideOutOfStock')}
-              className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5">
-                <Icon icon="solar:box-minimalistic-bold" className={`h-5 w-5 text-muted-foreground`} />
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-foreground mb-1">In Stock Only</span>
-                  <span className="text-xs text-muted-foreground">Hide out-of-stock products</span>
+            {(hasOutOfStockProducts || hideOutOfStock) && (
+              <div 
+                onClick={() => togglePreference('hideOutOfStock')}
+                className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon icon="solar:box-minimalistic-bold" className={`h-5 w-5 text-muted-foreground`} />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-foreground mb-1">In Stock Only</span>
+                    <span className="text-xs text-muted-foreground">Hide out-of-stock products</span>
+                  </div>
                 </div>
+                <Switch 
+                  checked={hideOutOfStock} 
+                  onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
-              <Switch 
-                checked={hideOutOfStock} 
-                onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+            )}
 
             {/* Search Categories */}
             <div className="relative w-full">
