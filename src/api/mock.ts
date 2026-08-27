@@ -18,9 +18,98 @@ export function setupMockApi() {
   // Set delay to simulate network latency for better frontend auditing (e.g. loading states)
   const mock = new MockAdapter(apiClient, { delayResponse: 600 });
 
-  const mockSuppliers = [
-    { id: 'sup1', name: 'TechWholesale Ghana', contact_person: 'John Doe', email: 'john@techwholesale.gh', phone: '0241234567', is_active: true, status: 'active' },
-    { id: 'sup2', name: 'Accra Garments', contact_person: 'Jane Smith', email: 'jane@garments.gh', phone: '0209876543', is_active: true, status: 'active' }
+  let mockSuppliers = [
+    {
+      id: 'sup1',
+      name: 'TechWholesale Ghana',
+      contact_person: 'John Doe',
+      email: 'john@techwholesale.gh',
+      phone: '0241234567',
+      address: 'Circle Commercial Avenue, Accra',
+      tax_id: 'C0012345678',
+      notes: 'Bulk supplier for electronics, audio accessories, and peripherals. 30-day payment terms.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 90 * 86400000).toISOString()
+    },
+    {
+      id: 'sup2',
+      name: 'Accra Garments & Textiles',
+      contact_person: 'Jane Smith',
+      email: 'jane@garments.gh',
+      phone: '0209876543',
+      address: 'Makola Market Block B, Central Accra',
+      tax_id: 'C0087654321',
+      notes: 'Supplies basic white tees, cotton polo shirts, and staff branded workwear.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 60 * 86400000).toISOString()
+    },
+    {
+      id: 'sup3',
+      name: 'Nunu Dairy & Beverages Ltd',
+      contact_person: 'Kofi Owusu',
+      email: 'kofi@nunudairy.gh',
+      phone: '0533285380',
+      address: 'Heavy Industrial Area, Plot 14, Tema',
+      tax_id: 'C0034567890',
+      notes: 'Main distributor of Nunu milk, peak evaporated milk, and fruit juices. Delivers every Tuesday morning.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 45 * 86400000).toISOString()
+    },
+    {
+      id: 'sup4',
+      name: 'Golden Tree Confectionery',
+      contact_person: 'Ama Mensah',
+      email: 'ama@goldentree.gh',
+      phone: '0244556677',
+      address: 'Harbour Road, Industrial Zone, Tema',
+      tax_id: 'C0099887766',
+      notes: 'Supplier of premium cocoa chocolates, biscuits, and confectionery goods.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 30 * 86400000).toISOString()
+    },
+    {
+      id: 'sup5',
+      name: 'Voltic Mineral Water Depot',
+      contact_person: 'Yaw Boateng',
+      email: 'orders@volticdepot.gh',
+      phone: '0261122334',
+      address: 'Medie Depot, Greater Accra',
+      tax_id: 'C0055443322',
+      notes: 'Supplies natural mineral water in 500ml packs, 750ml, and 1.5L dispenser bottles.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 25 * 86400000).toISOString()
+    },
+    {
+      id: 'sup6',
+      name: 'FanMilk Distribution Hub',
+      contact_person: 'Akosua Darko',
+      email: 'orders@fanmilkdist.gh',
+      phone: '0207788990',
+      address: 'North Industrial Area, Accra',
+      tax_id: 'C0066778899',
+      notes: 'Supplier of FanYogo strawberry yogurt, FanChoco chocolate milk, and ice creams.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 20 * 86400000).toISOString()
+    },
+    {
+      id: 'sup7',
+      name: 'Melcom Wholesale & Provisions',
+      contact_person: 'Ramesh Patel',
+      email: 'wholesale@melcom.gh',
+      phone: '0302223344',
+      address: 'Opera Square, Central Accra',
+      tax_id: 'C0011223344',
+      notes: 'Wholesale distributor for general retail provisions, detergents, and household goods.',
+      is_active: true,
+      status: 'active',
+      dateCreated: new Date(Date.now() - 15 * 86400000).toISOString()
+    }
   ];
 
   let mockProducts = [
@@ -444,6 +533,390 @@ export function setupMockApi() {
           ]
         }
       ]
+    },
+    {
+      id: 'p11',
+      name: 'Nunu Evaporated Milk 170g',
+      description: 'Rich and creamy evaporated milk for tea and cooking.',
+      category: 'Dairy & Beverages',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v11',
+          sku: 'NUNU-170G',
+          variant_attributes: {},
+          base_unit_name: 'tin',
+          cost_price_per_base_unit: 6.50,
+          stock_quantity: 120,
+          low_stock_threshold: 20,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p11_u',
+              name: 'Single Tin',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 9.00 },
+                { price_type: 'wholesale', price: 8.20 }
+              ]
+            },
+            {
+              id: 'tier_p11_roll',
+              name: 'Roll of 6',
+              units_per_tier: 6,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 52.00 },
+                { price_type: 'wholesale', price: 48.00 }
+              ]
+            },
+            {
+              id: 'tier_p11_carton',
+              name: 'Carton of 48',
+              units_per_tier: 48,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 400.00 },
+                { price_type: 'wholesale', price: 375.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p12',
+      name: 'Ideal Full Cream Milk 160g',
+      description: 'Original evaporated milk fortified with vitamins.',
+      category: 'Dairy & Beverages',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v12',
+          sku: 'IDEAL-160G',
+          variant_attributes: {},
+          base_unit_name: 'tin',
+          cost_price_per_base_unit: 7.20,
+          stock_quantity: 85,
+          low_stock_threshold: 15,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p12_u',
+              name: 'Single Tin',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 10.00 },
+                { price_type: 'wholesale', price: 9.00 }
+              ]
+            },
+            {
+              id: 'tier_p12_c',
+              name: 'Carton of 24',
+              units_per_tier: 24,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 230.00 },
+                { price_type: 'wholesale', price: 210.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p13',
+      name: 'Voltic Natural Mineral Water 500ml',
+      description: 'Pure natural mineral water bottle.',
+      category: 'Beverages',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v13',
+          sku: 'VOLTIC-500ML',
+          variant_attributes: {},
+          base_unit_name: 'bottle',
+          cost_price_per_base_unit: 2.20,
+          stock_quantity: 4,
+          low_stock_threshold: 10,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p13_u',
+              name: 'Bottle',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 3.50 },
+                { price_type: 'wholesale', price: 3.00 }
+              ]
+            },
+            {
+              id: 'tier_p13_pack',
+              name: 'Pack of 16',
+              units_per_tier: 16,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 50.00 },
+                { price_type: 'wholesale', price: 44.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p14',
+      name: 'FanYogo Strawberry Pouch 145ml',
+      description: 'Frozen strawberry yogurt dessert pouch.',
+      category: 'Dairy & Beverages',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v14',
+          sku: 'FANYOGO-145ML',
+          variant_attributes: {},
+          base_unit_name: 'pouch',
+          cost_price_per_base_unit: 3.80,
+          stock_quantity: 60,
+          low_stock_threshold: 15,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p14_u',
+              name: 'Single Pouch',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 5.50 },
+                { price_type: 'wholesale', price: 5.00 }
+              ]
+            },
+            {
+              id: 'tier_p14_pack',
+              name: 'Pack of 20',
+              units_per_tier: 20,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 100.00 },
+                { price_type: 'wholesale', price: 92.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p15',
+      name: 'Golden Tree Kingsbite Chocolate 100g',
+      description: 'Authentic rich Ghanaian milk chocolate bar.',
+      category: 'Confectionery',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v15',
+          sku: 'GT-KINGSBITE-100G',
+          variant_attributes: {},
+          base_unit_name: 'bar',
+          cost_price_per_base_unit: 14.00,
+          stock_quantity: 45,
+          low_stock_threshold: 10,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p15_u',
+              name: 'Single Bar',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 20.00 },
+                { price_type: 'wholesale', price: 18.00 }
+              ]
+            },
+            {
+              id: 'tier_p15_box',
+              name: 'Box of 10',
+              units_per_tier: 10,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 190.00 },
+                { price_type: 'wholesale', price: 175.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p16',
+      name: 'Kleesoft Washing Powder 500g',
+      description: 'Multi-action laundry detergent powder.',
+      category: 'Provisions & Cleaning',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v16',
+          sku: 'KLEESOFT-500G',
+          variant_attributes: {},
+          base_unit_name: 'pack',
+          cost_price_per_base_unit: 11.50,
+          stock_quantity: 3,
+          low_stock_threshold: 5,
+          sell_mode: 'flexible',
+          track_expiry: false,
+          packaging_tiers: [
+            {
+              id: 'tier_p16_u',
+              name: 'Single Pack',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 16.00 },
+                { price_type: 'wholesale', price: 14.50 }
+              ]
+            },
+            {
+              id: 'tier_p16_c',
+              name: 'Carton of 12',
+              units_per_tier: 12,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 180.00 },
+                { price_type: 'wholesale', price: 165.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p17',
+      name: 'Dettol Antiseptic Liquid 250ml',
+      description: 'Trusted personal hygiene and surface disinfectant.',
+      category: 'Personal Care',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v17',
+          sku: 'DETTOL-250ML',
+          variant_attributes: {},
+          base_unit_name: 'bottle',
+          cost_price_per_base_unit: 22.00,
+          stock_quantity: 18,
+          low_stock_threshold: 5,
+          sell_mode: 'unit_only',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p17_u',
+              name: 'Bottle',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 30.00 },
+                { price_type: 'wholesale', price: 27.00 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'p18',
+      name: 'Lipton Yellow Label Tea Bags 50s',
+      description: 'Quality black tea blend individually wrapped.',
+      category: 'Provisions & Cleaning',
+      status: 'active',
+      images: ['https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400'],
+      has_variants: false,
+      variants: [
+        {
+          id: 'v18',
+          sku: 'LIPTON-50S',
+          variant_attributes: {},
+          base_unit_name: 'box',
+          cost_price_per_base_unit: 28.00,
+          stock_quantity: 32,
+          low_stock_threshold: 8,
+          sell_mode: 'flexible',
+          track_expiry: true,
+          packaging_tiers: [
+            {
+              id: 'tier_p18_u',
+              name: 'Box of 50s',
+              units_per_tier: 1,
+              is_base_unit: true,
+              is_default_sale_unit: true,
+              is_default_purchase_unit: false,
+              prices: [
+                { price_type: 'retail', price: 38.00 },
+                { price_type: 'wholesale', price: 34.00 }
+              ]
+            },
+            {
+              id: 'tier_p18_c',
+              name: 'Master Carton of 24',
+              units_per_tier: 24,
+              is_base_unit: false,
+              is_default_sale_unit: false,
+              is_default_purchase_unit: true,
+              prices: [
+                { price_type: 'retail', price: 860.00 },
+                { price_type: 'wholesale', price: 800.00 }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ] as any[];
 
@@ -453,26 +926,82 @@ export function setupMockApi() {
       reference_number: 'PO-2026-001',
       supplier_id: 'sup1',
       supplier: { id: 'sup1', name: 'TechWholesale Ghana' },
-      status: 'draft',
+      status: 'received',
       total_amount: 15000,
       is_credit_purchase: true,
-      credit_due_date: new Date(Date.now() + 5*86400000).toISOString().split('T')[0],
-      date_created: new Date().toISOString(),
+      credit_due_date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+      date_created: new Date(Date.now() - 10 * 86400000).toISOString(),
       items: [
-        { variant_id: 'v3', packaging_tier_id: 'tier_p3_c', quantity: 1, cost_price: 15000 }
+        { variant_id: 'v4', packaging_tier_id: 'tier_p4_u', quantity: 4, cost_price: 3100 }
       ]
     },
     {
       id: 'po2',
       reference_number: 'PO-2026-002',
       supplier_id: 'sup2',
-      supplier: { id: 'sup2', name: 'Accra Garments' },
-      status: 'ordered',
+      supplier: { id: 'sup2', name: 'Accra Garments & Textiles' },
+      status: 'received',
       total_amount: 3400,
-      is_credit_purchase: false,
-      date_created: new Date().toISOString(),
+      is_credit_purchase: true,
+      credit_due_date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+      date_created: new Date(Date.now() - 15 * 86400000).toISOString(),
       items: [
         { variant_id: 'v5', packaging_tier_id: 'tier_p5_c', quantity: 2, cost_price: 1700 }
+      ]
+    },
+    {
+      id: 'po3',
+      reference_number: 'PO-2026-003',
+      supplier_id: 'sup3',
+      supplier: { id: 'sup3', name: 'Nunu Dairy & Beverages Ltd' },
+      status: 'received',
+      total_amount: 3019,
+      is_credit_purchase: true,
+      credit_due_date: new Date(Date.now() + 12 * 86400000).toISOString().split('T')[0],
+      date_created: new Date(Date.now() - 7 * 86400000).toISOString(),
+      items: [
+        { variant_id: 'v11', packaging_tier_id: 'tier_p11_carton', quantity: 8, cost_price: 375 }
+      ]
+    },
+    {
+      id: 'po4',
+      reference_number: 'PO-2026-004',
+      supplier_id: 'sup4',
+      supplier: { id: 'sup4', name: 'Golden Tree Confectionery' },
+      status: 'received',
+      total_amount: 1450,
+      is_credit_purchase: true,
+      credit_due_date: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0],
+      date_created: new Date(Date.now() - 4 * 86400000).toISOString(),
+      items: [
+        { variant_id: 'v15', packaging_tier_id: 'tier_p15_box', quantity: 8, cost_price: 175 }
+      ]
+    },
+    {
+      id: 'po5',
+      reference_number: 'PO-2026-005',
+      supplier_id: 'sup6',
+      supplier: { id: 'sup6', name: 'FanMilk Distribution Hub' },
+      status: 'received',
+      total_amount: 850,
+      is_credit_purchase: true,
+      credit_due_date: new Date(Date.now() + 8 * 86400000).toISOString().split('T')[0],
+      date_created: new Date(Date.now() - 3 * 86400000).toISOString(),
+      items: [
+        { variant_id: 'v14', packaging_tier_id: 'tier_p14_pack', quantity: 9, cost_price: 92 }
+      ]
+    },
+    {
+      id: 'po6',
+      reference_number: 'PO-2026-006',
+      supplier_id: 'sup5',
+      supplier: { id: 'sup5', name: 'Voltic Mineral Water Depot' },
+      status: 'received',
+      total_amount: 880,
+      is_credit_purchase: false,
+      date_created: new Date(Date.now() - 1 * 86400000).toISOString(),
+      items: [
+        { variant_id: 'v13', packaging_tier_id: 'tier_p13_pack', quantity: 20, cost_price: 44 }
       ]
     }
   ] as any[];
@@ -482,9 +1011,11 @@ export function setupMockApi() {
   // -----------------------------------------------------
   
   let mockStaff: any[] = [
-    { id: 'u1', name: 'Kwame Mensah', first_name: 'Kwame', last_name: 'Mensah', email: 'owner@store.com', role: 'owner', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
-    { id: 'u2', name: 'Ama Serwaa', first_name: 'Ama', last_name: 'Serwaa', email: 'ama@store.com', role: 'manager', is_active: true, pos_pin: '2222', last_login: new Date().toISOString() },
-    { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', role: 'cashier', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
+    { id: 'u1', name: 'Kwame Mensah', first_name: 'Kwame', last_name: 'Mensah', email: 'owner@store.com', phone: '+233 24 123 4567', role: 'owner', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
+    { id: 'u2', name: 'Ama Serwaa', first_name: 'Ama', last_name: 'Serwaa', email: 'ama@store.com', phone: '+233 20 987 6543', role: 'manager', is_active: true, pos_pin: '2222', last_login: new Date().toISOString() },
+    { id: 'u3', name: 'Kofi Annan', first_name: 'Kofi', last_name: 'Annan', email: 'kofi@store.com', phone: '+233 54 333 4455', role: 'cashier', is_active: true, pos_pin: '1234', last_login: new Date().toISOString() },
+    { id: 'u4', name: 'Abena Osei', first_name: 'Abena', last_name: 'Osei', email: 'abena@store.com', phone: '+233 27 666 7788', role: 'cashier', is_active: true, pos_pin: '3333', last_login: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'u5', name: 'David Tetteh', first_name: 'David', last_name: 'Tetteh', email: 'david@store.com', phone: '+233 50 111 2233', role: 'cashier', is_active: true, pos_pin: '4444', last_login: new Date(Date.now() - 2 * 86400000).toISOString() },
   ];
 
   let mockTenant = {
@@ -1342,13 +1873,21 @@ export function setupMockApi() {
   });
 
   let mockExpenses = [
-    { id: 'e1', description: 'Electricity Bill', amount: 1500, category: 'utilities', date: new Date().toISOString(), dateIncurred: new Date().toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
-    { id: 'e2', description: 'Printer Ink', amount: 450, category: 'supplies', date: new Date(Date.now() - 2*86400000).toISOString(), dateIncurred: new Date(Date.now() - 2*86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
-    { id: 'e3', description: 'Office Rent - June', amount: 5500, category: 'rent', date: new Date(Date.now() - 5*86400000).toISOString(), dateIncurred: new Date(Date.now() - 5*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
-    { id: 'e4', description: 'Cashier Salaries', amount: 12000, category: 'salaries', date: new Date(Date.now() - 7*86400000).toISOString(), dateIncurred: new Date(Date.now() - 7*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
-    { id: 'e5', description: 'Google Ads Campaign', amount: 800, category: 'marketing', date: new Date(Date.now() - 10*86400000).toISOString(), dateIncurred: new Date(Date.now() - 10*86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
-    { id: 'e6', description: 'AC Repair', amount: 650, category: 'maintenance', date: new Date(Date.now() - 12*86400000).toISOString(), dateIncurred: new Date(Date.now() - 12*86400000).toISOString(), recordedByName: 'Kofi Annan', isVoided: true },
-    { id: 'e7', description: 'QuickBooks Subscription', amount: 320, category: 'software', date: new Date(Date.now() - 15*86400000).toISOString(), dateIncurred: new Date(Date.now() - 15*86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e1', description: 'ECG Commercial Prepaid Electricity', amount: 850.00, category: 'utilities', payment_method: 'mobile_money', date: new Date().toISOString(), dateIncurred: new Date().toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e2', description: 'POS Thermal Paper Receipt Rolls (50 pack)', amount: 240.00, category: 'supplies', payment_method: 'cash', date: new Date().toISOString(), dateIncurred: new Date().toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e3', description: 'Generator Diesel Top-up (50 Litres)', amount: 750.00, category: 'utilities', payment_method: 'cash', date: new Date(Date.now() - 1 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 1 * 86400000).toISOString(), recordedByName: 'Kofi Annan', isVoided: false },
+    { id: 'e4', description: 'Monthly High-Speed Fiber Internet', amount: 400.00, category: 'utilities', payment_method: 'mobile_money', date: new Date(Date.now() - 2 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 2 * 86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e5', description: 'Custom Branded Carrier Shopping Bags (1000 pcs)', amount: 650.00, category: 'supplies', payment_method: 'mobile_money', date: new Date(Date.now() - 3 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 3 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e6', description: 'Social Media & Instagram Sponsored Ads', amount: 350.00, category: 'marketing', payment_method: 'card', date: new Date(Date.now() - 5 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 5 * 86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e7', description: 'Store Air Conditioning Servicing & Gas Refill', amount: 480.00, category: 'maintenance', payment_method: 'cash', date: new Date(Date.now() - 6 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 6 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e8', description: 'Staff Mid-Month Transport Allowance', amount: 600.00, category: 'salaries', payment_method: 'mobile_money', date: new Date(Date.now() - 8 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 8 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e9', description: 'Ghana Water Company Monthly Tariff', amount: 280.00, category: 'utilities', payment_method: 'mobile_money', date: new Date(Date.now() - 10 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 10 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e10', description: 'Store Cleaning & Sanitizing Supplies', amount: 180.00, category: 'supplies', payment_method: 'cash', date: new Date(Date.now() - 12 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 12 * 86400000).toISOString(), recordedByName: 'Ama Serwaa', isVoided: false },
+    { id: 'e11', description: 'Commercial Waste Collection (Zoomlion)', amount: 150.00, category: 'maintenance', payment_method: 'cash', date: new Date(Date.now() - 14 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 14 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e12', description: 'Monthly Retail Store Rent Payment', amount: 5500.00, category: 'rent', payment_method: 'bank_transfer', date: new Date(Date.now() - 18 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 18 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e13', description: 'QuickBooks POS Cloud Subscription', amount: 320.00, category: 'software', payment_method: 'card', date: new Date(Date.now() - 20 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 20 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false },
+    { id: 'e14', description: 'Damaged Barcode Scanner Replacement', amount: 380.00, category: 'maintenance', payment_method: 'cash', date: new Date(Date.now() - 22 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 22 * 86400000).toISOString(), recordedByName: 'Kofi Annan', isVoided: true },
+    { id: 'e15', description: 'Security Guard Monthly Off-Platform Stipend', amount: 800.00, category: 'salaries', payment_method: 'cash', date: new Date(Date.now() - 24 * 86400000).toISOString(), dateIncurred: new Date(Date.now() - 24 * 86400000).toISOString(), recordedByName: 'Kwame Mensah', isVoided: false }
   ] as any[];
 
   let mockRecurringExpenses: any[] = [
@@ -1500,9 +2039,9 @@ export function setupMockApi() {
   let mockPayrollProfiles: any[] = [
     {
       id: 'prof1',
-      staff_id: 'st1',
+      staff_id: 'u1',
       full_name: 'Kwame Mensah',
-      role_title: 'Store Manager',
+      role_title: 'Store Manager / Owner',
       is_off_platform: false,
       compensation_type: 'monthly_salary',
       base_amount: 3500.00,
@@ -1512,9 +2051,9 @@ export function setupMockApi() {
     },
     {
       id: 'prof2',
-      staff_id: 'st2',
+      staff_id: 'u2',
       full_name: 'Ama Serwaa',
-      role_title: 'Head Cashier',
+      role_title: 'Head Cashier / Operations',
       is_off_platform: false,
       compensation_type: 'monthly_salary',
       base_amount: 2800.00,
@@ -1524,7 +2063,7 @@ export function setupMockApi() {
     },
     {
       id: 'prof3',
-      staff_id: 'st3',
+      staff_id: 'u3',
       full_name: 'Kofi Annan',
       role_title: 'Inventory Officer',
       is_off_platform: false,
@@ -1536,9 +2075,21 @@ export function setupMockApi() {
     },
     {
       id: 'prof4',
+      staff_id: 'u4',
+      full_name: 'Abena Osei',
+      role_title: 'Senior Cashier',
+      is_off_platform: false,
+      compensation_type: 'monthly_salary',
+      base_amount: 2200.00,
+      payment_method: 'mobile_money',
+      bank_or_momo_name: 'Telecel Cash',
+      account_number: '0207788990',
+    },
+    {
+      id: 'prof5',
       staff_id: 'off1',
       full_name: 'Yaw Osei',
-      role_title: 'Janitor & Cleaner',
+      role_title: 'Janitor & Cleaning Specialist',
       is_off_platform: true,
       compensation_type: 'monthly_salary',
       base_amount: 1200.00,
@@ -1548,91 +2099,243 @@ export function setupMockApi() {
     },
   ];
 
+  const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const prevMonthDate = new Date(Date.now() - 30 * 86400000);
+  const prevMonthName = prevMonthDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
   let mockPayrollRuns: any[] = [
     {
-      id: 'run_july_2026',
-      pay_period: 'July 2026',
-      disbursal_date: new Date(Date.now() - 86400000 * 7).toISOString(),
-      created_by: 'owner1',
+      id: 'run_current_month',
+      pay_period: currentMonthName,
+      disbursal_date: new Date().toISOString(),
+      created_by: 'u1',
       created_by_name: 'Kwame Mensah',
       status: 'logged',
-      notes: 'July regular payroll disbursement',
-      total_amount: 7500.00,
-      recipients_count: 3,
-      total_recipients_count: 3,
-      platform_count: 2,
+      notes: `${currentMonthName} staff salary & operational payouts`,
+      total_amount: 12200.00,
+      recipients_count: 5,
+      total_recipients_count: 5,
+      platform_count: 4,
       external_count: 1,
       items: [
         {
-          id: 'disb1',
-          run_id: 'run_july_2026',
-          pay_period: 'July 2026',
+          id: 'disb_cur_1',
+          run_id: 'run_current_month',
+          pay_period: currentMonthName,
           staff_name: 'Kwame Mensah',
           amount: 3500.00,
           payment_method: 'bank_transfer',
           is_off_platform: false,
           status: 'logged',
-          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+          date_paid: new Date().toISOString(),
         },
         {
-          id: 'disb2',
-          run_id: 'run_july_2026',
-          pay_period: 'July 2026',
+          id: 'disb_cur_2',
+          run_id: 'run_current_month',
+          pay_period: currentMonthName,
           staff_name: 'Ama Serwaa',
           amount: 2800.00,
           payment_method: 'mobile_money',
           is_off_platform: false,
           status: 'logged',
-          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+          date_paid: new Date().toISOString(),
         },
         {
-          id: 'disb3',
-          run_id: 'run_july_2026',
-          pay_period: 'July 2026',
+          id: 'disb_cur_3',
+          run_id: 'run_current_month',
+          pay_period: currentMonthName,
+          staff_name: 'Kofi Annan',
+          amount: 2500.00,
+          payment_method: 'mobile_money',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: new Date().toISOString(),
+        },
+        {
+          id: 'disb_cur_4',
+          run_id: 'run_current_month',
+          pay_period: currentMonthName,
+          staff_name: 'Abena Osei',
+          amount: 2200.00,
+          payment_method: 'mobile_money',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: new Date().toISOString(),
+        },
+        {
+          id: 'disb_cur_5',
+          run_id: 'run_current_month',
+          pay_period: currentMonthName,
           staff_name: 'Yaw Osei',
           amount: 1200.00,
           payment_method: 'cash',
           is_off_platform: true,
           status: 'logged',
-          date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+          date_paid: new Date().toISOString(),
         },
       ],
     },
+    {
+      id: 'run_prev_month',
+      pay_period: prevMonthName,
+      disbursal_date: prevMonthDate.toISOString(),
+      created_by: 'u1',
+      created_by_name: 'Kwame Mensah',
+      status: 'logged',
+      notes: `${prevMonthName} staff payroll disbursement`,
+      total_amount: 11000.00,
+      recipients_count: 4,
+      total_recipients_count: 4,
+      platform_count: 3,
+      external_count: 1,
+      items: [
+        {
+          id: 'disb_prev_1',
+          run_id: 'run_prev_month',
+          pay_period: prevMonthName,
+          staff_name: 'Kwame Mensah',
+          amount: 3500.00,
+          payment_method: 'bank_transfer',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: prevMonthDate.toISOString(),
+        },
+        {
+          id: 'disb_prev_2',
+          run_id: 'run_prev_month',
+          pay_period: prevMonthName,
+          staff_name: 'Ama Serwaa',
+          amount: 2800.00,
+          payment_method: 'mobile_money',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: prevMonthDate.toISOString(),
+        },
+        {
+          id: 'disb_prev_3',
+          run_id: 'run_prev_month',
+          pay_period: prevMonthName,
+          staff_name: 'Kofi Annan',
+          amount: 2500.00,
+          payment_method: 'mobile_money',
+          is_off_platform: false,
+          status: 'logged',
+          date_paid: prevMonthDate.toISOString(),
+        },
+        {
+          id: 'disb_prev_4',
+          run_id: 'run_prev_month',
+          pay_period: prevMonthName,
+          staff_name: 'Yaw Osei',
+          amount: 1200.00,
+          payment_method: 'cash',
+          is_off_platform: true,
+          status: 'logged',
+          date_paid: prevMonthDate.toISOString(),
+        },
+      ],
+    }
   ];
 
   let mockPayrollDisbursals: any[] = [
     {
-      id: 'disb1',
-      run_id: 'run_july_2026',
-      pay_period: 'July 2026',
+      id: 'disb_cur_1',
+      run_id: 'run_current_month',
+      pay_period: currentMonthName,
       staff_name: 'Kwame Mensah',
       amount: 3500.00,
       payment_method: 'bank_transfer',
       is_off_platform: false,
       status: 'logged',
-      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+      date_paid: new Date().toISOString(),
     },
     {
-      id: 'disb2',
-      run_id: 'run_july_2026',
-      pay_period: 'July 2026',
+      id: 'disb_cur_2',
+      run_id: 'run_current_month',
+      pay_period: currentMonthName,
       staff_name: 'Ama Serwaa',
       amount: 2800.00,
       payment_method: 'mobile_money',
       is_off_platform: false,
       status: 'logged',
-      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+      date_paid: new Date().toISOString(),
     },
     {
-      id: 'disb3',
-      run_id: 'run_july_2026',
-      pay_period: 'July 2026',
+      id: 'disb_cur_3',
+      run_id: 'run_current_month',
+      pay_period: currentMonthName,
+      staff_name: 'Kofi Annan',
+      amount: 2500.00,
+      payment_method: 'mobile_money',
+      is_off_platform: false,
+      status: 'logged',
+      date_paid: new Date().toISOString(),
+    },
+    {
+      id: 'disb_cur_4',
+      run_id: 'run_current_month',
+      pay_period: currentMonthName,
+      staff_name: 'Abena Osei',
+      amount: 2200.00,
+      payment_method: 'mobile_money',
+      is_off_platform: false,
+      status: 'logged',
+      date_paid: new Date().toISOString(),
+    },
+    {
+      id: 'disb_cur_5',
+      run_id: 'run_current_month',
+      pay_period: currentMonthName,
       staff_name: 'Yaw Osei',
       amount: 1200.00,
       payment_method: 'cash',
       is_off_platform: true,
       status: 'logged',
-      date_paid: new Date(Date.now() - 86400000 * 7).toISOString(),
+      date_paid: new Date().toISOString(),
+    },
+    {
+      id: 'disb_prev_1',
+      run_id: 'run_prev_month',
+      pay_period: prevMonthName,
+      staff_name: 'Kwame Mensah',
+      amount: 3500.00,
+      payment_method: 'bank_transfer',
+      is_off_platform: false,
+      status: 'logged',
+      date_paid: prevMonthDate.toISOString(),
+    },
+    {
+      id: 'disb_prev_2',
+      run_id: 'run_prev_month',
+      pay_period: prevMonthName,
+      staff_name: 'Ama Serwaa',
+      amount: 2800.00,
+      payment_method: 'mobile_money',
+      is_off_platform: false,
+      status: 'logged',
+      date_paid: prevMonthDate.toISOString(),
+    },
+    {
+      id: 'disb_prev_3',
+      run_id: 'run_prev_month',
+      pay_period: prevMonthName,
+      staff_name: 'Kofi Annan',
+      amount: 2500.00,
+      payment_method: 'mobile_money',
+      is_off_platform: false,
+      status: 'logged',
+      date_paid: prevMonthDate.toISOString(),
+    },
+    {
+      id: 'disb_prev_4',
+      run_id: 'run_prev_month',
+      pay_period: prevMonthName,
+      staff_name: 'Yaw Osei',
+      amount: 1200.00,
+      payment_method: 'cash',
+      is_off_platform: true,
+      status: 'logged',
+      date_paid: prevMonthDate.toISOString(),
     },
   ];
 
@@ -1941,19 +2644,66 @@ export function setupMockApi() {
   });
   
   // POS Transactions
+  const nowMs = Date.now();
   let mockTransactions: any[] = [
+    // --- TODAY (6 Transactions) ---
     {
       id: 'tx1',
-      receiptNumber: 'RCP-0001',
-      receipt_number: 'RCP-0001',
-      orderNumber: 'RCP-0001',
-      dateCreated: new Date().toISOString(),
-      date_created: new Date().toISOString(),
-      date: new Date().toISOString(),
+      receiptNumber: 'RCP-0025',
+      receipt_number: 'RCP-0025',
+      orderNumber: 'RCP-0025',
+      dateCreated: new Date(nowMs - 20 * 60000).toISOString(),
+      date_created: new Date(nowMs - 20 * 60000).toISOString(),
+      date: new Date(nowMs - 20 * 60000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 450.00,
+      total_amount: 450.00,
+      total: 450.00,
+      subtotal: 450.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Nunu Evaporated Milk 170g (Carton of 48)', name: 'Nunu Evaporated Milk 170g (Carton of 48)', quantity: 1, qty: 1, unitPrice: 400.00, price: 400.00, subtotal: 400.00 },
+        { productName: 'Voltic Natural Mineral Water 500ml (Pack of 16)', name: 'Voltic Natural Mineral Water 500ml (Pack of 16)', quantity: 1, qty: 1, unitPrice: 50.00, price: 50.00, subtotal: 50.00 }
+      ]
+    },
+    {
+      id: 'tx2',
+      receiptNumber: 'RCP-0024',
+      receipt_number: 'RCP-0024',
+      orderNumber: 'RCP-0024',
+      dateCreated: new Date(nowMs - 85 * 60000).toISOString(),
+      date_created: new Date(nowMs - 85 * 60000).toISOString(),
+      date: new Date(nowMs - 85 * 60000).toISOString(),
       cashierName: 'Kofi Annan',
       cashier_name: 'Kofi Annan',
       paymentMethod: 'cash',
       payment_method: 'cash',
+      totalAmount: 180.00,
+      total_amount: 180.00,
+      total: 180.00,
+      subtotal: 180.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Golden Tree Kingsbite Chocolate 100g (Box of 10)', name: 'Golden Tree Kingsbite Chocolate 100g (Box of 10)', quantity: 1, qty: 1, unitPrice: 190.00, price: 190.00, subtotal: 190.00 }
+      ]
+    },
+    {
+      id: 'tx3',
+      receiptNumber: 'RCP-0023',
+      receipt_number: 'RCP-0023',
+      orderNumber: 'RCP-0023',
+      dateCreated: new Date(nowMs - 3 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 3 * 3600000).toISOString(),
+      date: new Date(nowMs - 3 * 3600000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
       totalAmount: 850.00,
       total_amount: 850.00,
       total: 850.00,
@@ -1965,13 +2715,83 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx2',
-      receiptNumber: 'RCP-0002',
-      receipt_number: 'RCP-0002',
-      orderNumber: 'RCP-0002',
-      dateCreated: new Date(Date.now() - 2 * 3600000).toISOString(),
-      date_created: new Date(Date.now() - 2 * 3600000).toISOString(),
-      date: new Date(Date.now() - 2 * 3600000).toISOString(),
+      id: 'tx4',
+      receiptNumber: 'RCP-0022',
+      receipt_number: 'RCP-0022',
+      orderNumber: 'RCP-0022',
+      dateCreated: new Date(nowMs - 4 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 4 * 3600000).toISOString(),
+      date: new Date(nowMs - 4 * 3600000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 3500.00,
+      total_amount: 3500.00,
+      total: 3500.00,
+      subtotal: 3500.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Apple AirPods Pro', name: 'Apple AirPods Pro', quantity: 1, qty: 1, unitPrice: 3500.00, price: 3500.00, subtotal: 3500.00 }
+      ]
+    },
+    {
+      id: 'tx5',
+      receiptNumber: 'RCP-0021',
+      receipt_number: 'RCP-0021',
+      orderNumber: 'RCP-0021',
+      dateCreated: new Date(nowMs - 5 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 5 * 3600000).toISOString(),
+      date: new Date(nowMs - 5 * 3600000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 310.00,
+      total_amount: 310.00,
+      total: 310.00,
+      subtotal: 310.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Ideal Full Cream Milk 160g (Carton of 24)', name: 'Ideal Full Cream Milk 160g (Carton of 24)', quantity: 1, qty: 1, unitPrice: 230.00, price: 230.00, subtotal: 230.00 },
+        { productName: 'Lipton Yellow Label Tea Bags 50s', name: 'Lipton Yellow Label Tea Bags 50s', quantity: 2, qty: 2, unitPrice: 38.00, price: 38.00, subtotal: 76.00 }
+      ]
+    },
+    {
+      id: 'tx6',
+      receiptNumber: 'RCP-0020',
+      receipt_number: 'RCP-0020',
+      orderNumber: 'RCP-0020',
+      dateCreated: new Date(nowMs - 7 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 7 * 3600000).toISOString(),
+      date: new Date(nowMs - 7 * 3600000).toISOString(),
+      cashierName: 'Kwame Mensah',
+      cashier_name: 'Kwame Mensah',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 160.00,
+      total_amount: 160.00,
+      total: 160.00,
+      subtotal: 160.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'FanYogo Strawberry Pouch 145ml (Pack of 20)', name: 'FanYogo Strawberry Pouch 145ml (Pack of 20)', quantity: 1, qty: 1, unitPrice: 100.00, price: 100.00, subtotal: 100.00 },
+        { productName: 'Dettol Antiseptic Liquid 250ml', name: 'Dettol Antiseptic Liquid 250ml', quantity: 2, qty: 2, unitPrice: 30.00, price: 30.00, subtotal: 60.00 }
+      ]
+    },
+
+    // --- YESTERDAY (6 Transactions) ---
+    {
+      id: 'tx7',
+      receiptNumber: 'RCP-0019',
+      receipt_number: 'RCP-0019',
+      orderNumber: 'RCP-0019',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 2 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 2 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 2 * 3600000).toISOString(),
       cashierName: 'Ama Serwaa',
       cashier_name: 'Ama Serwaa',
       paymentMethod: 'mobile_money',
@@ -1988,13 +2808,13 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx3',
-      receiptNumber: 'RCP-0003',
-      receipt_number: 'RCP-0003',
-      orderNumber: 'RCP-0003',
-      dateCreated: new Date(Date.now() - 5 * 3600000).toISOString(),
-      date_created: new Date(Date.now() - 5 * 3600000).toISOString(),
-      date: new Date(Date.now() - 5 * 3600000).toISOString(),
+      id: 'tx8',
+      receiptNumber: 'RCP-0018',
+      receipt_number: 'RCP-0018',
+      orderNumber: 'RCP-0018',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 4 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 4 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 4 * 3600000).toISOString(),
       cashierName: 'Kofi Annan',
       cashier_name: 'Kofi Annan',
       paymentMethod: 'card',
@@ -2010,17 +2830,40 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx4',
-      receiptNumber: 'RCP-0004',
-      receipt_number: 'RCP-0004',
-      orderNumber: 'RCP-0004',
-      dateCreated: new Date(Date.now() - 86400000).toISOString(),
-      date_created: new Date(Date.now() - 86400000).toISOString(),
-      date: new Date(Date.now() - 86400000).toISOString(),
+      id: 'tx9',
+      receiptNumber: 'RCP-0017',
+      receipt_number: 'RCP-0017',
+      orderNumber: 'RCP-0017',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 6 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 6 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 6 * 3600000).toISOString(),
       cashierName: 'Ama Serwaa',
       cashier_name: 'Ama Serwaa',
       paymentMethod: 'cash',
       payment_method: 'cash',
+      totalAmount: 580.00,
+      total_amount: 580.00,
+      total: 580.00,
+      subtotal: 580.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Kleesoft Washing Powder 500g (Carton of 12)', name: 'Kleesoft Washing Powder 500g (Carton of 12)', quantity: 1, qty: 1, unitPrice: 180.00, price: 180.00, subtotal: 180.00 },
+        { productName: 'Nunu Evaporated Milk 170g (Carton of 48)', name: 'Nunu Evaporated Milk 170g (Carton of 48)', quantity: 1, qty: 1, unitPrice: 400.00, price: 400.00, subtotal: 400.00 }
+      ]
+    },
+    {
+      id: 'tx10',
+      receiptNumber: 'RCP-0016',
+      receipt_number: 'RCP-0016',
+      orderNumber: 'RCP-0016',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 7 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 7 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 7 * 3600000).toISOString(),
+      cashierName: 'Kwame Mensah',
+      cashier_name: 'Kwame Mensah',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
       totalAmount: 380.00,
       total_amount: 380.00,
       total: 380.00,
@@ -2032,79 +2875,59 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx5',
-      receiptNumber: 'RCP-0005',
-      receipt_number: 'RCP-0005',
-      orderNumber: 'RCP-0005',
-      dateCreated: new Date(Date.now() - 86400000 - 3600000).toISOString(),
-      date_created: new Date(Date.now() - 86400000 - 3600000).toISOString(),
-      date: new Date(Date.now() - 86400000 - 3600000).toISOString(),
+      id: 'tx11',
+      receiptNumber: 'RCP-0015',
+      receipt_number: 'RCP-0015',
+      orderNumber: 'RCP-0015',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 8 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 8 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 8 * 3600000).toISOString(),
       cashierName: 'Kofi Annan',
       cashier_name: 'Kofi Annan',
-      paymentMethod: 'mobile_money',
-      payment_method: 'mobile_money',
-      totalAmount: 920.00,
-      total_amount: 920.00,
-      total: 920.00,
-      subtotal: 920.00,
-      discount: 0.00,
-      status: 'completed',
-      items: [
-        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 }
-      ]
-    },
-    {
-      id: 'tx6',
-      receiptNumber: 'RCP-0006',
-      receipt_number: 'RCP-0006',
-      orderNumber: 'RCP-0006',
-      dateCreated: new Date(Date.now() - 2 * 86400000).toISOString(),
-      date_created: new Date(Date.now() - 2 * 86400000).toISOString(),
-      date: new Date(Date.now() - 2 * 86400000).toISOString(),
-      cashierName: 'Kwame Mensah',
-      cashier_name: 'Kwame Mensah',
-      paymentMethod: 'card',
-      payment_method: 'card',
-      totalAmount: 3500.00,
-      total_amount: 3500.00,
-      total: 3500.00,
-      subtotal: 3500.00,
-      discount: 0.00,
-      status: 'completed',
-      items: [
-        { productName: 'Apple AirPods Pro', name: 'Apple AirPods Pro', quantity: 1, qty: 1, unitPrice: 3500.00, price: 3500.00, subtotal: 3500.00 }
-      ]
-    },
-    {
-      id: 'tx7',
-      receiptNumber: 'RCP-0007',
-      receipt_number: 'RCP-0007',
-      orderNumber: 'RCP-0007',
-      dateCreated: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
-      date_created: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
-      date: new Date(Date.now() - 2 * 86400000 - 1800000).toISOString(),
-      cashierName: 'Ama Serwaa',
-      cashier_name: 'Ama Serwaa',
       paymentMethod: 'cash',
       payment_method: 'cash',
-      totalAmount: 120.00,
-      total_amount: 120.00,
-      total: 120.00,
-      subtotal: 120.00,
+      totalAmount: 250.00,
+      total_amount: 250.00,
+      total: 250.00,
+      subtotal: 250.00,
       discount: 0.00,
       status: 'completed',
       items: [
-        { productName: 'Basic White Tee', name: 'Basic White Tee', quantity: 1, qty: 1, unitPrice: 120.00, price: 120.00, subtotal: 120.00 }
+        { productName: 'Leather Wallet', name: 'Leather Wallet', quantity: 1, qty: 1, unitPrice: 250.00, price: 250.00, subtotal: 250.00 }
       ]
     },
     {
-      id: 'tx8',
-      receiptNumber: 'RCP-0008',
-      receipt_number: 'RCP-0008',
-      orderNumber: 'RCP-0008',
-      dateCreated: new Date(Date.now() - 3 * 86400000).toISOString(),
-      date_created: new Date(Date.now() - 3 * 86400000).toISOString(),
-      date: new Date(Date.now() - 3 * 86400000).toISOString(),
+      id: 'tx12',
+      receiptNumber: 'RCP-0014',
+      receipt_number: 'RCP-0014',
+      orderNumber: 'RCP-0014',
+      dateCreated: new Date(nowMs - 24 * 3600000 - 9 * 3600000).toISOString(),
+      date_created: new Date(nowMs - 24 * 3600000 - 9 * 3600000).toISOString(),
+      date: new Date(nowMs - 24 * 3600000 - 9 * 3600000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 5500.00,
+      total_amount: 5500.00,
+      total: 5500.00,
+      subtotal: 5500.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Samsung Galaxy Tab', name: 'Samsung Galaxy Tab', quantity: 1, qty: 1, unitPrice: 5500.00, price: 5500.00, subtotal: 5500.00 }
+      ]
+    },
+
+    // --- THIS WEEK & MONTH (13 Additional Transactions) ---
+    {
+      id: 'tx13',
+      receiptNumber: 'RCP-0013',
+      receipt_number: 'RCP-0013',
+      orderNumber: 'RCP-0013',
+      dateCreated: new Date(nowMs - 3 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 3 * 86400000).toISOString(),
+      date: new Date(nowMs - 3 * 86400000).toISOString(),
       cashierName: 'Kofi Annan',
       cashier_name: 'Kofi Annan',
       paymentMethod: 'mobile_money',
@@ -2121,13 +2944,80 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx9',
+      id: 'tx14',
+      receiptNumber: 'RCP-0012',
+      receipt_number: 'RCP-0012',
+      orderNumber: 'RCP-0012',
+      dateCreated: new Date(nowMs - 4 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 4 * 86400000).toISOString(),
+      date: new Date(nowMs - 4 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 1800.00,
+      total_amount: 1800.00,
+      total: 1800.00,
+      subtotal: 1800.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Nike Air Max', name: 'Nike Air Max', quantity: 2, qty: 2, unitPrice: 850.00, price: 850.00, subtotal: 1700.00 },
+        { productName: 'Voltic Natural Mineral Water 500ml (Pack of 16)', name: 'Voltic Natural Mineral Water 500ml (Pack of 16)', quantity: 2, qty: 2, unitPrice: 50.00, price: 50.00, subtotal: 100.00 }
+      ]
+    },
+    {
+      id: 'tx15',
+      receiptNumber: 'RCP-0011',
+      receipt_number: 'RCP-0011',
+      orderNumber: 'RCP-0011',
+      dateCreated: new Date(nowMs - 5 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 5 * 86400000).toISOString(),
+      date: new Date(nowMs - 5 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 920.00,
+      total_amount: 920.00,
+      total: 920.00,
+      subtotal: 920.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 }
+      ]
+    },
+    {
+      id: 'tx16',
+      receiptNumber: 'RCP-0010',
+      receipt_number: 'RCP-0010',
+      orderNumber: 'RCP-0010',
+      dateCreated: new Date(nowMs - 6 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 6 * 86400000).toISOString(),
+      date: new Date(nowMs - 6 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 4200.00,
+      total_amount: 4200.00,
+      total: 4200.00,
+      subtotal: 4200.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Sony WH-1000XM4', name: 'Sony WH-1000XM4', quantity: 1, qty: 1, unitPrice: 4200.00, price: 4200.00, subtotal: 4200.00 }
+      ]
+    },
+    {
+      id: 'tx17',
       receiptNumber: 'RCP-0009',
       receipt_number: 'RCP-0009',
       orderNumber: 'RCP-0009',
-      dateCreated: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
-      date_created: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
-      date: new Date(Date.now() - 3 * 86400000 - 7200000).toISOString(),
+      dateCreated: new Date(nowMs - 7 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 7 * 86400000).toISOString(),
+      date: new Date(nowMs - 7 * 86400000).toISOString(),
       cashierName: 'Kwame Mensah',
       cashier_name: 'Kwame Mensah',
       paymentMethod: 'cash',
@@ -2143,27 +3033,182 @@ export function setupMockApi() {
       ]
     },
     {
-      id: 'tx10',
-      receiptNumber: 'RCP-0010',
-      receipt_number: 'RCP-0010',
-      orderNumber: 'RCP-0010',
-      dateCreated: new Date(Date.now() - 4 * 86400000).toISOString(),
-      date_created: new Date(Date.now() - 4 * 86400000).toISOString(),
-      date: new Date(Date.now() - 4 * 86400000).toISOString(),
-      cashierName: 'Ama Serwaa',
-      cashier_name: 'Ama Serwaa',
-      paymentMethod: 'card',
-      payment_method: 'card',
-      totalAmount: 5500.00,
-      total_amount: 5500.00,
-      total: 5500.00,
-      subtotal: 5500.00,
+      id: 'tx18',
+      receiptNumber: 'RCP-0008',
+      receipt_number: 'RCP-0008',
+      orderNumber: 'RCP-0008',
+      dateCreated: new Date(nowMs - 9 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 9 * 86400000).toISOString(),
+      date: new Date(nowMs - 9 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 850.00,
+      total_amount: 850.00,
+      total: 850.00,
+      subtotal: 850.00,
       discount: 0.00,
       status: 'completed',
       items: [
-        { productName: 'Samsung Galaxy Tab', name: 'Samsung Galaxy Tab', quantity: 1, qty: 1, unitPrice: 5500.00, price: 5500.00, subtotal: 5500.00 }
+        { productName: 'Nike Air Max', name: 'Nike Air Max', quantity: 1, qty: 1, unitPrice: 850.00, price: 850.00, subtotal: 850.00 }
       ]
     },
+    {
+      id: 'tx19',
+      receiptNumber: 'RCP-0007',
+      receipt_number: 'RCP-0007',
+      orderNumber: 'RCP-0007',
+      dateCreated: new Date(nowMs - 12 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 12 * 86400000).toISOString(),
+      date: new Date(nowMs - 12 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 120.00,
+      total_amount: 120.00,
+      total: 120.00,
+      subtotal: 120.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Basic White Tee', name: 'Basic White Tee', quantity: 1, qty: 1, unitPrice: 120.00, price: 120.00, subtotal: 120.00 }
+      ]
+    },
+    {
+      id: 'tx20',
+      receiptNumber: 'RCP-0006',
+      receipt_number: 'RCP-0006',
+      orderNumber: 'RCP-0006',
+      dateCreated: new Date(nowMs - 15 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 15 * 86400000).toISOString(),
+      date: new Date(nowMs - 15 * 86400000).toISOString(),
+      cashierName: 'Kwame Mensah',
+      cashier_name: 'Kwame Mensah',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 3500.00,
+      total_amount: 3500.00,
+      total: 3500.00,
+      subtotal: 3500.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Apple AirPods Pro', name: 'Apple AirPods Pro', quantity: 1, qty: 1, unitPrice: 3500.00, price: 3500.00, subtotal: 3500.00 }
+      ]
+    },
+    {
+      id: 'tx21',
+      receiptNumber: 'RCP-0005',
+      receipt_number: 'RCP-0005',
+      orderNumber: 'RCP-0005',
+      dateCreated: new Date(nowMs - 18 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 18 * 86400000).toISOString(),
+      date: new Date(nowMs - 18 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 920.00,
+      total_amount: 920.00,
+      total: 920.00,
+      subtotal: 920.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 }
+      ]
+    },
+    {
+      id: 'tx22',
+      receiptNumber: 'RCP-0004',
+      receipt_number: 'RCP-0004',
+      orderNumber: 'RCP-0004',
+      dateCreated: new Date(nowMs - 20 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 20 * 86400000).toISOString(),
+      date: new Date(nowMs - 20 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 380.00,
+      total_amount: 380.00,
+      total: 380.00,
+      subtotal: 380.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Sunglasses Classic', name: 'Sunglasses Classic', quantity: 1, qty: 1, unitPrice: 380.00, price: 380.00, subtotal: 380.00 }
+      ]
+    },
+    {
+      id: 'tx23',
+      receiptNumber: 'RCP-0003',
+      receipt_number: 'RCP-0003',
+      orderNumber: 'RCP-0003',
+      dateCreated: new Date(nowMs - 22 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 22 * 86400000).toISOString(),
+      date: new Date(nowMs - 22 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'card',
+      payment_method: 'card',
+      totalAmount: 4200.00,
+      total_amount: 4200.00,
+      total: 4200.00,
+      subtotal: 4200.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Sony WH-1000XM4', name: 'Sony WH-1000XM4', quantity: 1, qty: 1, unitPrice: 4200.00, price: 4200.00, subtotal: 4200.00 }
+      ]
+    },
+    {
+      id: 'tx24',
+      receiptNumber: 'RCP-0002',
+      receipt_number: 'RCP-0002',
+      orderNumber: 'RCP-0002',
+      dateCreated: new Date(nowMs - 25 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 25 * 86400000).toISOString(),
+      date: new Date(nowMs - 25 * 86400000).toISOString(),
+      cashierName: 'Ama Serwaa',
+      cashier_name: 'Ama Serwaa',
+      paymentMethod: 'mobile_money',
+      payment_method: 'mobile_money',
+      totalAmount: 1200.00,
+      total_amount: 1200.00,
+      total: 1200.00,
+      subtotal: 1200.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Adidas Ultraboost', name: 'Adidas Ultraboost', quantity: 1, qty: 1, unitPrice: 920.00, price: 920.00, subtotal: 920.00 },
+        { productName: 'Leather Wallet', name: 'Leather Wallet', quantity: 1, qty: 1, unitPrice: 280.00, price: 280.00, subtotal: 280.00 }
+      ]
+    },
+    {
+      id: 'tx25',
+      receiptNumber: 'RCP-0001',
+      receipt_number: 'RCP-0001',
+      orderNumber: 'RCP-0001',
+      dateCreated: new Date(nowMs - 28 * 86400000).toISOString(),
+      date_created: new Date(nowMs - 28 * 86400000).toISOString(),
+      date: new Date(nowMs - 28 * 86400000).toISOString(),
+      cashierName: 'Kofi Annan',
+      cashier_name: 'Kofi Annan',
+      paymentMethod: 'cash',
+      payment_method: 'cash',
+      totalAmount: 850.00,
+      total_amount: 850.00,
+      total: 850.00,
+      subtotal: 850.00,
+      discount: 0.00,
+      status: 'completed',
+      items: [
+        { productName: 'Nike Air Max', name: 'Nike Air Max', quantity: 1, qty: 1, unitPrice: 850.00, price: 850.00, subtotal: 850.00 }
+      ]
+    }
   ];
 
   mock.onGet(/\/pos\/transactions\/[^/]+\/receipt/).reply((config) => {
@@ -2839,15 +3884,71 @@ export function setupMockApi() {
   });
 
   // Suppliers list mock
-  mock.onGet(/\/tenant\/suppliers/).reply(200, {
-    success: {
-      status: 'OK',
-      code: 200,
-      data: {
-        suppliers: mockSuppliers,
-        pagination: { total_items: mockSuppliers.length, total_pages: 1, current_page: 1, per_page: 100 }
-      }
+  mock.onGet(/\/tenant\/suppliers(?:\?.*)?$/).reply((config) => {
+    const url = config.url || '';
+    const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const searchQuery = (searchParams.get('search') || '').toLowerCase().trim();
+
+    const enrichedSuppliers = mockSuppliers.map(s => {
+      const debt = mockSupplierCredits
+        .filter(c => c.supplier_id === s.id && c.balance_remaining > 0)
+        .reduce((sum, c) => sum + c.balance_remaining, 0);
+      return {
+        ...s,
+        outstanding_debt: debt > 0 ? debt : null
+      };
+    });
+
+    let filtered = [...enrichedSuppliers];
+    if (searchQuery) {
+      filtered = filtered.filter(s =>
+        s.name.toLowerCase().includes(searchQuery) ||
+        (s.contact_person && s.contact_person.toLowerCase().includes(searchQuery)) ||
+        (s.email && s.email.toLowerCase().includes(searchQuery)) ||
+        (s.phone && s.phone.includes(searchQuery)) ||
+        (s.notes && s.notes.toLowerCase().includes(searchQuery))
+      );
     }
+
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          suppliers: filtered,
+          pagination: { total_items: filtered.length, total: filtered.length, total_pages: 1, current_page: 1, per_page: 100 }
+        }
+      }
+    }];
+  });
+
+  // GET /tenant/suppliers/:id
+  mock.onGet(/\/tenant\/suppliers\/[^/]+$/).reply((config) => {
+    const url = config.url || '';
+    const id = url.split('/').pop() || '';
+    const s = mockSuppliers.find(sup => sup.id === id);
+    if (!s) return [404, { error: { status: 'NOT_FOUND', message: 'Supplier not found' } }];
+
+    const debt = mockSupplierCredits
+      .filter(c => c.supplier_id === s.id && c.balance_remaining > 0)
+      .reduce((sum, c) => sum + c.balance_remaining, 0);
+
+    const relatedPOs = mockPurchaseOrders.filter(po => po.supplier_id === s.id);
+
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          supplier: {
+            ...s,
+            outstanding_debt: debt > 0 ? debt : null,
+            total_orders: relatedPOs.length,
+            recent_purchase_orders: relatedPOs.slice(0, 5)
+          }
+        }
+      }
+    }];
   });
 
   mock.onPost(/\/tenant\/suppliers$/).reply((config) => {
@@ -2858,8 +3959,12 @@ export function setupMockApi() {
       contact_person: data.contact_person || '',
       email: data.email || '',
       phone: data.phone || '',
+      address: data.address || '',
+      tax_id: data.tax_id || '',
+      notes: data.notes || '',
       is_active: true,
-      status: 'active'
+      status: 'active',
+      dateCreated: new Date().toISOString()
     };
     mockSuppliers.push(newSup);
     return [201, { success: { status: 'CREATED', code: 201, data: { supplier: newSup } } }];
@@ -3669,64 +4774,153 @@ export function setupMockApi() {
       amount_paid: 5000.00,
       balance_remaining: 10000.00,
       status: "partial" as const,
-      due_date: new Date(Date.now() + 5*86400000).toISOString().split('T')[0], // 5 days from now
+      due_date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0], // 5 days from now
       notes: "Received batch of Sony headphones on 30-day terms",
-      date_created: new Date(Date.now() - 10*86400000).toISOString(),
+      date_created: new Date(Date.now() - 10 * 86400000).toISOString(),
       payments: [
         {
           id: "scp1",
           amount: 5000.00,
           payment_method: "mobile_money",
           reference: "TXN-MOMO-993",
-          notes: "First installment",
-          date_created: new Date(Date.now() - 5*86400000).toISOString()
+          notes: "First installment via MTN MoMo",
+          date_created: new Date(Date.now() - 5 * 86400000).toISOString()
         }
       ]
     },
     {
       id: "sc2",
       supplier_id: "sup2",
-      supplier_name: "Accra Garments",
+      supplier_name: "Accra Garments & Textiles",
       purchase_order_id: "po2",
       purchase_order_ref: "PO-2026-002",
       total_amount: 3400.00,
       amount_paid: 0.00,
       balance_remaining: 3400.00,
       status: "outstanding" as const,
-      due_date: new Date(Date.now() - 2*86400000).toISOString().split('T')[0], // 2 days ago (overdue)
+      due_date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], // 2 days ago (overdue)
       notes: "Apparel invoice for basic white tees",
-      date_created: new Date(Date.now() - 15*86400000).toISOString(),
+      date_created: new Date(Date.now() - 15 * 86400000).toISOString(),
       payments: []
+    },
+    {
+      id: "sc3",
+      supplier_id: "sup3",
+      supplier_name: "Nunu Dairy & Beverages Ltd",
+      purchase_order_id: "po3",
+      purchase_order_ref: "PO-2026-003",
+      total_amount: 3019.00,
+      amount_paid: 0.00,
+      balance_remaining: 3019.00,
+      status: "outstanding" as const,
+      due_date: new Date(Date.now() + 12 * 86400000).toISOString().split('T')[0], // 12 days from now
+      notes: "Weekly restock of 8 cartons Nunu Evaporated Milk",
+      date_created: new Date(Date.now() - 7 * 86400000).toISOString(),
+      payments: []
+    },
+    {
+      id: "sc4",
+      supplier_id: "sup4",
+      supplier_name: "Golden Tree Confectionery",
+      purchase_order_id: "po4",
+      purchase_order_ref: "PO-2026-004",
+      total_amount: 1450.00,
+      amount_paid: 0.00,
+      balance_remaining: 1450.00,
+      status: "outstanding" as const,
+      due_date: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0],
+      notes: "Kingsbite chocolate bars bulk delivery",
+      date_created: new Date(Date.now() - 4 * 86400000).toISOString(),
+      payments: []
+    },
+    {
+      id: "sc5",
+      supplier_id: "sup6",
+      supplier_name: "FanMilk Distribution Hub",
+      purchase_order_id: "po5",
+      purchase_order_ref: "PO-2026-005",
+      total_amount: 850.00,
+      amount_paid: 0.00,
+      balance_remaining: 850.00,
+      status: "outstanding" as const,
+      due_date: new Date(Date.now() + 8 * 86400000).toISOString().split('T')[0],
+      notes: "FanYogo frozen yogurt packs",
+      date_created: new Date(Date.now() - 3 * 86400000).toISOString(),
+      payments: []
+    },
+    {
+      id: "sc6",
+      supplier_id: "sup5",
+      supplier_name: "Voltic Mineral Water Depot",
+      purchase_order_id: "po0",
+      purchase_order_ref: "PO-2026-000",
+      total_amount: 1200.00,
+      amount_paid: 1200.00,
+      balance_remaining: 0.00,
+      status: "settled" as const,
+      due_date: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0],
+      notes: "Mineral water bulk pallet (fully settled)",
+      date_created: new Date(Date.now() - 25 * 86400000).toISOString(),
+      payments: [
+        {
+          id: "scp6",
+          amount: 1200.00,
+          payment_method: "bank_transfer",
+          reference: "TXN-BNK-441",
+          notes: "Settled in full via GCB transfer",
+          date_created: new Date(Date.now() - 12 * 86400000).toISOString()
+        }
+      ]
     }
   ];
 
   // GET /tenant/supplier-credit/summary
-  mock.onGet(/\/tenant\/supplier-credit\/summary$/).reply(200, {
-    success: {
-      status: 'OK',
-      code: 200,
-      data: {
-        total_outstanding: 13400.00,
-        total_suppliers_with_debt: 2,
-        overdue_count: 1,
-        upcoming_due_7_days: 1
+  mock.onGet(/\/tenant\/supplier-credit\/summary$/).reply(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+    const activeCredits = mockSupplierCredits.filter(s => s.balance_remaining > 0);
+    const totalOutstanding = activeCredits.reduce((sum, s) => sum + s.balance_remaining, 0);
+    const uniqueSuppliersWithDebt = new Set(activeCredits.map(s => s.supplier_id)).size;
+    const overdueCount = activeCredits.filter(s => s.due_date < todayStr).length;
+    const upcoming7Days = activeCredits.filter(s => s.due_date >= todayStr && s.due_date <= in7Days).length;
+
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          total_outstanding: totalOutstanding,
+          total_suppliers_with_debt: uniqueSuppliersWithDebt,
+          overdue_count: overdueCount,
+          upcoming_due_7_days: upcoming7Days
+        }
       }
-    }
+    }];
   });
 
   // GET /tenant/supplier-credit
-  mock.onGet(/\/tenant\/supplier-credit(\?.*)?$/).reply((config) => {
+  mock.onGet(/\/tenant\/supplier-credit(?:\?.*)?$/).reply((config) => {
     const url = config.url || '';
+    if (url.includes('/summary')) return [404, {}];
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
     const status = searchParams.get('status') || '';
     const supplierId = searchParams.get('supplier_id') || '';
+    const searchQuery = (searchParams.get('search') || '').toLowerCase().trim();
 
     let filtered = [...mockSupplierCredits];
-    if (status) {
+    if (status && status !== 'all') {
       filtered = filtered.filter(s => s.status === status);
     }
-    if (supplierId) {
+    if (supplierId && supplierId !== 'all') {
       filtered = filtered.filter(s => s.supplier_id === supplierId);
+    }
+    if (searchQuery) {
+      filtered = filtered.filter(s =>
+        s.supplier_name.toLowerCase().includes(searchQuery) ||
+        s.purchase_order_ref.toLowerCase().includes(searchQuery) ||
+        (s.notes && s.notes.toLowerCase().includes(searchQuery))
+      );
     }
 
     return [200, {
@@ -3735,6 +4929,14 @@ export function setupMockApi() {
         code: 200,
         data: {
           supplierCredits: filtered,
+          pagination: {
+            page: 1,
+            pages: 1,
+            perPage: 20,
+            total: filtered.length,
+            hasNext: false,
+            hasPrev: false
+          },
           total: filtered.length
         }
       }
@@ -3749,7 +4951,7 @@ export function setupMockApi() {
     if (credit) {
       return [200, { success: { status: 'OK', code: 200, data: { supplierCredit: credit } } }];
     }
-    return [404, { error: { status: "NOT_FOUND", message: "Supplier credit record not found", code: 404 } }];
+    return [404, { error: { status: 'NOT_FOUND', message: 'Supplier credit not found', code: 404 } }];
   });
 
   // POST /tenant/supplier-credit/:id/payments
@@ -3804,55 +5006,77 @@ export function setupMockApi() {
   let mockNotifications = [
     {
       id: 'n1',
-      title: 'Low Stock Alert',
-      message: 'Nido Milk stock level reached threshold (4 units remaining). Consider placing a purchase order.',
+      title: 'Low Stock Alert: Voltic 500ml',
+      message: 'Voltic Natural Mineral Water reached critical stock level (4 bottles remaining). Consider ordering a new pack.',
       category: 'inventory',
       type: 'warning',
-      timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
       read: false,
-      actionUrl: '/inventory/stock',
+      actionUrl: '/inventory/products',
       actionLabel: 'Restock Item',
     },
     {
       id: 'n2',
-      title: 'New Online Order #ORD-8821',
-      message: 'Customer Adelaide Afful placed an order for 2x Graphic T-Shirt via Paystack (GHS 50.00).',
-      category: 'orders',
-      type: 'success',
-      timestamp: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+      title: 'Supplier Credit Overdue',
+      message: 'Payment of GHS 3,400.00 to Accra Garments & Textiles was due 2 days ago for PO-2026-002.',
+      category: 'financial',
+      type: 'alert',
+      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
       read: false,
-      actionUrl: '/transactions',
-      actionLabel: 'View Order',
+      actionUrl: '/inventory/suppliers',
+      actionLabel: 'View Credit',
     },
     {
       id: 'n3',
-      title: 'Purchase Order In-Transit (PO-2026-004)',
-      message: 'Guinness Brewery confirmed shipment. Expected arrival within 24 hours.',
-      category: 'inventory',
-      type: 'info',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+      title: 'New Online Order #ORD-1006',
+      message: 'Customer Ama Owusu placed an order for 4 items via Paystack (GHS 2,100.00).',
+      category: 'orders',
+      type: 'success',
+      timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
       read: false,
-      actionUrl: '/inventory/purchase-orders',
-      actionLabel: 'Inspect PO',
+      actionUrl: '/ecommerce/orders',
+      actionLabel: 'Process Order',
     },
     {
       id: 'n4',
-      title: 'Cash Drawer Reconciliation Warning',
-      message: 'Shift closing recorded a variance of -GHS 5.00 on Cash Drawer #1.',
+      title: 'Supplier Credit Due in 5 Days',
+      message: 'TechWholesale Ghana credit balance of GHS 10,000.00 is due on PO-2026-001.',
       category: 'financial',
-      type: 'alert',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-      read: true,
-      actionUrl: '/transactions',
-      actionLabel: 'Review Shift',
+      type: 'info',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+      read: false,
+      actionUrl: '/inventory/suppliers',
+      actionLabel: 'Inspect Ledger',
     },
     {
       id: 'n5',
-      title: 'System Security Update',
+      title: 'Low Stock Alert: Kleesoft Powder',
+      message: 'Kleesoft Washing Powder stock quantity is low (3 packs left in storage).',
+      category: 'inventory',
+      type: 'warning',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+      read: true,
+      actionUrl: '/inventory/products',
+      actionLabel: 'Restock Item',
+    },
+    {
+      id: 'n6',
+      title: 'Payroll Disbursal Completed',
+      message: 'Monthly staff salaries totaling GHS 12,200.00 successfully logged and disbursed across 5 recipients.',
+      category: 'financial',
+      type: 'success',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
+      read: true,
+      actionUrl: '/staff/payroll',
+      actionLabel: 'Review Run',
+    },
+    {
+      id: 'n7',
+      title: 'System Security Engine Online',
       message: 'POS receipt printing and end-of-day reconciliation engine upgraded to v2.4.0.',
       category: 'system',
       type: 'info',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
       read: true,
       actionUrl: '/settings',
       actionLabel: 'System Settings',
@@ -3968,48 +5192,59 @@ export function setupMockApi() {
   // ─── REPORTS & TRANSACTIONS MOCKS ──────────────────────────────────────────
   // GET /tenant/reports/sales
   mock.onGet(/\/tenant\/reports\/sales/).reply(() => {
-    const timeseries = [
-      { date: 'Aug 11', sales: 240, orders: 2 },
-      { date: 'Aug 12', sales: 620, orders: 5 },
-      { date: 'Aug 13', sales: 1450, orders: 12 },
-      { date: 'Aug 14', sales: 160, orders: 2 },
-      { date: 'Aug 15', sales: 0, orders: 0 },
-      { date: 'Aug 16', sales: 0, orders: 0 },
-      { date: 'Aug 17', sales: 0, orders: 0 },
-      { date: 'Aug 18', sales: 0, orders: 0 },
-      { date: 'Aug 19', sales: 0, orders: 0 },
-      { date: 'Aug 20', sales: 0, orders: 0 },
-      { date: 'Aug 21', sales: 31.5, orders: 1 },
-    ];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Generate timeseries for the last 10 days
+    const timeseries = [];
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const label = `${monthNames[d.getMonth()]} ${d.getDate()}`;
+      
+      // Calculate from mockTransactions for that day
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const dayEnd = dayStart + 86400000;
+      const dayTxns = mockTransactions.filter(t => {
+        const txTime = new Date(t.date || t.date_created || t.dateCreated).getTime();
+        return txTime >= dayStart && txTime < dayEnd && t.status === 'completed';
+      });
+
+      const daySales = dayTxns.reduce((sum, t) => sum + (t.totalAmount || t.total || 0), 0);
+      timeseries.push({
+        date: label,
+        sales: daySales > 0 ? daySales : (i === 0 ? 5450 : (i === 1 ? 7380 : 1200 + (i * 350))),
+        orders: dayTxns.length > 0 ? dayTxns.length : (i === 0 ? 6 : (i === 1 ? 6 : 2 + (i % 3)))
+      });
+    }
 
     const summary = {
-      gross_sales: 3280.37,
-      total_refunds: 941.37,
-      net_sales: 2339.00,
-      total_discounts: 3.50,
-      cogs: 556.05,
-      gross_profit: 1782.95,
-      gross_margin_pct: 76.2,
-      cost_coverage_pct: 69,
-      total_orders: 29,
-      completed_orders_count: 22,
-      refunded_orders_count: 7,
-      average_order_value: 106.32,
-      max_order_value: 1028.00,
-      costed_items_count: 29,
-      costed_revenue: 1652.50,
-      uncosted_items_count: 13,
-      uncosted_revenue: 690.00,
-      period_expenses: 0.0,
-      net_operating_profit: 1782.95,
+      gross_sales: 32450.00,
+      total_refunds: 941.00,
+      net_sales: 31509.00,
+      total_discounts: 150.00,
+      cogs: 11200.00,
+      gross_profit: 20309.00,
+      gross_margin_pct: 64.5,
+      cost_coverage_pct: 78.2,
+      total_orders: mockTransactions.length,
+      completed_orders_count: mockTransactions.filter(t => t.status === 'completed').length,
+      refunded_orders_count: mockTransactions.filter(t => t.status === 'refunded').length,
+      average_order_value: 1260.00,
+      max_order_value: 5500.00,
+      costed_items_count: 55,
+      costed_revenue: 28400.00,
+      uncosted_items_count: 8,
+      uncosted_revenue: 3109.00,
+      period_expenses: 5800.00,
+      net_operating_profit: 14509.00,
       breakdown_by_channel: {
-        pos: { count: 29, gross: 3280.37, total: 2339.00 },
-        online: { count: 0, gross: 0, total: 0 }
+        pos: { count: mockTransactions.length, gross: 32450.00, total: 31509.00 },
+        online: { count: 6, gross: 4200.00, total: 4200.00 }
       },
       payment_distribution: [
-        { name: 'Cash', value: 2420.37, percentage: 73.8, color: '#10b981' },
-        { name: 'MoMo', value: 45.00, percentage: 1.4, color: '#f59e0b' },
-        { name: 'MoMo (Manual)', value: 815.00, percentage: 24.8, color: '#64748b' }
+        { name: 'Cash', value: 14200.00, percentage: 43.8, color: '#10b981' },
+        { name: 'MoMo', value: 9850.00, percentage: 30.3, color: '#f59e0b' },
+        { name: 'Card', value: 8400.00, percentage: 25.9, color: '#6366f1' }
       ]
     };
 
