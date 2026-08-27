@@ -59,6 +59,16 @@ export default function StockReconciliation() {
       return {};
     }
   });
+
+  // Track product metadata across all pages for global session calculation
+  const [itemDetailsMap, setItemDetailsMap] = useState<Record<string, ReconcileItem>>(() => {
+    try {
+      const saved = localStorage.getItem('recon_draft_items_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   
   // Review confirmation modal
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -68,18 +78,22 @@ export default function StockReconciliation() {
   const [calculatingItem, setCalculatingItem] = useState<ReconcileItem | null>(null);
   const [tierCounts, setTierCounts] = useState<Record<string, string>>({});
 
-  // Auto-persist uncommitted count drafts
+  // Auto-persist uncommitted count drafts and item details
   useEffect(() => {
     try {
       if (Object.keys(physicalCounts).length > 0) {
         localStorage.setItem('recon_draft_counts', JSON.stringify(physicalCounts));
+        if (Object.keys(itemDetailsMap).length > 0) {
+          localStorage.setItem('recon_draft_items_map', JSON.stringify(itemDetailsMap));
+        }
       } else {
         localStorage.removeItem('recon_draft_counts');
+        localStorage.removeItem('recon_draft_items_map');
       }
     } catch (e) {
       console.error('Failed to persist count draft', e);
     }
-  }, [physicalCounts]);
+  }, [physicalCounts, itemDetailsMap]);
 
   const fetchProducts = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
@@ -137,6 +151,13 @@ export default function StockReconciliation() {
       });
 
       setProducts(flatItems);
+      setItemDetailsMap(prev => {
+        const next = { ...prev };
+        flatItems.forEach(item => {
+          next[item.id] = item;
+        });
+        return next;
+      });
     } catch (error) {
       console.error('Failed to fetch products for reconciliation:', error);
       toast.error('Failed to load products');
@@ -178,6 +199,14 @@ export default function StockReconciliation() {
       ...prev,
       [id]: Math.round((parsed + Number.EPSILON) * 100) / 100
     }));
+
+    const currentItem = products.find(p => p.id === id);
+    if (currentItem) {
+      setItemDetailsMap(prev => ({
+        ...prev,
+        [id]: currentItem
+      }));
+    }
   };
 
   const handleQuickMatch = (item: ReconcileItem) => {
@@ -185,18 +214,28 @@ export default function StockReconciliation() {
       ...prev,
       [item.id]: item.quantity
     }));
+    setItemDetailsMap(prev => ({
+      ...prev,
+      [item.id]: item
+    }));
   };
 
   const handleOpenTierCalculator = (item: ReconcileItem) => {
     setCalculatingItem(item);
-    const currentCount = physicalCounts[item.id];
+    setItemDetailsMap(prev => ({
+      ...prev,
+      [item.id]: item
+    }));
+    const currentCount = physicalCounts[item.id] ?? item.quantity;
     const initialInputs: Record<string, string> = {};
 
     const multiTiers = (item.packaging_tiers || [])
       .filter(t => t.units_per_tier > 1)
       .sort((a, b) => b.units_per_tier - a.units_per_tier);
 
-    if (currentCount !== undefined && multiTiers.length > 0) {
+    if (multiTiers.length === 0) {
+      initialInputs['base'] = String(currentCount);
+    } else {
       const primaryTier = multiTiers[0];
       const packs = Math.floor(currentCount / primaryTier.units_per_tier);
       const loose = Math.round((currentCount % primaryTier.units_per_tier) * 100) / 100;
@@ -229,6 +268,10 @@ export default function StockReconciliation() {
       ...prev,
       [calculatingItem.id]: calculatedTotal
     }));
+    setItemDetailsMap(prev => ({
+      ...prev,
+      [calculatingItem.id]: calculatingItem
+    }));
     const itemName = calculatingItem.name;
     const baseUnit = calculatingItem.base_unit_name;
     const breakdown = getTierBreakdown(calculatedTotal, baseUnit, calculatingItem.packaging_tiers);
@@ -240,7 +283,9 @@ export default function StockReconciliation() {
     if (Object.keys(physicalCounts).length === 0) return;
     if (window.confirm('Reset all entered counts for this session?')) {
       setPhysicalCounts({});
+      setItemDetailsMap({});
       localStorage.removeItem('recon_draft_counts');
+      localStorage.removeItem('recon_draft_items_map');
       toast.success('Count session cleared');
     }
   };
@@ -262,12 +307,12 @@ export default function StockReconciliation() {
     ];
   }, [categories, availableCategories]);
 
-  // Computed summary metrics
+  // Computed summary metrics across all counted items in session
   const countedCount = Object.keys(physicalCounts).length;
   
   const discrepancyItems = useMemo(() => {
     return Object.entries(physicalCounts).map(([id, count]) => {
-      const item = products.find(p => p.id === id);
+      const item = itemDetailsMap[id] || products.find(p => p.id === id);
       if (!item) return null;
       const rawVariance = count - item.quantity;
       const variance = Math.round((rawVariance + Number.EPSILON) * 100) / 100;
@@ -278,7 +323,7 @@ export default function StockReconciliation() {
         variance
       };
     }).filter(Boolean) as (ReconcileItem & { physicalCount: number; variance: number })[];
-  }, [physicalCounts, products]);
+  }, [physicalCounts, itemDetailsMap, products]);
 
   const totalSurplus = useMemo(() => {
     const sum = discrepancyItems
@@ -317,14 +362,12 @@ export default function StockReconciliation() {
     }
 
     const updates = Object.entries(physicalCounts).map(([productId, quantity]) => {
-      const item = products.find(p => p.id === productId);
-      if (!item) return null;
       return {
         productId,
         quantity,
         notes: auditNotes.trim() || undefined
       };
-    }).filter(Boolean);
+    });
 
     setIsSaving(true);
     try {
@@ -338,7 +381,9 @@ export default function StockReconciliation() {
       setIsReviewModalOpen(false);
       setAuditNotes('');
       setPhysicalCounts({});
+      setItemDetailsMap({});
       localStorage.removeItem('recon_draft_counts');
+      localStorage.removeItem('recon_draft_items_map');
       fetchProducts(pagination?.page || 1);
     } catch (error: any) {
       console.error('Reconciliation error:', error);
