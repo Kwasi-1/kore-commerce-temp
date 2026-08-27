@@ -108,9 +108,17 @@ export default function Sidebar() {
     if (!tenant?.id) return;
     let isMounted = true;
     fetchUnreadCount();
-    apiClient.get('/tenant/products?limit=100')
+    apiClient.get('/tenant/products?limit=20')
       .then((res) => {
         if (!isMounted) return;
+        const summary = res.data?.success?.data?.summary;
+        if (summary) {
+          const outOfStock = Number(summary.out_of_stock_variants ?? 0);
+          const lowStock = Number(summary.low_stock_variants ?? 0);
+          setLowStockCount(outOfStock + lowStock);
+          return;
+        }
+
         const prods = res.data?.success?.data?.products || [];
         let count = 0;
         prods.forEach((p: any) => {
@@ -156,8 +164,8 @@ export default function Sidebar() {
       show: modules.pos,
       hasDividerAfter: true,
       items: [
-        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, moduleKey: 'pos' },
-        { name: 'Transactions', to: '/pos/transactions', icon: History, moduleKey: 'pos' },
+        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
+        { name: 'Transactions', to: '/pos/transactions', icon: History },
         { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
         { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
       ],
@@ -169,7 +177,7 @@ export default function Sidebar() {
       show: !isCashier && (modules.inventory || hasGraceModule('inventory_basic')),
       badge: lowStockCount > 0 ? lowStockCount : undefined,
       items: [
-        { name: 'Products', to: '/inventory/products', icon: Package, moduleKey: 'inventory' },
+        { name: 'Products', to: '/inventory/products', icon: Package },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
         { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation' },

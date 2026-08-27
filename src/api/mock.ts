@@ -1397,7 +1397,39 @@ export function setupMockApi() {
       };
     });
 
-    return [200, { success: { status: 'OK', code: 200, data: { products: mapped } } }];
+    const allVariants = mockProducts.flatMap(p => p.variants || []);
+    const outOfStockCount = allVariants.filter(v => (v.stock_quantity || 0) <= 0).length;
+    const lowStockCount = allVariants.filter(v => (v.stock_quantity || 0) > 0 && (v.stock_quantity || 0) <= (v.low_stock_threshold || 5)).length;
+
+    const summary = {
+      total_products: mockProducts.length,
+      total_variants: allVariants.length,
+      active_products: mockProducts.filter(p => p.status === 'active').length,
+      active_variants: allVariants.length,
+      draft_products: mockProducts.filter(p => p.status === 'draft').length,
+      out_of_stock_variants: outOfStockCount,
+      low_stock_variants: lowStockCount
+    };
+
+    return [200, {
+      success: {
+        status: 'OK',
+        code: 200,
+        data: {
+          products: mapped,
+          summary,
+          pagination: {
+            page: 1,
+            perPage: 20,
+            total: mapped.length,
+            totalProducts: mapped.length,
+            totalVariants: allVariants.length,
+            hasNext: false,
+            hasPrev: false
+          }
+        }
+      }
+    }];
   });
 
   const getPosProductsData = (products: any[]) => {
