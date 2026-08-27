@@ -15,12 +15,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { Drawer, DrawerContent, DrawerBody, DrawerHeader } from '@nextui-org/react';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useProductCacheStore } from '@/store/productCacheStore';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '../ui/checkbox';
 
 interface ProductSearchBarProps {
   isCartCollapsed?: boolean;
@@ -505,7 +509,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               <button
                 key={cat.name}
                 onClick={() => toggleCategory(cat.name)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors border whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors border whitespace-nowrap ${
                   isActive
                     ? 'bg-muted text-muted-foreground border-border'
                     : 'border-border text-muted-foreground hover:bg-secondary'
@@ -514,13 +518,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 {cat.name}
                 {isActive && <Icon icon="solar:close-circle-linear" className="h-3.5 w-3.5 ml-0.5 opacity-70 hover:opacity-100" />}
               </button>
-            )
+            );
           })}
 
-          {/* Quick 1-Tap "In Stock Only" Toggle Pill */}
+          {/* Quick 1-Tap "In Stock Only" Toggle Pill (Neutral Minimalist) */}
           <button
             onClick={() => togglePreference('hideOutOfStock')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all border whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border whitespace-nowrap ${
               hideOutOfStock
                 ? 'bg-muted text-muted-foreground border-border'
                 : 'border-border text-muted-foreground hover:bg-secondary'
@@ -553,14 +557,14 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-72 p-2 rounded-2xl border-border/60 shadow-lg">
+            <DropdownMenuContent align="start" className="min-w-72 p-2.5 rounded-2xl border-border/60 shadow-lg">
               {/* Stock Status Switch in Dropdown */}
               <div 
                 onClick={() => togglePreference('hideOutOfStock')}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/60 cursor-pointer transition-colors mb-2 bg-muted/30 border border-border/40"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/60 cursor-pointer transition-colors mb-2.5 bg-muted/30 border border-border/40"
               >
                 <div className="flex items-center gap-2">
-                  <Icon icon={hideOutOfStock ? "solar:box-minimalistic-bold" : "solar:box-minimalistic-linear"} className={`h-4 w-4 ${hideOutOfStock ? 'text-muted-foreground' : 'text-muted-foreground'}`} />
+                  <Icon icon="solar:box-minimalistic-linear" className="h-4 w-4 text-foreground/80" />
                   <div className="flex flex-col">
                     <span className="text-xs font-semibold text-foreground">In Stock Only</span>
                     <span className="text-[10px] text-muted-foreground">Hide 0-stock products</span>
@@ -728,98 +732,92 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
         )}
       </div>
 
-      {/* Mobile Filter Drawer */}
-      <Drawer 
-        isOpen={isMobileFilterOpen} 
-        onOpenChange={setIsMobileFilterOpen} 
-        placement="bottom" 
-        classNames={{ base: "bg-background rounded-t-[24px]" }}
-      >
-        <DrawerContent>
-          {() => (
-            <>
-              <DrawerHeader className="border-b border-border/40 py-4 flex flex-col gap-3">
-                <div className="flex justify-between items-center w-full">
-                  <span className="font-bold text-lg">Filters</span>
-                  {totalActiveFilters > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => {
-                        setActiveCategories([]);
-                        setPreference('hideOutOfStock', false);
-                      }} 
-                      className="text-muted-foreground text-xs h-7 px-2"
-                    >
-                      Clear All
-                    </Button>
-                  )}
-                </div>
+      {/* Mobile Filter Drawer (using app UI Drawer) */}
+      <Drawer open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+        <DrawerContent className="max-h-[50vh] p-0 border-t border-border bg-background rounded-t-[24px]">
+          <div className="px-6 pb-4 border-b border-border/40 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 ">
+              <DrawerTitle className="text-lg font-bold text-foreground !tracking-normal">Filters</DrawerTitle>
+              <div className="flex items-center gap-2">
+                {totalActiveFilters > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setActiveCategories([]);
+                      setPreference('hideOutOfStock', false);
+                    }} 
+                    className="text-muted-foreground text-xs h-7 px-2 hover:text-foreground"
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
+            </div>
 
-                {/* Mobile In-Stock Switch */}
-                <div 
-                  onClick={() => togglePreference('hideOutOfStock')}
-                  className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon icon="solar:box-minimalistic-bold" className={`h-5 w-5 text-muted-foreground`} />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-foreground">In Stock Only</span>
-                      <span className="text-xs text-muted-foreground">Hide out-of-stock products</span>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={hideOutOfStock} 
-                    onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="relative w-full">
-                  <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input 
-                    type="text" 
-                    placeholder="Find categories..."
-                    value={filterSearchTerm}
-                    onChange={(e) => setFilterSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border outline-none focus:ring-0 focus:border-foreground/10"
-                  />
-                </div>
-              </DrawerHeader>
-              <DrawerBody className="py-2 overflow-y-auto max-h-[50vh]">
+            {/* Mobile In-Stock Switch */}
+            <div 
+              onClick={() => togglePreference('hideOutOfStock')}
+              className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Icon icon="solar:box-minimalistic-bold" className={`h-5 w-5 text-muted-foreground`} />
                 <div className="flex flex-col">
-                  {displayCategories.map(cat => {
-                    const isChecked = activeCategories.includes(cat.name);
-                    return (
-                      <button
-                        key={cat.name}
-                        onClick={() => toggleCategory(cat.name)}
-                        className="flex items-center justify-between w-full py-3 px-1 border-b border-border/20 last:border-0"
-                      >
-                        <span className={`text-sm ${isChecked ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
-                          {cat.name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
-                            {cat.count}
-                          </span>
-                          <Checkbox 
-                            checked={isChecked}
-                            onCheckedChange={() => toggleCategory(cat.name)}
-                            onClick={(e) => e.stopPropagation()}
-                            className='h-5 w-5 rounded-md'
-                          />
-                        </div>
-                      </button>
-                    )
-                  })}
-                  {displayCategories.length === 0 && (
-                    <div className="text-sm text-muted-foreground text-center py-6">No categories match your search.</div>
-                  )}
+                  <span className="text-sm font-semibold text-foreground mb-1">In Stock Only</span>
+                  <span className="text-xs text-muted-foreground">Hide out-of-stock products</span>
                 </div>
-              </DrawerBody>
-            </>
-          )}
+              </div>
+              <Switch 
+                checked={hideOutOfStock} 
+                onCheckedChange={(val) => setPreference('hideOutOfStock', val)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Search Categories */}
+            <div className="relative w-full">
+              <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Find categories..."
+                value={filterSearchTerm}
+                onChange={(e) => setFilterSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border outline-none focus:ring-0 focus:border-foreground/10"
+              />
+            </div>
+          </div>
+
+          {/* Categories List in Mobile Drawer */}
+          <div className="px-6 py-2 overflow-y-auto max-h-[45vh] flex flex-col divide-y divide-border/20">
+            {displayCategories.map(cat => {
+              const isChecked = activeCategories.includes(cat.name);
+              return (
+                <button
+                  key={cat.name}
+                  onClick={() => toggleCategory(cat.name)}
+                  className="flex items-center justify-between w-full py-3 px-1 border-b border-border/20 last:border-0"
+                >
+                  <span className={`text-sm ${isChecked ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
+                    {cat.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
+                      {cat.count}
+                    </span>
+                    <Checkbox 
+                      checked={isChecked}
+                      onCheckedChange={() => toggleCategory(cat.name)}
+                      onClick={(e) => e.stopPropagation()}
+                      className='h-5 w-5 rounded-md'
+                    />
+                  </div>
+                </button>
+              );
+            })}
+            {displayCategories.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-6">No categories match your search.</div>
+            )}
+          </div>
         </DrawerContent>
       </Drawer>
 
