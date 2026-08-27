@@ -64,7 +64,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
 
   return (
     <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
-      <h1 className="text-[26px] font-bold text-foreground tracking-tighter lg:tracking-normal fontheader">Create Transaction</h1>
+      <h1 className="text-[26px] font-bold text-foreground tracking-tighter lg:tracking-normal font-header lg:font-sans">Create Transaction</h1>
       
       <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
         <SavedTransactionsHeader />
