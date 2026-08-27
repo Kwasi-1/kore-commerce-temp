@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
@@ -14,6 +14,8 @@ import { formatDistanceToNow } from 'date-fns';
 export default function StaffManagement() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Slide-over Edit/Create Staff Modal
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -36,22 +38,28 @@ export default function StaffManagement() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async (pageNumber: number = 1) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get('/tenant/staff?limit=50');
-      setStaffList(response.data.success.data.staff || []);
+      let url = `/tenant/staff?page=${pageNumber}&per_page=20`;
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+      }
+      const response = await apiClient.get(url);
+      setStaffList(response.data.success?.data?.staff || []);
+      setPagination(response.data.success?.data?.pagination || null);
     } catch (error) {
       console.error('Failed to fetch staff:', error);
       toast.error('Failed to load staff directory');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
 
   useEffect(() => {
-    fetchStaff();
-  }, []);
+    const timer = setTimeout(() => fetchStaff(1), 300);
+    return () => clearTimeout(timer);
+  }, [fetchStaff]);
 
   const handleFormSuccess = () => {
     setIsFormModalOpen(false);
@@ -171,13 +179,19 @@ export default function StaffManagement() {
         rows={rows}
         isLoading={isLoading}
         title="Team Directory"
+        serverPagination={pagination}
+        onPageChange={(page) => fetchStaff(page)}
         
-        showSearch={false}
+        showSearch={true}
+        searchPlaceholder="Search staff by name, email, phone, or role..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
         showFilter={false}
         
         showAddButton={true}
         addButtonText="Add Staff"
         onAddButtonClick={openNewStaff}
+        onRefresh={() => fetchStaff(1)}
         onRowActionClick={handleRowActionClick}
         
         mobileFriendly={true}
