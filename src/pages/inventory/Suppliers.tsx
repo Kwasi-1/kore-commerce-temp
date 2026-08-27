@@ -13,6 +13,7 @@ import { CurrencyDisplay } from '@/hooks';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@iconify/react';
+import clsx from 'clsx';
 
 export default function Suppliers() {
   const navigate = useNavigate();
@@ -130,11 +131,22 @@ export default function Suppliers() {
         </span>
       ),
       outstanding_debt: (
-        <span className="font-medium text-foreground">
-          {supplier.outstanding_debt ? (
-            <CurrencyDisplay amount={supplier.outstanding_debt} />
-          ) : '—'}
-        </span>
+        supplier.outstanding_debt && Number(supplier.outstanding_debt) > 0 ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/inventory/supplier-credit?search=${encodeURIComponent(supplier.name)}`);
+            }}
+            className="group inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:underline transition-all text-left cursor-pointer"
+            title={`View ${supplier.name} in Credit Ledger`}
+          >
+            <CurrencyDisplay amount={supplier.outstanding_debt} showStyling={false}/>
+            <Icon icon="solar:arrow-right-up-linear" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+          </button>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
       ),
       status: (
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${

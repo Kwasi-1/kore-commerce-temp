@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
@@ -28,6 +28,7 @@ import { Icon } from '@iconify/react';
 export default function SupplierCredit() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const staffUser = useAuthStore((state) => state.staffUser);
   const showCreditTab = staffUser?.role === 'owner' || staffUser?.role === 'manager';
 
@@ -52,7 +53,16 @@ export default function SupplierCredit() {
 
   // Filters & search
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get('search') || (location.state as any)?.search || ''
+  );
+
+  useEffect(() => {
+    const s = searchParams.get('search');
+    if (s !== null && s !== searchQuery) {
+      setSearchQuery(s);
+    }
+  }, [searchParams]);
 
   // Modal states
   const [selectedCredit, setSelectedCredit] = useState<SupplierCreditRecord | null>(null);
