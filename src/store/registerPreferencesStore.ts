@@ -9,11 +9,12 @@ export interface RegisterPreferences {
   soundEffectsEnabled: boolean;
   showSubPacks: boolean;
   quantityFormat: 'fraction' | 'decimal';
+  hideOutOfStock: boolean;
 }
 
 interface RegisterPreferencesState extends RegisterPreferences {
   setPreference: <K extends keyof RegisterPreferences>(key: K, value: RegisterPreferences[K]) => void;
-  togglePreference: (key: 'showProductImages' | 'showStockCount' | 'soundEffectsEnabled' | 'showSubPacks') => void;
+  togglePreference: (key: 'showProductImages' | 'showStockCount' | 'soundEffectsEnabled' | 'showSubPacks' | 'hideOutOfStock') => void;
 }
 
 export const useRegisterPreferencesStore = create<RegisterPreferencesState>()(
@@ -26,6 +27,7 @@ export const useRegisterPreferencesStore = create<RegisterPreferencesState>()(
       soundEffectsEnabled: true,
       showSubPacks: true,
       quantityFormat: 'fraction',
+      hideOutOfStock: false,
 
       setPreference: (key, value) => set({ [key]: value }),
       togglePreference: (key) => set((state) => ({ [key]: !state[key] })),
