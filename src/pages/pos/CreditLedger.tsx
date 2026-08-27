@@ -542,7 +542,7 @@ export default function CreditLedger() {
                 : `Active Debtors (${activeCount})`,
               icon: viewMode === 'active' ? 'stash:archive' : 'stash:user-check',
               variant: 'flat',
-              className: 'bg-muted border border-border text-foreground hover:bg-muted/80 rounded-lg text-xs font-semibold h-[35px] md:h-[38px] px-3 transition-colors',
+              className: 'bg-muted/60 hover:bg-muted border border-border text-foreground hover:bg-muted/80 rounded-md text-xs font-semibold h-[35px] md:h-[38px] transition-colors',
               onPress: () => setViewMode(prev => prev === 'active' ? 'settled' : 'active')
             }
           ]}

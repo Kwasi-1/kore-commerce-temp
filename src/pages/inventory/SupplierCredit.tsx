@@ -275,8 +275,7 @@ export default function SupplierCredit() {
 
   return (
     <PageLayout title="Suppliers Credit" constrainHeight={true}>
-      <div className="flex flex-col gap-5 relative flex-1">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
           <DashboardCard
             title="Total Outstanding Owed"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_outstanding} />}
@@ -327,7 +326,7 @@ export default function SupplierCredit() {
                     title: "Supplier Directory",
                     icon: "solar:users-group-two-rounded-linear",
                     variant: "flat",
-                    className: "border border-border/60 text-foreground font-semibold rounded-md h-[38px] px-3 bg-muted/60 hover:bg-muted text-xs",
+                    className: "border border-muted/70 text-foreground font-semibold rounded-md h-[39px] bg-muted/70 hover:bg-muted text-xs",
                     onPress: () => navigate('/inventory/suppliers'),
                   },
                 ]
@@ -362,7 +361,6 @@ export default function SupplierCredit() {
           selectedCredit={selectedCredit}
           onSuccess={handlePaymentSuccess}
         />
-      </div>
     </PageLayout>
   );
 }

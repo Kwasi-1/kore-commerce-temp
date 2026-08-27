@@ -215,7 +215,7 @@ export default function Suppliers() {
                   title: "Credit Ledger",
                   icon: "solar:card-recive-linear",
                   variant: "flat",
-                  className: "border border-border/90 text-foreground font-semibold rounded-[5px] h-[40px] bg-muted/60 hover:bg-muted text-xs",
+                  className: "border border-muted/60 text-foreground font-semibold rounded-[5px] h-[40px] bg-muted/60 hover:bg-muted text-xs",
                   onPress: () => navigate('/inventory/supplier-credit'),
                 },
               ]
