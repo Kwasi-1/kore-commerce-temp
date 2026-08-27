@@ -6,6 +6,7 @@ import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import SupplierForm from '@/components/inventory/SupplierForm';
 import SupplierStatusModal from '@/components/inventory/SupplierStatusModal';
+import SupplierDetailModal from '@/components/inventory/SupplierDetailModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
@@ -28,6 +29,10 @@ export default function Suppliers() {
   // Search
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Detail Modal state
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
@@ -167,6 +172,15 @@ export default function Suppliers() {
     };
   });
 
+  const handleRowClick = (rowOrKey: any) => {
+    const id = typeof rowOrKey === 'object' ? (rowOrKey?.id || rowOrKey?.__record?.id) : rowOrKey;
+    const supplier = suppliers.find((s) => s.id === id) || (typeof rowOrKey === 'object' ? (rowOrKey.__record || rowOrKey) : null);
+    if (supplier) {
+      setSelectedSupplier(supplier);
+      setIsDetailModalOpen(true);
+    }
+  };
+
   const handleRowActionClick = (actionKey: string, row: any) => {
     if (actionKey === 'edit') handleEdit(row.__record);
     if (actionKey === 'toggle_status') {
@@ -201,7 +215,7 @@ export default function Suppliers() {
                   title: "Credit Ledger",
                   icon: "solar:card-recive-linear",
                   variant: "flat",
-                  className: "border border-border/60 text-foreground font-semibold rounded-md h-[38px] px-3 bg-muted/60 hover:bg-muted text-xs",
+                  className: "border border-border/90 text-foreground font-semibold rounded-[5px] h-[40px] bg-muted/60 hover:bg-muted text-xs",
                   onPress: () => navigate('/inventory/supplier-credit'),
                 },
               ]
@@ -212,8 +226,28 @@ export default function Suppliers() {
         addButtonText="New Supplier"
         onAddButtonClick={openNewSupplier}
         onRowActionClick={handleRowActionClick}
+        onclick={handleRowClick}
         
         mobileFriendly={true}
+      />
+
+      {/* Supplier Details Modal */}
+      <SupplierDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedSupplier(null);
+        }}
+        supplier={selectedSupplier}
+        onEdit={(s) => {
+          setIsDetailModalOpen(false);
+          handleEdit(s);
+        }}
+        onToggleStatus={(s) => {
+          setIsDetailModalOpen(false);
+          setStatusModalSupplier(s);
+          setIsStatusModalOpen(true);
+        }}
       />
 
       {/* Supplier Form Modal */}

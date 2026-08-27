@@ -368,7 +368,7 @@ export default function StockReconciliation() {
       return {
         id: p.id,
         name: (
-          <div className="flex flex-col min-w-[180px]">
+          <div className="flex flex-col min-w-[150px]">
             <span className="font-semibold text-foreground capitalize text-sm">
               {p.name}
             </span>

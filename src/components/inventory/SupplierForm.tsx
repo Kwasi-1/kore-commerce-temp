@@ -20,7 +20,8 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     address: initialData?.address || '',
-    tax_id: initialData?.tax_id || ''
+    tax_id: initialData?.tax_id || '',
+    notes: initialData?.notes || ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -108,6 +109,15 @@ export default function SupplierForm({ initialData, onSuccess, onCancel }: Suppl
           value={formData.address}
           onChange={handleChange}
           placeholder="Full address of the supplier..."
+          rows={2}
+        />
+
+        <CustomTextareaField
+          label="Notes / Description (Optional)"
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="e.g. Nunu milk & dairy supplier - delivers every Tuesday..."
           rows={3}
         />
       </div>
