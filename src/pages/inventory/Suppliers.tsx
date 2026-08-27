@@ -115,7 +115,7 @@ export default function Suppliers() {
         </span>
       ),
       contact_person: (
-        <span className="text-muted-foreground">
+        <span className="text-foreground capitalize">
           {supplier.contact_person || supplier.contactPerson || '—'}
         </span>
       ),
@@ -125,7 +125,7 @@ export default function Suppliers() {
         </span>
       ),
       phone: (
-        <span className="text-muted-foreground font-mono text-xs">
+        <span className="">
           {supplier.phone || '—'}
         </span>
       ),

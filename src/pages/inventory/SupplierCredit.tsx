@@ -264,7 +264,7 @@ export default function SupplierCredit() {
   };
 
   return (
-    <PageLayout title="Suppliers" constrainHeight={true}>
+    <PageLayout title="Suppliers Credit" constrainHeight={true}>
       <div className="flex flex-col gap-5 relative flex-1">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <DashboardCard
