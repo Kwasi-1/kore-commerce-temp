@@ -70,7 +70,7 @@ export default function SavedTransactionsHeader() {
         placement="top"
         size="md"
         classNames={{
-          base: "rounded-[24px] sm:rounded-3xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto max-w-lg",
+          base: "!w-full !max-w-md rounded-[20px] sm:rounded-3xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
           header: "pb-2 border-b border-border/40 px-4 sm:px-6 pt-4",
           body: "py-3 px-4 sm:px-6"
         }}
@@ -92,45 +92,47 @@ export default function SavedTransactionsHeader() {
             {savedTransactions.map((t) => {
               const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
               const total = Math.max(0, subtotal - (t.discount || 0));
+              const itemCount = t.itemCount || t.items.length;
               return (
                 <div 
                   key={t.id} 
-                  className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all gap-3"
+                  className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all gap-3"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="h-10 w-10 shrink-0 rounded-full border border-border">
                       <AvatarFallback className="bg-secondary text-foreground text-xs font-bold">
                         {t.customerInitials || 'C'}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-bold text-foreground truncate">{t.customerName}</span>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <span className="flex items-center gap-1">
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-sm font-bold text-foreground truncate">{t.customerName}</span>
+                        <span className="text-muted-foreground text-xs">&middot;</span>
+                        <span className="text-xs font-bold text-foreground shrink-0">
+                          GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                        <span className="flex items-center gap-1 shrink-0">
                           <ShoppingCart className="h-3 w-3" />
-                          {t.itemCount || t.items.length} items
+                          {itemCount} {itemCount === 1 ? 'item' : 'items'}
                         </span>
                         <span>&middot;</span>
-                        <span>{t.time}</span>
+                        <span className="shrink-0">{t.time}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-bold text-foreground">
-                      GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="rounded-full h-8 px-3.5 text-xs font-semibold"
-                      onClick={() => {
-                        handleResume(t.id, t.customerName);
-                        setIsModalOpen(false);
-                      }}
-                    >
-                      Resume
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    className="rounded-full h-8 px-3.5 text-xs font-semibold shrink-0"
+                    onClick={() => {
+                      handleResume(t.id, t.customerName);
+                      setIsModalOpen(false);
+                    }}
+                  >
+                    Resume
+                  </Button>
                 </div>
               );
             })}

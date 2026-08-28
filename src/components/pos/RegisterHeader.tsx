@@ -276,7 +276,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
-              <div className="h-9 w-9 md:h-10 md:w-10 rounded-full border-2 border-background bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-sm">
+              <div className="h-10 w-10 md:h-10 md:w-10 rounded-full border-2 border-background bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-sm">
                 {staffUser?.name ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
               </div>
               <Icon icon="mdi:chevron-down" className="hidden lg:flex h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
@@ -334,7 +334,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         placement="top"
         size="md"
         classNames={{
-          base: "rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto max-w-md",
+          base: "!w-full rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto !max-w-md",
           header: "pb-2 border-b border-border/40 px-4 sm:px-6 pt-4",
           body: "py-3 px-4 sm:px-6"
         }}
