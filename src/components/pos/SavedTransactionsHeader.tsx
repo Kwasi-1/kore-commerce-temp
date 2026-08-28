@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { Clock, ShoppingCart } from 'lucide-react';
+import { Clock, ShoppingCart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import CustomModal from '@/components/modals/modal';
 import toast from 'react-hot-toast';
 
 export default function SavedTransactionsHeader() {
-  const { savedTransactions, resumeTransaction } = useCartStore();
+  const { savedTransactions, resumeTransaction, deleteSavedTransaction, clearAllSavedTransactions } = useCartStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (savedTransactions.length === 0) {
@@ -85,6 +85,22 @@ export default function SavedTransactionsHeader() {
                 <p className="text-xs text-muted-foreground">{savedTransactions.length} held order{savedTransactions.length > 1 ? 's' : ''}</p>
               </div>
             </div>
+            {savedTransactions.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to clear all held transactions?")) {
+                    clearAllSavedTransactions();
+                    setIsModalOpen(false);
+                    toast.success("Cleared all saved transactions");
+                  }
+                }}
+              >
+                Clear All
+              </Button>
+            )}
           </div>
         }
         body={
@@ -117,21 +133,36 @@ export default function SavedTransactionsHeader() {
                     </div>
                   </div>
 
-                  {/* Right Column: Stacked Price + Resume Action */}
-                  <div className="flex flex-col items-end justify-center gap-1 shrink-0">
+                  {/* Right Column: Stacked Price + Actions (Trash & Resume) */}
+                  <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
                     <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight whitespace-nowrap">
                       GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <Button
-                      size="sm"
-                      className="rounded-full h-7 px-3 text-xs font-semibold"
-                      onClick={() => {
-                        handleResume(t.id, t.customerName);
-                        setIsModalOpen(false);
-                      }}
-                    >
-                      Resume
-                    </Button>
+                    <div className="flex items-center gap-1">              
+                      <Button
+                        size="sm"
+                        className="rounded-full h-7 px-3 text-xs font-semibold"
+                        onClick={() => {
+                          handleResume(t.id, t.customerName);
+                          setIsModalOpen(false);
+                        }}
+                      >
+                        Resume
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSavedTransaction(t.id);
+                          toast.success(`Discarded ${t.customerName}`);
+                        }}
+                        title="Discard held order"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
