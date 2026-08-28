@@ -484,39 +484,29 @@ export default function StockAdjustments() {
   return (
     <PageLayout 
       title="Stock Adjustments" 
+      subtitle={
+        <span className="md:hidden">
+          {pendingItems.length > 0 ? `${pendingItems.length} pending approval` : `${adjustments.length} total logged`}
+        </span>
+      }
+      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      headerVariant="action-bridge"
       constrainHeight={true}
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK ADJUSTMENTS VIEW (Hidden >= md, Block < md)                  */}
       {/* ========================================================================= */}
       <MobileDashboardWrapper className="block md:hidden">
-        {/* Top Sticky Header */}
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Stock Adjustments</h1>
-            <p className="text-xs text-muted-foreground">
-              {pendingItems.length > 0 ? `${pendingItems.length} pending approval` : `${adjustments.length} total logged`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 border-border"
-              onClick={() => setIsDrawerOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5 text-primary" />
-              <span>New Adjustment</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Action Capsule Bar (Search + Refresh) */}
+        {/* Action Capsule Bar (Search + Date Filter + Quick Actions) */}
         <MobileActionCapsuleBar
           searchConfig={{
             value: tableSearchQuery,
             onChange: setTableSearchQuery,
             placeholder: "Search variant, reason, notes...",
+          }}
+          dateFilterConfig={{
+            value: dateFilter,
+            onChange: setDateFilter,
           }}
           actions={[
             {

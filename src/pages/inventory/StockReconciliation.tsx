@@ -521,29 +521,30 @@ export default function StockReconciliation() {
   return (
     <PageLayout 
       title="Stock Reconciliation" 
+      titleSection="hidden md:flex"
       constrainHeight={true}
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK RECONCILIATION VIEW (Hidden >= md, Block < md)              */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper className="block md:hidden -mt-4">
         {/* Top Sticky Header with Audit Progress */}
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3 text-action-pill-foreground">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Reconciliation</h1>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground border border-border">
+              <h1 className="text-xl font-bold text-action-pill-foreground font-header tracking-tight">Reconciliation</h1>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-action-pill-foreground/10 text-action-pill-foreground border border-action-pill-foreground/20">
                 {countPercent}%
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[140px]">
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex-1 h-1.5 bg-action-pill-foreground/20 rounded-full overflow-hidden max-w-[140px]">
                 <div 
-                  className="h-full bg-foreground transition-all duration-300 rounded-full" 
+                  className="h-full bg-primary transition-all duration-300 rounded-full" 
                   style={{ width: `${countPercent}%` }} 
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-[10px] text-action-pill-foreground/70 font-mono">
                 {countedCount}/{totalCount} counted
               </span>
             </div>
@@ -551,7 +552,7 @@ export default function StockReconciliation() {
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
-              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 shadow-none"
+              className="rounded-full h-8 px-3.5 text-xs font-bold gap-1.5 shadow-none bg-primary text-zinc-950 hover:bg-primary/90 disabled:opacity-50"
               disabled={countedCount === 0}
               onClick={() => setIsReviewModalOpen(true)}
             >

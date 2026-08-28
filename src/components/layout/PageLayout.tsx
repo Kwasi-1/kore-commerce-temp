@@ -1,10 +1,20 @@
 import React from "react";
-import { useAuthStore } from '@/store/authStore';
-import { useThemeStore } from '@/store/themeStore';
-import { useModuleContext } from '@/components/shared/ModuleRoute';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, User, ArrowLeft, Clock, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useAuthStore } from "@/store/authStore";
+import { useThemeStore } from "@/store/themeStore";
+import { useModuleContext } from "@/components/shared/ModuleRoute";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell,
+  Settings,
+  Moon,
+  Sun,
+  LogOut,
+  User,
+  ArrowLeft,
+  Clock,
+  ShieldAlert,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,12 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Icon } from '@iconify/react';
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 
-import { useNotificationStore } from '@/store/notificationStore';
-import { string } from "yup";
-
+import { useNotificationStore } from "@/store/notificationStore";
 interface PageLayoutProps {
   title?: React.ReactNode;
   titleClassName?: string;
@@ -33,6 +41,7 @@ interface PageLayoutProps {
   backUrl?: string;
   onBackClick?: () => void;
   titleSection?: string;
+  headerVariant?: "default" | "action-bridge";
 }
 
 export default function PageLayout({
@@ -49,6 +58,7 @@ export default function PageLayout({
   backUrl,
   onBackClick,
   titleSection,
+  headerVariant = "default",
 }: PageLayoutProps) {
   const { staffUser, graceInfo, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -57,7 +67,7 @@ export default function PageLayout({
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
@@ -67,14 +77,28 @@ export default function PageLayout({
       className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
-        <div className={`w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0 ${titleSection}`}>
+        <div
+          className={cn(
+            "w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0",
+            headerVariant === "action-bridge" &&
+              "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 md:w-full md:bg-transparent md:text-foreground md:mx-0 md:mt-0 md:px-0 md:pt-0 md:pb-0 md:mb-4",
+            titleSection,
+          )}
+        >
           {/* Row 1: Title & Back Button on left, Profile & Notifications Pill on right */}
           <div className="flex items-center justify-between w-full min-h-[44px] gap-3">
             {/* Left side */}
             <div className="flex items-center gap-2 min-w-0">
-              
               <div className="flex flex-col gap-0.5 min-w-0">
-                <h1 className={cn("text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate", showBackButton ? "text-2xl" : "text-2xl", titleClassName)}>
+                <h1
+                  className={cn(
+                    "text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
+                    headerVariant === "action-bridge" &&
+                      "!text-xl md:!text-2xl lg:!text-[26px] text-action-pill-foreground md:text-foreground",
+                    showBackButton ? "text-2xl" : "text-2xl",
+                    titleClassName,
+                  )}
+                >
                   {title}
                 </h1>
               </div>
@@ -121,85 +145,139 @@ export default function PageLayout({
                     else if (backUrl) navigate(backUrl);
                     else navigate(-1);
                   }}
-                  className="h-10 w-10 md:h-11 md:w-auto md:px-4 rounded-full border bg-card shadow-sm hover:bg-muted text-foreground shrink-0"
+                  className={cn(
+                    "h-10 w-10 md:h-11 md:w-auto md:px-4 rounded-full border shadow-sm shrink-0",
+                    headerVariant === "action-bridge"
+                      ? "border-sidebar bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover md:bg-card md:border-border md:text-foreground md:hover:bg-muted"
+                      : "bg-card border-border hover:bg-muted text-foreground",
+                  )}
                 >
                   <ArrowLeft className="h-4 w-4" />
                   <span className="hidden md:inline">Go Back</span>
                 </Button>
               ) : (
-
-              <div className="flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0 bg-card">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/notifications')}
-                  className="relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10"
-                >
-                  <Bell className="h-4 w-4 md:h-5 md:w-5" />
-                  {unreadNotificationsCount > 0 && (
-                    <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0",
+                    headerVariant === "action-bridge"
+                      ? "border-sidebar bg-action-pill text-action-pill-foreground md:bg-card md:border-border md:text-foreground"
+                      : "border-border bg-card",
                   )}
-                </Button>
-                
-                <Button
-                  onClick={() => navigate('/settings/account')}
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10"
-                  title="Account Settings"
                 >
-                  <Settings className="h-4 w-4 md:h-5 md:w-5" />
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
-                      <div className="h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm">
-                        {staffUser?.name ? staffUser.name.substring(0, 2).toUpperCase() : 'AU'}
-                      </div>
-                      <Icon icon="mdi:chevron-down" className="h-5 w-5 text-muted-foreground hidden md:flex" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 rounded-[16px] shadow-md border-border/60">
-                    <DropdownMenuLabel className="flex flex-col py-2 px-3">
-                      <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
-                      <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={() => navigate('/settings/account')}>
-                      <User className="h-4 w-4" />
-                      Account Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium" onClick={toggleTheme}>
-                      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                      {isDark ? 'Light Mode' : 'Dark Mode'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
-                      <LogOut className="h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate("/notifications")}
+                    className={cn(
+                      "relative rounded-full transition-colors h-8 w-8 md:h-10 md:w-10",
+                      headerVariant === "action-bridge"
+                        ? "text-action-pill-foreground/80 hover:text-action-pill-foreground md:text-muted-foreground md:hover:text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Bell className="h-4 w-4 md:h-5 md:w-5" />
+                    {unreadNotificationsCount > 0 && (
+                      <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={() => navigate("/settings/account")}
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full text-muted-foreground hover:text-foreground transition-colors hidden md:flex h-8 w-8 md:h-10 md:w-10"
+                    title="Account Settings"
+                  >
+                    <Settings className="h-4 w-4 md:h-5 md:w-5" />
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
+                        <div className={`h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm ${headerVariant === "action-bridge"&& "border-sidebar/20 md:border-border/80"}`}>
+                          {staffUser?.name
+                            ? staffUser.name.substring(0, 2).toUpperCase()
+                            : "AU"}
+                        </div>
+                        <Icon
+                          icon="mdi:chevron-down"
+                          className="h-5 w-5 text-muted-foreground hidden md:flex"
+                        />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-56 rounded-[16px] shadow-md border-border/60"
+                    >
+                      <DropdownMenuLabel className="flex flex-col py-2 px-3">
+                        <span className="font-bold text-foreground text-[14px] leading-tight">
+                          {staffUser?.name || "Admin User"}
+                        </span>
+                        <span className="text-[12px] text-muted-foreground font-medium capitalize">
+                          {staffUser?.role || "admin"}
+                        </span>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 py-2.5 font-medium"
+                        onClick={() => navigate("/settings/account")}
+                      >
+                        <User className="h-4 w-4" />
+                        Account Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 py-2.5 font-medium"
+                        onClick={toggleTheme}
+                      >
+                        {isDark ? (
+                          <Sun className="h-4 w-4" />
+                        ) : (
+                          <Moon className="h-4 w-4" />
+                        )}
+                        {isDark ? "Light Mode" : "Dark Mode"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 py-2.5 font-medium text-destructive focus:text-destructive focus:bg-destructive/10"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               )}
             </div>
           </div>
           {subtitle && (
-            <p className={`hidden md:block text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl ${subtitleStyles}`}>{subtitle}</p>
+            <p className={cn(
+              "hidden md:block text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl",
+              headerVariant === "action-bridge" && "text-action-pill-foreground/70 md:text-muted-foreground",
+              subtitleStyles
+            )}>
+              {subtitle}
+            </p>
           )}
 
           {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop) */}
           {(actions || filterSlot) && (
             <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2">
               {filterSlot && <div className="shrink-0">{filterSlot}</div>}
-              {actions && <div className="flex items-center gap-3 w-full sm:w-auto">{actions}</div>}
+              {actions && (
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {actions}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-
-      <div className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden" : ""}`}>{children}</div>
+      <div
+        className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden" : ""}`}
+      >
+        {children}
+      </div>
     </div>
   );
 }

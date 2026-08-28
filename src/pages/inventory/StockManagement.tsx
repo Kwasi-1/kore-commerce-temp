@@ -229,34 +229,24 @@ export default function StockManagement() {
   return (
     <PageLayout
       title="Stock Management"
-      subtitle="Quickly adjust physical stock levels across all your inventory."
+      subtitle={
+        <>
+          <span className="hidden md:inline">
+            Quickly adjust physical stock levels across all your inventory.
+          </span>
+          <span className="md:hidden">
+            {products.length} product{products.length !== 1 ? 's' : ''} listed
+          </span>
+        </>
+      }
+      headerVariant="action-bridge"
       constrainHeight={true}
+      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK MANAGEMENT VIEW (Hidden >= md, Block < md)                   */}
       {/* ========================================================================= */}
       <MobileDashboardWrapper className="block md:hidden">
-        {/* Top Sticky Header */}
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Stock Levels</h1>
-            <p className="text-xs text-muted-foreground">
-              {products.length} product{products.length !== 1 ? 's' : ''} listed
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 border-border"
-              onClick={() => setIsBulkStockModalOpen(true)}
-            >
-              <Upload className="h-3.5 w-3.5 text-primary" />
-              <span>Bulk Receive</span>
-            </Button>
-          </div>
-        </div>
-
         {/* Action Capsule Bar (Search + Quick Actions) */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -266,14 +256,14 @@ export default function StockManagement() {
           }}
           actions={[
             {
+              label: 'Bulk Receive',
+              icon: <Upload className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => setIsBulkStockModalOpen(true),
+            },
+            {
               label: 'Reconcile',
               icon: <Layers className="h-3.5 w-3.5 text-primary" />,
               onClick: () => navigate('/inventory/stock-reconciliation'),
-            },
-            {
-              label: 'Adjustments',
-              icon: <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />,
-              onClick: () => navigate('/inventory/adjustments'),
             },
             {
               icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
