@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Selection } from '@nextui-org/react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,66 @@ export interface ReconcileItem {
   base_unit_name: string;
   packaging_tiers?: PackagingTier[];
 }
+
+interface ReconcileCountInputProps {
+  value: number | undefined;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+const ReconcileCountInput: React.FC<ReconcileCountInputProps> = ({
+  value,
+  onChange,
+  placeholder = "Count...",
+  className = "",
+}) => {
+  const [localVal, setLocalVal] = useState<string>(value !== undefined ? String(value) : '');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setLocalVal(value !== undefined ? String(value) : '');
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalVal(val);
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      onChange(val);
+    }, 450);
+  };
+
+  const handleBlurOrEnter = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    onChange(localVal);
+  };
+
+  return (
+    <input
+      type="number"
+      min="0"
+      step="any"
+      placeholder={placeholder}
+      className={className}
+      value={localVal}
+      onChange={handleChange}
+      onBlur={handleBlurOrEnter}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          handleBlurOrEnter();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+    />
+  );
+};
 
 export default function StockReconciliation() {
   const [products, setProducts] = useState<ReconcileItem[]>([]);
@@ -459,18 +519,15 @@ export default function StockReconciliation() {
         actual_count: (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <input
-                type="number"
-                min="0"
-                step="any"
+              <ReconcileCountInput
                 placeholder="Enter count..."
                 className={`h-8 w-28 px-3 py-1.5 text-sm rounded-[5px] border focus:outline-none focus:border-foreground/10 ${
                   isCounted 
                     ? 'border-border bg-background font-medium text-foreground' 
                     : 'border-border/60 bg-muted/30 text-muted-foreground'
                 }`}
-                value={actualVal}
-                onChange={(e) => handleCountChange(p.id, e.target.value)}
+                value={physicalCounts[p.id]}
+                onChange={(val) => handleCountChange(p.id, val)}
               />
               {hasTiers && (
                 <button
@@ -694,18 +751,15 @@ export default function StockReconciliation() {
                     {/* Bottom Row: Physical Count Input + Match Button + Tier Calc */}
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
                       <div className="flex items-center gap-1.5 flex-1">
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
+                        <ReconcileCountInput
                           placeholder="Count..."
                           className={`h-8 w-24 px-2.5 text-xs rounded-lg border focus:outline-none focus:border-foreground/30 ${
                             isCounted 
                               ? 'border-border bg-background font-bold text-foreground' 
                               : 'border-border/60 bg-muted/30 text-muted-foreground'
                           }`}
-                          value={physicalCounts[p.id] !== undefined ? physicalCounts[p.id] : ''}
-                          onChange={(e) => handleCountChange(p.id, e.target.value)}
+                          value={physicalCounts[p.id]}
+                          onChange={(val) => handleCountChange(p.id, val)}
                         />
                         {hasTiers && (
                           <button
