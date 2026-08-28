@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 export default function SavedTransactionsHeader() {
   const { savedTransactions, resumeTransaction, deleteSavedTransaction, clearAllSavedTransactions } = useCartStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
   if (savedTransactions.length === 0) {
     return null;
@@ -44,7 +45,10 @@ export default function SavedTransactionsHeader() {
         <div className="hidden lg:flex">
           <Button 
             variant="secondary" 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setActiveCardId(null);
+              setIsModalOpen(true);
+            }}
             className="flex items-center gap-1.5 rounded-full h-10 px-3.5 text-sm font-semibold"
           >
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -54,7 +58,10 @@ export default function SavedTransactionsHeader() {
 
         {/* Mobile: Bordered Single Counter Button (opens Top Modal) */}
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setActiveCardId(null);
+            setIsModalOpen(true);
+          }}
           className="flex lg:hidden items-center gap-1.5 h-10 px-2.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground transition-colors shrink-0"
           title="View saved transactions"
         >
@@ -66,8 +73,14 @@ export default function SavedTransactionsHeader() {
       {/* Top Modal for Saved Transactions */}
       <CustomModal
         isOpen={isModalOpen}
-        onOpenChange={() => setIsModalOpen(prev => !prev)}
-        onClose={() => setIsModalOpen(false)}
+        onOpenChange={() => {
+          setActiveCardId(null);
+          setIsModalOpen(prev => !prev);
+        }}
+        onClose={() => {
+          setActiveCardId(null);
+          setIsModalOpen(false);
+        }}
         placement="top"
         size="md"
         classNames={{
@@ -109,10 +122,17 @@ export default function SavedTransactionsHeader() {
             {savedTransactions.map((t) => {
               const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
               const total = Math.max(0, subtotal - (t.discount || 0));
+              const isRevealed = activeCardId === t.id;
+
               return (
                 <div 
                   key={t.id} 
-                  className="group flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all gap-3"
+                  onClick={() => setActiveCardId(prev => prev === t.id ? null : t.id)}
+                  className={`group flex items-center justify-between p-3 rounded-2xl border transition-all gap-3 cursor-pointer select-none ${
+                    isRevealed 
+                      ? 'border-border bg-muted/40' 
+                      : 'border-border/60 bg-card hover:bg-muted/30'
+                  }`}
                 >
                   {/* Left Column: Avatar + Customer & Order Info */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -135,11 +155,15 @@ export default function SavedTransactionsHeader() {
                   </div>
 
                   {/* Right Column: Stacked Price + Actions (Trash & Resume) */}
-                  <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
+                  <div className="flex flex-col items-end justify-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight whitespace-nowrap">
                       GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <div className="flex items-center gap-1.5 lg:gap-0 lg:group-hover:gap-1.5 lg:group-focus-within:gap-1.5 transition-all duration-200">              
+                    <div className={`flex items-center transition-all duration-200 ${
+                      isRevealed 
+                        ? 'gap-1.5' 
+                        : 'gap-0 lg:group-hover:gap-1.5 lg:group-focus-within:gap-1.5'
+                    }`}>              
                       <Button
                         size="sm"
                         className="rounded-full h-7 px-3 text-xs font-semibold"
@@ -152,7 +176,11 @@ export default function SavedTransactionsHeader() {
                       </Button>
                       <button
                         type="button"
-                        className="h-7 w-7 lg:w-0 lg:group-hover:w-7 lg:group-focus-within:w-7 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 overflow-hidden shrink-0"
+                        className={`h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 overflow-hidden shrink-0 ${
+                          isRevealed
+                            ? 'w-7 opacity-100'
+                            : 'w-0 opacity-0 lg:group-hover:w-7 lg:group-hover:opacity-100 lg:group-focus-within:w-7 lg:group-focus-within:opacity-100'
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteSavedTransaction(t.id);
