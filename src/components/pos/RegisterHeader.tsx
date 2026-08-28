@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -75,27 +75,31 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         <SavedTransactionsHeader />
 
         {/* Network Status Indicator */}
-        {/* Failed badge always shown regardless of online status */}
         {failedCount > 0 && (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold shrink-0 hover:bg-red-500/20 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-10 px-3 rounded-full border border-red-500/30 bg-background hover:bg-red-500/10 text-red-500 text-xs font-semibold shrink-0 transition-colors cursor-pointer"
             title="View failed offline sales"
           >
-            <AlertTriangle className="h-3 w-3" />
+            <AlertTriangle className="h-4 w-4 text-red-500" />
             <span>{failedCount} Failed</span>
           </button>
         )}
         {!isOnline ? (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-bold shrink-0 hover:bg-amber-500/20 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
             title="View offline sales queue"
           >
-            <WifiOff className="h-3 w-3" />
+            {/* <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span> */}
+            {/* <Cloud className="h-4 w-4 text-muted-foreground" /> */}
+            <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             <span>Offline</span>
             {pendingCount > 0 && (
-              <span className="bg-amber-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 ml-0.5 leading-none">
+              <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-2 py-0.5 border border-border leading-none">
                 {pendingCount}
               </span>
             )}
@@ -103,11 +107,14 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         ) : pendingCount > 0 ? (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-[11px] font-bold shrink-0 hover:bg-blue-500/20 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
             title="Syncing offline sales…"
           >
-            <RefreshCw className="h-3 w-3 animate-spin" />
-            <span>Syncing {pendingCount}</span>
+            <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+            <span>Syncing</span>
+            <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-2 py-0.5 border border-border leading-none">
+              {pendingCount}
+            </span>
           </button>
         ) : null}
 

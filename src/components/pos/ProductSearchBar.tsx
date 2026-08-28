@@ -432,26 +432,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   return (
     <div className="flex flex-col h-full bg-background">
-
-      {/* Offline Notice Banner */}
-      {!isOnline && (
-        <div className="hidden md:flex flex-col gap-1.5 mb-2 shrink-0 animate-in fade-in duration-300">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
-            <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-            <span>Offline Mode — Showing cached products. Cash &amp; Manual MoMo only.</span>
-          </div>
-          {/* Stale cache warning — shown when cache is more than 1 hour old */}
-          {(() => {
-            const cachedAt = useProductCacheStore.getState().cachedAt;
-            const isStaleHour = cachedAt && (Date.now() - cachedAt) > 60 * 60 * 1000;
-            return isStaleHour ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400 text-[11px] font-semibold">
-                <span>⚠️ Product catalog was last synced over 1 hour ago. Prices and stock may be outdated.</span>
-              </div>
-            ) : null;
-          })()}
-        </div>
-      )}
       
       {/* Top Controls: Categories, In Stock Filter and Search */}
       <div className="flex flex-col md:flex-row items-center justify-between pb-3 gap-3 shrink-0 border-b border-border/40 md:border-0 mb-3 md:mb-0">
