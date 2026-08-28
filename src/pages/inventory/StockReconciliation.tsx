@@ -529,7 +529,7 @@ export default function StockReconciliation() {
       {/* ========================================================================= */}
       <MobileDashboardWrapper className="block md:hidden -mt-4">
         {/* Top Sticky Header with Audit Progress */}
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3 text-action-pill-foreground">
+        <div className="px-4 pt-5 pb-2 flex items-center justify-between gap-3 text-action-pill-foreground">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-action-pill-foreground font-header tracking-tight">Reconciliation</h1>
