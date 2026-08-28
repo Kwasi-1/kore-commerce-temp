@@ -71,13 +71,13 @@ export default function SavedTransactionsHeader() {
         size="md"
         classNames={{
           base: "!w-full !max-w-md rounded-[18px] sm:rounded-[20px] border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
-          header: "pb-2 border-b border-border/40 px-4 sm:px-6 pt-4",
-          body: "py-3 px-4 sm:px-6"
+          header: "pb-2 border-b border-border/40 px-4 sm:px-5 pt-4",
+          body: "py-3 px-4"
         }}
         header={
           <div className="flex items-center justify-between w-full pr-6 px-1">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-full bg-muted/70 flex items-center justify-center shrink-0">
                 <Clock className="h-4 w-4 text-foreground" />
               </div>
               <div>
@@ -88,7 +88,7 @@ export default function SavedTransactionsHeader() {
           </div>
         }
         body={
-          <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto py-1 px-1">
+          <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto scrollbar-hide scroll-smooth py-1 px-1">
             {savedTransactions.map((t) => {
               const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
               const total = Math.max(0, subtotal - (t.discount || 0));
