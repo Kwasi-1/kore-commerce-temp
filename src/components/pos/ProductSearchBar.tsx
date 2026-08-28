@@ -740,7 +740,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
       {/* Mobile Filter Drawer (using app UI Drawer) */}
       <Drawer open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
-        <DrawerContent className="max-h-[50vh] p-0 border-t border-border bg-background rounded-t-[24px]">
+        <DrawerContent className="max-h-[55vh] p-0 border-t border-border bg-background rounded-t-[24px]">
           <div className="px-6 pb-4 border-b border-border/40 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3 ">
               <DrawerTitle className="text-lg font-bold text-foreground !tracking-normal">Filters</DrawerTitle>

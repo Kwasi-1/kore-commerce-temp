@@ -21,6 +21,8 @@ import { CurrencyDisplay } from "@/hooks";
 import toast from "react-hot-toast";
 import apiClient from "@/api/client";
 import { Icon } from "@iconify/react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ShoppingCart } from "lucide-react";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 
@@ -1179,40 +1181,61 @@ export default function CartPanel({
                     {savedTransactions.length}
                   </span>
                 </div>
-                {savedTransactions.map((t) => (
-                  <Button
-                    key={t.id}
-                    variant="outline"
-                    className="flex flex-col items-start gap-2 h-auto py-3 px-4 rounded-[20px] bg-card border-transparent dark:border-border hover:bg-card hover:dark:border-primary/30 hover:border-foreground/10 transition-all text-left shadow-sm w-full group"
-                    onClick={() => {
-                      resumeTransaction(t.id);
-                      toast.success(`Resumed ${t.customerName}`);
-                    }}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground transition-colors">
-                          {t.customerInitials}
+                {savedTransactions.map((t) => {
+                  const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                  const total = Math.max(0, subtotal - (t.discount || 0));
+
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        resumeTransaction(t.id);
+                        toast.success(`Resumed ${t.customerName}`);
+                      }}
+                      className="flex items-center gap-2 py-3 px-4 rounded-[20px] bg-card border border-transparent dark:border-border hover:bg-card hover:dark:border-primary/10 hover:border-border transition-all text-left shadow-none w-full group cursor-pointer"
+                    >
+                      {/* Left Column: Avatar + Customer & Order Info */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Avatar className="h-10 w-10 shrink-0 rounded-full border border-border">
+                          <AvatarFallback className="bg-secondary text-foreground text-xs font-bold">
+                            {t.customerInitials || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-bold text-foreground truncate">{t.customerName}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                            <span className="flex items-center gap-1">
+                              {/* <ShoppingCart className="h-3 w-3" /> */}
+                              <Icon icon="solar:cart-large-linear" className="h-3.5 w-3.5" />
+                              {t.itemCount || t.items.length} item{(t.itemCount || t.items.length) > 1 ? 's' : ''}
+                            </span>
+                            <span>&middot;</span>
+                            <span>{t.time}</span>
+                          </div>
                         </div>
-                        <span className="font-bold text-foreground text-sm truncate max-w-[180px] md:max-w-[200px]">
-                          {t.customerName}
+                      </div>
+
+                      {/* Right Column: Stacked Price + Resume Action */}
+                      <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
+                        <span className="text-[13px] sm:text-sm font-bold text-foreground !tracking-tight whitespace-nowrap">
+                          <CurrencyDisplay amount={total} showStyling={false} />
                         </span>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full h-7 px-3 text-xs font-semibold  group-hover:bg-primary  group-hover:text-primary-foreground transition duration-300"
+                          onClick={() => {
+                            resumeTransaction(t.id);
+                            toast.success(`Resumed ${t.customerName}`);
+                          }}
+                        >
+                          Resume
+                        </Button>
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        {t.time}
-                      </span>
                     </div>
-                    <div className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground mt-1">
-                      <div className="flex items-center gap-1.5 ml-1">
-                        <Icon icon="solar:cart-large-linear" className="h-3.5 w-3.5" />
-                        {t.itemCount} items
-                      </div>
-                      <span className="bg-background group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors px-3 py-1 rounded-full border border-border shadow-sm font-bold text-[10px] uppercase tracking-wide duration-300">
-                        Resume
-                      </span>
-                    </div>
-                  </Button>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-10">
