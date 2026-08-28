@@ -141,6 +141,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5 max-w-[200px]">
                 <span className="font-semibold text-xs text-foreground">Show Product Images</span>
+                <span className="text-[10px] text-muted-foreground">Display product media on cards</span>
               </div>
               <Switch checked={showProductImages} onCheckedChange={(val) => setPreference('showProductImages', val)} />
             </DropdownMenuItem>
@@ -148,6 +149,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5 max-w-[200px]">
                 <span className="font-semibold text-xs text-foreground">Show Stock Badge</span>
+                <span className="text-[10px] text-muted-foreground">Display remaining stock levels</span>
               </div>
               <Switch checked={showStockCount} onCheckedChange={(val) => setPreference('showStockCount', val)} />
             </DropdownMenuItem>
@@ -155,13 +157,15 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5 max-w-[200px]">
                 <span className="font-semibold text-xs text-foreground">Chime Sound Effects</span>
+                <span className="text-[10px] text-muted-foreground">Play tone on cart additions</span>
               </div>
               <Switch checked={soundEffectsEnabled} onCheckedChange={(val) => setPreference('soundEffectsEnabled', val)} />
             </DropdownMenuItem>
 
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5 max-w-[200px]">
-                <span className="font-semibold text-xs text-foreground">Sub-Pack Presets</span>
+                <span className="font-semibold text-xs text-foreground">Sub-Pack Presets (½, ¼)</span>
+                <span className="text-[10px] text-muted-foreground">Show partial pack options in POS</span>
               </div>
               <Switch checked={showSubPacks} onCheckedChange={(val) => setPreference('showSubPacks', val)} />
             </DropdownMenuItem>
@@ -186,6 +190,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-xs text-foreground">Default Price Tier</span>
+                <span className="text-[10px] text-muted-foreground">Standard pricing type for checkout</span>
               </div>
               <div className="flex w-full bg-secondary p-0.5 rounded-full border border-border/50">
                 {(['retail', 'wholesale'] as const).map((mode) => (

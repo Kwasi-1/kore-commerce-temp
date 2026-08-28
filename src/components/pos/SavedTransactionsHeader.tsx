@@ -88,7 +88,7 @@ export default function SavedTransactionsHeader() {
           </div>
         }
         body={
-          <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto pr-1 py-1">
+          <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto scrollbar-hide pr-1 py-1">
             {savedTransactions.map((t) => {
               const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
               const total = Math.max(0, subtotal - (t.discount || 0));
