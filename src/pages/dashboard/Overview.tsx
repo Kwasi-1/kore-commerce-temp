@@ -276,6 +276,7 @@ export default function Overview() {
       title={`${getGreeting()}, ${userName}`}
       titleClassName='xl:text-[27px] textwrap leading-[1]'
       subtitle="Here's what's happening with your store today."
+      subtitleStyles='!block'
       actions={
         <div className="hidden md:flex gap-3">
           <Button

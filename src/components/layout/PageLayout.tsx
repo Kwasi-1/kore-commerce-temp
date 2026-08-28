@@ -17,6 +17,7 @@ import { Icon } from '@iconify/react';
 import { cn } from "@/lib/utils";
 
 import { useNotificationStore } from '@/store/notificationStore';
+import { string } from "yup";
 
 interface PageLayoutProps {
   title?: React.ReactNode;
@@ -31,6 +32,7 @@ interface PageLayoutProps {
   showBackButton?: boolean;
   backUrl?: string;
   onBackClick?: () => void;
+  titleSection?: string;
 }
 
 export default function PageLayout({
@@ -46,6 +48,7 @@ export default function PageLayout({
   showBackButton = false,
   backUrl,
   onBackClick,
+  titleSection,
 }: PageLayoutProps) {
   const { staffUser, graceInfo, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -64,7 +67,7 @@ export default function PageLayout({
       className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
     >
       {title && (
-        <div className="w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0">
+        <div className={`w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0 ${titleSection}`}>
           {/* Row 1: Title & Back Button on left, Profile & Notifications Pill on right */}
           <div className="flex items-center justify-between w-full min-h-[44px] gap-3">
             {/* Left side */}
@@ -182,7 +185,7 @@ export default function PageLayout({
             </div>
           </div>
           {subtitle && (
-            <p className={`text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl ${subtitleStyles}`}>{subtitle}</p>
+            <p className={`hidden md:block text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl ${subtitleStyles}`}>{subtitle}</p>
           )}
 
           {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop) */}
