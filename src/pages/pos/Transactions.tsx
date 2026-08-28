@@ -538,6 +538,8 @@ export default function Transactions() {
         {/* 3. Transaction Activity Feed Sheet */}
         <MobileActivitySheet
           title="Recent Transactions"
+          viewAllLabel="Credit Ledger"
+          onViewAll={() => navigate('/pos/credit-ledger')}
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'cash', label: 'Cash' },
