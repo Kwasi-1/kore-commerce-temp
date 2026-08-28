@@ -46,6 +46,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
   const savedTransactions = useCartStore((s) => s.savedTransactions);
   const hasSavedTransactions = savedTransactions.length > 0;
+  const { isOnline, pendingCount, failedCount } = useNetworkStatus();
+  const hidePreferencesOnMobile = hasSavedTransactions || !isOnline || failedCount > 0 || pendingCount > 0;
   
   const { 
     showProductImages, 
@@ -57,8 +59,6 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     quantityFormat,
     setPreference 
   } = useRegisterPreferencesStore();
-
-  const { isOnline, pendingCount, failedCount } = useNetworkStatus();
 
   const handleLogout = () => {
     logout();
@@ -78,28 +78,24 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         {failedCount > 0 && (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-1.5 h-10 px-3 rounded-full border border-red-500/30 bg-background hover:bg-red-500/10 text-red-500 text-xs font-semibold shrink-0 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-full border border-red-500/30 bg-background hover:bg-red-500/10 text-red-500 text-xs font-semibold shrink-0 transition-colors cursor-pointer"
             title="View failed offline sales"
           >
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-            <span>{failedCount} Failed</span>
+            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+            <span className="hidden sm:inline">{failedCount} Failed</span>
+            <span className="sm:hidden text-xs font-bold text-red-500">{failedCount}</span>
           </button>
         )}
         {!isOnline ? (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 h-10 px-2.5 sm:px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
             title="View offline sales queue"
           >
-            {/* <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span> */}
-            {/* <Cloud className="h-4 w-4 text-muted-foreground" /> */}
-            <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <span>Offline</span>
+            <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="hidden sm:inline">Offline</span>
             {pendingCount > 0 && (
-              <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-2 py-0.5 border border-border leading-none">
+              <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-1.5 sm:px-2 py-0.5 border border-border leading-none">
                 {pendingCount}
               </span>
             )}
@@ -107,12 +103,12 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         ) : pendingCount > 0 ? (
           <button
             onClick={() => setIsQueueDrawerOpen(true)}
-            className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 h-10 px-2.5 sm:px-3.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer"
             title="Syncing offline sales…"
           >
-            <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
-            <span>Syncing</span>
-            <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-2 py-0.5 border border-border leading-none">
+            <RefreshCw className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+            <span className="hidden sm:inline">Syncing</span>
+            <span className="bg-secondary text-foreground text-[11px] font-bold rounded-full px-1.5 sm:px-2 py-0.5 border border-border leading-none">
               {pendingCount}
             </span>
           </button>
@@ -125,13 +121,13 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
           )}
         </Button>
         
-        {/* Settings Button: Visible on desktop always, and on mobile only when no saved transactions */}
+        {/* Settings Button: Visible on desktop always, and on mobile only when no extra status pills */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`${hasSavedTransactions ? 'hidden md:flex' : 'flex'} rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10`}
+              className={`${hidePreferencesOnMobile ? 'hidden md:flex' : 'flex'} rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10`}
               title="Settings & Layout Preferences"
             >
               <Settings className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300 hover:rotate-45" />
@@ -300,8 +296,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
             
-            {/* Register Preferences: only rendered in Profile menu on mobile when the header gear button is hidden by saved transactions */}
-            {hasSavedTransactions && (
+            {/* Register Preferences: only rendered in Profile menu on mobile when the header gear button is hidden */}
+            {hidePreferencesOnMobile && (
               <DropdownMenuItem 
                 className="flex md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl"
                 onClick={() => setIsPreferencesModalOpen(true)}

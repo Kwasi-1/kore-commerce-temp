@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Clock, ShoppingCart } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 
 export default function SavedTransactionsHeader() {
   const { savedTransactions, resumeTransaction, deleteSavedTransaction, clearAllSavedTransactions } = useCartStore();
+  const { isOnline } = useNetworkStatus();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
@@ -27,47 +29,64 @@ export default function SavedTransactionsHeader() {
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Desktop: Visible Pills */}
-        <div className="hidden lg:flex items-center gap-2">
-          {visibleTransactions.map((transaction) => (
-            <Button
-              key={transaction.id}
-              variant="outline"
-              className="shrink-0 flex items-center h-10 px-4 rounded-full border-foreground/10 bg-card hover:bg-secondary transition-all duration-300 text-sm font-semibold"
-              onClick={() => handleResume(transaction.id, transaction.customerName)}
-            >
-              <span className="truncate max-w-[100px]">{transaction.customerName}</span> &middot; <span className="text-xs text-muted-foreground">{transaction.time}</span>
-            </Button>
-          ))}
-        </div>
-
-        {/* Desktop Overflow Button (opens Top Modal) */}
-        <div className="hidden lg:flex">
-          <Button 
-            variant="secondary" 
+        {!isOnline ? (
+          /* When offline, render a single clean bordered counter button on all screen sizes */
+          <button
             onClick={() => {
               setActiveCardId(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-full h-10 px-3.5 text-sm font-semibold"
+            className="flex items-center gap-1.5 h-10 px-3 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground transition-colors shrink-0"
+            title="View saved transactions"
           >
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{hiddenCount > 0 ? `+${hiddenCount}` : savedTransactions.length}</span>
-          </Button>
-        </div>
+            <span>{savedTransactions.length}</span>
+          </button>
+        ) : (
+          <>
+            {/* Desktop: Visible Pills */}
+            <div className="hidden lg:flex items-center gap-2">
+              {visibleTransactions.map((transaction) => (
+                <Button
+                  key={transaction.id}
+                  variant="outline"
+                  className="shrink-0 flex items-center h-10 px-4 rounded-full border-foreground/10 bg-card hover:bg-secondary transition-all duration-300 text-sm font-semibold"
+                  onClick={() => handleResume(transaction.id, transaction.customerName)}
+                >
+                  <span className="truncate max-w-[100px]">{transaction.customerName}</span> &middot; <span className="text-xs text-muted-foreground">{transaction.time}</span>
+                </Button>
+              ))}
+            </div>
 
-        {/* Mobile: Bordered Single Counter Button (opens Top Modal) */}
-        <button
-          onClick={() => {
-            setActiveCardId(null);
-            setIsModalOpen(true);
-          }}
-          className="flex lg:hidden items-center gap-1.5 h-10 px-2.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground transition-colors shrink-0"
-          title="View saved transactions"
-        >
-          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-          <span>{savedTransactions.length}</span>
-        </button>
+            {/* Desktop Overflow Button (opens Top Modal) */}
+            <div className="hidden lg:flex">
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setActiveCardId(null);
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 rounded-full h-10 px-3.5 text-sm font-semibold"
+              >
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span>{hiddenCount > 0 ? `+${hiddenCount}` : savedTransactions.length}</span>
+              </Button>
+            </div>
+
+            {/* Mobile: Bordered Single Counter Button (opens Top Modal) */}
+            <button
+              onClick={() => {
+                setActiveCardId(null);
+                setIsModalOpen(true);
+              }}
+              className="flex lg:hidden items-center gap-1.5 h-10 px-2.5 rounded-full border border-border bg-background hover:bg-secondary text-xs font-semibold text-foreground transition-colors shrink-0"
+              title="View saved transactions"
+            >
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>{savedTransactions.length}</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Top Modal for Saved Transactions */}
