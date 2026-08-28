@@ -17,13 +17,15 @@ import {
   KeyRound,
   FileCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import CustomModal from "@/components/modals/modal";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
@@ -33,6 +35,11 @@ import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CustomInputTextField } from "@/components/shared/text-field";
+import {
+  MobileDashboardWrapper,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from "@/components/mobile-dashboard";
 
 interface Adjustment {
   id: string;
@@ -477,10 +484,159 @@ export default function StockAdjustments() {
   return (
     <PageLayout 
       title="Stock Adjustments" 
-      // subtitle="Audit ledger of inventory write-offs, discrepancies, and manager approvals."
       constrainHeight={true}
     >
-      <div className="flex flex-col flex-1 min-h-0 gap-5 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE STOCK ADJUSTMENTS VIEW (Hidden >= md, Block < md)                  */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper className="block md:hidden">
+        {/* Top Sticky Header */}
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Stock Adjustments</h1>
+            <p className="text-xs text-muted-foreground">
+              {pendingItems.length > 0 ? `${pendingItems.length} pending approval` : `${adjustments.length} total logged`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 border-border"
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              <span>New Adjustment</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Capsule Bar (Search + Refresh) */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: tableSearchQuery,
+            onChange: setTableSearchQuery,
+            placeholder: "Search variant, reason, notes...",
+          }}
+          actions={[
+            {
+              label: 'New Request',
+              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => setIsDrawerOpen(true),
+            },
+            {
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: () => fetchAdjustments(1),
+            },
+          ]}
+        />
+
+        {/* Adjustments Activity Sheet */}
+        <MobileActivitySheet
+          title="Adjustment Records"
+          tabs={[
+            ...(pendingItems.length > 0 ? [{ id: 'awaiting', label: 'Awaiting Approval', count: pendingItems.length }] : []),
+            { id: 'all', label: 'All Logs' },
+            { id: 'approved', label: 'Approved' },
+            { id: 'rejected', label: 'Rejected' },
+          ]}
+          activeTab={activeTab === 'awaiting' ? 'awaiting' : ((Array.from(statusFilterSelection as Set<string>)[0]) || 'all')}
+          onTabChange={(tabId) => {
+            if (tabId === 'awaiting') {
+              setActiveTab('awaiting');
+            } else {
+              setActiveTab('logs');
+              setStatusFilterSelection(new Set([tabId]));
+            }
+          }}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : (activeTab === 'awaiting' ? pendingItems : filteredAdjustments).length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              {activeTab === 'awaiting' ? 'No pending approval requests' : 'No adjustment records found'}
+            </div>
+          ) : (
+            (activeTab === 'awaiting' ? pendingItems : filteredAdjustments).map((adj) => {
+              const isPending = adj.status === 'pending';
+              const isApproved = adj.status === 'approved';
+              const isAddition = adj.quantity > 0;
+
+              return (
+                <div
+                  key={adj.id}
+                  onClick={() => {
+                    setSelectedDetailAdj(adj);
+                    setIsDetailModalOpen(true);
+                  }}
+                  className="py-3 flex flex-col gap-2.5 text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Left: Info */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className={`h-9 w-9 rounded-lg shrink-0 flex items-center justify-center border ${
+                        isPending ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' :
+                        isApproved ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' :
+                        'bg-red-500/10 border-red-500/20 text-red-500'
+                      }`}>
+                        {isPending ? <Clock className="h-4 w-4" /> : isApproved ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-foreground truncate max-w-[180px]">
+                          {adj.variant_name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {reasonLabels[adj.reason] || adj.reason} &middot; {adj.initiated_by_name || 'Staff'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Quantity Change + Status */}
+                    <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                      <span className={`font-extrabold text-[13px] ${isAddition ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        {isAddition ? `+${adj.quantity}` : adj.quantity} {adj.base_unit_name || 'units'}
+                      </span>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                        isPending ? 'bg-amber-500/10 text-amber-600' :
+                        isApproved ? 'bg-emerald-500/10 text-emerald-600' :
+                        'bg-red-500/10 text-red-500'
+                      }`}>
+                        {adj.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions row for Awaiting Approval on Mobile */}
+                  {isPending && (
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenPinModal(adj, "reject")}
+                        className="h-7 px-3 text-xs font-semibold text-destructive border border-destructive/20 hover:bg-destructive/10 rounded-full"
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenPinModal(adj, "approve")}
+                        className="h-7 px-3 text-xs font-semibold rounded-full shadow-none"
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP STOCK ADJUSTMENTS VIEW (Hidden < md, Flex >= md)                  */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-5 relative h-full">
         {/* Metric summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard

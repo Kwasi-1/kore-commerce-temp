@@ -1,16 +1,25 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { Package } from 'lucide-react';
+import { Package, Upload, Layers, ArrowLeftRight, RefreshCw } from 'lucide-react';
 import { Selection } from '@nextui-org/react';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { BulkStockUploadModal } from './components/BulkStockUploadModal';
 import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
 import { StockHistoryModal } from './components/StockHistoryModal';
 import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
+import {
+  MobileDashboardWrapper,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export default function StockManagement() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<ProductStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
@@ -223,7 +232,139 @@ export default function StockManagement() {
       subtitle="Quickly adjust physical stock levels across all your inventory."
       constrainHeight={true}
     >
-      <div className="flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE STOCK MANAGEMENT VIEW (Hidden >= md, Block < md)                   */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper className="block md:hidden">
+        {/* Top Sticky Header */}
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Stock Levels</h1>
+            <p className="text-xs text-muted-foreground">
+              {products.length} product{products.length !== 1 ? 's' : ''} listed
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 border-border"
+              onClick={() => setIsBulkStockModalOpen(true)}
+            >
+              <Upload className="h-3.5 w-3.5 text-primary" />
+              <span>Bulk Receive</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Capsule Bar (Search + Quick Actions) */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: "Search by name, SKU, or category...",
+          }}
+          actions={[
+            {
+              label: 'Reconcile',
+              icon: <Layers className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/inventory/stock-reconciliation'),
+            },
+            {
+              label: 'Adjustments',
+              icon: <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/inventory/adjustments'),
+            },
+            {
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: () => fetchProducts(1),
+            },
+          ]}
+        />
+
+        {/* Stock List Activity Sheet */}
+        <MobileActivitySheet
+          title="Inventory Items"
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'low_stock', label: 'Low Stock' },
+            { id: 'out_of_stock', label: 'Out of Stock' },
+            { id: 'in_stock', label: 'In Stock' },
+          ]}
+          activeTab={
+            stockStatusFilter instanceof Set
+              ? (Array.from(stockStatusFilter)[0] as string) || 'all'
+              : (stockStatusFilter as string) || 'all'
+          }
+          onTabChange={(tabId) => setStockStatusFilter(new Set([tabId]))}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : products.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              No products found matching your filter or search.
+            </div>
+          ) : (
+            products.map((p) => {
+              const isOutOfStock = p.quantity <= 0;
+              const isLowStock = p.quantity > 0 && p.quantity <= 5;
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => handleOpenRestock(p)}
+                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors gap-3"
+                >
+                  {/* Left: Image + Info */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="h-10 w-10 rounded-lg shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                        {p.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                        {p.category || 'General'} &middot; <span className="font-mono">{p.sku}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Packaging Stock Display + Status Badge */}
+                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                    <PackagingStockDisplay
+                      quantity={p.quantity}
+                      baseUnitName={p.base_unit_name}
+                      packagingTiers={p.packaging_tiers}
+                      primaryClassName={`font-bold text-xs ${
+                        isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'
+                      }`}
+                    />
+                    <span className={`capitalize inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                      isOutOfStock
+                        ? 'text-destructive bg-destructive/10 border border-destructive/20'
+                        : isLowStock
+                          ? 'text-amber-600 bg-amber-500/10 border border-amber-500/20'
+                          : 'text-emerald-600 bg-emerald-500/10'
+                    }`}>
+                      {isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock' : 'In Stock'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP STOCK MANAGEMENT VIEW (Hidden < md, Flex >= md)                   */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full">
         {/* Enhanced Table */}
         <EnhancedTableComponent
           columns={columns}

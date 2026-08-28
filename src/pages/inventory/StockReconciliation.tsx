@@ -20,11 +20,18 @@ import {
   CheckCircle2,
   Boxes,
   Calculator,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 
 import { PackagingTier, formatQty, getTierBreakdown } from '@/utils/packaging';
 import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
+import { Spinner } from '@/components/ui/spinner';
+import {
+  MobileDashboardWrapper,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export type { PackagingTier };
 
@@ -49,6 +56,7 @@ export default function StockReconciliation() {
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [filterSelection, setFilterSelection] = useState<Selection>(new Set(['all']));
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
+  const [mobileTab, setMobileTab] = useState<'all' | 'uncounted' | 'discrepancies' | 'matched'>('all');
   
   // Track physical counts: { [id]: number }
   const [physicalCounts, setPhysicalCounts] = useState<Record<string, number>>(() => {
@@ -515,7 +523,195 @@ export default function StockReconciliation() {
       title="Stock Reconciliation" 
       constrainHeight={true}
     >
-      <div className="flex flex-col flex-1 min-h-0 gap-5 relative h-full md:h-full">
+      {/* ========================================================================= */}
+      {/* MOBILE STOCK RECONCILIATION VIEW (Hidden >= md, Block < md)              */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper className="block md:hidden">
+        {/* Top Sticky Header with Audit Progress */}
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground font-header tracking-tight">Reconciliation</h1>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground border border-border">
+                {countPercent}%
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[140px]">
+                <div 
+                  className="h-full bg-foreground transition-all duration-300 rounded-full" 
+                  style={{ width: `${countPercent}%` }} 
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {countedCount}/{totalCount} counted
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              className="rounded-full h-8 px-3 text-xs font-semibold gap-1.5 shadow-none"
+              disabled={countedCount === 0}
+              onClick={() => setIsReviewModalOpen(true)}
+            >
+              <FileCheck2 className="h-3.5 w-3.5" />
+              <span>Apply ({countedCount})</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Capsule Bar (Search + Reset Draft) */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: tableSearchQuery,
+            onChange: setTableSearchQuery,
+            placeholder: "Search variant, SKU, category...",
+          }}
+          actions={[
+            {
+              label: 'Reset Draft',
+              icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+              onClick: handleResetCounts,
+            },
+            {
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: () => fetchProducts(1),
+            },
+          ]}
+        />
+
+        {/* Count Sheet Activity View */}
+        <MobileActivitySheet
+          title="Count Sheet"
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'uncounted', label: 'Uncounted', count: Math.max(0, totalCount - countedCount) },
+            { id: 'discrepancies', label: 'Discrepancies', count: discrepancyItems.length },
+            { id: 'matched', label: 'Matched' },
+          ]}
+          activeTab={mobileTab}
+          onTabChange={(tabId: any) => setMobileTab(tabId)}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              No products found matching your search.
+            </div>
+          ) : (
+            filteredProducts
+              .filter((p) => {
+                const isCounted = physicalCounts[p.id] !== undefined;
+                const count = physicalCounts[p.id];
+                if (mobileTab === 'uncounted') return !isCounted;
+                if (mobileTab === 'discrepancies') return isCounted && count !== p.quantity;
+                if (mobileTab === 'matched') return isCounted && count === p.quantity;
+                return true;
+              })
+              .map((p) => {
+                const isCounted = physicalCounts[p.id] !== undefined;
+                const count = physicalCounts[p.id];
+                const variance = isCounted ? count - p.quantity : 0;
+                const hasTiers = (p.packaging_tiers || []).some(t => t.units_per_tier > 1);
+
+                return (
+                  <div
+                    key={p.id}
+                    className="py-3 flex flex-col gap-2.5 text-xs hover:bg-muted/10 px-1 rounded-lg transition-colors"
+                  >
+                    {/* Top Row: Product Info + Variance Pill */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-foreground truncate max-w-[200px]">
+                          {p.name}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                          <span className="font-mono">{p.sku}</span>
+                          <span>&middot;</span>
+                          <span>System: </span>
+                          <PackagingStockDisplay
+                            quantity={p.quantity}
+                            baseUnitName={p.base_unit_name}
+                            packagingTiers={p.packaging_tiers}
+                            primaryClassName="font-semibold text-foreground"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Variance Badge */}
+                      <div className="shrink-0 text-right">
+                        {!isCounted ? (
+                          <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            Uncounted
+                          </span>
+                        ) : variance === 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            ✓ Matched
+                          </span>
+                        ) : (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            variance > 0 
+                              ? 'text-emerald-600 bg-emerald-500/10' 
+                              : 'text-destructive bg-destructive/10'
+                          }`}>
+                            {variance > 0 ? `+${formatQty(variance)}` : formatQty(variance)} {p.base_unit_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Physical Count Input + Match Button + Tier Calc */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="Count..."
+                          className={`h-8 w-24 px-2.5 text-xs rounded-lg border focus:outline-none focus:border-foreground/30 ${
+                            isCounted 
+                              ? 'border-border bg-background font-bold text-foreground' 
+                              : 'border-border/60 bg-muted/30 text-muted-foreground'
+                          }`}
+                          value={physicalCounts[p.id] !== undefined ? physicalCounts[p.id] : ''}
+                          onChange={(e) => handleCountChange(p.id, e.target.value)}
+                        />
+                        {hasTiers && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenTierCalculator(p)}
+                            className="h-8 px-2 rounded-lg border border-border flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground bg-background"
+                            title="Tier Calculator"
+                          >
+                            <Boxes className="h-3.5 w-3.5" />
+                            <span>Packs</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleQuickMatch(p)}
+                          className="h-8 px-3 rounded-lg text-xs font-semibold border-dashed text-muted-foreground hover:text-foreground"
+                        >
+                          Match
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP STOCK RECONCILIATION VIEW (Hidden < md, Flex >= md)               */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-5 relative h-full">
         {/* Metric summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <DashboardCard
