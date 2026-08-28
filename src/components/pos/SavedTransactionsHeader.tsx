@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { Clock, ShoppingCart, Trash2 } from 'lucide-react';
+import { Clock, ShoppingCart } from 'lucide-react';
+import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import CustomModal from '@/components/modals/modal';
@@ -111,7 +112,7 @@ export default function SavedTransactionsHeader() {
               return (
                 <div 
                   key={t.id} 
-                  className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all gap-3"
+                  className="group flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all gap-3"
                 >
                   {/* Left Column: Avatar + Customer & Order Info */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -138,7 +139,7 @@ export default function SavedTransactionsHeader() {
                     <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight whitespace-nowrap">
                       GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <div className="flex items-center gap-1">              
+                    <div className="flex items-center gap-1.5 lg:gap-0 lg:group-hover:gap-1.5 lg:group-focus-within:gap-1.5 transition-all duration-200">              
                       <Button
                         size="sm"
                         className="rounded-full h-7 px-3 text-xs font-semibold"
@@ -149,10 +150,9 @@ export default function SavedTransactionsHeader() {
                       >
                         Resume
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                      <button
+                        type="button"
+                        className="h-7 w-7 lg:w-0 lg:group-hover:w-7 lg:group-focus-within:w-7 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 overflow-hidden shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteSavedTransaction(t.id);
@@ -160,8 +160,8 @@ export default function SavedTransactionsHeader() {
                         }}
                         title="Discard held order"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                        <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4 shrink-0" />
+                      </button>
                     </div>
                   </div>
                 </div>
