@@ -1342,6 +1342,9 @@ export function setupMockApi() {
     const search = (searchParams.get('search') || '').toLowerCase();
     const status = searchParams.get('status') || '';
     const category = searchParams.get('category') || '';
+    const stockStatus = searchParams.get('stock_status') || '';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
 
     let filtered = [...mockProducts];
     if (search) {
@@ -1356,6 +1359,24 @@ export function setupMockApi() {
     }
     if (category && category !== 'all') {
       filtered = filtered.filter(p => p.category === category);
+    }
+    if (stockStatus && stockStatus !== 'all') {
+      if (stockStatus === 'in_stock') {
+        filtered = filtered.filter(p => {
+          const totalStock = p.variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) ?? 0;
+          return totalStock > 5;
+        });
+      } else if (stockStatus === 'low_stock') {
+        filtered = filtered.filter(p => {
+          const totalStock = p.variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) ?? 0;
+          return totalStock > 0 && totalStock <= 5;
+        });
+      } else if (stockStatus === 'out_of_stock') {
+        filtered = filtered.filter(p => {
+          const totalStock = p.variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) ?? 0;
+          return totalStock <= 0;
+        });
+      }
     }
 
     const mapped = filtered.map(p => {
@@ -1380,17 +1401,28 @@ export function setupMockApi() {
         }
       }
 
+      let activeVariants = p.variants || [];
+      if (stockStatus && stockStatus !== 'all') {
+        if (stockStatus === 'in_stock') {
+          activeVariants = activeVariants.filter((v: any) => (v.stock_quantity || 0) > (v.low_stock_threshold || 5));
+        } else if (stockStatus === 'low_stock') {
+          activeVariants = activeVariants.filter((v: any) => (v.stock_quantity || 0) > 0 && (v.stock_quantity || 0) <= (v.low_stock_threshold || 5));
+        } else if (stockStatus === 'out_of_stock') {
+          activeVariants = activeVariants.filter((v: any) => (v.stock_quantity || 0) <= 0);
+        }
+      }
+
       return {
         id: p.id,
         name: p.name,
         category: p.category || 'General',
         images: p.images || [],
         has_variants: !!p.has_variants,
-        variant_count: p.variants?.length || 0,
+        variant_count: activeVariants.length,
         total_stock_base_units: totalStock,
         status: p.status || 'active',
         expiry_warning: expiryWarning,
-        variants: p.variants || [],
+        variants: activeVariants,
         // Compatibility properties:
         quantity: totalStock,
         sku: p.variants?.[0]?.sku || ''
@@ -1411,21 +1443,27 @@ export function setupMockApi() {
       low_stock_variants: lowStockCount
     };
 
+    const total = mapped.length;
+    const startIndex = (page - 1) * limit;
+    const paginatedProducts = mapped.slice(startIndex, startIndex + limit);
+    const totalPages = Math.ceil(total / limit) || 1;
+
     return [200, {
       success: {
         status: 'OK',
         code: 200,
         data: {
-          products: mapped,
+          products: paginatedProducts,
           summary,
           pagination: {
-            page: 1,
-            perPage: 20,
-            total: mapped.length,
-            totalProducts: mapped.length,
-            totalVariants: allVariants.length,
-            hasNext: false,
-            hasPrev: false
+            page,
+            perPage: limit,
+            total,
+            totalProducts: total,
+            totalVariants: total,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
           }
         }
       }

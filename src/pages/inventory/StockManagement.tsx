@@ -94,14 +94,11 @@ export default function StockManagement() {
       const catVal = categoryFilter instanceof Set ? Array.from(categoryFilter)[0] : categoryFilter;
       if (catVal && catVal !== 'all') url += `&category=${encodeURIComponent(String(catVal))}`;
 
-      // Stock status maps to the product status field on the server
       const stockVal = stockStatusFilter instanceof Set
         ? Array.from(stockStatusFilter)[0]
         : stockStatusFilter;
       if (stockVal && stockVal !== 'all') {
-        // 'in_stock' / 'low_stock' / 'out_of_stock' are client-side concepts;
-        // server only knows product status (active / inactive). We filter the
-        // stock quantity client-side after receiving the page.
+        url += `&stock_status=${encodeURIComponent(String(stockVal))}`;
       }
 
       const response = await apiClient.get(url);
@@ -109,19 +106,7 @@ export default function StockManagement() {
       const pag = response.data.success?.data?.pagination || null;
       setPagination(pag);
 
-      let flatItems = flattenProducts(rawProducts);
-
-      // Apply stock status filter client-side (server doesn't have this concept)
-      if (stockVal && stockVal !== 'all') {
-        if (stockVal === 'in_stock') {
-          flatItems = flatItems.filter(p => p.quantity > 5);
-        } else if (stockVal === 'low_stock') {
-          flatItems = flatItems.filter(p => p.quantity > 0 && p.quantity <= 5);
-        } else if (stockVal === 'out_of_stock') {
-          flatItems = flatItems.filter(p => p.quantity <= 0);
-        }
-      }
-
+      const flatItems = flattenProducts(rawProducts);
       setProducts(flatItems);
     } catch (error) {
       console.error('Failed to fetch products for stock management:', error);
