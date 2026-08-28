@@ -21,12 +21,20 @@ import {
   Boxes,
   Calculator,
   Layers,
-  RefreshCw
+  RefreshCw,
+  Search,
+  X
 } from 'lucide-react';
 
 import { PackagingTier, formatQty, getTierBreakdown } from '@/utils/packaging';
 import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { cn } from '@/lib/utils';
 import {
   MobileDashboardWrapper,
   MobileActionCapsuleBar,
@@ -57,6 +65,10 @@ export default function StockReconciliation() {
   const [filterSelection, setFilterSelection] = useState<Selection>(new Set(['all']));
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
   const [mobileTab, setMobileTab] = useState<'all' | 'uncounted' | 'discrepancies' | 'matched'>('all');
+  
+  // Mobile Category Filter Drawer State
+  const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   
   // Track physical counts: { [id]: number }
   const [physicalCounts, setPhysicalCounts] = useState<Record<string, number>>(() => {
@@ -518,6 +530,17 @@ export default function StockReconciliation() {
   const totalCount = totalVariantsCount > 0 ? totalVariantsCount : (products.length || 0);
   const countPercent = totalCount > 0 ? Math.round((countedCount / totalCount) * 100) : 0;
 
+  const selectedCategory = useMemo(() => {
+    if (typeof categoryFilter === 'string') return categoryFilter;
+    const first = Array.from(categoryFilter)[0];
+    return first ? String(first) : 'all';
+  }, [categoryFilter]);
+
+  const filteredCategoryList = useMemo(() => {
+    if (!categorySearchTerm.trim()) return categories;
+    return categories.filter(c => c.toLowerCase().includes(categorySearchTerm.toLowerCase()));
+  }, [categories, categorySearchTerm]);
+
   return (
     <PageLayout 
       title="Stock Reconciliation" 
@@ -562,7 +585,7 @@ export default function StockReconciliation() {
           </div>
         </div>
 
-        {/* Action Capsule Bar (Search + Reset Draft) */}
+        {/* Action Capsule Bar (Search + Categories Filter + Reset Draft + Refresh) */}
         <MobileActionCapsuleBar
           searchConfig={{
             value: tableSearchQuery,
@@ -570,6 +593,12 @@ export default function StockReconciliation() {
             placeholder: "Search variant, SKU, category...",
           }}
           actions={[
+            {
+              label: selectedCategory !== 'all' ? selectedCategory : 'Categories',
+              icon: <Layers className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => setIsCategoryDrawerOpen(true),
+              className: selectedCategory !== 'all' ? '!border-primary/40 !bg-primary/20 !text-primary' : undefined,
+            },
             {
               label: 'Reset Draft',
               icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
@@ -1119,6 +1148,99 @@ export default function StockReconciliation() {
           </div>
         }
       />
+
+      {/* Mobile Category Filter Drawer */}
+      <Drawer open={isCategoryDrawerOpen} onOpenChange={setIsCategoryDrawerOpen}>
+        <DrawerContent className="max-h-[60vh] p-0 border-t border-border bg-background rounded-t-[24px]">
+          <div className="px-6 pt-1 pb-3 border-b border-border/40 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <DrawerTitle className="text-lg font-bold text-foreground font-header tracking-tight">Categories</DrawerTitle>
+              {selectedCategory !== 'all' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setCategoryFilter(new Set(['all']));
+                    setIsCategoryDrawerOpen(false);
+                  }} 
+                  className="text-muted-foreground text-xs h-7 px-2 hover:text-foreground"
+                >
+                  Clear Filter
+                </Button>
+              )}
+            </div>
+
+            {/* Search Categories */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Find categories..."
+                value={categorySearchTerm}
+                onChange={(e) => setCategorySearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-border bg-muted/20 outline-none focus:border-primary/50 text-foreground"
+              />
+            </div>
+          </div>
+
+          {/* Categories List in Mobile Drawer */}
+          <div className="px-6 py-2 overflow-y-auto max-h-[45vh] flex flex-col divide-y divide-border/20">
+            {/* All Categories Option */}
+            <button
+              onClick={() => {
+                setCategoryFilter(new Set(['all']));
+                setIsCategoryDrawerOpen(false);
+              }}
+              className="flex items-center justify-between w-full py-3.5 px-1 border-b border-border/20 text-left transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={cn(
+                  "h-7 w-7 rounded-lg flex items-center justify-center border text-xs font-bold",
+                  selectedCategory === 'all'
+                    ? "bg-primary text-zinc-950 border-primary"
+                    : "bg-muted/40 text-muted-foreground border-border"
+                )}>
+                  <Layers className="h-3.5 w-3.5" />
+                </div>
+                <span className={cn("text-sm", selectedCategory === 'all' ? "font-bold text-foreground" : "font-medium text-foreground/80")}>
+                  All Categories
+                </span>
+              </div>
+              {selectedCategory === 'all' && (
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+              )}
+            </button>
+
+            {/* Individual Categories */}
+            {filteredCategoryList.map((cat) => {
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setCategoryFilter(new Set([cat]));
+                    setIsCategoryDrawerOpen(false);
+                  }}
+                  className="flex items-center justify-between w-full py-3.5 px-1 text-left transition-colors"
+                >
+                  <span className={cn("text-sm", isSelected ? "font-bold text-foreground" : "font-medium text-foreground/90")}>
+                    {cat}
+                  </span>
+                  {isSelected && (
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  )}
+                </button>
+              );
+            })}
+
+            {filteredCategoryList.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-6">
+                No categories match your search.
+              </div>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </PageLayout>
   );
 }
