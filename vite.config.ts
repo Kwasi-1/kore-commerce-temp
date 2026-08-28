@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
           includeAssets: ["images/**", "icons/**", "*.png", "*.svg"],
           manifest: false, // We use our own public/manifest.json
           workbox: {
+            // Allow up to 5 MiB chunks for precaching (prevents demo mock bundle exceeding default 2 MiB limit)
+            maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
             // Cache static assets with Cache First
             globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
             // Network First for API calls (falls back to cache if offline)
