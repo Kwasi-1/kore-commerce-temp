@@ -160,9 +160,7 @@ export default function SavedTransactionsHeader() {
                       GHS {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <div className={`flex items-center transition-all duration-200 ${
-                      isRevealed 
-                        ? 'gap-1.5' 
-                        : 'gap-0 lg:group-hover:gap-1.5 lg:group-focus-within:gap-1.5'
+                      isRevealed ? 'gap-1.5' : 'gap-0'
                     }`}>              
                       <Button
                         size="sm"
@@ -179,7 +177,7 @@ export default function SavedTransactionsHeader() {
                         className={`h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 overflow-hidden shrink-0 ${
                           isRevealed
                             ? 'w-7 opacity-100'
-                            : 'w-0 opacity-0 lg:group-hover:w-7 lg:group-hover:opacity-100 lg:group-focus-within:w-7 lg:group-focus-within:opacity-100'
+                            : 'w-0 opacity-0 pointer-events-none'
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
