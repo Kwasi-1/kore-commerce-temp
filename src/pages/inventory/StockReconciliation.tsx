@@ -671,6 +671,7 @@ export default function StockReconciliation() {
         {/* Count Sheet Activity View */}
         <MobileActivitySheet
           title="Count Sheet"
+          secondary={true}
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'uncounted', label: 'Uncounted', count: Math.max(0, totalCount - countedCount) },

@@ -260,6 +260,7 @@ export default function StockManagement() {
         {/* Stock List Activity Sheet */}
         <MobileActivitySheet
           title="Inventory Items"
+          secondary={true}
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'low_stock', label: 'Low Stock' },

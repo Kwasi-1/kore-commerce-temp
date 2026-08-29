@@ -376,6 +376,7 @@ export default function PurchaseOrders() {
 
         <MobileActivitySheet
           title="All Orders"
+          secondary={true}
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'ordered', label: 'Ordered' },

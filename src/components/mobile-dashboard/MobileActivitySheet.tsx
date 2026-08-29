@@ -18,6 +18,7 @@ export interface MobileActivitySheetProps {
   onTabChange?: (tabId: string) => void;
   children: React.ReactNode;
   className?: string;
+  secondary?: boolean;
 }
 
 export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
@@ -27,6 +28,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   tabs,
   activeTab,
   onTabChange,
+  secondary,
   children,
   className,
 }) => {
@@ -34,6 +36,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
     <div
       className={cn(
         "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-125px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden",
+        secondary && " mx-1",
         className
       )}
     >

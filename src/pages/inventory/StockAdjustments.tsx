@@ -524,6 +524,7 @@ export default function StockAdjustments() {
         {/* Adjustments Activity Sheet */}
         <MobileActivitySheet
           title="Adjustment Records"
+          secondary={true}
           tabs={[
             ...(pendingItems.length > 0 ? [{ id: 'awaiting', label: 'Awaiting Approval', count: pendingItems.length }] : []),
             { id: 'all', label: 'All Logs' },
