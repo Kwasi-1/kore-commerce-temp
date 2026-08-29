@@ -612,7 +612,7 @@ export default function StockReconciliation() {
         <div className="px-4 pt-5 pb-2 flex items-center justify-between gap-3 text-action-pill-foreground">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-action-pill-foreground font-header tracking-tight">Reconciliation</h1>
+              <h1 className="text-[22px] font-bold text-action-pill-foreground font-header tracking-tighter">Reconciliation</h1>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-action-pill-foreground/10 text-action-pill-foreground border border-action-pill-foreground/20">
                 {countPercent}%
               </span>

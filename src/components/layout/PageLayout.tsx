@@ -94,7 +94,7 @@ export default function PageLayout({
                   className={cn(
                     "text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
                     headerVariant === "action-bridge" &&
-                      "!text-xl md:!text-2xl lg:!text-[26px] text-action-pill-foreground md:text-foreground",
+                      "!text-[22px] md:!text-2xl lg:!text-[26px] text-action-pill-foreground md:text-foreground",
                     showBackButton ? "text-2xl" : "text-2xl",
                     titleClassName,
                   )}
