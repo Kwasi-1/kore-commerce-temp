@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
@@ -6,12 +6,18 @@ import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { CurrencyDisplay } from '@/hooks';
+import { useIsMobile } from '@/hooks/useScreenSize';
 import { useAuthStore } from '@/store/authStore';
 import { 
   CreditCard, 
   AlertTriangle,
   Clock,
-  Coins
+  Coins,
+  Users,
+  RefreshCw,
+  FileText,
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -23,11 +29,18 @@ import SupplierCreditDetailModal, {
 } from '@/components/inventory/SupplierCreditDetailModal';
 import RecordSupplierPaymentModal from '@/components/inventory/RecordSupplierPaymentModal';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Icon } from '@iconify/react';
+import {
+  MobileDashboardWrapper,
+  MobileActionCapsuleBar,
+  MobileActivitySheet,
+} from '@/components/mobile-dashboard';
 
 export default function SupplierCredit() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const staffUser = useAuthStore((state) => state.staffUser);
   const showCreditTab = staffUser?.role === 'owner' || staffUser?.role === 'manager';
@@ -170,58 +183,73 @@ export default function SupplierCredit() {
       container.style.fontFamily = 'Helvetica, Arial, sans-serif';
 
       container.innerHTML = `
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 12px;">
-          <h2 style="margin: 0; font-size: 16px; text-transform: uppercase;">Payment Receipt</h2>
-          <p style="margin: 4px 0 0 0; font-size: 10px; color: #555;">Supplier Credit Settlement</p>
+        <div style="text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; margin-bottom: 16px;">
+          <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase;">Payment Receipt</h2>
+          <p style="font-size: 11px; color: #64748b; margin: 0;">Supplier Debt Payment</p>
         </div>
-        
-        <div style="font-size: 11px; margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 12px;">
+
+        <div style="font-size: 12px; margin-bottom: 16px; line-height: 1.5;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #777;">Receipt Ref:</span>
-            <span style="font-weight: bold;">${payment.reference}</span>
+            <span style="color: #64748b;">Supplier:</span>
+            <span style="font-weight: 600;">${selectedCredit.supplier_name}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #777;">Date:</span>
-            <span>${format(new Date(payment.date_created), 'dd MMM yyyy, HH:mm')}</span>
+            <span style="color: #64748b;">PO Reference:</span>
+            <span style="font-family: monospace; font-weight: 600;">${selectedCredit.purchase_order_ref}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="font-weight: bold;">Supplier:</span>
-            <span style="font-weight: bold;">${selectedCredit.supplier_name}</span>
+            <span style="color: #64748b;">Date Paid:</span>
+            <span>${format(new Date(payment.date_created), 'MMM dd, yyyy HH:mm')}</span>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #777;">PO Reference:</span>
-            <span>${selectedCredit.purchase_order_ref}</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: #64748b;">Method:</span>
+            <span style="text-transform: capitalize; font-weight: 600;">${payment.payment_method?.replace('_', ' ') || 'Cash'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: #64748b;">Receipt Ref:</span>
+            <span style="font-family: monospace; font-weight: 600;">${payment.reference}</span>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 20px; padding: 10px; background: #f9f9f9;">
-          <span>Paid Amount:</span>
-          <span>GHS ${payment.amount.toFixed(2)}</span>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 12px; font-weight: 600;">Amount Paid:</span>
+            <span style="font-size: 16px; font-weight: bold; color: #16a34a;">${payment.amount}</span>
+          </div>
         </div>
-        
-        <div style="margin-top: 30px; text-align: center; font-size: 8px; color: #777;">
-          <p>Thank you for your business!</p>
+
+        ${payment.notes ? `
+        <div style="font-size: 11px; color: #64748b; margin-bottom: 16px; background-color: #ffffff; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 4px;">
+          <strong>Notes:</strong> ${payment.notes}
+        </div>` : ''}
+
+        <div style="text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 10px; color: #94a3b8;">
+          <p style="margin: 0;">Official Payment Confirmation &middot; Generated electronically</p>
         </div>
       `;
 
       document.body.appendChild(container);
-      
-      const canvas = await html2canvas(container, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`SupplierReceipt_${payment.reference}.pdf`);
-      
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true });
       document.body.removeChild(container);
-      toast.success('Supplier payment receipt downloaded!', { id: toastId });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [100, 150] });
+      pdf.addImage(imgData, 'PNG', 5, 5, 90, 0);
+      pdf.save(`Payment_${selectedCredit.purchase_order_ref}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+
+      toast.success('Receipt downloaded successfully', { id: toastId });
     } catch (err) {
-      console.error('PDF generation failed', err);
-      toast.error('Failed to generate PDF', { id: toastId });
+      console.error('Failed to generate receipt PDF:', err);
+      toast.error('Failed to export PDF receipt', { id: toastId });
     }
   };
+
+  const activeMobileTab = useMemo(() => {
+    if (statusFilter instanceof Set) {
+      return (Array.from(statusFilter)[0] as string) || 'all';
+    }
+    return (statusFilter as string) || 'all';
+  }, [statusFilter]);
 
   const columns = [
     { key: 'name', label: 'Supplier Name' },
@@ -274,7 +302,157 @@ export default function SupplierCredit() {
   };
 
   return (
-    <PageLayout title="Suppliers Credit" constrainHeight={true}>
+    <PageLayout 
+      title="Suppliers Credit" 
+      subtitle={
+        isMobile ? (
+          <span>
+            <CurrencyDisplay amount={summary.total_outstanding} showStyling={false} /> total outstanding
+          </span>
+        ) : undefined
+      }
+      headerVariant="action-bridge"
+      constrainHeight={true}
+      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+    >
+      {/* ========================================================================= */}
+      {/* MOBILE SUPPLIERS CREDIT VIEW (Hidden >= md, Block < md)                   */}
+      {/* ========================================================================= */}
+      <MobileDashboardWrapper className="block md:hidden">
+        {/* Compact Credit Metric Strip on Mobile (On top of Action Bar) */}
+        <div className="grid grid-cols-3 gap-2 px-1 pt-1 pb-1">
+          <div className="bg-background border border-border/60 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+            <span className="text-[10px] text-muted-foreground font-medium">In Debt</span>
+            <span className="text-sm font-bold text-foreground mt-0.5">{summary.total_suppliers_with_debt}</span>
+          </div>
+
+          <div className="bg-background border border-border/60 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+            <span className="text-[10px] text-muted-foreground font-medium">Overdue</span>
+            <span className={`text-sm font-bold mt-0.5 ${summary.overdue_count > 0 ? 'text-destructive' : 'text-foreground'}`}>
+              {summary.overdue_count}
+            </span>
+          </div>
+
+          <div className="bg-background border border-border/60 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+            <span className="text-[10px] text-muted-foreground font-medium">Upcoming (7d)</span>
+            <span className={`text-sm font-bold mt-0.5 ${summary.upcoming_due_7_days > 0 ? 'text-amber-500' : 'text-foreground'}`}>
+              {summary.upcoming_due_7_days}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Capsule Bar (Search + Supplier Directory + Refresh) */}
+        <MobileActionCapsuleBar
+          searchConfig={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: "Search supplier or PO...",
+          }}
+          actions={[
+            {
+              label: 'Directory',
+              icon: <Users className="h-3.5 w-3.5 text-primary" />,
+              onClick: () => navigate('/inventory/suppliers'),
+            },
+            {
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              onClick: () => {
+                fetchSummary();
+                fetchCredits(1);
+              },
+            },
+          ]}
+        />
+
+        {/* Credit Activity Sheet */}
+        <MobileActivitySheet
+          title="Credit Records"
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'outstanding', label: 'Outstanding' },
+            { id: 'partial', label: 'Partial' },
+            { id: 'settled', label: 'Settled' },
+          ]}
+          activeTab={activeMobileTab}
+          onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+        >
+          {isLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : credits.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              No credit records found matching your filter or search.
+            </div>
+          ) : (
+            credits.map((record) => {
+              const isOverdue = record.status !== 'settled' && new Date(record.due_date) < new Date();
+              const isSettled = record.status === 'settled';
+
+              return (
+                <div
+                  key={record.id}
+                  onClick={() => handleRowClick(record.id)}
+                  className="py-3 flex flex-col gap-2.5 text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors border-b border-border/20 last:border-0"
+                >
+                  {/* Top Row: Supplier + Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-foreground truncate max-w-[200px]">
+                        {record.supplier_name}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                        <span className="font-mono">{record.purchase_order_ref}</span>
+                        <span>&middot;</span>
+                        <span className={isOverdue ? "text-destructive font-bold" : "text-muted-foreground"}>
+                          Due {format(new Date(record.due_date), 'MMM dd, yyyy')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold capitalize shrink-0 ${
+                      isSettled
+                        ? 'text-emerald-600 bg-emerald-500/10'
+                        : record.status === 'partial'
+                          ? 'text-amber-600 bg-amber-500/10'
+                          : 'text-destructive bg-destructive/10'
+                    }`}>
+                      {record.status}
+                    </span>
+                  </div>
+
+                  {/* Bottom Row: Balance & Action Button */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">Remaining Balance</span>
+                      <span className={`text-xs font-bold ${
+                        isSettled ? 'text-muted-foreground' : isOverdue ? 'text-destructive' : 'text-foreground'
+                      }`}>
+                        <CurrencyDisplay amount={record.balance_remaining} showStyling={false} />
+                      </span>
+                    </div>
+
+                    {!isSettled && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleOpenPayment(record, e)}
+                        className="h-7 px-2.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 border-0"
+                      >
+                        <CreditCard className="h-3 w-3 mr-1" />
+                        <span>Pay Debt</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </MobileActivitySheet>
+      </MobileDashboardWrapper>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP SUPPLIERS CREDIT VIEW (Hidden < md, Flex >= md)                   */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
           <DashboardCard
             title="Total Outstanding Owed"
@@ -338,29 +516,30 @@ export default function SupplierCredit() {
           onclick={handleRowClick}
           mobileFriendly={true}
         />
+      </div>
 
-        {/* DETAILS MODAL */}
-        <SupplierCreditDetailModal
-          isOpen={isDetailOpen}
-          onClose={() => {
-            setIsDetailOpen(false);
-            setSelectedCredit(null);
-          }}
-          selectedCredit={selectedCredit}
-          onRecordPayment={(credit) => {
-            setSelectedCredit(credit);
-            setIsPaymentOpen(true);
-          }}
-          onDownloadPDF={handleDownloadPDF}
-        />
+      {/* DETAILS MODAL */}
+      <SupplierCreditDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => {
+          setIsDetailOpen(false);
+          setSelectedCredit(null);
+        }}
+        selectedCredit={selectedCredit}
+        onRecordPayment={(credit) => {
+          setSelectedCredit(credit);
+          setIsPaymentOpen(true);
+        }}
+        onDownloadPDF={handleDownloadPDF}
+      />
 
-        {/* RECORD PAYMENT MODAL */}
-        <RecordSupplierPaymentModal
-          isOpen={isPaymentOpen}
-          onClose={() => setIsPaymentOpen(false)}
-          selectedCredit={selectedCredit}
-          onSuccess={handlePaymentSuccess}
-        />
+      {/* RECORD PAYMENT MODAL */}
+      <RecordSupplierPaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        selectedCredit={selectedCredit}
+        onSuccess={handlePaymentSuccess}
+      />
     </PageLayout>
   );
 }
