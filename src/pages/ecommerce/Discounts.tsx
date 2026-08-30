@@ -119,9 +119,9 @@ export default function Discounts() {
   const inactiveCount = useMemo(() => discounts.filter((d: any) => !d.is_active).length, [discounts]);
 
   const mobileTabs = [
-    { id: 'all', label: 'All', count: discounts.length },
-    { id: 'active', label: 'Active', count: activeCount },
-    { id: 'inactive', label: 'Inactive', count: inactiveCount },
+    { id: 'all', label: 'All' },
+    { id: 'active', label: 'Active' },
+    { id: 'inactive', label: 'Inactive' },
     { id: 'percentage', label: 'Percentage %' },
     { id: 'fixed', label: 'Fixed GHS' },
   ];
@@ -202,7 +202,7 @@ export default function Discounts() {
             },
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
               onClick: fetchDiscounts
             }
           ]}
@@ -244,8 +244,8 @@ export default function Discounts() {
                   {/* Top Line: Code badge + Type/Value pill + Active toggle */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg tracking-wider">
-                        <Tag className="h-3 w-3" />
+                      <div className="flex items-center gap-1.5 font-mono font-bold text-xs bg-muted/60 text-foreground border border-border px-2.5 py-1 rounded-md tracking-wider">
+                        <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>{discount.code}</span>
                       </div>
 

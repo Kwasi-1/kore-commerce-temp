@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
@@ -21,6 +22,7 @@ import { CurrencyDisplay } from '@/hooks';
 import { useIsMobile } from '@/hooks/useScreenSize';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
+import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import {
   MobileDashboardWrapper,
   MobileHeroCard,
@@ -33,12 +35,20 @@ import OrderRefundModal from './components/OrderRefundModal';
 import OrderStatusConfirmModal from './components/OrderStatusConfirmModal';
 
 export default function OnlineOrders() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Date Filter State
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    active: 'all_time',
+    start_date: null,
+    end_date: null,
+  });
 
   // New State for Side Panel & Modals
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -70,7 +80,7 @@ export default function OnlineOrders() {
     avgOrderValue: 0
   });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter);
@@ -78,16 +88,31 @@ export default function OnlineOrders() {
       if (statusArr[0] && statusArr[0] !== 'all') {
         url += `&status=${statusArr[0]}`;
       }
+      if (dateFilter.start_date) {
+        url += `&start_date=${dateFilter.start_date.toISOString()}`;
+      }
+      if (dateFilter.end_date) {
+        url += `&end_date=${dateFilter.end_date.toISOString()}`;
+      }
       
       const response = await apiClient.get(url);
       const ordersData = response.data.success?.data?.orders || response.data?.orders || [];
       
-      // Filter by search query on frontend
-      const filtered = ordersData.filter((o: any) => 
-        (o.reference || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (o.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (o.customer_email || '').toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Filter by search query and date on frontend for safety
+      const filtered = ordersData.filter((o: any) => {
+        const matchesSearch = (o.reference || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+          (o.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (o.customer_email || '').toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesSearch) return false;
+
+        if (dateFilter.start_date || dateFilter.end_date) {
+          const orderDate = new Date(o.created_at).getTime();
+          if (dateFilter.start_date && orderDate < new Date(dateFilter.start_date).getTime()) return false;
+          if (dateFilter.end_date && orderDate > new Date(dateFilter.end_date).getTime()) return false;
+        }
+
+        return true;
+      });
       setOrders(filtered);
 
       // Calculate stats across all orders
@@ -114,11 +139,11 @@ export default function OnlineOrders() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery, dateFilter]);
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, searchQuery]);
+  }, [fetchOrders]);
 
   const handleUpdateStatusClick = (order: any, newStatus: string) => {
     setPendingStatusUpdate({ order, newStatus });
@@ -221,12 +246,13 @@ export default function OnlineOrders() {
     };
   });
 
+  // Only Pending tab gets an alert count badge (items requiring attention)
   const mobileTabs = [
-    { id: 'all', label: 'All', count: stats.totalOrders },
-    { id: 'pending', label: 'Pending', count: stats.pendingOrders },
-    { id: 'processing', label: 'Processing', count: stats.processingOrders },
-    { id: 'shipped', label: 'Shipped', count: stats.shippedOrders },
-    { id: 'delivered', label: 'Delivered', count: stats.deliveredOrders },
+    { id: 'all', label: 'All' },
+    { id: 'pending', label: 'Pending', count: stats.pendingOrders > 0 ? stats.pendingOrders : undefined },
+    { id: 'processing', label: 'Processing' },
+    { id: 'shipped', label: 'Shipped' },
+    { id: 'delivered', label: 'Delivered' },
     { id: 'cancelled', label: 'Cancelled' },
   ];
 
@@ -265,8 +291,12 @@ export default function OnlineOrders() {
           />
         </MobileHeroCard>
 
-        {/* 2. Action Capsule Bar */}
+        {/* 2. Action Capsule Bar (with Date Filter, Search, and Refresh) */}
         <MobileActionCapsuleBar
+          dateFilterConfig={{
+            value: dateFilter,
+            onChange: setDateFilter,
+          }}
           searchConfig={{
             value: searchQuery,
             onChange: setSearchQuery,
@@ -275,7 +305,7 @@ export default function OnlineOrders() {
           actions={[
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
               onClick: fetchOrders
             }
           ]}
@@ -284,6 +314,8 @@ export default function OnlineOrders() {
         {/* 3. Activity Sheet */}
         <MobileActivitySheet
           title="Storefront Orders"
+          viewAllLabel="Customers"
+          onViewAll={() => navigate('/ecommerce/customers')}
           tabs={mobileTabs}
           activeTab={activeStatusKey}
           onTabChange={handleMobileTabChange}
@@ -418,6 +450,10 @@ export default function OnlineOrders() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           
+          showDateFilter={true}
+          dateFilterValue={dateFilter}
+          onDateFilterChange={setDateFilter}
+
           showFilter={true}
           filterLabel="Status"
           filterOptions={[
@@ -466,4 +502,5 @@ export default function OnlineOrders() {
     </PageLayout>
   );
 }
+
 

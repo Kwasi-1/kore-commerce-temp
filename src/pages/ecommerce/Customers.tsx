@@ -137,9 +137,9 @@ export default function Customers() {
   });
 
   const mobileTabs = [
-    { id: 'all', label: 'All', count: stats.totalCustomers },
-    { id: 'repeat', label: 'Repeat Buyers', count: stats.repeatCustomers },
-    { id: 'new', label: 'New Members', count: stats.newThisMonth },
+    { id: 'all', label: 'All' },
+    { id: 'repeat', label: 'Repeat Buyers' },
+    { id: 'new', label: 'New Members' },
     { id: 'high_value', label: 'Top Spenders' },
   ];
 
@@ -187,7 +187,7 @@ export default function Customers() {
           actions={[
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
               onClick: fetchCustomers
             }
           ]}
@@ -227,7 +227,7 @@ export default function Customers() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="h-9 w-9 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 border border-border/40">
                         {customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
                       </div>
                       <div className="min-w-0 flex-1">
