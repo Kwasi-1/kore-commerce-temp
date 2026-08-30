@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
@@ -30,6 +31,7 @@ import {
 import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 
 export default function Customers() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -196,6 +198,8 @@ export default function Customers() {
         {/* 3. Activity Sheet */}
         <MobileActivitySheet
           title="Customer Directory"
+          viewAllLabel="Orders"
+          onViewAll={() => navigate('/ecommerce/orders')}
           tabs={mobileTabs}
           activeTab={activeMobileTab}
           onTabChange={setActiveMobileTab}
