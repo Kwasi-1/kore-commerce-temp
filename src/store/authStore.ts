@@ -33,6 +33,7 @@ interface AuthState {
   isFirstLogin: boolean;
   login: (token: string, refreshToken: string, staffUser: any, tenant: Tenant, isFirstLogin?: boolean, graceInfo?: GraceInfo | null) => void;
   logout: () => void;
+  setTokens: (token: string, refreshToken?: string | null) => void;
   setTenant: (tenant: Tenant) => void;
   completeFirstLogin: () => void;
   setGraceInfo: (graceInfo: GraceInfo | null) => void;
@@ -73,6 +74,13 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
+      setTokens: (token, refreshToken) => {
+        set((state) => ({
+          token,
+          refreshToken: refreshToken !== undefined ? refreshToken : state.refreshToken
+        }));
+      },
+
       setTenant: (tenant) => set({ tenant }),
       setGraceInfo: (graceInfo) => set({ graceInfo }),
       completeFirstLogin: () => set({ isFirstLogin: false }),
@@ -82,3 +90,4 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
