@@ -215,6 +215,8 @@ export default function Discounts() {
           tabs={mobileTabs}
           activeTab={activeMobileTab}
           onTabChange={setActiveMobileTab}
+          totalCount={filteredDiscounts.length}
+          currentCount={filteredDiscounts.length}
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">

@@ -39,6 +39,8 @@ export default function OnlineOrders() {
   const isMobile = useIsMobile();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<any>(new Set(['all']));
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -80,11 +82,15 @@ export default function OnlineOrders() {
     avgOrderValue: 0
   });
 
-  const fetchOrders = useCallback(async () => {
-    setIsLoading(true);
+  const fetchOrders = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter);
-      let url = '/tenant/orders?channel=online&limit=100';
+      let url = `/tenant/orders?channel=online&page=${pageNumber}&per_page=20`;
       if (statusArr[0] && statusArr[0] !== 'all') {
         url += `&status=${statusArr[0]}`;
       }
@@ -94,9 +100,13 @@ export default function OnlineOrders() {
       if (dateFilter.end_date) {
         url += `&end_date=${dateFilter.end_date.toISOString()}`;
       }
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+      }
       
       const response = await apiClient.get(url);
       const ordersData = response.data.success?.data?.orders || response.data?.orders || [];
+      const pag = response.data.success?.data?.pagination || response.data?.pagination || null;
       
       // Filter by search query and date on frontend for safety
       const filtered = ordersData.filter((o: any) => {
@@ -113,10 +123,16 @@ export default function OnlineOrders() {
 
         return true;
       });
-      setOrders(filtered);
+
+      if (append) {
+        setOrders((prev) => [...prev, ...filtered]);
+      } else {
+        setOrders(filtered);
+      }
+      setPagination(pag);
 
       // Calculate stats across all orders
-      const total = ordersData.length;
+      const total = pag?.total || ordersData.length;
       const pending = ordersData.filter((o: any) => o.status === 'pending').length;
       const processing = ordersData.filter((o: any) => o.status === 'processing').length;
       const shipped = ordersData.filter((o: any) => o.status === 'shipped').length;
@@ -138,11 +154,18 @@ export default function OnlineOrders() {
       toast.error('Failed to load orders');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  }, [statusFilter, searchQuery, dateFilter]);
+  }, [statusFilter, dateFilter, searchQuery]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchOrders(nextPage, true);
+  };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(1);
   }, [fetchOrders]);
 
   const handleUpdateStatusClick = (order: any, newStatus: string) => {
@@ -319,6 +342,11 @@ export default function OnlineOrders() {
           tabs={mobileTabs}
           activeTab={activeStatusKey}
           onTabChange={handleMobileTabChange}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={orders.length}
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">

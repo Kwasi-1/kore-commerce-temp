@@ -203,6 +203,8 @@ export default function Customers() {
           tabs={mobileTabs}
           activeTab={activeMobileTab}
           onTabChange={setActiveMobileTab}
+          totalCount={displayedCustomers.length}
+          currentCount={displayedCustomers.length}
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
