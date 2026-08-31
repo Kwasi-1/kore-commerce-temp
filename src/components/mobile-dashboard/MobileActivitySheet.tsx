@@ -98,7 +98,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
         <div className="shrink-0 space-y-3 pb-1">
           {(title || onViewAll) && (
             <div className="flex items-center justify-between">
-              {title && <h3 className="text-sm font-bold text-foreground">{title}</h3>}
+              {title && <h3 className="text-sm font-bold text-foreground !tracking-tighter">{title}</h3>}
               {onViewAll && (
                 <button
                   type="button"

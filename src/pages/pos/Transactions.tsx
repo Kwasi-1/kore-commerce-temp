@@ -428,9 +428,9 @@ export default function Transactions() {
           <MobileMetricPill
             title="Orders"
             value={stats.completedCount}
-            subtitle="Completed"
+            // subtitle="Completed"
             icon={<ShoppingBag className="h-3.5 w-3.5" />}
-            iconColorClass="bg-blue-500/10 text-blue-500"
+            iconColorClass="bg-blue-500/5 text-blue-500"
             isLoading={isLoading}
             onClick={() => handleSelectPaymentFilter("all")}
           />
@@ -438,9 +438,9 @@ export default function Transactions() {
           <MobileMetricPill
             title="Cash"
             value={<CurrencyDisplay amount={stats.cashTotal} symbolClassName="text-muted-foreground text-xs" />}
-            subtitle="Cash volume"
+            // subtitle="Cash volume"
             icon={<Banknote className="h-3.5 w-3.5" />}
-            iconColorClass="bg-emerald-500/10 text-emerald-500"
+            iconColorClass="bg-emerald-500/5 text-emerald-500"
             isLoading={isLoading}
             onClick={() => handleSelectPaymentFilter("cash")}
           />
@@ -448,9 +448,9 @@ export default function Transactions() {
           <MobileMetricPill
             title="MoMo"
             value={<CurrencyDisplay amount={stats.momoAutomatedTotal + stats.momoManualTotal} symbolClassName="text-muted-foreground text-xs" />}
-            subtitle="Mobile Money"
+            // subtitle="Mobile Money"
             icon={<Smartphone className="h-3.5 w-3.5" />}
-            iconColorClass="bg-amber-500/10 text-amber-500"
+            iconColorClass="bg-amber-500/5 text-amber-500"
             isLoading={isLoading}
             onClick={() => handleSelectPaymentFilter("mobile_money")}
           />
@@ -459,9 +459,9 @@ export default function Transactions() {
             <MobileMetricPill
               title="Card"
               value={<CurrencyDisplay amount={stats.cardTotal} symbolClassName="text-muted-foreground text-xs" />}
-              subtitle="Card sales"
+              // subtitle="Card sales"
               icon={<CreditCard className="h-3.5 w-3.5" />}
-              iconColorClass="bg-purple-500/10 text-purple-500"
+              iconColorClass="bg-purple-500/5 text-purple-500"
               isLoading={isLoading}
               onClick={() => handleSelectPaymentFilter("card")}
             />
@@ -479,7 +479,7 @@ export default function Transactions() {
                 ) : undefined
               }
               icon={<Users className="h-3.5 w-3.5" />}
-              iconColorClass="bg-purple-500/10 text-purple-500"
+              iconColorClass="bg-purple-500/5 text-purple-500"
               isLoading={isLoading}
               onClick={() => setIsMobileCashiersOpen(true)}
             />
@@ -545,7 +545,7 @@ export default function Transactions() {
                   },
                   {
                     // label: 'Refresh',
-                    icon: <RefreshCw className="h-3.5 w-3.5 textprimary -mx-1" />,
+                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
                     onClick: fetchTransactions,
                   },
                 ]

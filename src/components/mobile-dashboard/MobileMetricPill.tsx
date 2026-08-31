@@ -32,7 +32,7 @@ export const MobileMetricPill: React.FC<MobileMetricPillProps> = ({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap tracking-wider">{title}</span>
+        <span className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap tracking-wider font-header">{title}</span>
         {icon && (
           <div className={cn("p-1 rounded-md shrink-0", iconColorClass)}>
             {icon}
