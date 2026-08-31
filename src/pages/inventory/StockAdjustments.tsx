@@ -79,7 +79,7 @@ export default function StockAdjustments() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>("awaiting");
+  const [activeTab, setActiveTab] = useState<string>("logs");
   
   // Table search & filters
   const [tableSearchQuery, setTableSearchQuery] = useState("");
@@ -550,7 +550,7 @@ export default function StockAdjustments() {
             { id: 'approved', label: 'Approved' },
             { id: 'rejected', label: 'Rejected' },
           ]}
-          activeTab={activeTab === 'awaiting' ? 'awaiting' : ((Array.from(statusFilterSelection as Set<string>)[0]) || 'all')}
+          activeTab={activeTab === 'awaiting' && pendingItems.length > 0 ? 'awaiting' : ((Array.from(statusFilterSelection as Set<string>)[0]) || 'all')}
           onTabChange={(tabId) => {
             if (tabId === 'awaiting') {
               setActiveTab('awaiting');
@@ -559,20 +559,20 @@ export default function StockAdjustments() {
               setStatusFilterSelection(new Set([tabId]));
             }
           }}
-          hasMore={activeTab === 'awaiting' ? false : pagination?.hasNext}
+          hasMore={activeTab === 'awaiting' && pendingItems.length > 0 ? false : pagination?.hasNext}
           isLoadingMore={isLoadingMore}
-          onLoadMore={activeTab === 'awaiting' ? undefined : handleLoadMore}
-          totalCount={activeTab === 'awaiting' ? pendingItems.length : pagination?.total}
-          currentCount={(activeTab === 'awaiting' ? pendingItems : filteredAdjustments).length}
+          onLoadMore={activeTab === 'awaiting' && pendingItems.length > 0 ? undefined : handleLoadMore}
+          totalCount={activeTab === 'awaiting' && pendingItems.length > 0 ? pendingItems.length : pagination?.total}
+          currentCount={(activeTab === 'awaiting' && pendingItems.length > 0 ? pendingItems : filteredAdjustments).length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
-          ) : (activeTab === 'awaiting' ? pendingItems : filteredAdjustments).length === 0 ? (
+          ) : (activeTab === 'awaiting' && pendingItems.length > 0 ? pendingItems : filteredAdjustments).length === 0 ? (
             <div className="py-10 text-center text-xs text-muted-foreground">
-              {activeTab === 'awaiting' ? 'No pending approval requests' : 'No adjustment records found'}
+              {activeTab === 'awaiting' && pendingItems.length > 0 ? 'No pending approval requests' : 'No adjustment records found'}
             </div>
           ) : (
-            (activeTab === 'awaiting' ? pendingItems : filteredAdjustments).map((adj) => {
+            (activeTab === 'awaiting' && pendingItems.length > 0 ? pendingItems : filteredAdjustments).map((adj) => {
               const isPending = adj.status === 'pending';
               const isApproved = adj.status === 'approved';
               const isAddition = adj.quantity > 0;
