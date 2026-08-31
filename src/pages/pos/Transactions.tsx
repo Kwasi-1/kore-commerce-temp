@@ -70,6 +70,7 @@ export default function Transactions() {
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [paymentFilter, setPaymentFilter] = useState<any>(new Set(["all"]));
   const [searchQuery, setSearchQuery] = useState("");
@@ -106,8 +107,12 @@ export default function Transactions() {
 
   const [serverSummary, setServerSummary] = useState<any>(null);
 
-  const fetchTransactions = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchTransactions = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const methodArr =
         paymentFilter === "all"
@@ -140,14 +145,26 @@ export default function Transactions() {
       const pag = response.data.success?.data?.pagination || null;
       setServerSummary(summaryData);
       setPagination(pag);
-      setTransactions(data);
+      
+      if (append) {
+        setTransactions((prev) => [...prev, ...data]);
+      } else {
+        setTransactions(data);
+      }
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
       toast.error("Failed to load transaction history");
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [paymentFilter, searchQuery, dateFilter, isCashier, staffUser]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchTransactions(nextPage, true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => fetchTransactions(1), 300);
@@ -549,6 +566,11 @@ export default function Transactions() {
           ]}
           activeTab={Array.from(paymentFilter as Set<string>)[0] || 'all'}
           onTabChange={(tabId) => handleSelectPaymentFilter(tabId)}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={transactions.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

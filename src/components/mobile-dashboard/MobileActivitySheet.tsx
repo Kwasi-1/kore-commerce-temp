@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import clsx from 'clsx';
 import { Icon } from '@iconify/react';
+import { Spinner } from '@/components/ui/spinner';
 
 export interface MobileTabOption {
   id: string;
@@ -19,6 +20,14 @@ export interface MobileActivitySheetProps {
   children: React.ReactNode;
   className?: string;
   secondary?: boolean;
+
+  // Global Infinite Scroll Support
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
+  totalCount?: number;
+  currentCount?: number;
+  endMessage?: string;
 }
 
 export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
@@ -31,7 +40,51 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   secondary,
   children,
   className,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+  totalCount,
+  currentCount,
+  endMessage,
 }) => {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || isLoadingMore) return;
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          onLoadMore();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "120px",
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore]);
+
+  // Show end message only when infinite scroll is active, there's no more data, and items exist
+  const showEndMessage = Boolean(
+    onLoadMore &&
+    !hasMore &&
+    !isLoadingMore &&
+    ((typeof currentCount === 'number' && currentCount > 0) || (typeof totalCount === 'number' && totalCount > 0))
+  );
+
+  const displayEndMessage = endMessage || (
+    typeof totalCount === 'number'
+      ? `All ${totalCount} items loaded`
+      : 'All items loaded'
+  );
+
   return (
     <div
       className={cn(
@@ -93,9 +146,27 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
       {/* 2. Internal Scrollable List with Smooth Top & Bottom Fade Mask */}
       <div className="flex-1 overflow-y-auto divide-y divide-border/50 pt-2 pr-1 scrollbar-hide min-h-0 [mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)]">
         {children}
+
+        {/* 3. Global Infinite Scroll Sentinel & Status Indicator */}
+        {onLoadMore && (
+          <div ref={sentinelRef} className="py-3 text-center !border-0">
+            {isLoadingMore && (
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
+                <Spinner className="h-4 w-4" />
+                <span>Loading more...</span>
+              </div>
+            )}
+            {showEndMessage && (
+              <div className="text-[11px] text-muted-foreground font-medium py-2">
+                {displayEndMessage}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default MobileActivitySheet;
+

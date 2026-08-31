@@ -98,7 +98,6 @@ export default function Products() {
   const [pagination, setPagination] = useState<any>(null);
   const [serverSummary, setServerSummary] = useState<any>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Accordion expanded keys / IDs for grouped view
   const [expandedProductIds, setExpandedProductIds] = useState<
@@ -160,23 +159,6 @@ export default function Products() {
     fetchProducts(nextPage, true);
   };
 
-  // IntersectionObserver for infinite scrolling
-  useEffect(() => {
-    const target = sentinelRef.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && pagination?.hasNext && !isLoading && !isLoadingMore) {
-          handleLoadMore();
-        }
-      },
-      { threshold: 0.1, rootMargin: "120px" }
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [pagination?.hasNext, pagination?.page, isLoading, isLoadingMore]);
 
   // Fetch all unique categories from the server once (not from paginated product data)
   const fetchCategories = async () => {
@@ -845,6 +827,11 @@ export default function Products() {
               : (statusFilter as string) || "all"
           }
           onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={displayTotalCount}
+          currentCount={flatMobileItems.length}
         >
           {isLoading ? (
             <div className="py-8 text-center">
@@ -923,22 +910,6 @@ export default function Products() {
                 </div>
               );
             })
-          )}
-
-          {/* Infinite Scroll Sentinel & Loading indicator */}
-          {products.length > 0 && (
-            <div ref={sentinelRef} className="py-4 text-center">
-              {isLoadingMore ? (
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                  <Spinner className="h-4 w-4" />
-                  <span>Loading more products...</span>
-                </div>
-              ) : pagination && !pagination.hasNext ? (
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  All {displayTotalCount} items loaded
-                </span>
-              ) : null}
-            </div>
           )}
         </MobileActivitySheet>
       </MobileDashboardWrapper>
