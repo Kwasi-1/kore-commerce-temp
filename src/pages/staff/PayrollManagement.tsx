@@ -564,7 +564,7 @@ export default function PayrollManagement() {
                     },
                   },
                   {
-                    label: 'Refresh',
+                    // label: 'Refresh',
                     icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
                     onClick: fetchPayrollData,
                   },
@@ -642,7 +642,6 @@ export default function PayrollManagement() {
             title="Salary Profiles"
             viewAllLabel="Disbursal Log"
             onViewAll={() => handleTabChange('log')}
-            secondary={true}
             tabs={[
               { id: 'all', label: 'All' },
               { id: 'platform', label: 'Platform' },
