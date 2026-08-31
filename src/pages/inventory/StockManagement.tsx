@@ -22,6 +22,7 @@ export default function StockManagement() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [pagination, setPagination] = useState<any>(null);
 
@@ -84,8 +85,12 @@ export default function StockManagement() {
   };
 
   /** Server-paginated fetch: search, category, and stock status are sent as query params */
-  const fetchProducts = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchProducts = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       let url = `/tenant/products?page=${pageNumber}&limit=20`;
 
@@ -107,14 +112,25 @@ export default function StockManagement() {
       setPagination(pag);
 
       const flatItems = flattenProducts(rawProducts);
-      setProducts(flatItems);
+      if (append) {
+        setProducts((prev) => [...prev, ...flatItems]);
+      } else {
+        setProducts(flatItems);
+      }
     } catch (error) {
       console.error('Failed to fetch products for stock management:', error);
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [searchQuery, categoryFilter, stockStatusFilter]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchProducts(nextPage, true);
+  };
 
   /** Fetch all categories once from the dedicated endpoint */
   const fetchCategories = useCallback(async () => {
@@ -273,6 +289,11 @@ export default function StockManagement() {
               : (stockStatusFilter as string) || 'all'
           }
           onTabChange={(tabId) => setStockStatusFilter(new Set([tabId]))}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={products.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

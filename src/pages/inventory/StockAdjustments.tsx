@@ -77,6 +77,7 @@ export default function StockAdjustments() {
   // Page lists states
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("awaiting");
   
@@ -126,8 +127,12 @@ export default function StockAdjustments() {
   };
 
   // Fetch Adjustments data
-  const fetchAdjustments = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchAdjustments = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       let url = `/tenant/adjustments?page=${pageNumber}&per_page=20`;
       
@@ -151,15 +156,29 @@ export default function StockAdjustments() {
       }
 
       const res = await apiClient.get(url);
-      setAdjustments(res.data.success?.data?.adjustments || []);
-      setPagination(res.data.success?.data?.pagination || null);
+      const data = res.data.success?.data?.adjustments || [];
+      const pag = res.data.success?.data?.pagination || null;
+      setPagination(pag);
+
+      if (append) {
+        setAdjustments((prev) => [...prev, ...data]);
+      } else {
+        setAdjustments(data);
+      }
     } catch (err) {
       console.error("Failed to load adjustments:", err);
       toast.error("Failed to load adjustments history");
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [statusFilterSelection, tableSearchQuery, dateFilter]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchAdjustments(nextPage, true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -540,6 +559,11 @@ export default function StockAdjustments() {
               setStatusFilterSelection(new Set([tabId]));
             }
           }}
+          hasMore={activeTab === 'awaiting' ? false : pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={activeTab === 'awaiting' ? undefined : handleLoadMore}
+          totalCount={activeTab === 'awaiting' ? pendingItems.length : pagination?.total}
+          currentCount={(activeTab === 'awaiting' ? pendingItems : filteredAdjustments).length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

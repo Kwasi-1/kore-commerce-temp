@@ -56,6 +56,7 @@ export default function SupplierCredit() {
   // Page data states
   const [credits, setCredits] = useState<SupplierCreditRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [summary, setSummary] = useState({
     total_outstanding: 0,
@@ -95,8 +96,12 @@ export default function SupplierCredit() {
     }
   };
 
-  const fetchCredits = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchCredits = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter as Set<string>);
       let url = `/tenant/supplier-credit?page=${pageNumber}&limit=20`;
@@ -110,15 +115,26 @@ export default function SupplierCredit() {
       const data = response.data.success?.data?.supplierCredits || [];
       const pag = response.data.success?.data?.pagination || null;
 
-      setCredits(data);
+      if (append) {
+        setCredits((prev) => [...prev, ...data]);
+      } else {
+        setCredits(data);
+      }
       setPagination(pag);
     } catch (err) {
       console.error("Failed to load supplier credits:", err);
       toast.error("Failed to load credit ledger");
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [statusFilter, searchQuery]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchCredits(nextPage, true);
+  };
 
   useEffect(() => {
     fetchSummary();
@@ -375,6 +391,11 @@ export default function SupplierCredit() {
           ]}
           activeTab={activeMobileTab}
           onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={credits.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

@@ -117,6 +117,7 @@ const ReconcileCountInput: React.FC<ReconcileCountInputProps> = ({
 export default function StockReconciliation() {
   const [products, setProducts] = useState<ReconcileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [totalVariantsCount, setTotalVariantsCount] = useState<number>(0);
@@ -175,8 +176,12 @@ export default function StockReconciliation() {
     }
   }, [physicalCounts, itemDetailsMap]);
 
-  const fetchProducts = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchProducts = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       let url = `/tenant/products?page=${pageNumber}&limit=20&status=active`;
       if (tableSearchQuery.trim()) {
@@ -218,7 +223,7 @@ export default function StockReconciliation() {
             const fullName = attrVals.length > 0 ? `${p.name} (${attrVals.join(', ')})` : p.name;
             flatItems.push({
               id: v.id,
-              productId: v.id,
+              productId: p.id,
               name: fullName,
               category: p.category || 'General',
               sku: v.sku || p.sku || 'N/A',
@@ -230,7 +235,12 @@ export default function StockReconciliation() {
         }
       });
 
-      setProducts(flatItems);
+      if (append) {
+        setProducts((prev) => [...prev, ...flatItems]);
+      } else {
+        setProducts(flatItems);
+      }
+
       setItemDetailsMap(prev => {
         const next = { ...prev };
         flatItems.forEach(item => {
@@ -243,8 +253,15 @@ export default function StockReconciliation() {
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [tableSearchQuery, categoryFilter]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchProducts(nextPage, true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -680,6 +697,11 @@ export default function StockReconciliation() {
           ]}
           activeTab={mobileTab}
           onTabChange={(tabId: any) => setMobileTab(tabId)}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={totalVariantsCount || pagination?.total}
+          currentCount={filteredProducts.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

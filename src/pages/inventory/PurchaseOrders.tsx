@@ -51,9 +51,14 @@ export default function PurchaseOrders() {
   const [isReceivingPO, setIsReceivingPO] = useState(false);
   const [isCancellingPO, setIsCancellingPO] = useState(false);
   const [isClosingPO, setIsClosingPO] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchPOs = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchPOs = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const statusArr = Array.from(statusFilter);
       let url = `/tenant/purchase-orders?page=${pageNumber}&limit=20`;
@@ -65,15 +70,29 @@ export default function PurchaseOrders() {
       }
 
       const response = await apiClient.get(url);
-      setPurchaseOrders(response.data.success?.data?.purchaseOrders || []);
-      setPagination(response.data.success?.data?.pagination || null);
+      const data = response.data.success?.data?.purchaseOrders || [];
+      const pag = response.data.success?.data?.pagination || null;
+      setPagination(pag);
+
+      if (append) {
+        setPurchaseOrders((prev) => [...prev, ...data]);
+      } else {
+        setPurchaseOrders(data);
+      }
     } catch (error) {
       console.error('Failed to fetch POs:', error);
       toast.error('Failed to load purchase orders');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [statusFilter, searchQuery]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchPOs(nextPage, true);
+  };
 
   useEffect(() => {
     fetchPOs(1);
@@ -387,6 +406,11 @@ export default function PurchaseOrders() {
           ]}
           activeTab={activeMobileTab}
           onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={purchaseOrders.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

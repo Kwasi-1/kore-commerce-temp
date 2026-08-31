@@ -40,6 +40,7 @@ export default function Suppliers() {
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   
   // Search
@@ -59,8 +60,12 @@ export default function Suppliers() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
 
-  const fetchSuppliers = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchSuppliers = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       let url = `/tenant/suppliers?page=${pageNumber}&limit=20`;
       if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
@@ -68,15 +73,27 @@ export default function Suppliers() {
       const response = await apiClient.get(url);
       const suppliersList = response.data.data?.suppliers || response.data.success?.data?.suppliers || [];
       const pag = response.data.data?.pagination || response.data.success?.data?.pagination || null;
-      setSuppliers(suppliersList);
+      
+      if (append) {
+        setSuppliers((prev) => [...prev, ...suppliersList]);
+      } else {
+        setSuppliers(suppliersList);
+      }
       setPagination(pag);
     } catch (error) {
       console.error('Failed to fetch suppliers:', error);
       toast.error('Failed to load suppliers');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [searchQuery]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchSuppliers(nextPage, true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -267,6 +284,11 @@ export default function Suppliers() {
           ]}
           activeTab={mobileTab}
           onTabChange={setMobileTab}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={suppliers.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
