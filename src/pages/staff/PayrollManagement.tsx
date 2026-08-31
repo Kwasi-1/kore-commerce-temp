@@ -594,7 +594,6 @@ export default function PayrollManagement() {
             title="Disbursal Log"
             viewAllLabel="Salary Profiles"
             onViewAll={() => handleTabChange('profiles')}
-            secondary={true}
             tabs={[
               { id: 'all', label: 'All' },
               { id: 'logged', label: 'Logged' },
@@ -602,6 +601,8 @@ export default function PayrollManagement() {
             ]}
             activeTab={mobileLogTab}
             onTabChange={setMobileLogTab}
+            totalCount={filteredMobileLog.length}
+            currentCount={filteredMobileLog.length}
           >
             {isLoading ? (
               <div className="py-8 text-center"><Spinner /></div>
@@ -650,6 +651,8 @@ export default function PayrollManagement() {
             ]}
             activeTab={mobileProfilesTab}
             onTabChange={setMobileProfilesTab}
+            totalCount={filteredMobileProfiles.length}
+            currentCount={filteredMobileProfiles.length}
           >
             {isLoading ? (
               <div className="py-8 text-center"><Spinner /></div>

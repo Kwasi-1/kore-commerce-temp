@@ -54,9 +54,14 @@ export default function Returns() {
   // Drawer state for return details
   const [selectedReturn, setSelectedReturn] = useState<ReturnRecord | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchReturns = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchReturns = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const statusArr = statusFilter === 'all' ? ['all'] : Array.from(statusFilter as Set<string>);
       let url = `/pos/returns?page=${pageNumber}&per_page=20`;
@@ -79,7 +84,11 @@ export default function Returns() {
       const pag = response.data.success?.data?.pagination || null;
       const sum = response.data.success?.data?.summary || null;
 
-      setReturns(data);
+      if (append) {
+        setReturns((prev) => [...prev, ...data]);
+      } else {
+        setReturns(data);
+      }
       setPagination(pag);
       if (sum) {
         setSummary(sum);
@@ -89,8 +98,15 @@ export default function Returns() {
       toast.error('Failed to load returns history');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [statusFilter, debouncedSearchQuery, dateFilter]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchReturns(nextPage, true);
+  };
 
   useEffect(() => {
     fetchReturns(1);
@@ -232,6 +248,11 @@ export default function Returns() {
               : (statusFilter as string) || 'all'
           }
           onTabChange={(tabId) => setStatusFilter(new Set([tabId]))}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={returns.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

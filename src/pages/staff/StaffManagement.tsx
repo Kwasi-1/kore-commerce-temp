@@ -43,6 +43,7 @@ export default function StaffManagement() {
   const isMobile = useIsMobile();
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileTab, setMobileTab] = useState('all');
@@ -68,23 +69,41 @@ export default function StaffManagement() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
 
-  const fetchStaff = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchStaff = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       let url = `/tenant/staff?page=${pageNumber}&per_page=20`;
       if (searchQuery.trim()) {
         url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
       const response = await apiClient.get(url);
-      setStaffList(response.data.success?.data?.staff || []);
-      setPagination(response.data.success?.data?.pagination || null);
+      const data = response.data.success?.data?.staff || [];
+      const pag = response.data.success?.data?.pagination || null;
+
+      if (append) {
+        setStaffList((prev) => [...prev, ...data]);
+      } else {
+        setStaffList(data);
+      }
+      setPagination(pag);
     } catch (error) {
       console.error('Failed to fetch staff:', error);
       toast.error('Failed to load staff directory');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [searchQuery]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchStaff(nextPage, true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => fetchStaff(1), 300);
@@ -285,6 +304,11 @@ export default function StaffManagement() {
           ]}
           activeTab={mobileTab}
           onTabChange={setMobileTab}
+          hasMore={pagination?.hasNext}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          totalCount={pagination?.total}
+          currentCount={staffList.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

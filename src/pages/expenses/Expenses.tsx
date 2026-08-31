@@ -66,9 +66,14 @@ export default function Expenses() {
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [editingRecurring, setEditingRecurring] = useState<any>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchExpenses = useCallback(async (pageNumber: number = 1) => {
-    setIsLoading(true);
+  const fetchExpenses = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const startIso = dateFilter.start_date ? dateFilter.start_date.toISOString() : '';
       const endIso = dateFilter.end_date ? dateFilter.end_date.toISOString() : '';
@@ -90,15 +95,26 @@ export default function Expenses() {
       const data = listRes.data.success?.data?.expenses || listRes.data.data?.expenses || [];
       const pag = listRes.data.success?.data?.pagination || listRes.data.data?.pagination || null;
 
-      setExpenses(data);
+      if (append) {
+        setExpenses((prev) => [...prev, ...data]);
+      } else {
+        setExpenses(data);
+      }
       setPagination(pag);
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
       toast.error('Failed to load expenses');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [categoryFilter, searchQuery, dateFilter]);
+
+  const handleLoadMore = () => {
+    if (isLoading || isLoadingMore || !pagination?.hasNext) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    fetchExpenses(nextPage, true);
+  };
 
   const fetchRecurringExpenses = useCallback(async () => {
     setIsLoadingRecurring(true);
@@ -493,6 +509,11 @@ export default function Expenses() {
             ]}
             activeTab={activeMobileCatTab}
             onTabChange={(tabId) => setCategoryFilter(new Set([tabId]))}
+            hasMore={pagination?.hasNext}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={handleLoadMore}
+            totalCount={pagination?.total}
+            currentCount={expenses.length}
           >
             {isLoading ? (
               <div className="py-8 text-center"><Spinner /></div>

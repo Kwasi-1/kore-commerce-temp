@@ -430,6 +430,8 @@ export default function CreditLedger() {
           // ]}
           activeTab={viewMode}
           onTabChange={(tabId) => setViewMode(tabId as 'active' | 'settled')}
+          totalCount={viewMode === 'active' ? (activeCount || debtors.length) : (settledCount || debtors.length)}
+          currentCount={debtors.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
