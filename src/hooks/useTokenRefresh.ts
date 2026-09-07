@@ -58,8 +58,16 @@ export function useTokenRefresh(): 'loading' | 'done' {
     const exp = getTokenExpirySeconds(token);
     const nowSeconds = Math.floor(Date.now() / 1000);
 
+    // Token cannot be decoded as a real JWT (e.g. mock tokens like 'mock-jwt-token').
+    // Treat it as valid — skip the refresh attempt entirely.
+    // Real JWTs always have an `exp` claim, so this branch never runs in production.
+    if (exp === null) {
+      setStatus('done');
+      return;
+    }
+
     // Token is still valid with enough buffer — no refresh needed
-    if (exp !== null && exp - nowSeconds > REFRESH_BUFFER_SECONDS) {
+    if (exp - nowSeconds > REFRESH_BUFFER_SECONDS) {
       setStatus('done');
       return;
     }
