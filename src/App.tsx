@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { ChunkErrorBoundary } from '@/components/shared/ChunkErrorBoundary';
+import { useTokenRefresh } from '@/hooks/useTokenRefresh';
 
 // Layouts (not lazy — tiny files, always needed)
 import AuthLayout from '@/layouts/AuthLayout';
@@ -184,6 +185,15 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // Proactively refresh the access token on startup before any route renders.
+  // This prevents ProtectedRoute from seeing an expired token and redirecting
+  // to /login when the user still has a valid refresh token (e.g. after overnight).
+  const tokenStatus = useTokenRefresh();
+
+  if (tokenStatus === 'loading') {
+    return <PageLoader />;
+  }
+
   return (
     <ChunkErrorBoundary>
       <Suspense fallback={<PageLoader />}>
