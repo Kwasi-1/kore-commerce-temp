@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
@@ -6,6 +7,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
+import { useFeaturesStore } from '@/store/featuresStore';
 import {
   CustomOnlyDateFilterComponent,
   DateFilterValue
@@ -18,14 +20,16 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { Icon } from '@iconify/react';
-import { CheckCircle2, AlertTriangle, Clock, UserCheck, FileText } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Clock, UserCheck, FileText, Store, Calendar, ArrowRight } from 'lucide-react';
 import ZReportModal from '@/components/pos/ZReportModal';
 
 export default function EndOfDay() {
+  const navigate = useNavigate();
   const { formatGHS } = useCurrency();
   const tenant = useAuthStore((state) => state.tenant);
   const isPosOnly = tenant?.plan === 'starter' || tenant?.plan === 'standard';
+  const posSettings = useFeaturesStore((state) => state.posSettings);
+  const shiftTrackingEnabled = Boolean(posSettings?.pos_shift_management_enabled);
 
   const [eodData, setEodData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,6 +101,18 @@ export default function EndOfDay() {
   const closedShiftsCount = eodData?.shifts?.closed_shifts || 0;
   const hasClosedShifts = closedShiftsCount > 0;
 
+  const dailyBreakdown = eodData?.daily_breakdown || [];
+  const startDateStr = dateFilter.start_date instanceof Date ? format(dateFilter.start_date, 'yyyy-MM-dd') : dateFilter.start_date ? format(new Date(dateFilter.start_date), 'yyyy-MM-dd') : '';
+  const endDateStr = dateFilter.end_date instanceof Date ? format(dateFilter.end_date, 'yyyy-MM-dd') : dateFilter.end_date ? format(new Date(dateFilter.end_date), 'yyyy-MM-dd') : '';
+  const isMultiDay = Boolean(
+    dateFilter.active !== 'today' &&
+    dateFilter.active !== 'yesterday' &&
+    (
+      (startDateStr && endDateStr && startDateStr !== endDateStr) ||
+      ['this_week', 'last_week', 'this_month', 'last_month', 'this_year', 'last_year'].includes(dateFilter.active)
+    )
+  );
+
   return (
     <PageLayout
       title="End of Day Report"
@@ -111,7 +127,30 @@ export default function EndOfDay() {
       }
     >
       
-      {!hasClosedShifts && !isLoading && (
+      {!isLoading && !shiftTrackingEnabled && (
+        <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-3 text-blue-700 dark:text-blue-300 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+              <Store className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="font-bold">Shift Enforcement is Turned Off</p>
+              <p className="opacity-90 mt-0.5">
+                Register checkouts are processed directly without mandatory opening floats or cashier shift reconciliations.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/settings/pos')}
+            className="font-bold hover:underline shrink-0 text-xs text-primary flex items-center gap-1"
+          >
+            POS Settings <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {!isLoading && shiftTrackingEnabled && !hasClosedShifts && (
         <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-700 dark:text-amber-300 text-xs">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <div>
@@ -124,19 +163,19 @@ export default function EndOfDay() {
       {/* Main Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <DashboardCard
-          title="Total Gross Sales"
+          title={isMultiDay ? "Period Gross Sales" : "Total Gross Sales"}
           value={<CurrencyDisplay amount={grossSales} />}
           subvalue={
             totalRefunds > 0 ? (
               <span className="text-[11px] text-muted-foreground">
-                {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Txns &bull; Refunded: <CurrencyDisplay amount={totalRefunds} symbolClassName="mr-1 text-rose-500 font-semibold" />
+                {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Txns &bull; Refunded: <CurrencyDisplay amount={totalRefunds} symbolClassName="mr-1 text-destructive font-semibold" />
               </span>
             ) : undefined
           }
           className="border border-border"
         />
         <DashboardCard
-          title="Net Revenue"
+          title={isMultiDay ? "Period Net Revenue" : "Net Revenue"}
           value={<CurrencyDisplay amount={netSales} />}
           subvalue={
             totalRefunds > 0 ? (
@@ -147,175 +186,360 @@ export default function EndOfDay() {
           }
           className="border border-border"
         />
-        <DashboardCard
-          title="Shift Till Variance"
-          value={
-            <span className={(eodData?.shifts?.total_variance || 0) < 0 ? 'text-red-500 font-bold' : (eodData?.shifts?.total_variance || 0) > 0 ? 'text-blue-500 font-bold' : 'text-emerald-500 font-bold'}>
-              {(eodData?.shifts?.total_variance || 0) > 0 ? '+' : ''}<CurrencyDisplay amount={eodData?.shifts?.total_variance || 0} />
-            </span>
-          }
-          subvalue="Expected vs Actual Cash"
-          className="border border-border"
-        />
+        {shiftTrackingEnabled ? (
+          <DashboardCard
+            title="Shift Till Variance"
+            value={
+              <span className={(eodData?.shifts?.total_variance || 0) < 0 ? 'text-red-500 font-bold' : (eodData?.shifts?.total_variance || 0) > 0 ? 'text-blue-500 font-bold' : 'text-emerald-500 font-bold'}>
+                {(eodData?.shifts?.total_variance || 0) > 0 ? '+' : ''}<CurrencyDisplay amount={eodData?.shifts?.total_variance || 0} />
+              </span>
+            }
+            subvalue="Expected vs Actual Cash"
+            className="border border-border"
+          />
+        ) : (
+          <DashboardCard
+            title="Cash in Register"
+            value={<CurrencyDisplay amount={(pb.cash || 0) + (eodData?.total_paid_in || 0) - totalExpenses} />}
+            subvalue="Cash Sales + Float In - Expenses"
+            className="border border-border"
+          />
+        )}
         
         {/* Dynamic Card: ATV for POS Only vs Channel Split for Full Suite */}
         {isPosOnly ? (
           <DashboardCard
             title="Avg Order Value"
             value={<CurrencyDisplay amount={avgOrderValue} />}
-            // subvalue="Revenue per POS transaction"
             className="border border-border"
           />
         ) : (
           <DashboardCard
             title="POS vs E-Commerce"
             value={`${eodData?.pos?.transactions || 0} / ${eodData?.ecommerce?.transactions || 0}`}
-            // subvalue="Transaction volume split"
             className="border border-border"
           />
         )}
       </div>
 
-      {/* Closed Shifts Audit Log */}
-      <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden mb-6 shadow-sm">
-        <div className="p-5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <UserCheck className="h-5 w-5" />
+      {/* Multi-Day: Day-by-Day Performance Breakdown */}
+      {isMultiDay && dailyBreakdown.length > 0 && (
+        <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden mb-6 shadow-sm">
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Day-by-Day Performance Breakdown</h3>
+                <p className="text-xs text-muted-foreground">Daily sales, payment collection methods, expenses, and individual day Z-reports</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Cashier Shift Reconciliation Audit</h3>
-              <p className="text-xs text-muted-foreground">Individual shift closures, floats, expected cash, and till variances</p>
-            </div>
+            <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-md border border-border/50">
+              {dailyBreakdown.length} {dailyBreakdown.length === 1 ? 'Day' : 'Days'}
+            </span>
           </div>
-          <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-md border border-border/50">
-            {shiftRecords.length} {shiftRecords.length === 1 ? 'Shift Record' : 'Shift Records'}
-          </span>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-              <tr>
-                <th className="px-5 py-3">Cashier</th>
-                <th className="px-5 py-3">Shift Status</th>
-                <th className="px-5 py-3">Shift Duration</th>
-                <th className="px-5 py-3 text-right">Float</th>
-                <th className="px-5 py-3 text-right">Expected Cash</th>
-                <th className="px-5 py-3 text-right">Actual Counted</th>
-                <th className="px-5 py-3 text-right">Variance</th>
-                <th className="px-5 py-3">Discrepancy Note</th>
-                <th className="px-5 py-3 text-center">Audit Report</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60 font-medium">
-              {shiftRecords.length > 0 ? (
-                shiftRecords.map((shift: any) => {
-                  // API returns uppercase: 'OPEN', 'CLOSED', 'FORCE_CLOSED'
-                  const status = (shift.status || '').toUpperCase();
-                  const isClosed = status === 'CLOSED' || status === 'FORCE_CLOSED';
-                  const rawVariance = parseVal(shift.variance);
-                  const variance = rawVariance ?? 0;
-                  const isOver = variance > 0;
-                  const isShort = variance < 0;
-                  const isBalanced = variance === 0 && isClosed;
 
-                  // Show date prefix when shift is not from today (multi-day range view)
-                  const openedDate = shift.opened_at ? new Date(shift.opened_at) : null;
-                  const today = new Date();
-                  const isToday = openedDate ? (
-                    openedDate.getFullYear() === today.getFullYear() &&
-                    openedDate.getMonth() === today.getMonth() &&
-                    openedDate.getDate() === today.getDate()
-                  ) : true;
-                  const datePrefix = openedDate && !isToday ? format(openedDate, 'MMM d · ') : '';
-
-                  const openedAtFormatted = openedDate ? `${datePrefix}${format(openedDate, 'hh:mm a')}` : '—';
-                  const closedAtFormatted = shift.closed_at ? format(new Date(shift.closed_at), 'hh:mm a') : 'Open';
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3 text-center">Orders</th>
+                  <th className="px-5 py-3 text-right">Gross Sales</th>
+                  <th className="px-5 py-3 text-right">Cash</th>
+                  <th className="px-5 py-3 text-right">MoMo / Card</th>
+                  <th className="px-5 py-3 text-right">Expenses</th>
+                  <th className="px-5 py-3 text-right">Net Sales</th>
+                  <th className="px-5 py-3 text-center">Day Audit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 font-medium">
+                {dailyBreakdown.map((day: any) => {
+                  const parsedDate = new Date(day.date + 'T00:00:00');
+                  const formattedDate = format(parsedDate, 'EEE, MMM d, yyyy');
+                  const digital = (day.mobile_money || 0) + (day.card || 0);
 
                   return (
-                    <tr key={shift.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-5 py-4 font-bold text-foreground flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground/70">
-                          {shift.cashier_name ? shift.cashier_name.substring(0, 2).toUpperCase() : 'CS'}
-                        </div>
-                        <span>{shift.cashier_name || 'Cashier'}</span>
+                    <tr key={day.date} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-5 py-4 font-bold text-foreground">
+                        {formattedDate}
                       </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold ${
-                          status === 'CLOSED'
-                            ? 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
-                            : status === 'FORCE_CLOSED'
-                            ? 'bg-purple-500/5 text-purple-600 dark:text-purple-400'
-                            : 'bg-amber-500/5 text-amber-600 dark:text-amber-400'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${
-                            status === 'CLOSED' ? 'bg-emerald-500' : status === 'FORCE_CLOSED' ? 'bg-purple-500' : 'bg-amber-500 animate-pulse'
-                          }`} />
-                          {status === 'CLOSED' ? 'Closed' : status === 'FORCE_CLOSED' ? 'Auto-Closed' : 'Active Shift'}
+                      <td className="px-5 py-4 text-center font-semibold">
+                        <span className="px-2 py-0.5 rounded-full bg-secondary text-xs text-muted-foreground">
+                          {day.transactions || 0}
                         </span>
-                      </td>
-                      <td className="px-5 py-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          {openedAtFormatted} - {closedAtFormatted}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right font-semibold">
-                        <CurrencyDisplay amount={parseVal(shift.opening_float)} />
-                      </td>
-                      <td className="px-5 py-4 text-right font-semibold">
-                        {isClosed ? <CurrencyDisplay amount={parseVal(shift.expected_cash)} /> : '—'}
                       </td>
                       <td className="px-5 py-4 text-right font-bold text-foreground">
-                        {isClosed && shift.closing_count !== null && shift.closing_count !== undefined ? <CurrencyDisplay amount={parseVal(shift.closing_count)} /> : '—'}
+                        <CurrencyDisplay amount={day.gross_sales || 0} />
                       </td>
-                      <td className="px-5 py-4 text-right font-bold">
-                        {!isClosed ? (
-                          <span className="text-muted-foreground/60">—</span>
-                        ) : isBalanced ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Balanced
-                          </span>
+                      <td className="px-5 py-4 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                        <CurrencyDisplay amount={day.cash || 0} showStyling={false} />
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-blue-600 dark:text-blue-400">
+                        <CurrencyDisplay amount={digital} showStyling={false} />
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-destructive">
+                        {day.expenses > 0 ? (
+                          <span>-<CurrencyDisplay amount={day.expenses} showStyling={false} /></span>
                         ) : (
-                          <span className={isShort ? 'text-red-500 font-extrabold' : 'text-blue-500 font-extrabold'}>
-                            {isOver ? '+' : ''}<CurrencyDisplay amount={variance} showStyling={false}/>
-                          </span>
+                          <span className="text-muted-foreground/50">—</span>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-xs text-muted-foreground max-w-[200px] truncate">
-                        {shift.notes ? (
-                          <span className="italic text-foreground/80">"{shift.notes}"</span>
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
+                      <td className="px-5 py-4 text-right font-extrabold text-foreground">
+                        <CurrencyDisplay amount={day.net_sales || 0} />
                       </td>
                       <td className="px-5 py-4 text-center">
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedZReportShiftId(shift.id);
+                            setSelectedZReportShiftId(day.shift_id);
                             setIsZReportOpen(true);
                           }}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/20 hover:bg-primary/20 text-muted-foreground text-xs font-bold transition-all"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-muted-foreground text-xs font-bold transition-all"
                         >
-                          <FileText className="h-3.5 w-3.5" /> {status === 'OPEN' ? 'X-Report' : 'Z-Report'}
+                          <FileText className="h-3.5 w-3.5" /> Day Z-Report
                         </button>
                       </td>
                     </tr>
                   );
-                })
-              ) : (
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Single Day & Shift Tracking OFF: Register Financial Audit */}
+      {!isMultiDay && !shiftTrackingEnabled && (
+        <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden mb-6 shadow-sm">
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Store className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Register Financial Audit</h3>
+                <p className="text-xs text-muted-foreground">Aggregated POS register totals and cash closing reconciliation</p>
+              </div>
+            </div>
+            <span className="bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold px-3 py-1 rounded border border-emerald-500/10 flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Register Active
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
                 <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-muted-foreground font-medium">
-                    No cashier shift records found for this period.
+                  <th className="px-5 py-3">Register / Terminals</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3 text-center">Transactions</th>
+                  <th className="px-5 py-3 text-right">Gross Sales</th>
+                  <th className="px-5 py-3 text-right">Cash Received</th>
+                  <th className="px-5 py-3 text-right">Expenses Paid Out</th>
+                  <th className="px-5 py-3 text-right">Net Cash in Till</th>
+                  <th className="px-5 py-3 text-center">Audit Report</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 font-medium">
+                <tr className="hover:bg-muted/30 transition-colors">
+                  <td className="px-5 py-4 font-bold text-foreground flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground/70">
+                      POS
+                    </div>
+                    <div>
+                      <span>All Point of Sale Terminals</span>
+                      <p className="text-[10px] text-muted-foreground font-normal">Direct checkout mode</p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Reconciled
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-center font-bold">
+                    {eodData?.pos?.transactions || 0}
+                  </td>
+                  <td className="px-5 py-4 text-right font-bold text-foreground">
+                    <CurrencyDisplay amount={grossSales} />
+                  </td>
+                  <td className="px-5 py-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CurrencyDisplay amount={pb.cash || 0} showStyling={false} />
+                  </td>
+                  <td className="px-5 py-4 text-right font-semibold text-destructive">
+                    {totalExpenses > 0 ? (
+                      <span>-<CurrencyDisplay amount={totalExpenses} showStyling={false} /></span>
+                    ) : (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-right font-extrabold text-foreground">
+                    <CurrencyDisplay amount={(pb.cash || 0) + (eodData?.total_paid_in || 0) - totalExpenses} />
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const shiftId = shiftRecords[0]?.id || `daily-${format(dateFilter.start_date || new Date(), 'yyyyMMdd')}`;
+                        setSelectedZReportShiftId(shiftId);
+                        setIsZReportOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
+                    >
+                      <FileText className="h-3.5 w-3.5" /> Daily Z-Report
+                    </button>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Closed Shifts Audit Log (when Shift Tracking is Enabled) */}
+      {shiftTrackingEnabled && (
+        <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-xl border border-border dark:border-border/60 overflow-hidden mb-6 shadow-sm">
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Cashier Shift Reconciliation Audit</h3>
+                <p className="text-xs text-muted-foreground">Individual shift closures, floats, expected cash, and till variances</p>
+              </div>
+            </div>
+            <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-md border border-border/50">
+              {shiftRecords.length} {shiftRecords.length === 1 ? 'Shift Record' : 'Shift Records'}
+            </span>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-3">Cashier</th>
+                  <th className="px-5 py-3">Shift Status</th>
+                  <th className="px-5 py-3">Shift Duration</th>
+                  <th className="px-5 py-3 text-right">Float</th>
+                  <th className="px-5 py-3 text-right">Expected Cash</th>
+                  <th className="px-5 py-3 text-right">Actual Counted</th>
+                  <th className="px-5 py-3 text-right">Variance</th>
+                  <th className="px-5 py-3">Discrepancy Note</th>
+                  <th className="px-5 py-3 text-center">Audit Report</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 font-medium">
+                {shiftRecords.length > 0 ? (
+                  shiftRecords.map((shift: any) => {
+                    // API returns uppercase: 'OPEN', 'CLOSED', 'FORCE_CLOSED'
+                    const status = (shift.status || '').toUpperCase();
+                    const isClosed = status === 'CLOSED' || status === 'FORCE_CLOSED';
+                    const rawVariance = parseVal(shift.variance);
+                    const variance = rawVariance ?? 0;
+                    const isOver = variance > 0;
+                    const isShort = variance < 0;
+                    const isBalanced = variance === 0 && isClosed;
+
+                    // Show date prefix when shift is not from today (multi-day range view)
+                    const openedDate = shift.opened_at ? new Date(shift.opened_at) : null;
+                    const today = new Date();
+                    const isToday = openedDate ? (
+                      openedDate.getFullYear() === today.getFullYear() &&
+                      openedDate.getMonth() === today.getMonth() &&
+                      openedDate.getDate() === today.getDate()
+                    ) : true;
+                    const datePrefix = openedDate && !isToday ? format(openedDate, 'MMM d · ') : '';
+
+                    const openedAtFormatted = openedDate ? `${datePrefix}${format(openedDate, 'hh:mm a')}` : '—';
+                    const closedAtFormatted = shift.closed_at ? format(new Date(shift.closed_at), 'hh:mm a') : 'Open';
+
+                    return (
+                      <tr key={shift.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-4 font-bold text-foreground flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground/70">
+                            {shift.cashier_name ? shift.cashier_name.substring(0, 2).toUpperCase() : 'CS'}
+                          </div>
+                          <span>{shift.cashier_name || 'Cashier'}</span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold ${
+                            status === 'CLOSED'
+                              ? 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                              : status === 'FORCE_CLOSED'
+                              ? 'bg-purple-500/5 text-purple-600 dark:text-purple-400'
+                              : 'bg-amber-500/5 text-amber-600 dark:text-amber-400'
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              status === 'CLOSED' ? 'bg-emerald-500' : status === 'FORCE_CLOSED' ? 'bg-purple-500' : 'bg-amber-500 animate-pulse'
+                            }`} />
+                            {status === 'CLOSED' ? 'Closed' : status === 'FORCE_CLOSED' ? 'Auto-Closed' : 'Active Shift'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            {openedAtFormatted} - {closedAtFormatted}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right font-semibold">
+                          <CurrencyDisplay amount={parseVal(shift.opening_float)} />
+                        </td>
+                        <td className="px-5 py-4 text-right font-semibold">
+                          {isClosed ? <CurrencyDisplay amount={parseVal(shift.expected_cash)} /> : '—'}
+                        </td>
+                        <td className="px-5 py-4 text-right font-bold text-foreground">
+                          {isClosed && shift.closing_count !== null && shift.closing_count !== undefined ? <CurrencyDisplay amount={parseVal(shift.closing_count)} /> : '—'}
+                        </td>
+                        <td className="px-5 py-4 text-right font-bold">
+                          {!isClosed ? (
+                            <span className="text-muted-foreground/60">—</span>
+                          ) : isBalanced ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Balanced
+                            </span>
+                          ) : (
+                            <span className={isShort ? 'text-red-500 font-extrabold' : 'text-blue-500 font-extrabold'}>
+                              {isOver ? '+' : ''}<CurrencyDisplay amount={variance} showStyling={false}/>
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-muted-foreground max-w-[200px] truncate">
+                          {shift.notes ? (
+                            <span className="italic text-foreground/80">"{shift.notes}"</span>
+                          ) : (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedZReportShiftId(shift.id);
+                              setIsZReportOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/20 hover:bg-primary/20 text-muted-foreground text-xs font-bold transition-all"
+                          >
+                            <FileText className="h-3.5 w-3.5" /> {status === 'OPEN' ? 'X-Report' : 'Z-Report'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-10 text-center text-muted-foreground font-medium">
+                      No cashier shift records found for this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
