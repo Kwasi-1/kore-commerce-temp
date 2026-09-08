@@ -38,6 +38,8 @@ export default function Overview() {
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const hasModule = useFeaturesStore((s) => s.hasModule);
+  const posSettings = useFeaturesStore((s) => s.posSettings);
+  const shiftTrackingEnabled = Boolean(posSettings?.pos_shift_management_enabled);
   
   const hasPos = modules.pos || hasModule('pos');
   const hasEcommerce = modules.ecommerce || hasModule('ecommerce');
@@ -107,11 +109,14 @@ export default function Overview() {
         const todayEnd = endOfDay(new Date()).toISOString();
         
         if (hasPos) {
-          const [salesRes, shiftsRes, txRes] = await Promise.all([
+          const promises: Promise<any>[] = [
             apiClient.get(`/tenant/reports/sales?start_date=${todayStart}&end_date=${todayEnd}`),
-            apiClient.get('/pos/shifts?status=open&per_page=50'),
+            shiftTrackingEnabled 
+              ? apiClient.get('/pos/shifts?status=open&per_page=50') 
+              : Promise.resolve({ data: { success: { data: { shifts: [] } } } }),
             apiClient.get('/pos/transactions?limit=5')
-          ]);
+          ];
+          const [salesRes, shiftsRes, txRes] = await Promise.all(promises);
 
           const salesSummary = salesRes.data.success?.data?.summary || {};
           const todayRev = getNumericValue(
@@ -128,10 +133,13 @@ export default function Overview() {
             orders: todayOrdersCount
           });
 
-          // Active Shifts
-          const shifts = shiftsRes.data.success?.data?.shifts || [];
-          setActiveShifts(shifts);
-          setActiveShiftsCount(shifts.length);
+          // Active Shifts (only count shifts that are actually OPEN)
+          const rawShifts = shiftsRes.data.success?.data?.shifts || [];
+          const openShifts = shiftTrackingEnabled
+            ? rawShifts.filter((s: any) => (s.status || '').toUpperCase() === 'OPEN')
+            : [];
+          setActiveShifts(openShifts);
+          setActiveShiftsCount(openShifts.length);
 
           // Recent POS Transactions
           const transactions = txRes.data.success?.data?.transactions || [];
@@ -230,7 +238,7 @@ export default function Overview() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [shiftTrackingEnabled]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -321,10 +329,10 @@ export default function Overview() {
 
           <MobileMetricPill
             title="Shifts"
-            value={activeShiftsCount}
-            subtitle="Registers open"
+            value={!shiftTrackingEnabled ? 'Off' : activeShiftsCount}
+            subtitle={!shiftTrackingEnabled ? 'Tracking off' : 'Registers open'}
             icon={<Clock className="h-3.5 w-3.5" />}
-            iconColorClass="bg-blue-500/10 text-blue-500"
+            iconColorClass={!shiftTrackingEnabled ? 'bg-muted text-muted-foreground' : 'bg-blue-500/10 text-blue-500'}
             isLoading={isLoading}
           />
 
@@ -562,10 +570,29 @@ export default function Overview() {
               />
               <DashboardCard
                 title="Active Shifts"
-                value={isLoading ? <Spinner className="py-1" /> : activeShiftsCount.toString()}
+                value={
+                  isLoading ? (
+                    <Spinner className="py-1" />
+                  ) : !shiftTrackingEnabled ? (
+                    <span className="text-xs text-muted-foreground font-semibold">Disabled</span>
+                  ) : (
+                    activeShiftsCount.toString()
+                  )
+                }
                 className='border-foreground/10 bg-secondary/30 hover:md:ring-1 ring-foreground/10'
                 collapsibleContent={
-                  activeShiftsCount > 0 ? (
+                  !shiftTrackingEnabled ? (
+                    <div className="space-y-2 mt-2 text-xs text-muted-foreground">
+                      <p>Shift management is turned off in POS settings. Registers open instantly without float entry.</p>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/settings/pos')}
+                        className="text-primary font-bold hover:underline inline-flex items-center gap-1 mt-1"
+                      >
+                        Manage in POS Settings &rarr;
+                      </button>
+                    </div>
+                  ) : activeShiftsCount > 0 ? (
                     <div className="space-y-2 mt-2">
                       <span className="font-bold text-muted-foreground uppercase text-[10px]">Active Cashiers</span>
                       <div className="flex flex-col gap-1.5">
@@ -581,7 +608,7 @@ export default function Overview() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs text-muted-foreground mt-2">"All registers closed. <br/> No cashiers currently on active shifts.</div>
+                    <div className="text-xs text-muted-foreground mt-2">All registers closed. <br/> No cashiers currently on active shifts.</div>
                   )
                 }
               />
