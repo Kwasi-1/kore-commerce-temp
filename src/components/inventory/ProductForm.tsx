@@ -260,6 +260,39 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   const [hasVariants, setHasVariants] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(
+    Array.isArray(initialData?.tags)
+      ? initialData.tags
+      : typeof initialData?.tags === 'string' && initialData.tags.trim()
+        ? initialData.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
+        : []
+  );
+  const [tagInput, setTagInput] = useState("");
+
+  const addCurrentTag = () => {
+    const trimmed = tagInput.trim().replace(/^[#,]+|[#,]+$/g, "");
+    if (!trimmed) return;
+    if (tags.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error(`"${trimmed}" is already added.`);
+      setTagInput("");
+      return;
+    }
+    setTags(prev => [...prev, trimmed]);
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addCurrentTag();
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (idx: number) => {
+    setTags(prev => prev.filter((_, i) => i !== idx));
+  };
 
   // Settings
   const { tenant } = useAuthStore();
@@ -347,6 +380,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           setCategory(fullProduct.category || "");
           setStatus(fullProduct.status || "active");
           setHasVariants(fullProduct.has_variants || false);
+          
+          if (Array.isArray(fullProduct.tags)) {
+            setTags(fullProduct.tags.filter(Boolean));
+          } else if (typeof fullProduct.tags === 'string' && fullProduct.tags.trim()) {
+            setTags(fullProduct.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean));
+          } else {
+            setTags([]);
+          }
           
           if (fullProduct.images) {
             setUploadedFiles(fullProduct.images.map((url: string) => ({
@@ -802,6 +843,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         description,
         category,
         status,
+        tags: tags.map(t => t.trim()).filter(Boolean),
         has_variants: hasVariants,
         ...(hasVariants ? {
           variants: variants.map(v => ({
@@ -948,6 +990,62 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             placeholder="Detailed description..."
             rows={3}
           />
+
+          {/* SECTION 1a: TAGS / SEARCH KEYWORDS */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Search Tags & Keywords <span className="text-[11px] font-normal lowercase tracking-normal text-muted-foreground">(Optional)</span>
+              </label>
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                {tags.length} {tags.length === 1 ? "tag" : "tags"}
+              </span>
+            </div>
+
+            <div className="min-h-[3.25rem] w-full p-2 rounded-lg border border-input bg-card hover:border-foreground/30 focus-within:border-foreground/50 transition-all duration-200 flex flex-wrap items-center gap-1.5">
+              {tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground border border-border shadow-2xs group transition-all"
+                >
+                  <span className="text-muted-foreground font-mono">#</span>
+                  <span>{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeTag(idx)}
+                    className="text-muted-foreground hover:text-destructive rounded-full p-0.5 hover:bg-muted transition-colors"
+                    title={`Remove "${tag}"`}
+                  >
+                    <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              <div className="flex-1 min-w-[150px] flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  placeholder={tags.length === 0 ? "Add keywords for quick POS search (e.g. coke, soda, painkiller)..." : "Add another tag..."}
+                  className="w-full bg-transparent text-xs font-medium text-foreground outline-none placeholder:text-muted-foreground/60 py-1 px-1"
+                />
+                {tagInput.trim() && (
+                  <button
+                    type="button"
+                    onClick={addCurrentTag}
+                    className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground rounded-md hover:bg-primary/90 shrink-0 transition-colors shadow-2xs"
+                  >
+                    Add
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Add keywords or synonyms that make this product quickly searchable at POS checkout. Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">Enter</kbd> or <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">,</kbd> to add.
+            </p>
+          </div>
 
           {/* SECTION 1b: IMAGES */}
           <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">

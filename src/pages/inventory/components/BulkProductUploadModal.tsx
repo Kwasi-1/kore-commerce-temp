@@ -150,7 +150,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       tier_3_units: p.tier_3_units ? Number(p.tier_3_units) : undefined,
       tier_3_retail_price: p.tier_3_retail_price ? Number(p.tier_3_retail_price) : undefined,
       tier_3_wholesale_price: p.tier_3_wholesale_price ? Number(p.tier_3_wholesale_price) : undefined,
-      tags: p.tags ? p.tags.split("|").map(t => t.trim()).filter(Boolean) : [],
+      tags: p.tags ? p.tags.split(/[|,]/).map(t => t.trim()).filter(Boolean) : [],
     }));
 
     setIsPending(true);
@@ -322,6 +322,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                         <th className="px-3 py-2.5 font-bold">Wholesale</th>
                         <th className="px-3 py-2.5 font-bold">Packaging Tiers</th>
                         <th className="px-3 py-2.5 font-bold">Category</th>
+                        <th className="px-3 py-2.5 font-bold">Tags</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
@@ -434,6 +435,16 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                 onChange={(e) => handleCellChange(idx, "category", e.target.value)}
                                 className="w-full px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/30 outline-none text-xs bg-transparent"
                                 placeholder="Category"
+                              />
+                            </td>
+                            <td className="p-2 min-w-[130px]">
+                              <input
+                                type="text"
+                                value={row.tags}
+                                onChange={(e) => handleCellChange(idx, "tags", e.target.value)}
+                                className="w-full px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/30 outline-none text-xs bg-transparent"
+                                placeholder="tag1|tag2"
+                                title="Tags separated by pipe (|) or comma (,)"
                               />
                             </td>
                           </tr>
