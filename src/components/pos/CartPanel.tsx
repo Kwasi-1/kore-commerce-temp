@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ShoppingCart } from "lucide-react";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { useProductCacheStore } from '@/store/productCacheStore';
 
 interface PackagingTier {
   id: string;
@@ -202,6 +203,7 @@ export default function CartPanel({
   const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks } = useRegisterPreferencesStore();
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
+  const cachedProducts = useProductCacheStore((state) => state.products);
 
   // Derive the initial default payment method from settings: prefer cash if enabled
   const getInitialMethod = (): "cash" | "mobile_money" | "card" => {
@@ -429,6 +431,44 @@ export default function CartPanel({
       setSearchResults([]);
       return;
     }
+
+    if (!navigator.onLine) {
+      const lower = expandedSearchTerm.toLowerCase().trim();
+      const tokens = lower.split(/\s+/).filter(Boolean);
+      const compactQuery = lower.replace(/[\.\s\-_/]+/g, '');
+
+      const getStems = (tok: string): string[] => {
+        const stems = [tok];
+        if (tok.endsWith('ies') && tok.length > 4) stems.push(tok.slice(0, -3) + 'y');
+        else if (tok.endsWith('es') && tok.length > 3) {
+          stems.push(tok.slice(0, -2));
+          stems.push(tok.slice(0, -1));
+        } else if (tok.endsWith('s') && tok.length > 2) stems.push(tok.slice(0, -1));
+        return stems;
+      };
+
+      const filtered = cachedProducts.filter((p) => {
+        const name = p.name?.toLowerCase() || '';
+        const sku = p.sku?.toLowerCase() || '';
+        const cat = p.category?.toLowerCase() || '';
+        const desc = p.description?.toLowerCase() || '';
+        const attrs = Object.values(p.variant_attributes || {}).join(' ').toLowerCase();
+        const combined = `${name} ${sku} ${cat} ${desc} ${attrs}`;
+        const compactTarget = combined.replace(/[\.\s\-_/]+/g, '');
+
+        const allTokensMatch = tokens.length > 0 && tokens.every((tok) => {
+          const stems = getStems(tok);
+          return stems.some((s) => combined.includes(s) || compactTarget.includes(s.replace(/[\.\s\-_/]+/g, '')));
+        });
+
+        const compactMatch = compactQuery.length > 0 && compactTarget.includes(compactQuery);
+        return allTokensMatch || compactMatch;
+      });
+
+      setSearchResults(filtered);
+      return;
+    }
+
     const timer = setTimeout(async () => {
       setIsSearchLoading(true);
       try {
@@ -442,7 +482,7 @@ export default function CartPanel({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [expandedSearchTerm]);
+  }, [expandedSearchTerm, cachedProducts]);
 
   const handleQuickAddProduct = (p: Product) => {
     const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
@@ -849,13 +889,27 @@ export default function CartPanel({
                         const query = expandedSearchTerm.trim().toLowerCase();
                         if (!query) return;
 
-                        // 1. Exact SKU match in current searchResults
-                        let match = searchResults.find(p => p.sku && p.sku.toLowerCase() === query);
+                        const cleanQuery = query.replace(/[\.\s\-_/]/g, '');
+                        // 1. Exact SKU match in current searchResults or cachedProducts (punctuation-agnostic)
+                        const searchPool = searchResults.length > 0 ? searchResults : cachedProducts;
+                        let match = searchPool.find(p => {
+                          const rawSku = (p.sku || '').toLowerCase();
+                          const cleanSku = rawSku.replace(/[\.\s\-_/]/g, '');
+                          return rawSku === query || (cleanSku && cleanSku === cleanQuery);
+                        });
                         // 2. Or single result in current searchResults
                         if (!match && searchResults.length === 1) {
                           match = searchResults[0];
                         }
-                        // 3. If barcode scanner fired Enter before debounce finished, try direct lookup
+                        // 3. Fallback to cachedProducts
+                        if (!match && cachedProducts.length > 0) {
+                          match = cachedProducts.find(p => {
+                            const rawSku = (p.sku || '').toLowerCase();
+                            const cleanSku = rawSku.replace(/[\.\s\-_/]/g, '');
+                            return rawSku === query || (cleanSku && cleanSku === cleanQuery);
+                          });
+                        }
+                        // 4. If barcode scanner fired Enter before debounce finished, try direct lookup
                         if (!match && navigator.onLine) {
                           try {
                             const res = await apiClient.get(`/pos/products/lookup?sku=${encodeURIComponent(query)}`);

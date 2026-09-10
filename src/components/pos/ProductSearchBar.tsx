@@ -293,19 +293,34 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     if (!navigator.onLine) {
       const lower = query.toLowerCase().trim();
       const tokens = lower.split(/\s+/).filter(Boolean);
-      const compactQuery = lower.replace(/[\s\-_]+/g, '');
+      const compactQuery = lower.replace(/[\.\s\-_/]+/g, '');
+
+      const getStems = (tok: string): string[] => {
+        const stems = [tok];
+        if (tok.endsWith('ies') && tok.length > 4) stems.push(tok.slice(0, -3) + 'y');
+        else if (tok.endsWith('es') && tok.length > 3) {
+          stems.push(tok.slice(0, -2));
+          stems.push(tok.slice(0, -1));
+        } else if (tok.endsWith('s') && tok.length > 2) stems.push(tok.slice(0, -1));
+        return stems;
+      };
 
       const filtered = cachedProducts.filter((p) => {
         const name = p.name?.toLowerCase() || '';
         const sku = p.sku?.toLowerCase() || '';
         const cat = p.category?.toLowerCase() || '';
         const desc = p.description?.toLowerCase() || '';
-        const combined = `${name} ${sku} ${cat} ${desc}`;
-        const compactTarget = combined.replace(/[\s\-_]+/g, '');
+        const attrs = Object.values(p.variant_attributes || {}).join(' ').toLowerCase();
+        const combined = `${name} ${sku} ${cat} ${desc} ${attrs}`;
+        const compactTarget = combined.replace(/[\.\s\-_/]+/g, '');
 
-        // 1. All tokens match somewhere across the product
-        const allTokensMatch = tokens.length > 0 && tokens.every((tok) => combined.includes(tok));
-        // 2. Or space-compacted query matches (e.g. "tooth brush" -> "toothbrush")
+        // 1. Every token has at least one stem matching
+        const allTokensMatch = tokens.length > 0 && tokens.every((tok) => {
+          const stems = getStems(tok);
+          return stems.some((s) => combined.includes(s) || compactTarget.includes(s.replace(/[\.\s\-_/]+/g, '')));
+        });
+
+        // 2. Or space/punctuation-compacted query matches
         const compactMatch = compactQuery.length > 0 && compactTarget.includes(compactQuery);
 
         return allTokensMatch || compactMatch;
@@ -398,9 +413,14 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    // 1. Try exact SKU match in local pool first (instant 0ms response)
+    // 1. Try exact SKU match in local pool first (instant 0ms response, punctuation-agnostic)
     const allPool = cachedProducts.length > 0 ? cachedProducts : products;
-    let match = allPool.find((p) => p.sku && p.sku.toLowerCase() === trimmed.toLowerCase());
+    const cleanQuery = trimmed.toLowerCase().replace(/[\.\s\-_/]/g, '');
+    let match = allPool.find((p) => {
+      const rawSku = (p.sku || '').toLowerCase();
+      const cleanSku = rawSku.replace(/[\.\s\-_/]/g, '');
+      return rawSku === trimmed.toLowerCase() || (cleanSku && cleanSku === cleanQuery);
+    });
 
     // 2. If no exact SKU match, check if current filtered list has exactly 1 product
     if (!match && filteredProducts.length === 1) {
