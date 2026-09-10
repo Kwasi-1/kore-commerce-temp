@@ -382,6 +382,43 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     }
   };
 
+  const handleScanOrSubmit = async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    // 1. Try exact SKU match in local pool first (instant 0ms response)
+    const allPool = cachedProducts.length > 0 ? cachedProducts : products;
+    let match = allPool.find((p) => p.sku && p.sku.toLowerCase() === trimmed.toLowerCase());
+
+    // 2. If no exact SKU match, check if current filtered list has exactly 1 product
+    if (!match && filteredProducts.length === 1) {
+      match = filteredProducts[0];
+    }
+
+    // 3. If still no match and online, try direct SKU lookup from backend
+    if (!match && navigator.onLine) {
+      try {
+        const lookupRes = await apiClient.get(`/pos/products/lookup?sku=${encodeURIComponent(trimmed)}`);
+        const found = lookupRes.data?.success?.data?.product;
+        if (found) {
+          const flat = flattenProducts([found]);
+          if (flat.length > 0) match = flat[0];
+        }
+      } catch (err) {
+        // Not a direct SKU match, fall through to general search
+      }
+    }
+
+    if (match) {
+      handleAddToCart(match);
+      setSearchTerm('');
+      toast.success(`${match.name} added to cart`);
+    } else {
+      // Immediate search without waiting for debounce
+      performSearch(trimmed);
+    }
+  };
+
   const toggleCategory = (catName: string) => {
     setActiveCategories(prev => {
       if (prev.includes(catName)) {
@@ -446,6 +483,12 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleScanOrSubmit(searchTerm);
+                }
+              }}
             />
             {searchTerm && (
               <button 
@@ -623,7 +666,10 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleScanOrSubmit(searchTerm);
+                } else if (e.key === 'Escape') {
                   if (searchTerm) {
                     setSearchTerm('');
                   } else {

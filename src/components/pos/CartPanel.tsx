@@ -444,6 +444,56 @@ export default function CartPanel({
     return () => clearTimeout(timer);
   }, [expandedSearchTerm]);
 
+  const handleQuickAddProduct = (p: Product) => {
+    const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
+    if (!tier) {
+      toast.error("No packaging tier defined for this variant!");
+      return;
+    }
+    const cartKey = `${p.variant_id}-${tier.id}`;
+    const currentInCart = items.find(i => i.productId === cartKey)?.quantity || 0;
+    const stock = p.stock_quantity ?? Infinity;
+    if (stock <= 0) {
+      toast.error(`${p.name} is out of stock!`);
+      return;
+    }
+    if ((currentInCart + 1) * tier.units_per_tier > stock) {
+      toast.error(`Only ${p.stock_display} ${p.stock_display_unit} in stock!`);
+      return;
+    }
+    
+    const activePrice = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+      ? tier.prices.wholesale
+      : tier.prices.retail;
+      
+    const activePriceType = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
+      ? 'wholesale'
+      : 'retail';
+
+    addItem({
+      productId: cartKey,
+      name: p.name,
+      sku: p.sku,
+      price: activePrice,
+      imageUrl: p.imageUrl,
+      category: p.category,
+      stock_quantity: p.stock_quantity,
+      variant_id: p.variant_id,
+      packaging_tier_id: tier.id,
+      tier_name: tier.name,
+      units_per_tier: tier.units_per_tier,
+      unit_price: activePrice,
+      price_type: activePriceType
+    });
+    
+    if (soundEffectsEnabled) {
+      playCartChime();
+    }
+    
+    setExpandedSearchTerm('');
+    toast.success(`${p.name} added to cart`);
+  };
+
   const nextStateTooltip = panelState === 'default'
     ? (items.length === 0 ? 'Collapse panel' : 'Expand panel')
     : panelState === 'expanded'
@@ -793,6 +843,39 @@ export default function CartPanel({
                     placeholder="Search & add product"
                     value={expandedSearchTerm}
                     onChange={(e) => setExpandedSearchTerm(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const query = expandedSearchTerm.trim().toLowerCase();
+                        if (!query) return;
+
+                        // 1. Exact SKU match in current searchResults
+                        let match = searchResults.find(p => p.sku && p.sku.toLowerCase() === query);
+                        // 2. Or single result in current searchResults
+                        if (!match && searchResults.length === 1) {
+                          match = searchResults[0];
+                        }
+                        // 3. If barcode scanner fired Enter before debounce finished, try direct lookup
+                        if (!match && navigator.onLine) {
+                          try {
+                            const res = await apiClient.get(`/pos/products/lookup?sku=${encodeURIComponent(query)}`);
+                            const found = res.data?.success?.data?.product;
+                            if (found) {
+                              const flat = flattenProducts([found]);
+                              if (flat.length > 0) match = flat[0];
+                            }
+                          } catch (err) {
+                            // not exact SKU
+                          }
+                        }
+
+                        if (match) {
+                          handleQuickAddProduct(match);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setExpandedSearchTerm('');
+                      }
+                    }}
                     className="w-full pl-10 pr-9 py-2.5 bg-background border border-border rounded-full text-sm font-semibold outline-none focus:ring-0 focus:ring-primary/40 focus:borderprimary transition-all"
                   />
                   {expandedSearchTerm && (
@@ -822,54 +905,7 @@ export default function CartPanel({
                           return (
                             <button
                               key={p.id}
-                              onClick={() => {
-                                if (!tier) {
-                                  toast.error("No packaging tier defined for this variant!");
-                                  return;
-                                }
-                                const cartKey = `${p.variant_id}-${tier.id}`;
-                                const currentInCart = items.find(i => i.productId === cartKey)?.quantity || 0;
-                                const stock = p.stock_quantity ?? Infinity;
-                                if (stock <= 0) {
-                                  toast.error(`${p.name} is out of stock!`);
-                                  return;
-                                }
-                                if ((currentInCart + 1) * tier.units_per_tier > stock) {
-                                  toast.error(`Only ${p.stock_display} ${p.stock_display_unit} in stock!`);
-                                  return;
-                                }
-                                
-                                const activePrice = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
-                                  ? tier.prices.wholesale
-                                  : tier.prices.retail;
-                                  
-                                const activePriceType = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
-                                  ? 'wholesale'
-                                  : 'retail';
-
-                                addItem({
-                                  productId: cartKey,
-                                  name: p.name,
-                                  sku: p.sku,
-                                  price: activePrice,
-                                  imageUrl: p.imageUrl,
-                                  category: p.category,
-                                  stock_quantity: p.stock_quantity,
-                                  variant_id: p.variant_id,
-                                  packaging_tier_id: tier.id,
-                                  tier_name: tier.name,
-                                  units_per_tier: tier.units_per_tier,
-                                  unit_price: activePrice,
-                                  price_type: activePriceType
-                                });
-                                
-                                if (soundEffectsEnabled) {
-                                  playCartChime();
-                                }
-                                
-                                setExpandedSearchTerm('');
-                                toast.success(`${p.name} added to cart`);
-                              }}
+                              onClick={() => handleQuickAddProduct(p)}
                               className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors"
                             >
                               <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -881,9 +917,21 @@ export default function CartPanel({
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm text-foreground truncate">{p.name}</p>
-                                <p className="text-xs text-muted-foreground font-semibold">
-                                  Stock: {p.stock_display} {p.stock_display_unit}
-                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  {p.sku && (
+                                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-secondary text-muted-foreground border border-border/50">
+                                      {p.sku}
+                                    </span>
+                                  )}
+                                  {p.category && (
+                                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-secondary text-muted-foreground">
+                                      {p.category}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-muted-foreground font-semibold">
+                                    · Stock: {p.stock_display} {p.stock_display_unit}
+                                  </span>
+                                </div>
                               </div>
                               <span className="text-sm font-bold text-foreground shrink-0">
                                 <CurrencyDisplay amount={tier ? tier.prices.retail : p.price} />
