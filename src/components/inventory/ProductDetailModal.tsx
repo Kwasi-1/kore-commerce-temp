@@ -100,6 +100,12 @@ export function ProductDetailModal({
   const primaryWholesalePrice =
     defaultTier?.prices?.find((p: any) => p.price_type === "wholesale")?.price;
 
+  const productTags: string[] = Array.isArray(currentProduct.tags)
+    ? currentProduct.tags.filter(Boolean)
+    : typeof currentProduct.tags === "string" && currentProduct.tags.trim()
+      ? currentProduct.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
+      : [];
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -220,6 +226,31 @@ export function ProductDetailModal({
                 </div>
               )}
 
+              {/* Search Tags (if present) */}
+              {productTags.length > 0 && (
+                <div className="p-3 rounded border border-border/50 space-y-2">
+                  {/* <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground block !tracking-wide">
+                      Search Tags
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {productTags.length} {productTags.length === 1 ? "tag" : "tags"}
+                    </span>
+                  </div> */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {productTags.map((tag: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground shadow-2xs"
+                      >
+                        <span className="text-muted-foreground/80 font-mono text-[11px]">#</span>
+                        <span>{tag}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Variants & Packaging Tiers Matrix */}
               <div className="space-y-3">
                 {variants.length > 1 && (
@@ -245,7 +276,7 @@ export function ProductDetailModal({
                 )}
 
                 {activeVariant ? (
-                  <div className="border border-border/70 rounded-lg overflow-hidden bg-card">
+                  <div className="border border-border/70 rounded-md overflow-hidden bg-card">
                     <div className="overflow-x-auto scrollbar-hide">
                       <table className="w-full min-w-[340px] text-left text-xs border-collapse">
                         <thead>
