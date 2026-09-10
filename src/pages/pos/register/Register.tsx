@@ -192,17 +192,17 @@ export default function Register() {
           {/* Cart Block Overlay — only shown if shift is required and shift is closed */}
           { !isLoading && !currentShift && isShiftRequired && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
-              <div className="bg-card p-6 rounded-2xl shadow-lg border border-border text-center max-w-[320px]">
+              <div className="bg-card p-6 rounded-2xl shadow-lg border border-border/50 text-center max-w-[320px]">
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Icon icon="solar:play-circle-linear" className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="font-bold text-lg mb-2">Shift Closed</h3>
+                <h3 className="font-bold text-lg mb-2 font-header tracking-tight">Shift Closed</h3>
                 <p className="text-sm text-muted-foreground mb-6">
                   You must open a new shift before processing any transactions.
                 </p>
                 <Button 
                   onClick={() => setIsShiftModalOpen(true)}
-                  className="w-full rounded-xl font-bold"
+                  className="w-full font-bold"
                 >
                   Start Shift
                 </Button>
