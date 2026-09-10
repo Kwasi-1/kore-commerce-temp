@@ -852,7 +852,7 @@ export default function Products() {
                     setSelectedProductForDetail(item.product);
                     setIsDetailModalOpen(true);
                   }}
-                  className="py-3 gap-5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                  className="py-3 gap-5 flex items-center justify-between text-[12px] cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-lg shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border">
@@ -867,13 +867,26 @@ export default function Products() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate">
+                      <p className="font-bold text-foreground font-header tracking-[-0.02rem] truncate mb-0.5">
                         {item.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
-                        {item.category || "General"} • {item.sku}
+                      <p className="text-[11px] text-muted-foreground flex gap-y-0.5 flex-wrap">
+                        {item.category || "General"} • <span
+                          className={cn(
+                            "inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded ml-1",
+                            item.isOutOfStock
+                              ? "bg-destructive/5 text-destructive"
+                              : item.isLowStock
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "bg-secondary/80 text-secondary-foreground"
+                          )}
+                        >
+                          {item.isOutOfStock
+                            ? "Out of Stock"
+                            : `${formattedStock} ${item.unit}${item.tierBreakdown ? ` (${item.tierBreakdown})` : ""}`}
+                        </span>
                       </p>
-                      <div className="mt-0.5">
+                      <div className="mt-0.5 hidden">
                         <span
                           className={cn(
                             "inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded",
