@@ -310,7 +310,7 @@ export default function StockManagement() {
                 <div
                   key={p.id}
                   onClick={() => handleOpenRestock(p)}
-                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors gap-3"
+                  className="py-3 flex items-center justify-between text-[12px] cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors gap-3"
                 >
                   {/* Left: Image + Info */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -322,10 +322,10 @@ export default function StockManagement() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                      <p className="font-bold text-foreground font-header tracking-[-0.01rem] sm:tracking-[-0.02rem] truncate sm:text-sm">
                         {p.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px] mt-[1px]">
                         {p.category || 'General'} &middot; <span className="font-mono">{p.sku}</span>
                       </p>
                     </div>

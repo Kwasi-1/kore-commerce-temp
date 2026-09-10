@@ -867,57 +867,47 @@ export default function Products() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground font-header tracking-[-0.02rem] truncate mb-0.5">
-                        {item.name}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground flex gap-y-0.5 flex-wrap">
-                        {item.category || "General"} • <span
-                          className={cn(
-                            "inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded ml-1",
-                            item.isOutOfStock
-                              ? "bg-destructive/5 text-destructive"
-                              : item.isLowStock
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "bg-secondary/80 text-secondary-foreground"
-                          )}
-                        >
-                          {item.isOutOfStock
-                            ? "Out of Stock"
-                            : `${formattedStock} ${item.unit}${item.tierBreakdown ? ` (${item.tierBreakdown})` : ""}`}
-                        </span>
-                      </p>
-                      <div className="mt-0.5 hidden">
-                        <span
-                          className={cn(
-                            "inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded",
-                            item.isOutOfStock
-                              ? "bg-destructive/5 text-destructive"
-                              : item.isLowStock
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "bg-secondary/80 text-secondary-foreground"
-                          )}
-                        >
-                          {item.isOutOfStock
-                            ? "Out of Stock"
-                            : `${formattedStock} ${item.unit}${item.tierBreakdown ? ` (${item.tierBreakdown})` : ""}`}
-                        </span>
+                      <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+                        <p className="font-bold text-foreground font-header tracking-[-0.02rem] truncate sm:text-sm">
+                          {item.name}
+                        </p>
+                        {!item.isActive && (
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                              item.status?.toLowerCase() === "draft"
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            )}
+                          >
+                            {item.status?.toUpperCase() || "DRAFT"}
+                          </span>
+                        )}
                       </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {item.category || "General"}
+                        {item.sku && item.sku !== "—" ? ` • ${item.sku}` : ""}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end justify-center">
                     <span className="font-extrabold text-[12px] text-foreground block">
                       <CurrencyDisplay amount={item.price} symbolClassName="text-xs" />
                     </span>
                     <span
                       className={cn(
-                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mt-0.5",
-                        item.isActive
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-muted text-muted-foreground"
+                        "inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5 max-w-[170px] sm:max-w-[210px] truncate",
+                        item.isOutOfStock
+                          ? "bg-destructive/5 text-destructive"
+                          : item.isLowStock
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "bg-secondary/85 text-secondary-foreground"
                       )}
                     >
-                      {item.isActive ? "ACTIVE" : item.status?.toUpperCase() || "DRAFT"}
+                      {item.isOutOfStock
+                        ? "Out of Stock"
+                        : `${formattedStock} ${item.unit}${item.tierBreakdown ? ` (${item.tierBreakdown})` : ""}`}
                     </span>
                   </div>
                 </div>
