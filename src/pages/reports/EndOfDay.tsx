@@ -102,7 +102,10 @@ export default function EndOfDay() {
     { name: 'Credit', value: pb.credit || 0, color: '#7c3aed' }
   ].filter(item => item.value > 0);
 
-  const hasPayments = paymentBreakdownChartData.length > 0;
+  const chartDataToRender = paymentBreakdownChartData.length > 0
+    ? paymentBreakdownChartData
+    : [{ name: 'No Sales', value: 1, color: '#9CA3AF' }];
+
 
   const shiftRecords = eodData?.shifts?.records || [];
   const closedShiftsCount = eodData?.shifts?.closed_shifts || 0;
@@ -139,7 +142,7 @@ export default function EndOfDay() {
       
       {/* Shift Enforcement Notice (Minimal & Neutral) */}
       {!isLoading && !shiftTrackingEnabled && (
-        <div className="mb-6 px-4 py-3 rounded-xl border border-border bg-card/60 flex items-center justify-between gap-3 text-xs shadow-2xs">
+        <div className="mb-5 px-4 py-3 rounded-lg border border-border bg-card/60 flex items-center justify-between gap-3 text-xs shadow-2xs">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-muted-foreground">
               <Store className="h-3.5 w-3.5" />
@@ -236,12 +239,12 @@ export default function EndOfDay() {
         <div className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden mb-6 shadow-2xs">
           <div className="p-5 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
+              {/* <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
                 <Calendar className="h-4 w-4" />
-              </div>
+              </div> */}
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Day-by-Day Breakdown</h3>
-                <p className="text-xs text-muted-foreground">Daily sales, collections, expenses, and individual day Z-reports</p>
+                <h3 className="text-sm lg:text-base font-header tracking-tight font-semibold text-foreground">Day-by-Day Breakdown</h3>
+                {/* <p className="text-xs text-muted-foreground">Daily sales, collections, expenses, and individual day Z-reports</p> */}
               </div>
             </div>
             <span className="bg-secondary text-muted-foreground text-xs font-medium px-2.5 py-1 rounded">
@@ -324,12 +327,12 @@ export default function EndOfDay() {
         <div className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden mb-6 shadow-2xs">
           <div className="p-5 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
+              {/* <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
                 <Store className="h-4 w-4" />
-              </div>
+              </div> */}
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Register Financial Audit</h3>
-                <p className="text-xs text-muted-foreground">Aggregated POS register totals and cash closing reconciliation</p>
+                <h3 className="text-sm lg:text-base font-header tracking-tight font-semibold text-foreground">Register Financial Audit</h3>
+                {/* <p className="text-xs text-muted-foreground">Aggregated POS register totals and cash closing reconciliation</p> */}
               </div>
             </div>
             <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1.5">
@@ -411,15 +414,15 @@ export default function EndOfDay() {
         <div className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden mb-6 shadow-2xs">
           <div className="p-5 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
+              {/* <div className="h-8 w-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
                 <UserCheck className="h-4 w-4" />
-              </div>
+              </div> */}
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Cashier Shift Reconciliation Audit</h3>
-                <p className="text-xs text-muted-foreground">Individual shift closures, floats, expected cash, and till variances</p>
+                <h3 className="text-sm lg:text-base font-header tracking-tight font-semibold text-foreground">Cashier Shift Reconciliation Audit</h3>
+                {/* <p className="text-xs text-muted-foreground">Individual shift closures, floats, expected cash, and till variances</p> */}
               </div>
             </div>
-            <span className="bg-secondary text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-md border border-border/50">
+            <span className="bg-secondary text-muted-foreground text-xs font-medium px-2.5 py-1 rounded">
               {shiftRecords.length} {shiftRecords.length === 1 ? 'Shift Record' : 'Shift Records'}
             </span>
           </div>
@@ -468,19 +471,19 @@ export default function EndOfDay() {
                           <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                             {shift.cashier_name ? shift.cashier_name.substring(0, 2).toUpperCase() : 'CS'}
                           </div>
-                          <span className="text-xs">{shift.cashier_name || 'Cashier'}</span>
+                          <span className="text-[13px]">{shift.cashier_name || 'Cashier'}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           {status === 'CLOSED' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-muted-foreground border border-border/40">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-muted-foreground">
                               Closed
                             </span>
                           ) : status === 'FORCE_CLOSED' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400">
                               Auto-Closed
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               Active
                             </span>
@@ -510,13 +513,13 @@ export default function EndOfDay() {
                             </span>
                           ) : isShort ? (
                             <div className="flex justify-end">
-                              <span className="inline-flex items-center text-destructive font-semibold text-xs bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20">
+                              <span className="inline-flex items-center text-destructive font-semibold text-[13px] bg-destructive/5 px-1.5 py-0.5">
                                 <CurrencyDisplay amount={shiftVariance} showStyling={false}/>
                               </span>
                             </div>
                           ) : (
                             <div className="flex justify-end">
-                              <span className="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold text-xs bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                              <span className="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold text-[13px] bg-blue-500/5 px-1.5 py-0.5">
                                 +<CurrencyDisplay amount={shiftVariance} showStyling={false}/>
                               </span>
                             </div>
@@ -536,7 +539,7 @@ export default function EndOfDay() {
                               setSelectedZReportShiftId(shift.id);
                               setIsZReportOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/80 bg-background hover:bg-muted text-foreground/80 hover:text-foreground text-xs font-medium transition-colors shadow-2xs"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary/20 hover:bg-primary/20 text-foreground/80 hover:text-foreground text-xs font-medium transition-colors shadow-2xs"
                           >
                             <FileText className="h-3.5 w-3.5 text-muted-foreground" /> {status === 'OPEN' ? 'X-Report' : 'Z-Report'}
                           </button>
@@ -563,17 +566,16 @@ export default function EndOfDay() {
         {/* Payment Methods Breakdown */}
         <div className="lg:col-span-1 bg-card text-card-foreground p-5 rounded-xl border border-border min-h-[340px] flex flex-col shadow-2xs">
           <div className="mb-3">
-            <h3 className="text-sm font-semibold text-foreground">Payment Distribution</h3>
-            <p className="text-xs text-muted-foreground">Revenue share by payment method</p>
+            <h3 className="text-sm lg:text-base font-header tracking-tight font-semibold text-foreground">Payment  Distribution</h3>
+            {/* <p className="text-xs text-muted-foreground">Revenue share by payment method</p> */}
           </div>
           
-          {hasPayments ? (
             <div className="flex-1 min-h-[220px] flex flex-col">
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={paymentBreakdownChartData}
+                      data={chartDataToRender}
                       cx="50%"
                       cy="48%"
                       innerRadius={52}
@@ -581,7 +583,7 @@ export default function EndOfDay() {
                       paddingAngle={3}
                       dataKey="value"
                     >
-                      {paymentBreakdownChartData.map((entry, index) => (
+                      {chartDataToRender.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -598,23 +600,15 @@ export default function EndOfDay() {
                 </ResponsiveContainer>
               </div>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-              <div className="h-10 w-10 rounded-full bg-secondary/60 flex items-center justify-center text-muted-foreground/60 mb-2.5">
-                <PieChartIcon className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold text-foreground/80">No payment data</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">No transactions recorded for this period.</p>
-            </div>
-          )}
+      
         </div>
 
         {/* Expenses Table */}
         <div className="lg:col-span-2 bg-card text-card-foreground rounded-xl border border-border overflow-hidden min-h-[340px] flex flex-col shadow-2xs">
           <div className="p-5 flex justify-between items-center border-b border-border/50">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Logged Operational Expenses</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Petty cash and store payouts</p>
+              <h3 className="text-sm lg:text-base font-header tracking-tight font-semibold text-foreground">Logged Operational Expenses</h3>
+              {/* <p className="text-xs text-muted-foreground mt-0.5">Petty cash and store payouts</p> */}
             </div>
             <span className={`text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1 ${
               totalExpenses > 0 
@@ -626,7 +620,6 @@ export default function EndOfDay() {
           </div>
 
           <div className="flex-1 flex flex-col">
-            {expenseRecords.length > 0 ? (
               <div className="flex-1 overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted/40 text-muted-foreground text-[11px] font-semibold uppercase tracking-wider">
@@ -637,30 +630,27 @@ export default function EndOfDay() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50 font-medium">
-                    {expenseRecords.map((exp: any) => (
-                      <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-5 py-3.5 font-semibold text-foreground text-xs capitalize">{exp.category}</td>
-                        <td className="px-5 py-3.5 text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground">{exp.cashier_name}: </span>
-                          {exp.reason}
-                        </td>
-                        <td className="px-5 py-3.5 text-right font-medium text-destructive text-xs">
-                          -<CurrencyDisplay amount={exp.amount} showStyling={false}/>
-                        </td>
+                    {expenseRecords.length > 0 ? (
+                      expenseRecords.map((exp: any) => (
+                        <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-5 py-3.5 font-semibold text-foreground text-xs capitalize">{exp.category}</td>
+                          <td className="px-5 py-3.5 text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{exp.cashier_name}: </span>
+                            {exp.reason}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-medium text-destructive text-xs">
+                            -<CurrencyDisplay amount={exp.amount} showStyling={false}/>
+                          </td>
+                        </tr>
+                      ))
+                      ) : (
+                      <tr>
+                        <td colSpan={3} className="px-6 py-8 pt-16 text-center text-muted-foreground font-medium">No expenses recorded for this period.</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-                <div className="h-10 w-10 rounded-full bg-secondary/60 flex items-center justify-center text-muted-foreground/60 mb-2.5">
-                  <Receipt className="h-5 w-5" />
-                </div>
-                <p className="text-xs font-semibold text-foreground/80">No expenses recorded</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">No petty cash or store payouts logged for this period.</p>
-              </div>
-            )}
           </div>
         </div>
 
