@@ -852,7 +852,7 @@ export default function Products() {
                     setSelectedProductForDetail(item.product);
                     setIsDetailModalOpen(true);
                   }}
-                  className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
+                  className="py-3 gap-5 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-lg shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border">
@@ -867,7 +867,7 @@ export default function Products() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                      <p className="font-bold text-foreground truncate">
                         {item.name}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
@@ -878,10 +878,10 @@ export default function Products() {
                           className={cn(
                             "inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded",
                             item.isOutOfStock
-                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              ? "bg-destructive/5 text-destructive"
                               : item.isLowStock
                               ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-secondary/80 text-secondary-foreground"
                           )}
                         >
                           {item.isOutOfStock
