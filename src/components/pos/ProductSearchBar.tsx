@@ -291,13 +291,25 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const performSearch = async (query: string) => {
     // Offline: filter the local cache instead of hitting the API
     if (!navigator.onLine) {
-      const lower = query.toLowerCase();
-      const filtered = cachedProducts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.sku?.toLowerCase().includes(lower) ||
-          p.category?.toLowerCase().includes(lower)
-      );
+      const lower = query.toLowerCase().trim();
+      const tokens = lower.split(/\s+/).filter(Boolean);
+      const compactQuery = lower.replace(/[\s\-_]+/g, '');
+
+      const filtered = cachedProducts.filter((p) => {
+        const name = p.name?.toLowerCase() || '';
+        const sku = p.sku?.toLowerCase() || '';
+        const cat = p.category?.toLowerCase() || '';
+        const desc = p.description?.toLowerCase() || '';
+        const combined = `${name} ${sku} ${cat} ${desc}`;
+        const compactTarget = combined.replace(/[\s\-_]+/g, '');
+
+        // 1. All tokens match somewhere across the product
+        const allTokensMatch = tokens.length > 0 && tokens.every((tok) => combined.includes(tok));
+        // 2. Or space-compacted query matches (e.g. "tooth brush" -> "toothbrush")
+        const compactMatch = compactQuery.length > 0 && compactTarget.includes(compactQuery);
+
+        return allTokensMatch || compactMatch;
+      });
       setProducts(filtered);
       setActiveCategories([]);
       return;
