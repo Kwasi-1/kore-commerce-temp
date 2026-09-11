@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { simpleSearch } from '@/lib/searchUtils';
 import { Icon } from '@iconify/react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
@@ -474,7 +475,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const hasOutOfStockProducts = products.some(p => (p.stock_quantity ?? 0) <= 0);
 
   // The categories to display in the dropdown/drawer (filtered by the local search inside the filter UI)
-  const displayCategories = categories.filter(c => c.name.toLowerCase().includes(filterSearchTerm.toLowerCase()));
+  const displayCategories = simpleSearch(categories, filterSearchTerm, [(c) => c.name]);
 
   // Render Category Checkbox List
   const renderCategoryCheckboxes = () => (

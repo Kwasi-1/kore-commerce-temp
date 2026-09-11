@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { smartSearch } from '@/lib/searchUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
@@ -58,11 +59,11 @@ export default function Customers() {
       const customersData = response.data.success?.data?.customers || response.data?.customers || [];
       
       // Filter by search query on frontend
-      const filtered = customersData.filter((c: any) => 
-        (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (c.phone && c.phone.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      const filtered = smartSearch(customersData, searchQuery, [
+        (c: any) => c.name,
+        (c: any) => c.email,
+        (c: any) => c.phone,
+      ]);
       setCustomers(filtered);
 
       // Calculate mock stats

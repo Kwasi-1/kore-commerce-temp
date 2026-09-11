@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { simpleSearch } from '@/lib/searchUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -119,13 +120,11 @@ export default function Notifications() {
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (item) =>
-          item.title.toLowerCase().includes(q) ||
-          item.message.toLowerCase().includes(q) ||
-          (item.referenceType && item.referenceType.toLowerCase().includes(q))
-      );
+      list = simpleSearch(list, searchQuery, [
+        (item: any) => item.title,
+        (item: any) => item.message,
+        (item: any) => item.referenceType,
+      ]);
     }
 
     return list;

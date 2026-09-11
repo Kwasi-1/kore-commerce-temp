@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { smartSearch } from '@/lib/searchUtils';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -92,15 +93,13 @@ export default function ImportStaffToPayrollModal({
 
   const filteredStaff = useMemo(() => {
     if (!debouncedSearchQuery.trim()) return availableStaff;
-    const q = debouncedSearchQuery.toLowerCase();
-    return availableStaff.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(q) ||
-        s.first_name?.toLowerCase().includes(q) ||
-        s.last_name?.toLowerCase().includes(q) ||
-        s.email?.toLowerCase().includes(q) ||
-        s.role?.toLowerCase().includes(q)
-    );
+    return smartSearch(availableStaff, debouncedSearchQuery, [
+      (s: any) => s.name,
+      (s: any) => s.first_name,
+      (s: any) => s.last_name,
+      (s: any) => s.email,
+      (s: any) => s.role,
+    ]);
   }, [availableStaff, debouncedSearchQuery]);
 
   const selectedStaff = useMemo(

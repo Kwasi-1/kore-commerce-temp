@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { smartSearch } from "@/lib/searchUtils";
 import { 
   Package, 
   AlertTriangle, 
@@ -350,15 +351,13 @@ export default function StockAdjustments() {
     }
 
     if (!tableSearchQuery.trim()) return result;
-    const q = tableSearchQuery.toLowerCase();
-    return result.filter(
-      (a) =>
-        (a.variant_name && a.variant_name.toLowerCase().includes(q)) ||
-        (a.sku && a.sku.toLowerCase().includes(q)) ||
-        (a.reason && a.reason.toLowerCase().includes(q)) ||
-        (a.notes && a.notes.toLowerCase().includes(q)) ||
-        (a.initiated_by_name && a.initiated_by_name.toLowerCase().includes(q))
-    );
+    return smartSearch(result, tableSearchQuery, [
+      (a: any) => a.variant_name,
+      (a: any) => a.sku,
+      (a: any) => a.reason,
+      (a: any) => a.notes,
+      (a: any) => a.initiated_by_name,
+    ]);
   }, [adjustments, typeFilter, tableSearchQuery]);
 
   // Pending approvals columns definition

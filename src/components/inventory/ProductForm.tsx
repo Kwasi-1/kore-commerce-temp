@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { simpleSearch } from '@/lib/searchUtils';
 import { 
   CustomInputTextField, 
   CustomSelectField, 
@@ -58,9 +59,7 @@ function CreatableCategorySelect({
 
   const filtered = useMemo(() => {
     if (!search.trim()) return categories;
-    return categories.filter((c) =>
-      c.toLowerCase().includes(search.trim().toLowerCase())
-    );
+    return simpleSearch(categories, search, [(c) => c]);
   }, [categories, search]);
 
   const exactMatch = categories.some(

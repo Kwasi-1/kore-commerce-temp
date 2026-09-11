@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { simpleSearch } from '@/lib/searchUtils';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
@@ -103,7 +104,7 @@ export default function Discounts() {
   const filteredDiscounts = useMemo(() => {
     return discounts.filter((d: any) => {
       // Search
-      const matchesSearch = (d.code || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = simpleSearch([d], searchQuery, [(d: any) => d.code]).length > 0;
       if (!matchesSearch) return false;
 
       // Tab filter

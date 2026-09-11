@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { smartSearch } from '@/lib/searchUtils';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { Search, Layers, Check, Plus, Package } from 'lucide-react';
@@ -141,13 +142,13 @@ export function POProductPickerModal({
       if (!matchesCat) return false;
 
       if (!debouncedSearchQuery.trim()) return true;
-      const q = debouncedSearchQuery.toLowerCase();
-      return (
-        p.product_name.toLowerCase().includes(q) ||
-        p.variant_name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-      );
+      const matches = smartSearch([p], debouncedSearchQuery, [
+        (p: any) => p.product_name,
+        (p: any) => p.variant_name,
+        (p: any) => p.sku,
+        (p: any) => p.category,
+      ]);
+      return matches.length > 0;
     });
   }, [products, selectedCategory, debouncedSearchQuery]);
 

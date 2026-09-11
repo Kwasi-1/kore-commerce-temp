@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { simpleSearch } from '@/lib/searchUtils';
 import type { Selection } from '@nextui-org/react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -612,7 +613,7 @@ export default function StockReconciliation() {
 
   const filteredCategoryList = useMemo(() => {
     if (!categorySearchTerm.trim()) return categories;
-    return categories.filter(c => c.toLowerCase().includes(categorySearchTerm.toLowerCase()));
+    return simpleSearch(categories, categorySearchTerm, [(c) => c]);
   }, [categories, categorySearchTerm]);
 
   return (

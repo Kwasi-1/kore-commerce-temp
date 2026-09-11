@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { smartSearch } from '@/lib/searchUtils';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
@@ -70,10 +71,10 @@ export default function CreditLedger() {
       }
       
       // Client-side search
-      const filtered = data.filter((c: any) => 
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (c.phone && c.phone.includes(searchQuery))
-      );
+      const filtered = smartSearch(data, searchQuery, [
+        (c: any) => c.name,
+        (c: any) => c.phone,
+      ]);
       
       setDebtors(filtered);
     } catch (error) {

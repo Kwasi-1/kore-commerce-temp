@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { smartSearch } from '@/lib/searchUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
@@ -109,10 +110,13 @@ export default function OnlineOrders() {
       const pag = response.data.success?.data?.pagination || response.data?.pagination || null;
       
       // Filter by search query and date on frontend for safety
-      const filtered = ordersData.filter((o: any) => {
-        const matchesSearch = (o.reference || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-          (o.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (o.customer_email || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const searchFiltered = smartSearch(ordersData, searchQuery, [
+        (o: any) => o.reference,
+        (o: any) => o.customer_name,
+        (o: any) => o.customer_email,
+      ]);
+      const filtered = searchFiltered.filter((o: any) => {
+        const matchesSearch = true; // already filtered above
         if (!matchesSearch) return false;
 
         if (dateFilter.start_date || dateFilter.end_date) {

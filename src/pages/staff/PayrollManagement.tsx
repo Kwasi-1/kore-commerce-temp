@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { simpleSearch } from '@/lib/searchUtils';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
@@ -213,10 +214,11 @@ export default function PayrollManagement() {
   const filteredMobileLog = useMemo(() => {
     return combinedLogRows.filter((row: any) => {
       if (searchLogQuery.trim()) {
-        const q = searchLogQuery.toLowerCase();
-        const matchPeriod = row.pay_period?.toLowerCase().includes(q);
-        const matchRecip = row.recipient_name?.toLowerCase().includes(q);
-        if (!matchPeriod && !matchRecip) return false;
+        const matches = simpleSearch([row], searchLogQuery, [
+          (r: any) => r.pay_period,
+          (r: any) => r.recipient_name,
+        ]);
+        if (matches.length === 0) return false;
       }
       if (mobileLogTab === 'logged') return row.status === 'logged';
       if (mobileLogTab === 'voided') return row.status === 'voided';
