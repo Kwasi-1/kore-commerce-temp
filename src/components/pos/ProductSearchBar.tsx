@@ -3,7 +3,6 @@ import { simpleSearch, smartSearch } from '@/lib/searchUtils';
 import { Icon } from '@iconify/react';
 import apiClient from '@/api/client';
 import { useCartStore } from '@/store/cartStore';
-import { useAuthStore } from '@/store/authStore';
 import { useShift } from '@/hooks/useShift';
 import { useFeaturesStore } from '@/store/featuresStore';
 import toast from 'react-hot-toast';
@@ -35,70 +34,9 @@ interface ProductSearchBarProps {
 export default function ProductSearchBar({ isCartCollapsed = false }: ProductSearchBarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [isDesktopSearchFocused, setIsDesktopSearchFocused] = useState(false);
-  const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false);
   const [renderedCollapsed, setRenderedCollapsed] = useState(isCartCollapsed);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
-
-  const tenant = useAuthStore((state) => state.tenant);
-  const tenantId = tenant?.id || 'default';
-  const RECENT_SEARCHES_KEY = `pos_recent_searches:${tenantId}`;
-
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setRecentSearches(parsed.slice(0, 8));
-          return;
-        }
-      }
-      setRecentSearches([]);
-    } catch {
-      setRecentSearches([]);
-    }
-  }, [RECENT_SEARCHES_KEY]);
-
-  const saveRecentSearch = (query: string) => {
-    const trimmed = query.trim();
-    if (!trimmed || trimmed.length < 2) return;
-    setRecentSearches((prev) => {
-      const next = [trimmed, ...prev.filter((q) => q.toLowerCase() !== trimmed.toLowerCase())].slice(0, 8);
-      try {
-        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.warn('Failed to save recent search to localStorage', e);
-      }
-      return next;
-    });
-  };
-
-  const clearRecentSearch = (queryToClear: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setRecentSearches((prev) => {
-      const next = prev.filter((q) => q !== queryToClear);
-      try {
-        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.warn('Failed to update recent searches', e);
-      }
-      return next;
-    });
-  };
-
-  const clearAllRecentSearches = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setRecentSearches([]);
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch (e) {
-      console.warn('Failed to clear recent searches', e);
-    }
-  };
 
   const { gridDensity, defaultPriceType, soundEffectsEnabled, hideOutOfStock, togglePreference, setPreference } = useRegisterPreferencesStore();
 
@@ -363,9 +301,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       ]);
       setProducts(filtered);
       setActiveCategories([]);
-      if (filtered.length > 0) {
-        saveRecentSearch(query);
-      }
       return;
     }
 
@@ -376,9 +311,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       const flat = flattenProducts(foundProducts);
       setProducts(flat);
       setActiveCategories([]);
-      if (flat.length > 0) {
-        saveRecentSearch(query);
-      }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed');
@@ -487,7 +419,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     if (match) {
       handleAddToCart(match);
       setSearchTerm('');
-      saveRecentSearch(match.name || trimmed);
       toast.success(`${match.name} added to cart`);
     } else {
       // Immediate search without waiting for debounce
@@ -543,62 +474,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     </div>
   );
 
-  const renderRecentSearchesDropdown = (isMobile = false) => {
-    if (recentSearches.length === 0) return null;
-
-    return (
-      <div
-        onMouseDown={(e) => e.preventDefault()}
-        className={cn(
-          "absolute top-full mt-2 bg-popover text-popover-foreground border border-border/80 shadow-lg rounded-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150",
-          isMobile ? "left-0 right-0" : "right-0 w-72"
-        )}
-      >
-        <div className="flex items-center justify-between px-1 pb-2 border-b border-border/40 mb-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <Icon icon="solar:history-linear" className="h-3.5 w-3.5" />
-            <span>Recent Searches</span>
-          </div>
-          <button
-            type="button"
-            onClick={clearAllRecentSearches}
-            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors font-medium cursor-pointer"
-          >
-            Clear all
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
-          {recentSearches.map((term) => (
-            <div
-              key={term}
-              onClick={() => {
-                setSearchTerm(term);
-                if (isMobile) {
-                  setIsMobileSearchFocused(false);
-                } else {
-                  setIsDesktopSearchFocused(false);
-                  setIsSearchActive(true);
-                }
-                performSearch(term);
-              }}
-              className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-xs text-foreground cursor-pointer transition-colors border border-border/40 hover:border-border"
-            >
-              <span className="truncate max-w-[170px]">{term}</span>
-              <button
-                type="button"
-                onClick={(e) => clearRecentSearch(term, e)}
-                className="text-muted-foreground hover:text-foreground opacity-60 group-hover:opacity-100 p-0.5 rounded-full transition-opacity"
-                title="Remove"
-              >
-                <Icon icon="solar:close-circle-linear" className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="flex flex-col h-full bg-background">
       
@@ -615,28 +490,21 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setIsMobileSearchFocused(true)}
-              onBlur={() => setIsMobileSearchFocused(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  setIsMobileSearchFocused(false);
                   handleScanOrSubmit(searchTerm);
                 }
               }}
             />
             {searchTerm && (
               <button 
-                onClick={() => {
-                  setSearchTerm('');
-                  setIsMobileSearchFocused(false);
-                }}
+                onClick={() => setSearchTerm('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
               >
                 <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
               </button>
             )}
-            {isMobileSearchFocused && !searchTerm.trim() && renderRecentSearchesDropdown(true)}
           </div>
           <Button 
             variant="outline" 
@@ -798,12 +666,8 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => {
-                setIsSearchActive(true);
-                setIsDesktopSearchFocused(true);
-              }}
+              onFocus={() => setIsSearchActive(true)}
               onBlur={() => {
-                setIsDesktopSearchFocused(false);
                 if (!searchTerm.trim()) {
                   setIsSearchActive(false);
                 }
@@ -811,14 +675,12 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  setIsDesktopSearchFocused(false);
                   handleScanOrSubmit(searchTerm);
                 } else if (e.key === 'Escape') {
                   if (searchTerm) {
                     setSearchTerm('');
                   } else {
                     setIsSearchActive(false);
-                    setIsDesktopSearchFocused(false);
                     desktopSearchInputRef.current?.blur();
                   }
                 }
@@ -831,7 +693,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 onClick={() => {
                   setSearchTerm('');
                   setIsSearchActive(false);
-                  setIsDesktopSearchFocused(false);
                   desktopSearchInputRef.current?.blur();
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center p-0.5 rounded-full hover:bg-muted/80 transition-colors"
@@ -839,7 +700,6 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 <Icon icon="ant-design:close-outlined" className="h-4 w-4" />
               </button>
             )}
-            {isDesktopSearchFocused && !searchTerm.trim() && renderRecentSearchesDropdown(false)}
           </div>
         </div>
 
