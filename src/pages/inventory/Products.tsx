@@ -189,7 +189,6 @@ export default function Products() {
   };
 
   const handleBulkSuccess = () => {
-    setIsBulkModalOpen(false);
     setProductVariantsCache({});
     fetchProducts();
   };
