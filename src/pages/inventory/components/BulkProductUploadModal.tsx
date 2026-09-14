@@ -379,7 +379,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
           )}
           <Button
             onClick={handleClose}
-            className="w-full sm:w-auto bg-primary text-primary-foreground min-w-[120px] font-bold text-xs"
+            className="w-full sm:w-auto bg-primary text-primary-foreground min-w-[100px] font-bold text-xs"
           >
             Done
           </Button>
@@ -393,7 +393,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
             <Button
               onClick={handleSubmit}
               disabled={isPending || validProductsCount === 0}
-              className="bg-primary text-primary-foreground min-w-[150px] font-bold"
+              className="bg-primary text-primary-foreground min-w-[150px] font-bold px-5"
             >
               {isPending ? (
                 <div className="flex items-center gap-2">
@@ -414,17 +414,20 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     <CustomModal
       isOpen={isOpen}
       onOpenChange={() => handleClose()}
-      size="5xl"
+      size={step === "review" ? "5xl" : "4xl"}
+      classNames={{
+        base: "scrollbar-hide pb-1",
+      }}
       header={
         <div className="pt-3.5 px-2">
-          <h2 className="text-lg md:text-xl font-bold font-header !tracking-tight">
+          <h2 className="text-lg md:text-xl font-bold font-header !tracking-[-0.04em]">
             {step === "summary"
               ? uploadResult?.failed === 0
                 ? "Import Complete"
                 : "Import Results & Conflicts"
               : "Bulk Import Products"}
           </h2>
-          <p className="text-sm text-muted-foreground font-normal">
+          <p className={`hidden text-sm text-muted-foreground font-normal ${step !== "upload" && "md:block"}`}>
             {step === "summary"
               ? uploadResult?.failed === 0
                 ? "All products were successfully added to your catalog."
@@ -470,7 +473,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
               <Button
                 variant="outline"
                 onClick={downloadSample}
-                className="text-foreground border border-border hover:bg-secondary font-bold text-xs uppercase font-header tracking-wider"
+                className="text-foreground border border-border hover:bg-secondary font-bold text-xs uppercase font-header !tracking-wider"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download Sample CSV Template
@@ -480,7 +483,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
           {step === "review" && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-card py-3 px-4 border border-border rounded">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-card py-2.5 md:py-3 px-3 md:px-4 border border-border rounded-md">
                 <div className="flex flex-wrap items-center gap-3 md:gap-4">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-muted-foreground" />
@@ -510,7 +513,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-border px-3 rounded-md text-xs font-header uppercase tracking-wider h-8"
+                    className="border-border px-3 rounded text-xs font-header uppercase tracking-wider h-8"
                     onClick={() => {
                       setStep("upload");
                       setParsedData([]);
@@ -525,16 +528,16 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
               <div className="bg-card border border-border rounded overflow-x-auto shadow-sm">
                 <div className="overflow-x-auto scrollbar-hide max-h-[50vh]">
                   <table className="w-full text-xs text-left whitespace-nowrap">
-                    <thead className="text-[11px] text-muted-foreground bg-muted uppercase sticky top-0 z-10 shadow-sm font-header tracking-wider">
+                    <thead className="text-[11px] text-muted-foreground bg-muted uppercase sticky top-0 z-10 shadow-sm font-header !tracking-wider">
                       <tr>
-                        <th className="px-3 py-2.5 font-bold">Product Name*</th>
-                        <th className="px-3 py-2.5 font-bold">Variant / SKU</th>
-                        <th className="px-3 py-2.5 font-bold">Unit / Stock*</th>
-                        <th className="px-3 py-2.5 font-bold">Retail Price*</th>
-                        <th className="px-3 py-2.5 font-bold">Wholesale</th>
-                        <th className="px-3 py-2.5 font-bold">Packaging Tiers</th>
-                        <th className="px-3 py-2.5 font-bold">Category</th>
-                        <th className="px-3 py-2.5 font-bold">Tags</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Product Name*</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Variant / SKU</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Unit / Stock*</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Retail Price*</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Wholesale</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Packaging Tiers</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Category</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Tags</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
@@ -578,7 +581,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                   onChange={(e) => handleCellChange(idx, "sku", e.target.value)}
                                   className={`w-full px-2 py-0.5 rounded border text-[11px] font-mono outline-none ${
                                     row._skuConflict || row._error
-                                      ? "border-destructive/60 bg-destructive/10 text-destructive font-semibold"
+                                      ? "border-destructive/30 bg-destructive/5 text-destructive font-semibold"
                                       : "border-transparent text-muted-foreground bg-transparent"
                                   }`}
                                   placeholder="SKU"
@@ -714,9 +717,9 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
               ) : (
                 /* Partial or Conflict View */
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-emerald-500/5 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="p-4 rounded-lg flex items-center gap-3 border border-border/80">
+                      <div className="hidden w-10 h-10 rounded-lg bg-emerald-500/5 text-emerald-600 md:flex items-center justify-center font-bold">
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div>
@@ -737,7 +740,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
                   {uploadResult.errors.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="md:flex items-center justify-between hidden">
                         <h4 className="text-xs font-bold uppercase !tracking-wider text-muted-foreground font-header">
                           Skipped Items & Conflict Explanations
                         </h4>
@@ -749,9 +752,9 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                         <table className="w-full text-xs text-left">
                           <thead className="bg-muted text-[11px] uppercase !tracking-wider text-muted-foreground font-header sticky top-0">
                             <tr>
-                              <th className="px-3 py-2.5 font-bold">Product in CSV</th>
-                              <th className="px-3 py-2.5 font-bold">SKU</th>
-                              <th className="px-3 py-2.5 font-bold">Reason / Conflict</th>
+                              <th className="px-3 py-2.5 font-bold !tracking-wider">Product in CSV</th>
+                              <th className="px-3 py-2.5 font-bold !tracking-wider">SKU</th>
+                              <th className="px-3 py-2.5 font-bold !tracking-wider">Reason / Conflict</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60 bg-card">
