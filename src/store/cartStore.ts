@@ -38,8 +38,10 @@ interface CartState {
   total: number;
   savedTransactions: SavedTransaction[];
   panelState: 'collapsed' | 'default' | 'expanded';
+  tenantId: string | null;
   
   // Actions
+  syncTenant: (tenantId: string | null) => void;
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -78,12 +80,28 @@ const filterExpiredTransactions = (transactions: SavedTransaction[]): SavedTrans
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
+      tenantId: null,
       items: [],
       discount: 0,
       subtotal: 0,
       total: 0,
       savedTransactions: [],
       panelState: 'default',
+
+      syncTenant: (tenantId) =>
+        set((state) => {
+          if (tenantId && state.tenantId && state.tenantId !== tenantId) {
+            return {
+              tenantId,
+              items: [],
+              discount: 0,
+              subtotal: 0,
+              total: 0,
+              savedTransactions: [],
+            };
+          }
+          return { tenantId: tenantId || state.tenantId };
+        }),
 
       setPanelState: (panelState) => set({ panelState }),
 
@@ -273,6 +291,7 @@ export const useCartStore = create<CartState>()(
     {
       name: 'pos-cart-storage',
       partialize: (state) => ({
+        tenantId: state.tenantId,
         items: state.items,
         discount: state.discount,
         subtotal: state.subtotal,
@@ -282,6 +301,25 @@ export const useCartStore = create<CartState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.savedTransactions = filterExpiredTransactions(state.savedTransactions);
+          try {
+            const rawAuth = localStorage.getItem('headlesspos-auth');
+            if (rawAuth) {
+              const parsedAuth = JSON.parse(rawAuth);
+              const activeTenantId = parsedAuth?.state?.tenant?.id;
+              if (activeTenantId && state.tenantId && state.tenantId !== activeTenantId) {
+                state.items = [];
+                state.savedTransactions = [];
+                state.discount = 0;
+                state.subtotal = 0;
+                state.total = 0;
+                state.tenantId = activeTenantId;
+              } else if (activeTenantId && !state.tenantId) {
+                state.tenantId = activeTenantId;
+              }
+            }
+          } catch {
+            // ignore JSON parse errors
+          }
         }
       }
     }

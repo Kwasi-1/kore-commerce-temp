@@ -33,11 +33,58 @@ interface ParsedProduct {
   tier_3_wholesale_price: string;
   tags: string;
   _error?: string;
+  _skuConflict?: boolean;
 }
 
+interface UploadResultSummary {
+  created: number;
+  failed: number;
+  errors: { name: string; sku?: string; error: string }[];
+}
+
+const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
+  // Map SKU to product names to detect collisions across different products in the same file
+  const skuToNames = new Map<string, Set<string>>();
+  rows.forEach((r) => {
+    const s = r.sku?.trim().toLowerCase();
+    if (s) {
+      if (!skuToNames.has(s)) skuToNames.set(s, new Set());
+      if (r.name?.trim()) skuToNames.get(s)!.add(r.name.trim().toLowerCase());
+    }
+  });
+
+  return rows.map((item) => {
+    let error: string | undefined = undefined;
+    let isSkuConflict = false;
+
+    if (!item.name) {
+      error = "Missing product name";
+    } else if (isNaN(Number(item.retail_price)) || Number(item.retail_price) < 0) {
+      error = "Invalid retail price";
+    } else if (isNaN(Number(item.quantity)) || Number(item.quantity) < 0) {
+      error = "Invalid quantity";
+    } else if (item.sku?.trim()) {
+      const s = item.sku.trim().toLowerCase();
+      const namesUsingSku = skuToNames.get(s);
+      if (namesUsingSku && namesUsingSku.size > 1) {
+        error = `SKU '${item.sku}' is used across multiple products in this sheet`;
+        isSkuConflict = true;
+      }
+    }
+
+    return {
+      ...item,
+      _error: error,
+      _skuConflict: isSkuConflict,
+    };
+  });
+};
+
 export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProductUploadModalProps) {
-  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [step, setStep] = useState<"upload" | "review" | "summary">("upload");
+  const [conflictStrategy, setConflictStrategy] = useState<"skip" | "strict">("skip");
   const [parsedData, setParsedData] = useState<ParsedProduct[]>([]);
+  const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +93,8 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     if (isPending) return;
     setStep("upload");
     setParsedData([]);
+    setUploadResult(null);
+    setConflictStrategy("skip");
     onClose();
   };
 
@@ -54,42 +103,29 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const processed: ParsedProduct[] = results.data.map((row) => {
-          const item: ParsedProduct = {
-            name: (row.name || row.product_name || "").trim(),
-            category: (row.category || "").trim(),
-            description: (row.description || "").trim(),
-            sku: (row.sku || row.variant_sku || "").trim(),
-            variant_name: (row.variant_name || row.attributes || "").trim(),
-            base_unit_name: (row.base_unit_name || row.unit_name || "unit").trim(),
-            quantity: (row.quantity || row.stock_quantity || "0").toString().trim(),
-            cost_price: (row.cost_price || "").toString().trim(),
-            retail_price: (row.retail_price || row.price || "0").toString().trim(),
-            wholesale_price: (row.wholesale_price || "").toString().trim(),
-            tier_2_name: (row.tier_2_name || "").trim(),
-            tier_2_units: (row.tier_2_units || row.tier_2_count || "").toString().trim(),
-            tier_2_retail_price: (row.tier_2_retail_price || "").toString().trim(),
-            tier_2_wholesale_price: (row.tier_2_wholesale_price || "").toString().trim(),
-            tier_3_name: (row.tier_3_name || "").trim(),
-            tier_3_units: (row.tier_3_units || row.tier_3_count || "").toString().trim(),
-            tier_3_retail_price: (row.tier_3_retail_price || "").toString().trim(),
-            tier_3_wholesale_price: (row.tier_3_wholesale_price || "").toString().trim(),
-            tags: (row.tags || "").trim(),
-          };
+        const processed: ParsedProduct[] = results.data.map((row) => ({
+          name: (row.name || row.product_name || "").trim(),
+          category: (row.category || "").trim(),
+          description: (row.description || "").trim(),
+          sku: (row.sku || row.variant_sku || "").trim(),
+          variant_name: (row.variant_name || row.attributes || "").trim(),
+          base_unit_name: (row.base_unit_name || row.unit_name || "unit").trim(),
+          quantity: (row.quantity || row.stock_quantity || "0").toString().trim(),
+          cost_price: (row.cost_price || "").toString().trim(),
+          retail_price: (row.retail_price || row.price || "0").toString().trim(),
+          wholesale_price: (row.wholesale_price || "").toString().trim(),
+          tier_2_name: (row.tier_2_name || "").trim(),
+          tier_2_units: (row.tier_2_units || row.tier_2_count || "").toString().trim(),
+          tier_2_retail_price: (row.tier_2_retail_price || "").toString().trim(),
+          tier_2_wholesale_price: (row.tier_2_wholesale_price || "").toString().trim(),
+          tier_3_name: (row.tier_3_name || "").trim(),
+          tier_3_units: (row.tier_3_units || row.tier_3_count || "").toString().trim(),
+          tier_3_retail_price: (row.tier_3_retail_price || "").toString().trim(),
+          tier_3_wholesale_price: (row.tier_3_wholesale_price || "").toString().trim(),
+          tags: (row.tags || "").trim(),
+        }));
 
-          // Validation
-          if (!item.name) {
-            item._error = "Missing product name";
-          } else if (isNaN(Number(item.retail_price)) || Number(item.retail_price) < 0) {
-            item._error = "Invalid retail price";
-          } else if (isNaN(Number(item.quantity)) || Number(item.quantity) < 0) {
-            item._error = "Invalid quantity";
-          }
-
-          return item;
-        });
-
-        setParsedData(processed);
+        setParsedData(validateRows(processed));
         setStep("review");
       },
     });
@@ -112,24 +148,20 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   const handleCellChange = (index: number, field: keyof ParsedProduct, value: string) => {
     const newData = [...parsedData];
     newData[index] = { ...newData[index], [field]: value };
-    
-    // Re-validate row
-    const item = newData[index];
-    item._error = undefined;
-    if (!item.name) {
-      item._error = "Missing product name";
-    } else if (isNaN(Number(item.retail_price)) || Number(item.retail_price) < 0) {
-      item._error = "Invalid retail price";
-    } else if (isNaN(Number(item.quantity)) || Number(item.quantity) < 0) {
-      item._error = "Invalid quantity";
-    }
-    
-    setParsedData(newData);
+    setParsedData(validateRows(newData));
   };
 
   const handleSubmit = async () => {
+    if (conflictStrategy === "strict" && errorCount > 0) {
+      toast.error("Please resolve all row issues before importing in Strict Mode.");
+      return;
+    }
+
     const validProducts = parsedData.filter((p) => !p._error);
-    if (validProducts.length === 0) return;
+    if (validProducts.length === 0) {
+      toast.error("No valid products to import.");
+      return;
+    }
 
     const payload = validProducts.map((p) => ({
       name: p.name,
@@ -150,16 +182,29 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       tier_3_units: p.tier_3_units ? Number(p.tier_3_units) : undefined,
       tier_3_retail_price: p.tier_3_retail_price ? Number(p.tier_3_retail_price) : undefined,
       tier_3_wholesale_price: p.tier_3_wholesale_price ? Number(p.tier_3_wholesale_price) : undefined,
-      tags: p.tags ? p.tags.split(/[|,]/).map(t => t.trim()).filter(Boolean) : [],
+      tags: p.tags ? p.tags.split(/[|,]/).map((t) => t.trim()).filter(Boolean) : [],
     }));
 
     setIsPending(true);
     try {
       const res = await apiClient.post("/tenant/products/bulk", { products: payload });
-      const createdCount = res.data.success?.data?.created ?? validProducts.length;
-      toast.success(`Successfully imported ${createdCount} items!`);
-      if (onSuccess) onSuccess();
-      handleClose();
+      const resultData = res.data.success?.data || {};
+      const serverErrors: { name: string; sku?: string; error: string }[] = resultData.errors || [];
+      const createdCount = resultData.created ?? validProducts.length;
+
+      if (serverErrors.length > 0) {
+        setUploadResult({
+          created: createdCount,
+          failed: resultData.failed ?? serverErrors.length,
+          errors: serverErrors,
+        });
+        setStep("summary");
+        if (onSuccess) onSuccess();
+      } else {
+        toast.success(`Successfully imported ${createdCount} items!`);
+        if (onSuccess) onSuccess();
+        handleClose();
+      }
     } catch (error: any) {
       console.error("Bulk upload error:", error);
       toast.error(error.response?.data?.error?.message || "Failed to import products");
@@ -188,17 +233,14 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       "tier_3_units",
       "tier_3_retail_price",
       "tier_3_wholesale_price",
-      "tags"
+      "tags",
     ].join(",");
 
     const rows = [
-      // Example 1: Simple item with wholesale pricing
       `"Sugar Bread","Bakery","Freshly baked bread","BRD-001","","piece","50","8.00","12.00","10.00","","","","","","","","","fresh|bakery"`,
-      // Example 2: Multi-tier product (Bottle + Carton of 24)
       `"Voltic Mineral Water","Beverages","500ml natural spring water","VOL-500","500ml Bottle","bottle","240","1.20","2.50","2.00","Carton","24","55.00","48.00","","","","","drinks|water"`,
-      // Example 3: Multi-variant item (Red/Large and Blue/Medium under 1 Product Name)
       `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-RED-L","Red / Large","piece","30","15.00","35.00","28.00","","","","","","","","","clothing|tshirt"`,
-      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","clothing|tshirt"`
+      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","clothing|tshirt"`,
     ].join("\n");
 
     const sampleCsv = `${headers}\n${rows}`;
@@ -213,28 +255,71 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     URL.revokeObjectURL(url);
   };
 
+  const downloadErrorReport = () => {
+    if (!uploadResult || uploadResult.errors.length === 0) return;
+    const headers = "product_name,sku,error_reason\n";
+    const rows = uploadResult.errors
+      .map(
+        (e) =>
+          `"${(e.name || '').replace(/"/g, '""')}","${(e.sku || '').replace(/"/g, '""')}","${(e.error || '').replace(/"/g, '""')}"`
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bulk_import_conflicts_report.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const errorCount = parsedData.filter((p) => p._error).length;
+  const validProductsCount = parsedData.length - errorCount;
 
   const footer = (
     <>
-      <Button variant="ghost" onClick={handleClose} disabled={isPending}>
-        Cancel
-      </Button>
-      {step === "review" && (
-        <Button
-          onClick={handleSubmit}
-          disabled={isPending || errorCount > 0 || parsedData.length === 0}
-          className="bg-primary text-primary-foreground min-w-[150px] font-bold"
-        >
-          {isPending ? (
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              <span>Importing...</span>
-            </div>
-          ) : (
-            <>Import {parsedData.length - errorCount} Products</>
+      {step === "summary" ? (
+        <div className="flex flex-col-reverse sm:flex-row gap-3 items-center justify-between w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadErrorReport}
+            className="w-full sm:w-auto border-border text-xs font-bold uppercase font-header tracking-wider"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Download Conflict Report
+          </Button>
+          <Button
+            onClick={handleClose}
+            className="w-full sm:w-auto bg-primary text-primary-foreground min-w-[120px] font-bold text-xs"
+          >
+            Done
+          </Button>
+        </div>
+      ) : (
+        <>
+          <Button variant="ghost" onClick={handleClose} disabled={isPending}>
+            Cancel
+          </Button>
+          {step === "review" && (
+            <Button
+              onClick={handleSubmit}
+              disabled={isPending || (conflictStrategy === "strict" && errorCount > 0) || validProductsCount === 0}
+              className="bg-primary text-primary-foreground min-w-[150px] font-bold"
+            >
+              {isPending ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Importing...</span>
+                </div>
+              ) : (
+                <>Import {validProductsCount} Products {errorCount > 0 && conflictStrategy === "skip" ? `(${errorCount} skipped)` : ''}</>
+              )}
+            </Button>
           )}
-        </Button>
+        </>
       )}
     </>
   );
@@ -245,24 +330,33 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       onOpenChange={() => handleClose()}
       size="5xl"
       header={
-        <div className="pt-4 px-2">
-          <h2 className="text-xl font-bold font-header tracking-tight">Bulk Import Products</h2>
+        <div className="pt-3.5 px-2">
+          <h2 className="text-lg md:text-xl font-bold font-header !tracking-tight">
+            {step === "summary" ? "Import Results & Conflicts" : "Bulk Import Products"}
+          </h2>
           <p className="text-sm text-muted-foreground font-normal">
-            Upload CSV with support for Variants, Packaging Tiers (Cartons/Packs), and Wholesale Prices.
+            {step === "summary"
+              ? "Review imported items and any skipped rows to protect catalog consistency."
+              : "Upload CSV with support for Variants, Packaging Tiers (Cartons/Packs), and Wholesale Prices."}
           </p>
         </div>
       }
       body={
         <div className="flex-1 w-full md:p-2">
-          {step === "upload" ? (
+          {step === "upload" && (
             <div className="flex flex-col items-center justify-center space-y-6 py-8">
               <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`w-full max-w-xl border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                  isDragging ? "border-primary/70 bg-primary/5" : "border-border bg-background hover:border-muted-foreground/20 hover:bg-secondary/50"
+                  isDragging
+                    ? "border-primary/70 bg-primary/5"
+                    : "border-border bg-background hover:border-muted-foreground/20 hover:bg-secondary/50"
                 }`}
               >
                 <input
@@ -290,9 +384,11 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 Download Sample CSV Template
               </Button>
             </div>
-          ) : (
+          )}
+
+          {step === "review" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-card py-3 px-4 border border-border">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-card py-3 px-4 border border-border rounded">
                 <div className="flex flex-wrap items-center gap-3 md:gap-4">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-muted-foreground" />
@@ -301,16 +397,56 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   {errorCount > 0 && (
                     <div className="flex items-center gap-1.5 text-destructive bg-destructive/10 px-2.5 py-1 text-xs font-semibold rounded-full border border-destructive/20">
                       <AlertCircle className="h-4 w-4" />
-                      {errorCount} {errorCount === 1 ? "issue" : "issues"} to fix
+                      {errorCount} {errorCount === 1 ? "issue" : "issues"} detected
                     </div>
                   )}
                 </div>
-                <Button variant="outline" size="sm" className="border-border px-3 rounded-md text-xs" onClick={() => setStep("upload")} disabled={isPending}>
-                  <span className="ml-1">Re-upload CSV</span>
-                </Button>
+
+                <div className="flex items-center gap-3">
+                  {/* Conflict Strategy Selector */}
+                  <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setConflictStrategy("skip")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                        conflictStrategy === "skip"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Upload valid items; skip rows that have duplicate SKU conflicts with existing products"
+                    >
+                      Skip Conflicting SKUs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConflictStrategy("strict")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                        conflictStrategy === "strict"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Require all rows and SKUs to be resolved before uploading"
+                    >
+                      Strict Mode
+                    </button>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border px-3 rounded-md text-xs"
+                    onClick={() => {
+                      setStep("upload");
+                      setParsedData([]);
+                    }}
+                    disabled={isPending}
+                  >
+                    <span className="ml-1">Re-upload CSV</span>
+                  </Button>
+                </div>
               </div>
 
-              <div className="bg-card border border-border rounded-sm overflow-x-auto shadow-sm">
+              <div className="bg-card border border-border rounded overflow-x-auto shadow-sm">
                 <div className="overflow-x-auto scrollbar-hide max-h-[50vh]">
                   <table className="w-full text-xs text-left whitespace-nowrap">
                     <thead className="text-[11px] text-muted-foreground bg-muted uppercase sticky top-0 z-10 shadow-sm font-header tracking-wider">
@@ -332,19 +468,26 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                         const hasTier3 = Boolean(row.tier_3_name && row.tier_3_units);
 
                         return (
-                          <tr key={idx} className={`hover:bg-muted/30 transition-colors ${row._error ? 'bg-destructive/5' : ''}`}>
+                          <tr
+                            key={idx}
+                            className={`hover:bg-muted/30 transition-colors ${
+                              row._error ? "bg-destructive/5" : ""
+                            }`}
+                          >
                             <td className="p-2 min-w-[160px]">
                               <input
                                 type="text"
                                 value={row.name}
                                 onChange={(e) => handleCellChange(idx, "name", e.target.value)}
                                 className={`w-full px-2 py-1 rounded border outline-none text-xs font-semibold ${
-                                  row._error && !row.name ? "border-destructive bg-destructive/10" : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
+                                  row._error && !row.name
+                                    ? "border-destructive bg-destructive/10"
+                                    : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
                                 }`}
                                 placeholder="Product name"
                               />
                             </td>
-                            <td className="p-2 min-w-[140px]">
+                            <td className="p-2 min-w-[150px]">
                               <div className="flex flex-col gap-0.5">
                                 <input
                                   type="text"
@@ -357,9 +500,19 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                   type="text"
                                   value={row.sku}
                                   onChange={(e) => handleCellChange(idx, "sku", e.target.value)}
-                                  className="w-full px-2 py-0.5 rounded border border-transparent text-[11px] text-muted-foreground bg-transparent font-mono"
+                                  className={`w-full px-2 py-0.5 rounded border text-[11px] font-mono outline-none ${
+                                    row._skuConflict
+                                      ? "border-destructive/60 bg-destructive/10 text-destructive font-semibold"
+                                      : "border-transparent text-muted-foreground bg-transparent"
+                                  }`}
                                   placeholder="SKU"
+                                  title={row._error || undefined}
                                 />
+                                {row._skuConflict && (
+                                  <span className="text-[10px] text-destructive flex items-center gap-1 font-semibold px-1">
+                                    <AlertCircle className="w-2.5 h-2.5" /> Duplicate in file
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="p-2 min-w-[110px]">
@@ -369,7 +522,9 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                   value={row.quantity}
                                   onChange={(e) => handleCellChange(idx, "quantity", e.target.value)}
                                   className={`w-16 px-1.5 py-1 rounded border outline-none text-xs font-semibold ${
-                                    row._error && (!row.quantity || isNaN(Number(row.quantity))) ? "border-destructive bg-destructive/10" : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
+                                    row._error && (!row.quantity || isNaN(Number(row.quantity)))
+                                      ? "border-destructive bg-destructive/10"
+                                      : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
                                   }`}
                                   placeholder="0"
                                 />
@@ -389,7 +544,9 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                 value={row.retail_price}
                                 onChange={(e) => handleCellChange(idx, "retail_price", e.target.value)}
                                 className={`w-full px-2 py-1 rounded border outline-none text-xs font-bold ${
-                                  row._error && (!row.retail_price || isNaN(Number(row.retail_price))) ? "border-destructive bg-destructive/10" : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
+                                  row._error && (!row.retail_price || isNaN(Number(row.retail_price)))
+                                    ? "border-destructive bg-destructive/10"
+                                    : "border-transparent hover:border-border focus:border-primary/30 bg-transparent"
                                 }`}
                                 placeholder="0.00"
                               />
@@ -454,6 +611,67 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {step === "summary" && uploadResult && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-emerald-500/5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-emerald-600 font-header">{uploadResult.created}</div>
+                    <div className="text-xs text-muted-foreground font-medium">Successfully Imported</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg bg-amber-500/5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-amber-600 font-header">{uploadResult.failed}</div>
+                    <div className="text-xs text-muted-foreground font-medium">Skipped (Conflicts / Issues)</div>
+                  </div>
+                </div>
+              </div>
+
+              {uploadResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase !tracking-wider text-muted-foreground font-header">
+                      Skipped Items & Conflict Explanations
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground">
+                      Existing products were protected and remained untouched.
+                    </span>
+                  </div>
+                  <div className="border border-border rounded overflow-hidden max-h-[45vh] overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-muted text-[11px] uppercase !tracking-wider text-muted-foreground font-header sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2.5 font-bold">Product in CSV</th>
+                          <th className="px-3 py-2.5 font-bold">SKU</th>
+                          <th className="px-3 py-2.5 font-bold">Reason / Conflict</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60 bg-card">
+                        {uploadResult.errors.map((err, idx) => (
+                          <tr key={idx} className="hover:bg-muted/20">
+                            <td className="px-3 py-2.5 font-semibold text-foreground">{err.name}</td>
+                            <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">{err.sku || "—"}</td>
+                            <td className="px-3 py-2.5 text-destructive text-xs flex items-center gap-1.5">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>{err.error}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

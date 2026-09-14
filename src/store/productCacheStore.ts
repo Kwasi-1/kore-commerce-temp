@@ -16,9 +16,10 @@ interface ProductCacheState {
   products: Product[];
   categories: { name: string; count: number }[];
   cachedAt: number | null;
+  tenantId: string | null;
 
   isStale: () => boolean;
-  setCache: (products: Product[], categories: { name: string; count: number }[]) => void;
+  setCache: (products: Product[], categories: { name: string; count: number }[], tenantId?: string | null) => void;
   clearCache: () => void;
 }
 
@@ -28,17 +29,43 @@ export const useProductCacheStore = create<ProductCacheState>()(
       products: [],
       categories: [],
       cachedAt: null,
+      tenantId: null,
 
       isStale: () => {
-        const { cachedAt } = get();
+        const { cachedAt, tenantId } = get();
         if (!cachedAt) return true;
+        try {
+          const rawAuth = localStorage.getItem('headlesspos-auth');
+          if (rawAuth) {
+            const parsedAuth = JSON.parse(rawAuth);
+            const activeTenantId = parsedAuth?.state?.tenant?.id;
+            if (activeTenantId && tenantId && tenantId !== activeTenantId) {
+              return true; // Force refetch for new tenant
+            }
+          }
+        } catch {
+          // ignore
+        }
         return Date.now() - cachedAt > CACHE_TTL_MS;
       },
 
-      setCache: (products, categories) =>
-        set({ products, categories, cachedAt: Date.now() }),
+      setCache: (products, categories, tenantId = null) => {
+        let activeTenantId = tenantId;
+        if (!activeTenantId) {
+          try {
+            const rawAuth = localStorage.getItem('headlesspos-auth');
+            if (rawAuth) {
+              const parsedAuth = JSON.parse(rawAuth);
+              activeTenantId = parsedAuth?.state?.tenant?.id || null;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        set({ products, categories, cachedAt: Date.now(), tenantId: activeTenantId });
+      },
 
-      clearCache: () => set({ products: [], categories: [], cachedAt: null }),
+      clearCache: () => set({ products: [], categories: [], cachedAt: null, tenantId: null }),
     }),
     {
       name: 'pos-product-cache',
@@ -46,6 +73,7 @@ export const useProductCacheStore = create<ProductCacheState>()(
         products: state.products,
         categories: state.categories,
         cachedAt: state.cachedAt,
+        tenantId: state.tenantId,
       }),
     }
   )

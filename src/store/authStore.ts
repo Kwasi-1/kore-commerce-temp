@@ -60,6 +60,17 @@ export const useAuthStore = create<AuthState>()(
         };
         set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin, graceInfo });
 
+        // Sync active tenant with cart and product cache stores
+        import('@/store/cartStore').then(({ useCartStore }) => {
+          useCartStore.getState().syncTenant(enrichedTenant.id);
+        });
+        import('@/store/productCacheStore').then(({ useProductCacheStore }) => {
+          const cacheTenant = useProductCacheStore.getState().tenantId;
+          if (cacheTenant && cacheTenant !== enrichedTenant.id) {
+            useProductCacheStore.getState().clearCache();
+          }
+        });
+
         // Load feature flags immediately after login (async — non-blocking)
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
           useFeaturesStore.getState().loadFeatures();
@@ -72,6 +83,20 @@ export const useAuthStore = create<AuthState>()(
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
           useFeaturesStore.getState().reset();
         });
+        // Clear POS cart and product cache on logout to prevent cross-tenant state bleed
+        import('@/store/cartStore').then(({ useCartStore }) => {
+          useCartStore.getState().clearCart();
+          useCartStore.getState().clearAllSavedTransactions();
+        });
+        import('@/store/productCacheStore').then(({ useProductCacheStore }) => {
+          useProductCacheStore.getState().clearCache();
+        });
+        try {
+          localStorage.removeItem('pos-cart-storage');
+          localStorage.removeItem('pos-product-cache');
+        } catch {
+          // ignore
+        }
       },
 
       setTokens: (token, refreshToken) => {
