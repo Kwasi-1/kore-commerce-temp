@@ -38,6 +38,7 @@ interface CustomModalProps {
     | "bottom"
     | "bottom-center";
   isDismissable?: boolean;
+  isKeyboardDismissDisabled?: boolean;
   classNames?: Partial<{
     header: any;
     body: any;
@@ -60,6 +61,7 @@ const CustomModal: FC<CustomModalProps> = ({
   placement = "center",
   radius = "md",
   isDismissable = true,
+  isKeyboardDismissDisabled,
   classNames = {},
 }) => {
   return (
@@ -68,6 +70,7 @@ const CustomModal: FC<CustomModalProps> = ({
       backdrop="opaque"
       isOpen={isOpen}
       isDismissable={isDismissable}
+      isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       onOpenChange={onOpenChange}
       scrollBehavior={scrollBehavior}
       placement={placement}

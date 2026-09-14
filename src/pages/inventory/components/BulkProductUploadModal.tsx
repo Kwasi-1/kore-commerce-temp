@@ -86,10 +86,16 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleClose = () => {
+  const handleClose = (force = false) => {
     if (isPending) return;
+    if (!force && step === "review" && parsedData.length > 0) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    setShowDiscardConfirm(false);
     setStep("upload");
     setParsedData([]);
     setUploadResult(null);
@@ -201,6 +207,23 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     } else {
       toast.error("No matching conflicting rows found to edit.");
     }
+  };
+
+  // Generate a unique SKU for an individual row
+  const generateSkuForRow = (index: number) => {
+    const item = parsedData[index];
+    if (!item) return;
+    const words = (item.name || "PRD")
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter(Boolean);
+    const prefix = words.slice(0, 2).map((w) => w.slice(0, 4)).join("-") || "SKU";
+    const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const newSku = `${prefix}-${randomHex}`;
+
+    handleCellChange(index, "sku", newSku);
+    toast.success(`Generated SKU ${newSku} for ${item.name || "item"}`);
   };
 
   // 1-Click Auto-Generate unique SKUs for all rows with conflicts or errors
@@ -359,18 +382,18 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 variant="outline"
                 size="sm"
                 onClick={downloadErrorReport}
-                className="w-full sm:w-auto border-border text-xs font-bold uppercase font-header tracking-wider"
+                className="w-full sm:w-auto border-border text-xs font-bold uppercase font-header !tracking-wider"
               >
                 <Download className="h-3.5 w-3.5 mr-1.5" />
                 Download Conflict Report
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={handleFixConflicts}
-                className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/10 text-xs font-bold uppercase font-header tracking-wider"
+                className="w-full sm:w-auto text-xs font-bold uppercase font-header !tracking-wider shadow-sm"
               >
-                <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                <Wand2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/80" />
                 Fix Conflicting Items ({uploadResult.failed})
               </Button>
             </div>
@@ -378,7 +401,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
             <div />
           )}
           <Button
-            onClick={handleClose}
+            onClick={() => handleClose(true)}
             className="w-full sm:w-auto bg-primary text-primary-foreground min-w-[100px] font-bold text-xs"
           >
             Done
@@ -386,7 +409,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
         </div>
       ) : (
         <>
-          <Button variant="ghost" onClick={handleClose} disabled={isPending}>
+          <Button variant="ghost" onClick={() => handleClose(false)} disabled={isPending}>
             Cancel
           </Button>
           {step === "review" && (
@@ -413,8 +436,10 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   return (
     <CustomModal
       isOpen={isOpen}
-      onOpenChange={() => handleClose()}
+      onOpenChange={() => handleClose(false)}
       size={step === "review" ? "5xl" : "4xl"}
+      isDismissable={step !== "review"}
+      isKeyboardDismissDisabled={step === "review"}
       classNames={{
         base: "scrollbar-hide pb-1",
       }}
@@ -483,6 +508,33 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
           {step === "review" && (
             <div className="space-y-4">
+              {showDiscardConfirm && (
+                <div className="p-3 border border-destructive/10 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-destructive text-sm font-semibold">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Discard unsaved import? All changes to these {parsedData.length} rows will be lost.</span>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-3.5 font-bold hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setShowDiscardConfirm(false)}
+                    >
+                      Keep Editing
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 text-xs px-3.5 font-bold"
+                      onClick={() => handleClose(true)}
+                    >
+                      Discard & Close
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-3 bg-card py-2.5 md:py-3 px-3 md:px-4 border border-border rounded-md">
                 <div className="flex flex-wrap items-center gap-3 md:gap-4">
                   <div className="flex items-center gap-2">
@@ -500,14 +552,14 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 <div className="flex items-center gap-2">
                   {errorCount > 0 && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
-                      className="border-primary/40 text-primary hover:bg-primary/10 text-xs font-bold uppercase font-header tracking-wider px-2.5 py-1 h-8"
+                      className="text-xs font-bold uppercase font-header tracking-wider px-3 h-8 shadow-sm rounded"
                       onClick={handleAutoGenerateSkus}
                       title="Automatically generate fresh unique SKUs for all rows with conflicts"
                     >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                      Auto-Generate SKUs
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-muted-foreground/80" />
+                      Auto-Generate All SKUs
                     </Button>
                   )}
                   <Button
@@ -523,6 +575,10 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                     <span className="ml-1">Re-upload CSV</span>
                   </Button>
                 </div>
+              </div>
+
+              <div className="text-[11px] text-muted-foreground flex items-center justify-between px-1 md:hidden">
+                <span>Swipe table horizontally to review stock & pricing →</span>
               </div>
 
               <div className="bg-card border border-border rounded overflow-x-auto shadow-sm">
@@ -566,8 +622,8 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                 placeholder="Product name"
                               />
                             </td>
-                            <td className="p-2 min-w-[170px]">
-                              <div className="flex flex-col gap-0.5">
+                            <td className="p-2 min-w-[250px]">
+                              <div className="flex flex-col gap-1">
                                 <input
                                   type="text"
                                   value={row.variant_name}
@@ -575,28 +631,40 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                   className="w-full px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/30 outline-none text-xs bg-transparent"
                                   placeholder="Variant (e.g. Red/Large)"
                                 />
-                                <input
-                                  type="text"
-                                  value={row.sku}
-                                  onChange={(e) => handleCellChange(idx, "sku", e.target.value)}
-                                  className={`w-full px-2 py-0.5 rounded border text-[11px] font-mono outline-none ${
-                                    row._skuConflict || row._error
-                                      ? "border-destructive/30 bg-destructive/5 text-destructive font-semibold"
-                                      : "border-transparent text-muted-foreground bg-transparent"
-                                  }`}
-                                  placeholder="SKU"
-                                  title={row._error || undefined}
-                                />
+                                <div className="relative flex items-center">
+                                  <input
+                                    type="text"
+                                    value={row.sku}
+                                    onChange={(e) => handleCellChange(idx, "sku", e.target.value)}
+                                    className={`w-full ${row._skuConflict || row._error ? "pr-7" : "pr-2"} px-2 py-0.5 rounded border text-[11px] font-mono outline-none transition-colors ${
+                                      row._skuConflict || row._error
+                                        ? "border-destructive/10 bg-destructive/5 text-destructive font-semibold"
+                                        : "border-transparent text-muted-foreground bg-transparent"
+                                    }`}
+                                    placeholder="SKU"
+                                    title={row._error || undefined}
+                                  />
+                                  {(row._skuConflict || row._error) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => generateSkuForRow(idx)}
+                                      className="absolute right-1 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                                      title="Generate fresh unique SKU for this item"
+                                    >
+                                      <Wand2 className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                    </button>
+                                  )}
+                                </div>
                                 {(row._skuConflict || row._error) && (
-                                  <span
-                                    className="text-[10px] text-destructive flex items-center gap-1 font-semibold px-0.5"
+                                  <div
+                                    className="text-[10.5px] text-destructive flex items-start gap-1 font-medium px-1.5 py-1 pb-1.5 rounded bg-destructive/5 leading-tight whitespace-normal"
                                     title={row._error}
                                   >
-                                    <AlertCircle className="w-2.5 h-2.5 shrink-0" />
-                                    <span className="truncate max-w-[160px]">
+                                    <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                                    <span className="break-words">
                                       {row._error || "SKU Conflict"}
                                     </span>
-                                  </span>
+                                  </div>
                                 )}
                               </div>
                             </td>
