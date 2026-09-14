@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Upload, AlertCircle, Package, Download, CheckCircle2, Layers } from "lucide-react";
+import { Upload, AlertCircle, Package, Download, CheckCircle2, Layers, Sparkles, Wand2 } from "lucide-react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import apiClient from "@/api/client";
@@ -74,8 +74,8 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
 
     return {
       ...item,
-      _error: error,
-      _skuConflict: isSkuConflict,
+      _error: error || (item._error?.startsWith("SKU '") ? item._error : undefined),
+      _skuConflict: isSkuConflict || Boolean(item._skuConflict),
     };
   });
 };
@@ -145,14 +145,94 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
   const handleCellChange = (index: number, field: keyof ParsedProduct, value: string) => {
     const newData = [...parsedData];
-    newData[index] = { ...newData[index], [field]: value };
+    newData[index] = { 
+      ...newData[index], 
+      [field]: value,
+      // If user edits SKU, clear previous server conflict flag so it can re-validate
+      ...(field === "sku" ? { _skuConflict: false, _error: undefined } : {})
+    };
     setParsedData(validateRows(newData));
+  };
+
+  // In-App Remediation: Filter table to only conflicting items and switch to review mode
+  const handleFixConflicts = () => {
+    if (!uploadResult || uploadResult.errors.length === 0) return;
+
+    const errorSkuMap = new Map<string, string>();
+    uploadResult.errors.forEach((e) => {
+      if (e.sku) {
+        errorSkuMap.set(e.sku.trim().toLowerCase(), e.error);
+      }
+    });
+
+    const errorNameMap = new Map<string, string>();
+    uploadResult.errors.forEach((e) => {
+      if (e.name) {
+        errorNameMap.set(e.name.trim().toLowerCase(), e.error);
+      }
+    });
+
+    const conflictingRows: ParsedProduct[] = parsedData
+      .filter((p) => {
+        const pSku = (p.sku || "").trim().toLowerCase();
+        const pName = (p.name || "").trim().toLowerCase();
+        return (pSku && errorSkuMap.has(pSku)) || errorNameMap.has(pName);
+      })
+      .map((p) => {
+        const pSku = (p.sku || "").trim().toLowerCase();
+        const pName = (p.name || "").trim().toLowerCase();
+        const errorReason =
+          (pSku && errorSkuMap.get(pSku)) ||
+          errorNameMap.get(pName) ||
+          "SKU conflict with existing product";
+        return {
+          ...p,
+          _error: errorReason,
+          _skuConflict: true,
+        };
+      });
+
+    if (conflictingRows.length > 0) {
+      setParsedData(conflictingRows);
+      setStep("review");
+      toast("Reviewing conflicting items. Update the SKUs or use Auto-Generate to fix.", {
+        icon: "✏️",
+      });
+    } else {
+      toast.error("No matching conflicting rows found to edit.");
+    }
+  };
+
+  // 1-Click Auto-Generate unique SKUs for all rows with conflicts or errors
+  const handleAutoGenerateSkus = () => {
+    const updated = parsedData.map((item) => {
+      if (item._skuConflict || item._error) {
+        const words = (item.name || "PRD")
+          .toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, "")
+          .split(/\s+/)
+          .filter(Boolean);
+        const prefix = words.slice(0, 2).map((w) => w.slice(0, 4)).join("-") || "SKU";
+        const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const newSku = `${prefix}-${randomHex}`;
+        return {
+          ...item,
+          sku: newSku,
+          _error: undefined,
+          _skuConflict: false,
+        };
+      }
+      return item;
+    });
+
+    setParsedData(validateRows(updated));
+    toast.success("Generated fresh unique SKUs for conflicting items!");
   };
 
   const handleSubmit = async () => {
     const validProducts = parsedData.filter((p) => !p._error);
     if (validProducts.length === 0) {
-      toast.error("No valid products to import.");
+      toast.error("No valid products to import. Please resolve the SKU conflicts first.");
       return;
     }
 
@@ -274,15 +354,26 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       {step === "summary" ? (
         <div className="flex flex-col-reverse sm:flex-row gap-3 items-center justify-between w-full">
           {uploadResult && uploadResult.errors.length > 0 ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadErrorReport}
-              className="w-full sm:w-auto border-border text-xs font-bold uppercase font-header tracking-wider"
-            >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Download Conflict Report
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadErrorReport}
+                className="w-full sm:w-auto border-border text-xs font-bold uppercase font-header tracking-wider"
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Download Conflict Report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFixConflicts}
+                className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/10 text-xs font-bold uppercase font-header tracking-wider"
+              >
+                <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                Fix Conflicting Items ({uploadResult.failed})
+              </Button>
+            </div>
           ) : (
             <div />
           )}
@@ -403,11 +494,23 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {errorCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/40 text-primary hover:bg-primary/10 text-xs font-bold uppercase font-header tracking-wider px-2.5 py-1 h-8"
+                      onClick={handleAutoGenerateSkus}
+                      title="Automatically generate fresh unique SKUs for all rows with conflicts"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                      Auto-Generate SKUs
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-border px-3 rounded-md text-xs"
+                    className="border-border px-3 rounded-md text-xs font-header uppercase tracking-wider h-8"
                     onClick={() => {
                       setStep("upload");
                       setParsedData([]);
@@ -460,7 +563,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                 placeholder="Product name"
                               />
                             </td>
-                            <td className="p-2 min-w-[150px]">
+                            <td className="p-2 min-w-[170px]">
                               <div className="flex flex-col gap-0.5">
                                 <input
                                   type="text"
@@ -474,16 +577,22 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                                   value={row.sku}
                                   onChange={(e) => handleCellChange(idx, "sku", e.target.value)}
                                   className={`w-full px-2 py-0.5 rounded border text-[11px] font-mono outline-none ${
-                                    row._skuConflict
+                                    row._skuConflict || row._error
                                       ? "border-destructive/60 bg-destructive/10 text-destructive font-semibold"
                                       : "border-transparent text-muted-foreground bg-transparent"
                                   }`}
                                   placeholder="SKU"
                                   title={row._error || undefined}
                                 />
-                                {row._skuConflict && (
-                                  <span className="text-[10px] text-destructive flex items-center gap-1 font-semibold px-1">
-                                    <AlertCircle className="w-2.5 h-2.5" /> Duplicate in file
+                                {(row._skuConflict || row._error) && (
+                                  <span
+                                    className="text-[10px] text-destructive flex items-center gap-1 font-semibold px-0.5"
+                                    title={row._error}
+                                  >
+                                    <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                                    <span className="truncate max-w-[160px]">
+                                      {row._error || "SKU Conflict"}
+                                    </span>
                                   </span>
                                 )}
                               </div>
