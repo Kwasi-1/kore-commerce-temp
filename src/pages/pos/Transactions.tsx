@@ -299,13 +299,36 @@ export default function Transactions() {
   }, [transactions]);
 
   const topSellingItem = useMemo(() => {
-    if (staffUser?.name === "Ama Serwaa") {
-      return { name: "Sony WH-1000XM4", qty: 3 };
-    } else if (staffUser?.name === "Kofi Annan") {
-      return { name: "Nike Air Max", qty: 5 };
+    if (serverSummary && serverSummary.top_selling_item !== undefined) {
+      if (!serverSummary.top_selling_item) return null;
+      return {
+        name: serverSummary.top_selling_item.name,
+        qty: serverSummary.top_selling_item.quantity,
+      };
     }
-    return { name: "Adidas Ultraboost", qty: 2 };
-  }, [staffUser]);
+
+    // Fallback: derive top selling item from loaded transactions
+    const itemMap: Record<string, number> = {};
+    const netTransactions = transactions.filter(
+      (t) => t.status !== "refunded" && t.status !== "voided",
+    );
+    netTransactions.forEach((t) => {
+      (t.items || []).forEach((item: any) => {
+        const name = (item.productName || item.name || "").trim();
+        const qty = Number(item.quantity || item.qty || 0);
+        if (name && qty > 0) {
+          itemMap[name] = (itemMap[name] || 0) + qty;
+        }
+      });
+    });
+
+    const sorted = Object.entries(itemMap).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) {
+      return { name: sorted[0][0], qty: sorted[0][1] };
+    }
+
+    return null;
+  }, [serverSummary, transactions]);
 
   const isCashierFiltered = useMemo(() => {
     if (isCashier || !searchQuery) return false;
@@ -464,6 +487,17 @@ export default function Transactions() {
               iconColorClass="bg-purple-500/5 text-purple-500"
               isLoading={isLoading}
               onClick={() => handleSelectPaymentFilter("card")}
+            />
+          )}
+
+          {isCashier && topSellingItem && (
+            <MobileMetricPill
+              title="Top Item"
+              value={topSellingItem.name}
+              subtitle={`${topSellingItem.qty} sold`}
+              icon={<ShoppingBag className="h-3.5 w-3.5" />}
+              iconColorClass="bg-purple-500/5 text-purple-500"
+              isLoading={isLoading}
             />
           )}
 
@@ -734,8 +768,8 @@ export default function Transactions() {
           {isCashier ? (
             <DashboardCard
               title="Top Selling Item"
-              value={isLoading ? "..." : topSellingItem.name}
-              subvalue={`${topSellingItem.qty} sold`}
+              value={isLoading ? "..." : topSellingItem ? topSellingItem.name : "None yet"}
+              subvalue={topSellingItem ? `${topSellingItem.qty} sold` : "No sales in this period"}
             />
           ) : (
             <DashboardCard
