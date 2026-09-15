@@ -87,6 +87,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   const [isDragging, setIsDragging] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [totalImportedCount, setTotalImportedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = (force = false) => {
@@ -98,6 +99,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     setShowDiscardConfirm(false);
     setStep("upload");
     setParsedData([]);
+    setTotalImportedCount(0);
     setUploadResult(null);
     onClose();
   };
@@ -286,18 +288,72 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       const res = await apiClient.post("/tenant/products/bulk", { products: payload });
       const resultData = res.data.success?.data || {};
       const serverErrors: { name: string; sku?: string; error: string }[] = resultData.errors || [];
-      const createdCount = resultData.created ?? validProducts.length;
+      const createdCount = resultData.created ?? (validProducts.length - serverErrors.length);
 
-      setUploadResult({
-        created: createdCount,
-        failed: resultData.failed ?? serverErrors.length,
-        errors: serverErrors,
+      // Build error map from server response
+      const serverErrorSkuMap = new Map<string, string>();
+      const serverErrorNameMap = new Map<string, string>();
+      serverErrors.forEach((e) => {
+        if (e.sku) serverErrorSkuMap.set(e.sku.trim().toLowerCase(), e.error);
+        if (e.name) serverErrorNameMap.set(e.name.trim().toLowerCase(), e.error);
       });
-      setStep("summary");
 
-      // Notify parent to refresh products list in background
+      const isFailedOnServer = (p: ParsedProduct) => {
+        const s = (p.sku || "").trim().toLowerCase();
+        const n = (p.name || "").trim().toLowerCase();
+        return (s && serverErrorSkuMap.has(s)) || serverErrorNameMap.has(n);
+      };
+
+      // Notify parent to refresh products list in background immediately
       if (createdCount > 0 && onSuccess) {
         onSuccess();
+      }
+
+      const updatedTotalCreated = totalImportedCount + createdCount;
+
+      // Determine remaining rows that could not be imported
+      const remainingRows: ParsedProduct[] = [];
+      parsedData.forEach((row) => {
+        if (row._error) {
+          // Previously skipped on client
+          remainingRows.push(row);
+        } else if (isFailedOnServer(row)) {
+          // Failed on server during this request
+          const s = (row.sku || "").trim().toLowerCase();
+          const n = (row.name || "").trim().toLowerCase();
+          const errMsg = (s && serverErrorSkuMap.get(s)) || serverErrorNameMap.get(n) || "Import failed on server";
+          remainingRows.push({
+            ...row,
+            _error: errMsg,
+            _skuConflict: true,
+          });
+        }
+        // Successfully created rows are dropped from remainingRows
+      });
+
+      if (remainingRows.length === 0) {
+        // All products across all rows are now successfully imported!
+        setUploadResult({
+          created: updatedTotalCreated,
+          failed: 0,
+          errors: [],
+        });
+        setParsedData([]);
+        setStep("summary");
+      } else {
+        // Partial import: Keep user in review mode with remaining items
+        setTotalImportedCount(updatedTotalCreated);
+        setParsedData(validateRows(remainingRows));
+
+        if (createdCount > 0) {
+          toast.success(
+            `Imported ${createdCount} product${createdCount > 1 ? "s" : ""}! ${remainingRows.length} remaining item${
+              remainingRows.length > 1 ? "s have" : " has"
+            } conflicts to resolve.`
+          );
+        } else {
+          toast.error("Could not import items due to server conflicts. Please resolve them below.");
+        }
       }
     } catch (error: any) {
       console.error("Bulk upload error:", error);
@@ -410,7 +466,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
       ) : (
         <>
           <Button variant="ghost" onClick={() => handleClose(false)} disabled={isPending}>
-            Cancel
+            {totalImportedCount > 0 ? "Finish & Close" : "Cancel"}
           </Button>
           {step === "review" && (
             <Button
@@ -424,7 +480,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   <span>Importing...</span>
                 </div>
               ) : (
-                <>Import {validProductsCount} Products {errorCount > 0 ? `(${errorCount} skipped)` : ''}</>
+                <>Import {validProductsCount} Product{validProductsCount === 1 ? '' : 's'} {errorCount > 0 ? `(${errorCount} skipped)` : ''}</>
               )}
             </Button>
           )}
@@ -512,7 +568,11 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 <div className="p-3 border border-destructive/10 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
                   <div className="flex items-center gap-2 text-destructive text-sm font-semibold">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>Discard unsaved import? All changes to these {parsedData.length} rows will be lost.</span>
+                    <span>
+                      {totalImportedCount > 0
+                        ? `${totalImportedCount} product${totalImportedCount > 1 ? "s were" : " was"} already imported. Discard remaining ${parsedData.length} conflicting row${parsedData.length > 1 ? "s" : ""}?`
+                        : `Discard unsaved import? All changes to these ${parsedData.length} rows will be lost.`}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                     <Button
@@ -529,7 +589,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                       className="h-7 text-xs px-3.5 font-bold"
                       onClick={() => handleClose(true)}
                     >
-                      Discard & Close
+                      {totalImportedCount > 0 ? "Done & Exit" : "Discard & Close"}
                     </Button>
                   </div>
                 </div>
@@ -539,8 +599,16 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 <div className="flex flex-wrap items-center gap-3 md:gap-4">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-semibold text-sm">{parsedData.length} Rows Found</span>
+                    <span className="font-semibold text-sm">
+                      {parsedData.length} Rows {totalImportedCount > 0 ? "Remaining" : "Found"}
+                    </span>
                   </div>
+                  {totalImportedCount > 0 && (
+                    <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold rounded-full border border-emerald-500/20">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {totalImportedCount} imported
+                    </div>
+                  )}
                   {errorCount > 0 && (
                     <div className="flex items-center gap-1.5 text-destructive bg-destructive/10 px-2.5 py-1 text-xs font-semibold rounded-full border border-destructive/20">
                       <AlertCircle className="h-4 w-4" />
@@ -569,6 +637,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                     onClick={() => {
                       setStep("upload");
                       setParsedData([]);
+                      setTotalImportedCount(0);
                     }}
                     disabled={isPending}
                   >
