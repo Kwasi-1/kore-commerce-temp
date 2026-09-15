@@ -108,11 +108,32 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   const [totalImportedCount, setTotalImportedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFinishAndShowSummary = () => {
+    const remainingErrors = parsedData.map((p) => ({
+      name: p.name,
+      sku: p.sku,
+      error: p._error || "Skipped without importing",
+    }));
+
+    setUploadResult({
+      created: totalImportedCount,
+      failed: parsedData.length,
+      errors: remainingErrors,
+    });
+    setStep("summary");
+  };
+
   const handleClose = (force = false) => {
     if (isPending) return;
-    if (!force && step === "review" && parsedData.length > 0) {
-      setShowDiscardConfirm(true);
-      return;
+    if (!force && step === "review") {
+      if (totalImportedCount > 0 && parsedData.length > 0) {
+        handleFinishAndShowSummary();
+        return;
+      }
+      if (parsedData.length > 0) {
+        setShowDiscardConfirm(true);
+        return;
+      }
     }
     setShowDiscardConfirm(false);
     setStep("upload");
@@ -483,8 +504,18 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
         </div>
       ) : (
         <>
-          <Button variant="ghost" onClick={() => handleClose(false)} disabled={isPending}>
-            {totalImportedCount > 0 ? "Finish & Close" : "Cancel"}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (totalImportedCount > 0 && parsedData.length > 0) {
+                handleFinishAndShowSummary();
+              } else {
+                handleClose(false);
+              }
+            }}
+            disabled={isPending}
+          >
+            {totalImportedCount > 0 ? "Finish & View Summary" : "Cancel"}
           </Button>
           {step === "review" && (
             <Button
