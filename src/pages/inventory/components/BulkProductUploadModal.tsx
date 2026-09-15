@@ -45,11 +45,19 @@ interface UploadResultSummary {
 const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
   // Map SKU to product names to detect collisions across different products in the same file
   const skuToNames = new Map<string, Set<string>>();
+  // Map Product Name + Variant Name to detect duplicate identical variants in the same file
+  const productVariantKeyCount = new Map<string, number>();
+
   rows.forEach((r) => {
     const s = r.sku?.trim().toLowerCase();
     if (s) {
       if (!skuToNames.has(s)) skuToNames.set(s, new Set());
       if (r.name?.trim()) skuToNames.get(s)!.add(r.name.trim().toLowerCase());
+    }
+
+    if (r.name?.trim()) {
+      const vKey = `${r.name.trim().toLowerCase()}:::${(r.variant_name || "").trim().toLowerCase()}`;
+      productVariantKeyCount.set(vKey, (productVariantKeyCount.get(vKey) || 0) + 1);
     }
   });
 
@@ -72,9 +80,19 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
       }
     }
 
+    if (!error && item.name?.trim()) {
+      const vKey = `${item.name.trim().toLowerCase()}:::${(item.variant_name || "").trim().toLowerCase()}`;
+      if ((productVariantKeyCount.get(vKey) || 0) > 1) {
+        error = item.variant_name?.trim()
+          ? `Duplicate variant '${item.variant_name}' found for product '${item.name}' in this sheet`
+          : `Duplicate product '${item.name}' without variant distinction in this sheet`;
+        isSkuConflict = true;
+      }
+    }
+
     return {
       ...item,
-      _error: error || (item._error?.startsWith("SKU '") ? item._error : undefined),
+      _error: error || (item._error?.startsWith("SKU '") || item._error?.startsWith("Variant '") ? item._error : undefined),
       _skuConflict: isSkuConflict || Boolean(item._skuConflict),
     };
   });
@@ -156,8 +174,8 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     newData[index] = { 
       ...newData[index], 
       [field]: value,
-      // If user edits SKU, clear previous server conflict flag so it can re-validate
-      ...(field === "sku" ? { _skuConflict: false, _error: undefined } : {})
+      // If user edits SKU, variant_name, or name, clear previous conflict flag so it can re-validate
+      ...(field === "sku" || field === "variant_name" || field === "name" ? { _skuConflict: false, _error: undefined } : {})
     };
     setParsedData(validateRows(newData));
   };
