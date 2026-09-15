@@ -22,7 +22,7 @@ export default function DashboardLayout() {
   return (
     <div className="flex h-screen w-full transition-colors duration-200 overflow-hidden">
       {/* Dark Wrapper Container */}
-      <div className="flex w-full h-full bg-sidebar shadow-2xl overflow-hidden ring-1 ring-black/5">
+      <div className="flex w-full h-full bg-dark-sidebar dark:bg-sidebar shadow-2xl overflow-hidden ring-1 ring-black/5">
         
         {/* Sidebar */}
         <Sidebar />

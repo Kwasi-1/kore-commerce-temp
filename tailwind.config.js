@@ -63,6 +63,7 @@ export default {
           hover: "hsl(var(--action-pill-hover))",
           foreground: "hsl(var(--action-pill-foreground))",
         },
+        "dark-sidebar": "#121316",
       },
       borderRadius: {},
       fontFamily: {
