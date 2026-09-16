@@ -284,10 +284,17 @@ export default function Login() {
       exit={{ opacity: 0, scale: 0.95 }}
     >
       <div className="text-center mb-8 fontheader spacing-sm">
-        <div className="mx-auto h-16 w-16 mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-border/5 dark:border-white/10 shadow backdrop-blur-sm">
+        <div className="hidden mx-auto h-[65.5px] w-[65.5px] mb-6 md:flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-foreground/[0.08] dark:border-white/10 shadw backdrop-blur-sm">
           <Icon icon={'arcticons:shop-apotheke-redcare'} className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">{APP_CONFIG.name}</h2>
+        <div className="md:hidden mx-auto h-fit w-fit p-[1.5px] mb-6 flex items-center justify-center rounded-[0.9rem] bg-white/5 border border-border/5 dark:border-white/10 shadow backdrop-blur-sm">
+          <img 
+            src={koreLogo} 
+            alt="Kore Commerce Logo" 
+            className="h-16 w-16 object-contain mx-auto"
+          />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground !tracking-tighter">{APP_CONFIG.name}</h2>
         <p className="text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 
@@ -351,7 +358,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-background font-header spacing-sm">
       {/* Left side - Dynamic Auth Panel */}
-      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card text-card-foreground shadow-2xl m-2 lg:ml-5 lg:my-5 lg:mr-0 rounded-lg">
+      <div className="w-full lg:max-w-[480px] xl:max-w-xl 2xl:min-w-[36rem] 2xl:max-w-full 2xl:w-[37%] flex flex-col justify-center px-8 lg:px-12 py-12 relative z-10 bg-card dark:bg-card/60 text-card-foreground shadow-2xl m-2 lg:ml-5 lg:my-5 lg:mr-0 rounded-2xl">
         <AnimatePresence mode="wait">
           {currentView === 'staff_grid' && renderStaffGrid()}
           {currentView === 'pin_entry' && renderPinEntry()}
@@ -371,11 +378,11 @@ export default function Login() {
         
         <div className="max-w-md text-center relative z-10 px6">
           {/* Official Brand Logo Glass Tile */}
-          <div className="mb-6 inline-flex p-4 sm:p5 rounded-3xl bg-card/60 dark:bg-white/[0.04] backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
+          <div className="mb-6 inline-flex p-2 rounded-3xl bg-card/60 dark:bg-white/[0.04] backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
             <img 
               src={koreLogo} 
               alt="Kore Commerce Logo" 
-              className="h-20 w-20 object-contain"
+              className="h-24 w-24 object-contain"
             />
           </div>
           <h2 className="text-4xl font-extrabold text-foreground mb-4 !tracking-tighter">
