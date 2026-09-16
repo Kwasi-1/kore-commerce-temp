@@ -24,7 +24,7 @@ export default function CreditReceiptModal({
 }: CreditReceiptModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { storeName, storeLocation, storePhone } = useReceiptHeader(transaction);
-  const { formatQuantity } = useQuantityFormatter();
+  const { formatQuantity, formatQuantityWithUnit } = useQuantityFormatter();
 
   if (!transaction) return null;
 
@@ -164,22 +164,45 @@ export default function CreditReceiptModal({
             <div>
               <div className="sticky top-0 bg-white flex font-['AtypDisplay'] font-bold text-[10px] pb-1.5 uppercase tracking-wider text-zinc-900 border-b border-zinc-100 mb-2 z-10">
                 <span className="flex-1">Description</span>
-                <span className="w-10 text-center">Qty</span>
+                <span className="w-14 text-center">Qty</span>
                 <span className="w-20 text-right">Total</span>
               </div>
               <div className="space-y-1.5 text-xs text-zinc-800">
-                {transaction.items?.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-start">
-                    <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
-                    <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
-                    <span className="w-20 text-right font-semibold">
-                      <CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} showStyling={false} />
-                    </span>
-                  </div>
-                )) || (
+                {transaction.items?.map((item: any, idx: number) => {
+                  const qty = Number(item.quantity || 1);
+                  const isMultiQty = qty > 1;
+                  const unitPriceVal = item.unitPrice || item.price;
+                  const variant = item.variantName || item.variant_name;
+                  const tier = item.tierName || item.tier_name || item.packagingTierName || item.packaging_tier_name;
+
+                  return (
+                    <div key={idx} className="flex flex-col border-b border-zinc-100/50 pb-1.5 last:border-0 last:pb-0">
+                      <div className="flex items-start">
+                        <span className="flex-1 pr-2 leading-tight font-medium text-left text-zinc-900">
+                          {item.productName || item.name}
+                        </span>
+                        <span className="w-14 text-center text-zinc-500 font-medium whitespace-nowrap">
+                          {formatQuantityWithUnit(qty, tier)}
+                        </span>
+                        <span className="w-20 text-right font-semibold">
+                          <CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} showStyling={false} />
+                        </span>
+                      </div>
+                      {(variant || (isMultiQty && unitPriceVal > 0)) && (
+                        <div className="text-[10px] text-zinc-500 text-left font-normal mt-0.5 space-x-1">
+                          {variant && <span className="font-medium text-zinc-600">{variant}</span>}
+                          {variant && isMultiQty && unitPriceVal > 0 && <span>·</span>}
+                          {isMultiQty && unitPriceVal > 0 && (
+                            <span>@{Number(unitPriceVal).toFixed(2)}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }) || (
                   <div className="flex items-start">
                     <span className="flex-1 pr-2 leading-tight font-medium text-left">Credit Purchase</span>
-                    <span className="w-10 text-center text-zinc-500">1</span>
+                    <span className="w-14 text-center text-zinc-500 font-medium">1 pc</span>
                     <span className="w-20 text-right font-semibold">
                       <CurrencyDisplay amount={transaction.amount} showStyling={false} />
                     </span>

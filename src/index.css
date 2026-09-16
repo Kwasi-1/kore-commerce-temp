@@ -255,6 +255,11 @@
     @apply tracking-tighter
   }
 }
+.spacing-normal{
+  * {
+    @apply tracking-normal
+  }
+}
 /* 
 * {
     @apply tracking-[-0.03rem]

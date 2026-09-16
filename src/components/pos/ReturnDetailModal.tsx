@@ -1,7 +1,7 @@
 import React from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { CurrencyDisplay } from '@/hooks';
+import { CurrencyDisplay, useQuantityFormatter } from '@/hooks';
 import { format } from 'date-fns';
 import { Icon } from '@iconify/react';
 import { 
@@ -16,7 +16,10 @@ import { APP_CONFIG } from '@/config/app.config';
 
 export interface ReturnItem {
   variant_id: string;
-  product_name: string;
+  variant_sku?: string;
+  variant_name?: string;
+  product_name?: string;
+  name?: string;
   quantity: number;
   unit_price: number;
   condition: 'sellable' | 'damaged' | 'expired';
@@ -64,11 +67,25 @@ const formatGHS = (amt: number) => {
   return new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amt);
 };
 
+const getVal = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseFloat(val) || 0;
+  if (typeof val === 'object') {
+    if (typeof val.parsedValue === 'number') return val.parsedValue;
+    if (typeof val.amount === 'number') return val.amount;
+    if (typeof val.source === 'string') return parseFloat(val.source) || 0;
+    if (typeof val.source === 'number') return val.source;
+  }
+  return 0;
+};
+
 export default function ReturnDetailModal({
   isOpen,
   onClose,
   selectedReturn
 }: ReturnDetailModalProps) {
+  const { formatQuantityWithUnit } = useQuantityFormatter();
   if (!selectedReturn) return null;
 
   const handlePrintReceipt = () => {
@@ -108,9 +125,9 @@ export default function ReturnDetailModal({
         <div className="flex items-center gap-2.5 border-b border-border/50 pb-2">
           <div>
             <h3 className="text-lg font-bold tracking-tight text-foreground">Return Detail Record</h3>
-            <p className="text-xs text-muted-foreground font-mono">
+            {/* <p className="text-xs text-muted-foreground font-mono">
               #{selectedReturn?.id?.slice(0, 8)?.toUpperCase() || '—'}
-            </p>
+            </p> */}
           </div>
         </div>
       }
@@ -208,29 +225,39 @@ export default function ReturnDetailModal({
                     <tr className="bg-muted/60 text-muted-foreground text-[10px] uppercase border-b border-border/60 font-bold">
                       <th className="p-3">Item</th>
                       <th className="p-3 text-center">Qty</th>
-                      <th className="p-3 text-right">Price</th>
+                      <th className="p-3 text-right">Total</th>
                       <th className="p-3 text-center">Condition</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {selectedReturn.items?.map((item, idx) => {
-                      const itemName = item.product_name && item.product_name !== 'Unit' 
-                        ? item.product_name 
-                        : item.packaging_tier_name && item.packaging_tier_name !== 'Unit'
-                          ? item.packaging_tier_name
-                          : 'Returned Item';
+                      const itemName = item.variant_name ||
+                        (item.product_name && item.product_name !== 'Unit' ? item.product_name : null) ||
+                        (item.packaging_tier_name && item.packaging_tier_name !== 'Unit' ? item.packaging_tier_name : null) ||
+                        item.name ||
+                        'Returned Item';
+                      const qty = getVal(item.quantity) || 1;
+                      const unitPrice = getVal(item.unit_price);
+                      const lineTotal = qty * unitPrice;
+                      // const isMultiQty = qty > 1;
                       
                       return (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">
                           <td className="p-3">
                             <p className="font-semibold text-foreground capitalize">{itemName}</p>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              {item.packaging_tier_name || 'Unit'}
-                            </span>
                           </td>
-                          <td className="p-3 text-center font-medium text-foreground">{item.quantity}</td>
-                          <td className="p-3 text-right font-semibold text-foreground">
-                            <CurrencyDisplay amount={item.unit_price} />
+                          <td className="p-3 text-center font-medium text-foreground whitespace-nowrap">
+                            {formatQuantityWithUnit(qty, item.packaging_tier_name)}
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="font-semibold text-foreground block">
+                              <CurrencyDisplay amount={lineTotal} symbolClassName="text-muted-foreground" />
+                            </span>
+                            {/* {isMultiQty && unitPrice > 0 && (
+                              <span className="text-[10px] text-muted-foreground font-medium block">
+                                @<CurrencyDisplay amount={unitPrice} showStyling={false} />
+                              </span>
+                            )} */}
                           </td>
                           <td className="p-3 text-center">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize inline-flex items-center gap-1 border ${

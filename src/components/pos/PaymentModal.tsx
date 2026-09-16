@@ -48,7 +48,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [mobileItemsExpanded, setMobileItemsExpanded] = useState(false);
 
   const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
-  const { formatQuantity } = useQuantityFormatter();
+  const { formatQuantity, formatQuantityWithUnit } = useQuantityFormatter();
   const { posSettings, storeSettings } = useSettingsStore();
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
@@ -355,24 +355,32 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         <div className="flex-1 overflow-y-auto scrollbar-hide mb-4">
           <div className="flex font-['AtypDisplay'] font-bold text-[10px] border-b border-zinc-100 pb-2 mb-2 uppercase tracking-wider text-zinc-900">
             <span className="flex-1 text-left">Description</span>
-            <span className="w-10 text-center">Qty</span>
+            <span className="w-14 text-center">Qty</span>
             <span className="w-20 text-right">Total</span>
           </div>
           <div className="space-y-2 text-xs text-zinc-800">
-            {displayItems.map((item: any) => (
-              <div key={item.productId} className="flex flex-col border-b border-zinc-100/50 pb-1.5 last:border-0">
-                <div className="flex items-start">
-                  <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
-                  <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
-                  <span className="w-20 text-right font-semibold">
-                    <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
-                  </span>
+            {displayItems.map((item: any) => {
+              const qty = Number(item.quantity || 1);
+              const isMultiQty = qty > 1;
+              return (
+                <div key={item.productId} className="flex flex-col border-b border-zinc-100/50 pb-1.5 last:border-0">
+                  <div className="flex items-start">
+                    <span className="flex-1 pr-2 leading-tight font-medium text-left">{item.name}</span>
+                    <span className="w-14 text-center text-zinc-500 font-medium whitespace-nowrap">
+                      {formatQuantityWithUnit(item.quantity, item.tier_name)}
+                    </span>
+                    <span className="w-20 text-right font-semibold">
+                      <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
+                    </span>
+                  </div>
+                  {isMultiQty && (
+                    <span className="text-[10px] text-zinc-400 text-left font-medium">
+                      @{item.price.toFixed(2)}
+                    </span>
+                  )}
                 </div>
-                <span className="text-[10px] text-zinc-400 text-left font-medium">
-                  {item.tier_name} · GHS {item.price.toLocaleString()} each
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -465,7 +473,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <div key={item.productId} className="flex justify-between text-xs">
                 <div className="pr-2">
                   <span className="text-foreground font-semibold">{item.name}</span>
-                  <span className="text-muted-foreground"> × {formatQuantity(item.quantity)}</span>
+                  <span className="text-muted-foreground"> × {formatQuantityWithUnit(item.quantity, item.tier_name)}</span>
                 </div>
                 <span className="text-muted-foreground font-medium whitespace-nowrap">
                   <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />

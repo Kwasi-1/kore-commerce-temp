@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
-import { CurrencyDisplay } from '@/hooks';
+import { CurrencyDisplay, useQuantityFormatter } from '@/hooks';
 import { Wallet, History, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { format } from 'date-fns';
+import { formatPhoneNumber } from '@/hooks/usePhoneFormatter';
+
 
 interface CustomerCreditDetailModalProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export default function CustomerCreditDetailModal({
   onViewPaymentReceipt,
   onDownloadPaymentPDF,
 }: CustomerCreditDetailModalProps) {
+  const { formatQuantityWithUnit } = useQuantityFormatter();
   const [activeTab, setActiveTab] = useState<'purchases' | 'payments'>('purchases');
   const [expandedPurchaseId, setExpandedPurchaseId] = useState<string | null>(null);
 
@@ -73,17 +76,17 @@ export default function CustomerCreditDetailModal({
         </div>
       }
       body={
-        <div className="flex-1 overflow-y-auto px-1 pt-1 pb-3 text-left space-y-5">
+        <div className="flex-1 overflow-y-auto px-1 pt-1 pb-3 text-left space-y-5 font-sans spacing-normal">
           {/* Customer Overview Card */}
           <div className="text-center pb-5 border-b border-border/50">
             <div className="mx-auto h-12 w-12 rounded-2xl bg-muted/40 border border-border/30 flex items-center justify-center text-foreground font-bold text-base mb-2.5">
               {initials}
             </div>
-            <h3 className="text-lg font-bold text-foreground capitalize !tracking-normal">{selectedDebtor.name}</h3>
-            <p className="text-xs text-muted-foreground">{selectedDebtor.phone || selectedDebtor.email || 'No contact info'}</p>
+            <h3 className="text-lg font-bold text-foreground capitalize !tracking-wider font-sans">{selectedDebtor.name}</h3>
+            <p className="text-xs text-muted-foreground !tracking-wide">{formatPhoneNumber(selectedDebtor.phone || selectedDebtor.email || 'No contact info')}</p>
             
             <div className="mt-4 bg-muted/30 p-3.5 rounded-md inline-block w-full max-w-[320px]">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase !tracking-wide mb-1">
                 Outstanding Balance
               </p>
               <p className="text-2xl font-bold text-foreground tracking-tight">
@@ -140,7 +143,7 @@ export default function CustomerCreditDetailModal({
                           className="p-3.5 cursor-pointer hover:bg-muted/30 transition-colors flex flex-col gap-2"
                         >
                           <div className="flex justify-between items-center">
-                            <span className="font-mono text-xs font-bold text-foreground">{p.reference}</span>
+                            <span className="font-mono text-xs font-bold text-foreground !tracking-wide">{p.reference}</span>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded uppercase ${
                               isSettled
                                 ? 'bg-green-500/5 text-green-600 dark:text-green-400 border-green-500/20'
@@ -189,13 +192,40 @@ export default function CustomerCreditDetailModal({
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {p.items?.map((item: any, idx: number) => (
-                                      <tr key={idx} className="border-b border-border/40 last:border-none">
-                                        <td className="p-2 font-medium">{item.name}</td>
-                                        <td className="p-2 text-center text-muted-foreground">{item.quantity}</td>
-                                        <td className="p-2 text-right font-semibold"><CurrencyDisplay amount={item.subtotal || (item.price * item.quantity)} showStyling={false} /></td>
-                                      </tr>
-                                    ))}
+                                    {p.items?.map((item: any, idx: number) => {
+                                      const qty = Number(item.quantity || 1);
+                                      const tier = item.tierName || item.tier_name || item.packagingTierName || item.packaging_tier_name;
+                                      const variant = item.variantName || item.variant_name;
+                                      const unitPriceVal = item.unitPrice || item.price;
+                                      const isMultiQty = qty > 1;
+                                      const totalVal = item.subtotal || (unitPriceVal ? unitPriceVal * qty : 0);
+
+                                      return (
+                                        <tr key={idx} className="border-b border-border/40 last:border-none hover:bg-muted/20 transition-colors">
+                                          <td className="p-2">
+                                            <p className="font-medium text-foreground">{item.productName || item.name}</p>
+                                            {variant && (
+                                              <span className="text-[10px] text-muted-foreground block font-normal mt-0.5">
+                                                {variant}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="p-2 text-center text-muted-foreground whitespace-nowrap">
+                                            {formatQuantityWithUnit(qty, tier)}
+                                          </td>
+                                          <td className="p-2 text-right">
+                                            <span className="font-semibold text-foreground block">
+                                              <CurrencyDisplay amount={totalVal} showStyling={false} />
+                                            </span>
+                                            {isMultiQty && unitPriceVal > 0 && (
+                                              <span className="text-[10px] text-muted-foreground block font-normal">
+                                                @<CurrencyDisplay amount={unitPriceVal} showStyling={false} />
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>

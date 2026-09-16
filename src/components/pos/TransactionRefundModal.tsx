@@ -258,7 +258,7 @@ export default function TransactionRefundModal({
       }
       header={
         <div className="pb-2 border-b border-border/50">        
-          <h3 className="text-lg md:text-xl font-bold text-foreground !tracking-tighter">Process Refund</h3>
+          <h3 className="text-lg font-bold text-foreground !tracking-tight">Process Refund</h3>
           <p className="text-xs text-muted-foreground font-normal leading-[2]">
             Receipt #{receiptData?.orderNumber || receiptData?.receiptNumber || receiptData?.id?.slice(0, 8)?.toUpperCase()}
           </p>
@@ -422,9 +422,9 @@ export default function TransactionRefundModal({
           {rawItems.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                {/* <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wider flex items-center gap-1.5">
                   <Package className="h-3.5 w-3.5" /> Return Items & Restock Condition
-                </label>
+                </label> */}
                 {refundTab === 'partial' && (
                   <span className="text-[11px] text-muted-foreground">
                     Selected Value: <strong className="text-foreground"><CurrencyDisplay amount={selectedItemsValue} showStyling={false} /></strong>
