@@ -99,7 +99,7 @@ export default function TransactionSidePanel({
                 <div className="flex justify-between">
                   <span className="font-semibold">Receipt #:</span>
                   <span className="font-mono font-bold text-zinc-950">
-                    {receiptData.receiptNumber || receiptData.id?.slice(0, 8)}
+                    {receiptData.orderNumber || receiptData.receiptNumber || receiptData.id?.slice(0, 8)}
                   </span>
                 </div>
                 <div className="flex justify-between">

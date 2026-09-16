@@ -29,6 +29,8 @@ export interface ReturnItem {
 
 export interface ReturnRecord {
   id: string;
+  return_number?: string;
+  returnNumber?: string;
   original_transaction_id: string;
   original_transaction_ref?: string;
   reason: 'defective' | 'wrong_item' | 'customer_dissatisfied' | 'expired' | 'other';
@@ -160,7 +162,7 @@ export default function ReturnDetailModal({
 
               <div className="mt-4 pt-3 border-t border-border/40 w-full flex justify-between items-center text-xs text-muted-foreground font-mono">
                 <span>Orig Receipt: <strong className="text-foreground">{selectedReturn.original_transaction_ref || '—'}</strong></span>
-                <span>Return ID: <strong className="text-foreground">{selectedReturn.id}</strong></span>
+                <span>Return ID: <strong className="text-foreground">{selectedReturn.return_number || selectedReturn.returnNumber || selectedReturn.id}</strong></span>
               </div>
             </div>
 
@@ -298,7 +300,7 @@ export default function ReturnDetailModal({
                 <div className="space-y-1 text-[10px] pb-3 border-b border-dashed border-zinc-200">
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Return ID:</span>
-                    <span className="font-mono font-bold text-zinc-900">{selectedReturn.id}</span>
+                    <span className="font-mono font-bold text-zinc-900">{selectedReturn.return_number || selectedReturn.returnNumber || selectedReturn.id}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Orig Receipt #:</span>

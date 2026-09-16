@@ -150,8 +150,8 @@ export default function Returns() {
   const rows = returns.map((r: ReturnRecord) => ({
     id: r.id,
     date: <span className="min-w-[150px] inline-block">{r.date_created ? format(new Date(r.date_created), 'MMM dd, yyyy h:mm a') : 'N/A'} </span>,
-    id_display: <span className="font-mono text-xs font-semibold">{r.id}</span>,
-    original_ref: <span className="font-mono text-xs font-semibold">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span>,
+    id_display: <span className="text-[13px] font-semibold">{r.return_number || r.returnNumber || (r.id ? `RET-${r.id.slice(0, 8).toUpperCase()}` : 'N/A')}</span>,
+    original_ref: <span className="text-[13px] font-semibold">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span>,
     items_count: <span className="font-medium">{r.items?.length || 0} items</span>,
     amount: <span className="font-semibold text-foreground"><CurrencyDisplay amount={r.total_refund_amount || 0} /></span>,
     status: (
@@ -282,7 +282,7 @@ export default function Returns() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-foreground font-mono truncate max-w-[170px]">
-                        {r.id}
+                        {r.return_number || r.returnNumber || (r.id ? `RET-${r.id.slice(0, 8).toUpperCase()}` : 'N/A')}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
                         Orig: <span className="font-mono">{r.original_transaction_ref || r.original_transaction_id?.slice(0, 8)?.toUpperCase()}</span> • {r.items?.length || 0} items
