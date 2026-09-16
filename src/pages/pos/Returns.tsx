@@ -24,6 +24,7 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
+import { Icon } from '@iconify/react';
 
 export default function Returns() {
   const { formatGHS, formatAmount } = useCurrency();
@@ -185,8 +186,8 @@ export default function Returns() {
             title="Total Logged"
             value={metrics.totalCount}
             subtitle="Return records"
-            icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
-            iconColorClass="bg-blue-500/10 text-blue-500"
+            icon={<Icon icon="streamline-flex:investing-and-banking" className="h-3.5 w-3.5" />}
+            iconColorClass="bg-blue-500/5 text-blue-500"
             isLoading={isLoading}
             onClick={() => setStatusFilter(new Set(['all']))}
           />
@@ -276,7 +277,8 @@ export default function Returns() {
                       "p-3 rounded-lg shrink-0 bg-muted/60 text-muted-foreground  flex items-center justify-center",
                       
                     )}>
-                      <ArrowRightLeft className="h-4 w-4" />
+                      {/* <ArrowRightLeft className="h-4 w-4" /> */}
+                      <Icon icon="streamline-flex:investing-and-banking" className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-foreground font-mono truncate max-w-[170px]">
