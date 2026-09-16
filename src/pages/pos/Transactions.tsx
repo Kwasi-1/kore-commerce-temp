@@ -303,28 +303,58 @@ export default function Transactions() {
       if (!serverSummary.top_selling_item) return null;
       return {
         name: serverSummary.top_selling_item.name,
+        variant_name: serverSummary.top_selling_item.variant_name,
+        full_name: serverSummary.top_selling_item.full_name || serverSummary.top_selling_item.name,
         qty: serverSummary.top_selling_item.quantity,
+        revenue: serverSummary.top_selling_item.revenue,
       };
     }
 
-    // Fallback: derive top selling item from loaded transactions
-    const itemMap: Record<string, number> = {};
+    // Fallback: derive top selling item from loaded transactions at variant granularity
+    const itemMap: Record<string, { name: string; variant_name?: string; full_name: string; qty: number; revenue: number; latest: number }> = {};
     const netTransactions = transactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
     netTransactions.forEach((t) => {
+      const txTime = t.date_created ? new Date(t.date_created).getTime() : 0;
       (t.items || []).forEach((item: any) => {
-        const name = (item.productName || item.name || "").trim();
+        const pName = (item.productName || item.name || "").trim();
+        const vName = (item.variantName || item.variant_name || "").trim() || undefined;
+        const vId = item.variantId || item.variant_id;
+        const groupKey = vId || (vName ? `${pName} - ${vName}` : pName);
+        const fullName = vName ? `${pName} (${vName})` : pName;
         const qty = Number(item.quantity || item.qty || 0);
-        if (name && qty > 0) {
-          itemMap[name] = (itemMap[name] || 0) + qty;
+        const unitPrice = Number(item.unitPrice || item.price || 0);
+        const revenue = Number(item.subtotal ?? (unitPrice * qty));
+
+        if (groupKey && qty > 0) {
+          if (!itemMap[groupKey]) {
+            itemMap[groupKey] = {
+              name: pName,
+              variant_name: vName,
+              full_name: fullName,
+              qty: 0,
+              revenue: 0,
+              latest: txTime,
+            };
+          }
+          itemMap[groupKey].qty += qty;
+          itemMap[groupKey].revenue += revenue;
+          if (txTime > itemMap[groupKey].latest) {
+            itemMap[groupKey].latest = txTime;
+          }
         }
       });
     });
 
-    const sorted = Object.entries(itemMap).sort((a, b) => b[1] - a[1]);
+    const sorted = Object.values(itemMap).sort((a, b) => {
+      if (b.qty !== a.qty) return b.qty - a.qty;
+      if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+      return b.latest - a.latest;
+    });
+
     if (sorted.length > 0) {
-      return { name: sorted[0][0], qty: sorted[0][1] };
+      return sorted[0];
     }
 
     return null;
@@ -494,7 +524,11 @@ export default function Transactions() {
             <MobileMetricPill
               title="Top Item"
               value={topSellingItem.name}
-              subtitle={`${topSellingItem.qty} sold`}
+              subtitle={
+                topSellingItem.variant_name
+                  ? `${topSellingItem.variant_name} • ${topSellingItem.qty} sold`
+                  : `${topSellingItem.qty} sold`
+              }
               icon={<ShoppingBag className="h-3.5 w-3.5" />}
               iconColorClass="bg-purple-500/5 text-purple-500"
               isLoading={isLoading}
@@ -769,7 +803,22 @@ export default function Transactions() {
             <DashboardCard
               title="Top Selling Item"
               value={isLoading ? "..." : topSellingItem ? topSellingItem.name : "None yet"}
-              subvalue={topSellingItem ? `${topSellingItem.qty} sold` : "No sales in this period"}
+              subvalue={
+                topSellingItem ? (
+                  topSellingItem.variant_name ? (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                      <span className="font-semibold text-foreground/80">{topSellingItem.variant_name}</span>
+                      <span>•</span>
+                      <span>{topSellingItem.qty} sold</span>
+                    </span>
+                  ) : (
+                    `${topSellingItem.qty} sold`
+                  )
+                ) : (
+                  "No sales in this period"
+                )
+              }
+              valueStyle={topSellingItem && topSellingItem.name.length > 18 ? "text-lg md:text-xl line-clamp-1" : "line-clamp-1"}
             />
           ) : (
             <DashboardCard

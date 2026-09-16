@@ -129,18 +129,32 @@ export default function TransactionSidePanel({
                   <span className="w-10 text-center">Qty</span>
                   <span className="w-20 text-right">Total</span>
                 </div>
-                <div className="space-y-1.5 text-xs text-zinc-800">
+                <div className="space-y-2 text-xs text-zinc-800">
                   {receiptData.items?.map((item: any, i: number) => {
                     const itemSubtotal = getVal(item.subtotal ?? (getVal(item.unitPrice || item.price) * item.quantity));
+                    const variant = item.variantName || item.variant_name;
+                    const tier = item.tierName || item.tier_name;
+                    const unitPriceVal = getVal(item.unitPrice || item.price);
                     return (
-                      <div key={i} className="flex items-start">
-                        <span className="flex-1 pr-2 leading-tight font-medium text-left">
-                          {item.productName || item.name}
-                        </span>
-                        <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
-                        <span className="w-20 text-right font-semibold">
-                          {formatAmount(itemSubtotal)}
-                        </span>
+                      <div key={i} className="flex flex-col border-b border-zinc-100/60 pb-1.5 last:border-0 last:pb-0">
+                        <div className="flex items-start">
+                          <span className="flex-1 pr-2 leading-tight font-medium text-left text-zinc-900">
+                            {item.productName || item.name}
+                          </span>
+                          <span className="w-10 text-center text-zinc-500">{formatQuantity(item.quantity)}</span>
+                          <span className="w-20 text-right font-semibold">
+                            {formatAmount(itemSubtotal)}
+                          </span>
+                        </div>
+                        {(variant || tier || unitPriceVal > 0) && (
+                          <div className="text-[10px] text-zinc-500 text-left font-normal mt-0.5 space-x-1">
+                            {variant && <span className="font-semibold text-zinc-700">{variant}</span>}
+                            {variant && (tier || unitPriceVal > 0) && <span>·</span>}
+                            {tier && <span>{tier}</span>}
+                            {tier && unitPriceVal > 0 && <span>·</span>}
+                            {unitPriceVal > 0 && <span>GHS {formatAmount(unitPriceVal)} each</span>}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

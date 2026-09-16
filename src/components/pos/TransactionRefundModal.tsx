@@ -460,6 +460,11 @@ export default function TransactionRefundModal({
                             
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground text-xs truncate">{name}</p>
+                              {(item.variantName || item.variant_name) && (
+                                <p className="text-[11px] text-muted-foreground font-medium truncate">
+                                  {item.variantName || item.variant_name}
+                                </p>
+                              )}
                               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                 <span>Purchased: {maxQty}</span>
                                 <span>•</span>
