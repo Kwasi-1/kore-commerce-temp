@@ -282,7 +282,10 @@ export default function Register() {
         setActiveSnapPoint={setSnapPoint}
         fadeFromIndex={0}
       >
-        <DrawerContent className="bg-background h-full max-h-[100vh] outline-none">
+        <DrawerContent 
+          className="bg-secondary h-full max-h-[100vh] outline-none"
+          drawerDrag="bg-muted-foreground/80"
+        >
           <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
             <CartPanel 
               isMobileView={true} 

@@ -32,10 +32,17 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
+export interface DrawerContentProps
+  extends React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> {
+  drawerDrag?: string;
+  drawerDragStyle?: string | React.CSSProperties;
+  drawerDragClassName?: string;
+}
+
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, onPointerDownOutside, ...props }, ref) => (
+  DrawerContentProps
+>(({ className, children, onPointerDownOutside, drawerDrag, drawerDragStyle, drawerDragClassName, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
@@ -60,7 +67,15 @@ const DrawerContent = React.forwardRef<
       {...props}
     >
       <DrawerPrimitive.Title className="sr-only">Mobile Cart Drawer</DrawerPrimitive.Title>
-      <div className="mx-auto mt-3 mb-2 h-2 w-[95px] rounded-full bg-muted" />
+      <div
+        className={cn(
+          "mx-auto mt-3 mb-2 shrink-0 h-[6px] w-[65px] rounded-full bg-muted",
+          drawerDrag,
+          typeof drawerDragStyle === "string" && drawerDragStyle,
+          drawerDragClassName
+        )}
+        style={typeof drawerDragStyle === "object" ? drawerDragStyle : undefined}
+      />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
