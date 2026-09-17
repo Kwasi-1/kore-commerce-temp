@@ -442,6 +442,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   if (hideOutOfStock) {
     filteredProducts = filteredProducts.filter(p => (p.stock_quantity ?? 0) > 0);
+  } else {
+    // Phase 3: Float sellable in-stock items to the top, out-of-stock items sink to the bottom
+    filteredProducts = [...filteredProducts].sort((a, b) => {
+      const aInStock = (a.stock_quantity ?? 0) > 0 ? 1 : 0;
+      const bInStock = (b.stock_quantity ?? 0) > 0 ? 1 : 0;
+      return bInStock - aInStock;
+    });
   }
 
   const totalActiveFilters = activeCategories.length + (hideOutOfStock ? 1 : 0);
