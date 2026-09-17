@@ -278,28 +278,46 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       return;
     }
 
-    const delayDebounceFn = setTimeout(() => {
-      if (searchTerm.trim() !== '') {
-        performSearch(searchTerm.trim());
+    const query = searchTerm.trim();
+    if (!query) {
+      // Instant reset to full catalog when search box is cleared (0ms delay)
+      if (cachedProducts.length > 0) {
+        setProducts(cachedProducts);
+        setCategories(cachedCategories);
       } else {
         fetchProducts();
       }
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(() => {
+      performSearch(query);
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, cachedProducts]);
 
   const performSearch = async (query: string) => {
-    // Offline: filter the local cache using smartSearch (Phase 3 & 4 engine consolidation)
+    // 1. Cache-First: Search local cache immediately using smartSearch (0ms network delay)
+    const pool = cachedProducts.length > 0 ? cachedProducts : products;
+    const localMatches = smartSearch(pool, query, [
+      (p) => p.name,
+      (p) => p.sku,
+      (p) => p.category,
+      (p) => p.description,
+      (p) => Object.values(p.variant_attributes || {}).join(' '),
+    ]);
+
+    // If matches exist in local catalog, display instantly with no spinner and 0 network traffic
+    if (localMatches.length > 0) {
+      setProducts(localMatches);
+      setActiveCategories([]);
+      return;
+    }
+
+    // 2. Server Fallback: If 0 local matches and online, check if it's a newly added product on server
     if (!navigator.onLine) {
-      const filtered = smartSearch(cachedProducts, query, [
-        (p) => p.name,
-        (p) => p.sku,
-        (p) => p.category,
-        (p) => p.description,
-        (p) => Object.values(p.variant_attributes || {}).join(' '),
-      ]);
-      setProducts(filtered);
+      setProducts([]);
       setActiveCategories([]);
       return;
     }

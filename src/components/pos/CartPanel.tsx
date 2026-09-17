@@ -26,6 +26,7 @@ import { ShoppingCart } from "lucide-react";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useProductCacheStore } from '@/store/productCacheStore';
+import { smartSearch } from "@/lib/searchUtils";
 import { cn } from "@/lib/utils";
 
 interface PackagingTier {
@@ -482,68 +483,59 @@ export default function CartPanel({
   };
 
   useEffect(() => {
-    if (expandedSearchTerm.trim() === '') {
+    const query = expandedSearchTerm.trim();
+    if (!query) {
       setIsSearchLoading(false);
       setSearchResults([]);
       return;
     }
 
-    if (!navigator.onLine) {
-      setIsSearchLoading(false);
-      const lower = expandedSearchTerm.toLowerCase().trim();
-      const tokens = lower.split(/\s+/).filter(Boolean);
-      const compactQuery = lower.replace(/[\.\s\-_/]+/g, '');
+    let cancelled = false;
 
-      const getStems = (tok: string): string[] => {
-        const stems = [tok];
-        if (tok.endsWith('ies') && tok.length > 4) stems.push(tok.slice(0, -3) + 'y');
-        else if (tok.endsWith('es') && tok.length > 3) {
-          stems.push(tok.slice(0, -2));
-          stems.push(tok.slice(0, -1));
-        } else if (tok.endsWith('s') && tok.length > 2) stems.push(tok.slice(0, -1));
-        return stems;
-      };
-
-      let filtered = cachedProducts.filter((p) => {
-        const name = p.name?.toLowerCase() || '';
-        const sku = p.sku?.toLowerCase() || '';
-        const cat = p.category?.toLowerCase() || '';
-        const desc = p.description?.toLowerCase() || '';
-        const attrs = Object.values(p.variant_attributes || {}).join(' ').toLowerCase();
-        const combined = `${name} ${sku} ${cat} ${desc} ${attrs}`;
-        const compactTarget = combined.replace(/[\.\s\-_/]+/g, '');
-
-        const allTokensMatch = tokens.length > 0 && tokens.every((tok) => {
-          const stems = getStems(tok);
-          return stems.some((s) => combined.includes(s) || compactTarget.includes(s.replace(/[\.\s\-_/]+/g, '')));
-        });
-
-        const compactMatch = compactQuery.length > 0 && compactTarget.includes(compactQuery);
-        return allTokensMatch || compactMatch;
-      });
+    // 400ms debounce gives slow typists a calm, comfortable cadence without thrashing
+    const timer = setTimeout(async () => {
+      // 1. Cache-First: search local cache immediately using smartSearch (0ms network delay)
+      let localMatches = smartSearch(cachedProducts, query, [
+        (p) => p.name,
+        (p) => p.sku,
+        (p) => p.category,
+        (p) => p.description,
+        (p) => Object.values(p.variant_attributes || {}).join(' '),
+      ]);
 
       if (hideOutOfStock) {
-        filtered = filtered.filter(p => (p.stock_quantity ?? 0) > 0);
+        localMatches = localMatches.filter(p => (p.stock_quantity ?? 0) > 0);
       } else {
         // Float sellable in-stock items to top of search results, out-of-stock items sink to bottom
-        filtered = [...filtered].sort((a, b) => {
+        localMatches = [...localMatches].sort((a, b) => {
           const aInStock = (a.stock_quantity ?? 0) > 0 ? 1 : 0;
           const bInStock = (b.stock_quantity ?? 0) > 0 ? 1 : 0;
           return bInStock - aInStock;
         });
       }
 
-      setSearchResults(filtered);
-      return;
-    }
+      // If local matches exist in cache, display them immediately with zero network latency
+      if (localMatches.length > 0) {
+        if (!cancelled) {
+          setSearchResults(localMatches);
+          setIsSearchLoading(false);
+        }
+        return;
+      }
 
-    // Set loading indicator immediately upon typing so cashier sees visual feedback during debounce
-    setIsSearchLoading(true);
-    let cancelled = false;
+      // 2. Server Fallback: If 0 local matches and online, check the server for newly added products
+      if (!navigator.onLine) {
+        if (!cancelled) {
+          setSearchResults([]);
+          setIsSearchLoading(false);
+        }
+        return;
+      }
 
-    const timer = setTimeout(async () => {
+      // Turn on loading indicator ONLY during the remote server fallback request
+      if (!cancelled) setIsSearchLoading(true);
       try {
-        const response = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(expandedSearchTerm)}`);
+        const response = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(query)}`);
         if (cancelled) return;
         const found = response.data?.success?.data?.products || [];
         let flat = flattenProducts(found);
@@ -563,7 +555,7 @@ export default function CartPanel({
       } finally {
         if (!cancelled) setIsSearchLoading(false);
       }
-    }, 300);
+    }, 400);
 
     return () => {
       cancelled = true;
