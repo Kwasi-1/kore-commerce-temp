@@ -510,243 +510,246 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-fit pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-5 pb-6">
+      <div className="flex-1 overflow-y-auto min-h-fit md:pr-1 md:py-1 scrollbar-hide overflow-x-hidden flex flex-col gap-y-5 pb-6">
         {/* Mobile-only receipt summary: sits at top and scrolls with content */}
         <div className="md:hidden">
           {renderMobileReceiptSummary()}
         </div>
 
-        {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
-        <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
-          <span className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Payment Details</span>
-          {!isOnline && (
-            <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
-              <WifiOff className="h-3.5 w-3.5" />
-              <span>Offline Mode</span>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile-only Offline Banner (Scrolls with content) */}
-        {!isOnline && showOffline && (
-          <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
-            <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-bold mb-0.5">No Internet Connection</p>
-              <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Credit Toggle Section — only shown when pos_credit_enabled */}
-        {featureSettings.pos_credit_enabled && (
-        <div>
-          <div
-            className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
-            onClick={() => setIsCreditSale(!isCreditSale)}
-          >
-            <div>
-              <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
-              <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
-            </div>
-            <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
-              <Switch
-                 isSelected={isCreditSale}
-                 onValueChange={setIsCreditSale}
-                 color="default"
-                 size="sm"
-                 classNames={{ wrapper: "mr-0" }}
-              />
-            </div>
-          </div>
-
-          {isCreditSale && (
-            <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-              <SearchableSelectField
-                label="Customer Name"
-                labelPlacement="outside"
-                placeholder="Select or enter customer name..."
-                options={customerOptions}
-                value={customerName}
-                inputValue={customerName}
-                allowsCustomValue={true}
-                isLoading={isLoadingDebtors}
-                onInputChange={(val) => {
-                  setCustomerName(val);
-                }}
-                onValueChange={(selectedVal) => {
-                  if (!selectedVal) return;
-                  setCustomerName(selectedVal);
-                  const found = debtorsList.find((d: any) => d.name === selectedVal || d.id === selectedVal);
-                  if (found && found.phone) {
-                    setCustomerPhone(found.phone);
-                  }
-                }}
-                onClear={() => {
-                  setCustomerName('');
-                  setCustomerPhone('');
-                }}
-              />
-              <CustomInputTextField
-                label="Phone Number"
-                labelPlacement="outside"
-                placeholder="+233"
-                value={customerPhone}
-                onChange={(e: any) => setCustomerPhone(e.target.value)}
-              />
-
-              {/* Phone number match warning & switch prompt */}
-              {matchedDebtorByPhone && hasNameMismatch && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1">
-                  <div className="flex items-start gap-2 min-w-0">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
-                    <div className="flex flex-col">
-                      <span>
-                        This number is already registered to <strong className="font-semibold text-amber-900 dark:text-amber-200">{matchedDebtorByPhone.name}</strong>
-                      </span>
-                      {Number(matchedDebtorByPhone.outstanding_debt || 0) > 0 && (
-                        <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                          Current Debt: GHS {Number(matchedDebtorByPhone.outstanding_debt).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomerName(matchedDebtorByPhone.name);
-                      if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
-                    }}
-                    className="shrink-0 text-xs font-semibold px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-100 rounded-md transition-colors self-end sm:self-center"
-                  >
-                    Switch to {matchedDebtorByPhone.name}
-                  </button>
-                </div>
-              )}
-
-              {/* Quick autofill prompt when phone is typed but customer name is empty */}
-              {matchedDebtorByPhone && !customerName.trim() && (
-                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1">
-                  <span className="truncate">
-                    Found debtor: <strong className="font-semibold">{matchedDebtorByPhone.name}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomerName(matchedDebtorByPhone.name);
-                      if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
-                    }}
-                    className="shrink-0 text-xs font-semibold px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-900 dark:text-blue-100 rounded transition-colors"
-                  >
-                    Use {matchedDebtorByPhone.name}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Show Payment Methods ONLY if not credit sale */}
-        {!isCreditSale && paymentTabs.length > 0 && (
-          <>
-            <div className="flex flex-col gap-2">
-              {/* Active payment tabs */}
-              <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
-                {paymentTabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
-                      activeTab === tab.id
-                        ? 'bg-background shadow-sm text-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+        {/* Inset wrapper for payment details header and controls on mobile */}
+        <div className="px-2 py-1 md:px-0 md:py-0 flex flex-col gap-y-5">
+          {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
+          <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
+            <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
+            {!isOnline && (
+              <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
+                <WifiOff className="h-3.5 w-3.5" />
+                <span>Offline Mode</span>
               </div>
-              {/* Locked gateway tabs shown offline */}
-              {lockedGatewayTabs.length > 0 && (
-                <div className="flex gap-2">
-                  {lockedGatewayTabs.map(tab => (
-                    <div
-                      key={tab.id}
-                      title="Requires internet connection"
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[11px] font-bold border border-border/40 text-muted-foreground/40 bg-secondary/20 cursor-not-allowed select-none"
-                    >
-                      <Lock className="h-3 w-3" />
-                      {tab.label}
+            )}
+          </div>
+
+          {/* Mobile-only Offline Banner (Scrolls with content) */}
+          {!isOnline && showOffline && (
+            <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+              <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold mb-0.5">No Internet Connection</p>
+                <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Credit Toggle Section — only shown when pos_credit_enabled */}
+          {featureSettings.pos_credit_enabled && (
+          <div>
+            <div
+              className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
+              onClick={() => setIsCreditSale(!isCreditSale)}
+            >
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
+              </div>
+              <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <Switch
+                   isSelected={isCreditSale}
+                   onValueChange={setIsCreditSale}
+                   color="default"
+                   size="sm"
+                   classNames={{ wrapper: "mr-0" }}
+                />
+              </div>
+            </div>
+
+            {isCreditSale && (
+              <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+                <SearchableSelectField
+                  label="Customer Name"
+                  labelPlacement="outside"
+                  placeholder="Select or enter customer name..."
+                  options={customerOptions}
+                  value={customerName}
+                  inputValue={customerName}
+                  allowsCustomValue={true}
+                  isLoading={isLoadingDebtors}
+                  onInputChange={(val) => {
+                    setCustomerName(val);
+                  }}
+                  onValueChange={(selectedVal) => {
+                    if (!selectedVal) return;
+                    setCustomerName(selectedVal);
+                    const found = debtorsList.find((d: any) => d.name === selectedVal || d.id === selectedVal);
+                    if (found && found.phone) {
+                      setCustomerPhone(found.phone);
+                    }
+                  }}
+                  onClear={() => {
+                    setCustomerName('');
+                    setCustomerPhone('');
+                  }}
+                />
+                <CustomInputTextField
+                  label="Phone Number"
+                  labelPlacement="outside"
+                  placeholder="+233"
+                  value={customerPhone}
+                  onChange={(e: any) => setCustomerPhone(e.target.value)}
+                />
+
+                {/* Phone number match warning & switch prompt */}
+                {matchedDebtorByPhone && hasNameMismatch && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                      <div className="flex flex-col">
+                        <span>
+                          This number is already registered to <strong className="font-semibold text-amber-900 dark:text-amber-200">{matchedDebtorByPhone.name}</strong>
+                        </span>
+                        {Number(matchedDebtorByPhone.outstanding_debt || 0) > 0 && (
+                          <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                            Current Debt: GHS {Number(matchedDebtorByPhone.outstanding_debt).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(matchedDebtorByPhone.name);
+                        if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
+                      }}
+                      className="shrink-0 text-xs font-semibold px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-100 rounded-md transition-colors self-end sm:self-center"
+                    >
+                      Switch to {matchedDebtorByPhone.name}
+                    </button>
+                  </div>
+                )}
+
+                {/* Quick autofill prompt when phone is typed but customer name is empty */}
+                {matchedDebtorByPhone && !customerName.trim() && (
+                  <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1">
+                    <span className="truncate">
+                      Found debtor: <strong className="font-semibold">{matchedDebtorByPhone.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(matchedDebtorByPhone.name);
+                        if (matchedDebtorByPhone.phone) setCustomerPhone(matchedDebtorByPhone.phone);
+                      }}
+                      className="shrink-0 text-xs font-semibold px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-900 dark:text-blue-100 rounded transition-colors"
+                    >
+                      Use {matchedDebtorByPhone.name}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* Show Payment Methods ONLY if not credit sale */}
+          {!isCreditSale && paymentTabs.length > 0 && (
+            <>
+              <div className="flex flex-col gap-2">
+                {/* Active payment tabs */}
+                <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50 shrink-0">
+                  {paymentTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                        activeTab === tab.id
+                          ? 'bg-background shadow-sm text-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-6">
-              {activeTab === 'cash' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <CustomInputTextField
-                    label="Amount Tendered"
-                    labelPlacement="outside"
-                    type="number"
-                    placeholder="0.00"
-                    value={amountTenderedStr}
-                    onChange={(e: any) => setAmountTenderedStr(e.target.value)}
-                    autoFocus
-                    className="h-14 text-xl font-bold rounded-xl bg-background border-border"
-                  />
-
-                  {amountTenderedStr && amountTendered >= total && (
-                    <div className="bg-secondary/80 rounded-lg p-4 py-3 flex items-center justify-between animate-in fade-in">
-                      <span className="text-foreground font-bold uppercase tracking-wider text-xs">Change Due</span>
-                      <span className="text-xl font-black text-foreground">
-                        <CurrencyDisplay amount={change} />
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'mobile_money' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <CustomInputTextField
-                    label="Customer MoMo Number"
-                    labelPlacement="outside"
-                    type="tel"
-                    placeholder="e.g. 0241234567"
-                    value={momoNumber}
-                    onChange={(e: any) => setMomoNumber(e.target.value)}
-                    className="h-14 text-lg font-bold rounded-xl bg-background border-border"
-                  />
-
-                  <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
-                    {!isOnline
-                      ? 'Offline Mode: Record customer MoMo number. Confirm payment directly with customer before completing.'
-                      : isPaystackEnabled
-                      ? 'The customer will receive a secure payment prompt on their phone.'
-                      : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
+                {/* Locked gateway tabs shown offline */}
+                {lockedGatewayTabs.length > 0 && (
+                  <div className="flex gap-2">
+                    {lockedGatewayTabs.map(tab => (
+                      <div
+                        key={tab.id}
+                        title="Requires internet connection"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[11px] font-bold border border-border/40 text-muted-foreground/40 bg-secondary/20 cursor-not-allowed select-none"
+                      >
+                        <Lock className="h-3 w-3" />
+                        {tab.label}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {activeTab === 'card' && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
-                  <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
-                  <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
-                  <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
-                    Process payment on physical terminal, then confirm below.
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+              <div className="space-y-6">
+                {activeTab === 'cash' && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <CustomInputTextField
+                      label="Amount Tendered"
+                      labelPlacement="outside"
+                      type="number"
+                      placeholder="0.00"
+                      value={amountTenderedStr}
+                      onChange={(e: any) => setAmountTenderedStr(e.target.value)}
+                      autoFocus
+                      className="h-14 text-xl font-bold rounded-xl bg-background border-border"
+                    />
+
+                    {amountTenderedStr && amountTendered >= total && (
+                      <div className="bg-secondary/80 rounded-lg p-4 py-3 flex items-center justify-between animate-in fade-in">
+                        <span className="text-foreground font-bold uppercase tracking-wider text-xs">Change Due</span>
+                        <span className="text-xl font-black text-foreground">
+                          <CurrencyDisplay amount={change} />
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'mobile_money' && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <CustomInputTextField
+                      label="Customer MoMo Number"
+                      labelPlacement="outside"
+                      type="tel"
+                      placeholder="e.g. 0241234567"
+                      value={momoNumber}
+                      onChange={(e: any) => setMomoNumber(e.target.value)}
+                      className="h-14 text-lg font-bold rounded-xl bg-background border-border"
+                    />
+
+                    <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
+                      {!isOnline
+                        ? 'Offline Mode: Record customer MoMo number. Confirm payment directly with customer before completing.'
+                        : isPaystackEnabled
+                        ? 'The customer will receive a secure payment prompt on their phone.'
+                        : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'card' && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
+                    <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
+                    <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
+                    <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
+                      Process payment on physical terminal, then confirm below.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Bottom Footer — sticky, never scrolls away */}
-      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card">
+      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card m-2">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
           <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
