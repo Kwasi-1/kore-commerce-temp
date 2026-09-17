@@ -483,11 +483,13 @@ export default function CartPanel({
 
   useEffect(() => {
     if (expandedSearchTerm.trim() === '') {
+      setIsSearchLoading(false);
       setSearchResults([]);
       return;
     }
 
     if (!navigator.onLine) {
+      setIsSearchLoading(false);
       const lower = expandedSearchTerm.toLowerCase().trim();
       const tokens = lower.split(/\s+/).filter(Boolean);
       const compactQuery = lower.replace(/[\.\s\-_/]+/g, '');
@@ -535,10 +537,14 @@ export default function CartPanel({
       return;
     }
 
+    // Set loading indicator immediately upon typing so cashier sees visual feedback during debounce
+    setIsSearchLoading(true);
+    let cancelled = false;
+
     const timer = setTimeout(async () => {
-      setIsSearchLoading(true);
       try {
         const response = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(expandedSearchTerm)}`);
+        if (cancelled) return;
         const found = response.data?.success?.data?.products || [];
         let flat = flattenProducts(found);
         if (hideOutOfStock) {
@@ -553,12 +559,16 @@ export default function CartPanel({
         }
         setSearchResults(flat);
       } catch (err) {
-        console.error('Failed to search products in expanded panel:', err);
+        if (!cancelled) console.error('Failed to search products in expanded panel:', err);
       } finally {
-        setIsSearchLoading(false);
+        if (!cancelled) setIsSearchLoading(false);
       }
     }, 300);
-    return () => clearTimeout(timer);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [expandedSearchTerm, cachedProducts, hideOutOfStock]);
 
   const handleQuickAddProduct = (p: Product) => {
