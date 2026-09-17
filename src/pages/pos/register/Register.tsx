@@ -284,7 +284,7 @@ export default function Register() {
       >
         <DrawerContent 
           className="bg-secondary h-full max-h-[100vh] outline-none"
-          drawerDrag="bg-muted-foreground/80"
+          dragHandleClassName="bg-muted-foreground/60"
         >
           <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
             <CartPanel 

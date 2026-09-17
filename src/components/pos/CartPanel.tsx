@@ -1223,7 +1223,7 @@ export default function CartPanel({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-2 md:pt-0 pb-4 md:pb-3 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-1 md:pt-0 pb-4 md:pb-3 shrink-0">
         <div className="flex items-center gap-2">
           {isMobileView && mobileStep === 2 && (
             <Button
@@ -1235,7 +1235,7 @@ export default function CartPanel({
               <Icon icon="solar:arrow-left-linear" className="h-4 w-4" />
             </Button>
           )}
-          <h2 className="text-[18px] font-bold text-foreground">
+          <h2 className="text-[18px] font-bold text-foreground font-header md:font-sans tracking-tight md:tracking-normal">
             {isMobileView && mobileStep === 2
               ? "Checkout"
               : "Detail Transaction"}
