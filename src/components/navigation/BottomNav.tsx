@@ -34,9 +34,67 @@ import {
   User,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@nextui-org/react';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+
+// Top-level navigation routes that should show the BottomNav on mobile.
+// Internal subpages (e.g. /inventory/products/new, /inventory/products/:id/edit, /inventory/stock-upload/audit)
+// do not show the bottom nav bar, giving full-screen height to forms and sub-flows with back buttons.
+export const BOTTOM_NAV_ROUTES = new Set([
+  // POS
+  '/pos/register',
+  '/pos/transactions',
+  '/pos/credit-ledger',
+  '/pos/returns',
+  // Dashboard
+  '/dashboard',
+  // Inventory
+  '/inventory/products',
+  '/inventory/adjustments',
+  '/inventory/stock',
+  '/inventory/stock-reconciliation',
+  '/inventory/suppliers',
+  '/inventory/purchase-orders',
+  // Expenses
+  '/expenses',
+  // Ecommerce
+  '/ecommerce/orders',
+  '/ecommerce/customers',
+  '/ecommerce/storefront',
+  '/ecommerce/discounts',
+  // Notifications
+  '/notifications',
+  // Staff
+  '/staff',
+  '/staff/payroll',
+  // Reports
+  '/reports/sales',
+  '/reports/products',
+  '/reports/cashiers',
+  '/reports/end-of-day',
+  // Settings
+  '/settings/account',
+  '/settings/profile',
+  '/settings/pos',
+  '/settings/plan',
+]);
+
+export function isBottomNavRoute(pathname: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return BOTTOM_NAV_ROUTES.has(normalized);
+}
 
 export default function BottomNav() {
+  const location = useLocation();
+
+  if (!isBottomNavRoute(location.pathname)) {
+    return null;
+  }
+
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
   const graceInfo = useAuthStore((state) => state.graceInfo);
@@ -47,7 +105,6 @@ export default function BottomNav() {
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const navigate = useNavigate();
-  const location = useLocation();
   const [isPending, startTransition] = useTransition();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -259,76 +316,73 @@ export default function BottomNav() {
         </button>
       </nav>
 
-      {/* Mobile Menu Drawer */}
-      <Drawer isOpen={isDrawerOpen} onOpenChange={setIsDrawerOpen} placement="bottom" classNames={{ base: 'bg-card dark:bg-sidebar text-foreground dark:text-white' }}>
-        <DrawerContent>
-          {() => (
-            <>
-              <DrawerHeader className="flex justify-between items-center border-b border-border dark:border-white/10 pb-3">
-                <span className="font-bold text-lg text-foreground">Menu</span>
-              </DrawerHeader>
-              <DrawerBody className="py-4 overflow-y-auto scrollbar-hide max-h-[75vh]">
-                <div className="flex flex-col gap-6">
-                  {drawerSections.map((section) => (
-                    <div key={section.title}>
-                      <span className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest mb-2 block">
-                        {section.title}
-                      </span>
-                      <div className="flex flex-col gap-1">
-                        {section.items.map((item) => {
-                          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-                          const itemWithKey = item as { moduleKey?: string };
-                          const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
-                          return (
-                            <button
-                              key={item.name}
-                              onClick={() => handleNavigation(item.to)}
-                              className={clsx(
-                                "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
-                                isActive
-                                  ? "bg-sidebar text-background font-bold shadow-sm"
-                                  : isLocked
-                                  ? "text-muted-foreground/50 hover:bg-muted/50"
-                                  : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <item.icon className="h-4 w-4" />
-                                <span>{item.name}</span>
-                              </div>
-                              {isLocked ? (
-                                <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-                              ) : (
-                                <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Clean, premium divider and Logout action button in the Drawer */}
-                  <div className="border-t border-border dark:border-white/10 pt-4 mt-2">
-                    <button
-                      onClick={() => {
-                        setIsDrawerOpen(false);
-                        logout();
-                        window.location.href = '/login';
-                      }}
-                      className="flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-                    >
-                      <div className="flex items-center gap-3">
-                        <LogOut className="h-4 w-4" />
-                        <span>Logout</span>
-                      </div>
-                      <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-                    </button>
+      {/* Mobile Menu Drawer (Native Vaul Drawer) */}
+      <Drawer open={isDrawerOpen}   
+        onOpenChange={setIsDrawerOpen}>
+        <DrawerContent className="bg-card dark:bg-sidebar text-foreground dark:text-white max-h-[85vh] outline-none">
+          <DrawerHeader className="flex justify-between items-center border-b border-border dark:border-white/10 pb-3 px-5 text-left">
+            <DrawerTitle className="font-bold text-lg text-foreground">Menu</DrawerTitle>
+          </DrawerHeader>
+          <div className="py-4 px-5 overflow-y-auto scrollbar-hide max-h-[calc(85vh-70px)]">
+            <div className="flex flex-col gap-6">
+              {drawerSections.map((section) => (
+                <div key={section.title}>
+                  <span className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest mb-2 block">
+                    {section.title}
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    {section.items.map((item) => {
+                      const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+                      const itemWithKey = item as { moduleKey?: string };
+                      const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
+                      return (
+                        <button
+                          key={item.name}
+                          onClick={() => handleNavigation(item.to)}
+                          className={clsx(
+                            "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
+                            isActive
+                              ? "bg-foreground/90 text-background font-bold shadow-sm"
+                              : isLocked
+                              ? "text-muted-foreground/50 hover:bg-muted/50"
+                              : "text-foreground/70 hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.name}</span>
+                          </div>
+                          {isLocked ? (
+                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              </DrawerBody>
-            </>
-          )}
+              ))}
+
+              {/* Clean, premium divider and Logout action button in the Drawer */}
+              <div className="border-t border-border dark:border-white/10 pt-4 mt-2">
+                <button
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    logout();
+                    window.location.href = '/login';
+                  }}
+                  className="flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+                >
+                  <div className="flex items-center gap-3">
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                </button>
+              </div>
+            </div>
+          </div>
         </DrawerContent>
       </Drawer>
     </>

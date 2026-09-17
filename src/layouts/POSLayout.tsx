@@ -1,11 +1,13 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
-import BottomNav from '@/components/navigation/BottomNav';
+import BottomNav, { isBottomNavRoute } from '@/components/navigation/BottomNav';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 export default function POSLayout() {
   const { isSidebarCollapsed } = useLayoutStore();
+  const location = useLocation();
+  const showBottomNav = isBottomNavRoute(location.pathname);
 
   // Background offline queue drain across POS register routes
   useOfflineSync();
@@ -20,7 +22,7 @@ export default function POSLayout() {
 
         {/* Main Content Area Container */}
         <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 p-0 md:py-2 md:pr-2 ${isSidebarCollapsed ? 'md:pl-0' : 'md:pl-0'}`}>
-          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 scrollbar-hide pb-16 md:pb-0 ${isSidebarCollapsed ? 'rounded-none  md:rounded-[1.25rem] lg:rounded-[1.5rem]' : 'rounded-none  md:rounded-[1.25rem]'}`}>
+          <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner border border-black/5 relative transition-all duration-300 scrollbar-hide ${showBottomNav ? 'pb-16 md:pb-0' : 'pb-0'} ${isSidebarCollapsed ? 'rounded-none  md:rounded-[1.25rem] lg:rounded-[1.5rem]' : 'rounded-none  md:rounded-[1.25rem]'}`}>
             <main className="flex-1 overflow-y-auto scrollbar-hide lg:pl-3">
               <Outlet />
             </main>
