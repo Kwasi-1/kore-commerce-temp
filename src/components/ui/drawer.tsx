@@ -49,7 +49,7 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border bg-background",
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border dark:border-border/70 bg-background",
         className
       )}
       onPointerDownOutside={(e) => {
@@ -70,7 +70,7 @@ const DrawerContent = React.forwardRef<
       <DrawerPrimitive.Title className="sr-only">Mobile Cart Drawer</DrawerPrimitive.Title>
       <div
         className={cn(
-          "mx-auto mt-3 mb-2 shrink-0 h-[4px] w-11 rounded-full bg-muted",
+          "mx-auto mt-3 mb-2 shrink-0 h-[4px] w-11 rounded-full bg-muted-foreground/30 dark:bg-muted-foreground/50",
           dragHandleClassName || drawerDragClassName || drawerDrag,
           typeof drawerDragStyle === "string" && drawerDragStyle
         )}
