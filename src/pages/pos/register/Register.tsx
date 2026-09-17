@@ -178,7 +178,7 @@ export default function Register() {
           panelState === 'collapsed' 
             ? 'w-0 opacity-0 translate-x-full shrink-0 pointer-events-none' 
             : panelState === 'expanded'
-              ? 'absolute top-0 right-0 h-full w-[75%] max-w-[75vw] z-30 shadow-[0_0_50px_rgba(0,0,0,0.15)] rounded-l-[24px] border-l border-border bg-background'
+              ? 'absolute top-0 right-0 h-full w-full lg:w-[min(930px,100%)] xl:w-[max(932px,80%)] 2xl:w-[max(940px,72%)] min-w-[min(880px,100%)] max-w-[1150px] z-30 shadow-[0_0_50px_rgba(0,0,0,0.15)] rounded-l-[24px] border-l border-border bg-background'
               : 'relative w-[420px] shrink-0'
         }`}>
           <CartPanel 

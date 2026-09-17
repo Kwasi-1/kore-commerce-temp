@@ -792,13 +792,13 @@ export default function CartPanel({
           
           {/* LEFT COLUMN: Scrollable Cart Items List */}
           <div className="flex-1 flex flex-col min-w-0 border-r border-border/60 overflow-hidden bg-background">
-            <div className="px-6 py-4 border-b border-border/40 shrink-0">
+            <div className="px-4 sm:px-6 py-4 border-b border-border/40 shrink-0">
               <h3 className="font-bold text-[15px] text-muted-foreground">
                 Cart Items ({items.reduce((acc, i) => acc + i.quantity, 0)})
               </h3>
             </div>
             
-            <div ref={expandedScrollRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
+            <div ref={expandedScrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-hide">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-20">
                   <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center">
@@ -815,8 +815,8 @@ export default function CartPanel({
                     className="flex items-center justify-between py-3 border-b border-border/40 last:border-0 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                   >
                     {/* Item Details */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border/40">
+                    <div className="flex items-center gap-3 min-w-[160px] flex-1">
+                      <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center border border-border/40">
                         {(showProductImages && item.imageUrl) ? (
                           <img
                             src={item.imageUrl}
@@ -827,8 +827,8 @@ export default function CartPanel({
                           <Icon icon="solar:box-linear" className="h-5 w-5 text-muted-foreground/30" />
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-foreground truncate pr-2">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-sm text-foreground truncate pr-2" title={item.name}>
                           {item.name}
                         </h4>
                         {renderItemBadges(item)}
