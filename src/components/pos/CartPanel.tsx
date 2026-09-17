@@ -26,6 +26,7 @@ import { ShoppingCart } from "lucide-react";
 import { useRegisterPreferencesStore, playCartChime } from '@/store/registerPreferencesStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useProductCacheStore } from '@/store/productCacheStore';
+import { cn } from "@/lib/utils";
 
 interface PackagingTier {
   id: string;
@@ -221,7 +222,7 @@ export default function CartPanel({
     addItem,
   } = useCartStore();
 
-  const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks } = useRegisterPreferencesStore();
+  const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks, hideOutOfStock } = useRegisterPreferencesStore();
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
   const cachedProducts = useProductCacheStore((state) => state.products);
@@ -295,8 +296,13 @@ export default function CartPanel({
   const quickPickProducts = useMemo(() => {
     if (!cachedProducts || cachedProducts.length === 0) return [];
 
-    const inStock = cachedProducts.filter(p => (p.stock_quantity ?? 0) > 0);
-    const pool = inStock.length > 0 ? inStock : cachedProducts;
+    let pool = cachedProducts;
+    if (hideOutOfStock) {
+      pool = pool.filter(p => (p.stock_quantity ?? 0) > 0);
+    } else {
+      const inStock = pool.filter(p => (p.stock_quantity ?? 0) > 0);
+      if (inStock.length > 0) pool = inStock;
+    }
 
     const matchedRecent: Product[] = [];
     for (const vid of recentVariantIds) {
@@ -315,7 +321,7 @@ export default function CartPanel({
     }
 
     return picks;
-  }, [cachedProducts, recentVariantIds]);
+  }, [cachedProducts, recentVariantIds, hideOutOfStock]);
 
   // Inline editing state for quantities
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -496,7 +502,7 @@ export default function CartPanel({
         return stems;
       };
 
-      const filtered = cachedProducts.filter((p) => {
+      let filtered = cachedProducts.filter((p) => {
         const name = p.name?.toLowerCase() || '';
         const sku = p.sku?.toLowerCase() || '';
         const cat = p.category?.toLowerCase() || '';
@@ -514,6 +520,10 @@ export default function CartPanel({
         return allTokensMatch || compactMatch;
       });
 
+      if (hideOutOfStock) {
+        filtered = filtered.filter(p => (p.stock_quantity ?? 0) > 0);
+      }
+
       setSearchResults(filtered);
       return;
     }
@@ -523,7 +533,11 @@ export default function CartPanel({
       try {
         const response = await apiClient.get(`/pos/products/search?q=${encodeURIComponent(expandedSearchTerm)}`);
         const found = response.data?.success?.data?.products || [];
-        setSearchResults(flattenProducts(found));
+        let flat = flattenProducts(found);
+        if (hideOutOfStock) {
+          flat = flat.filter(p => (p.stock_quantity ?? 0) > 0);
+        }
+        setSearchResults(flat);
       } catch (err) {
         console.error('Failed to search products in expanded panel:', err);
       } finally {
@@ -531,7 +545,7 @@ export default function CartPanel({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [expandedSearchTerm, cachedProducts]);
+  }, [expandedSearchTerm, cachedProducts, hideOutOfStock]);
 
   const handleQuickAddProduct = (p: Product) => {
     const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
@@ -1072,14 +1086,24 @@ export default function CartPanel({
                       ) : (
                         searchResults.map((p) => {
                           const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
+                          const isOutOfStock = (p.stock_quantity ?? 0) <= 0;
                           return (
                             <button
                               key={p.id}
                               onMouseDown={(e) => {
                                 e.preventDefault();
+                                if (isOutOfStock) {
+                                  toast.error(`${p.name} is out of stock!`);
+                                  return;
+                                }
                                 handleQuickAddProduct(p);
                               }}
-                              className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors w-full"
+                              className={cn(
+                                "flex items-center gap-3 p-2 rounded-[14px] text-left transition-colors w-full",
+                                isOutOfStock
+                                  ? "opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/30"
+                                  : "hover:bg-secondary"
+                              )}
                             >
                               <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                                 {(showProductImages && p.imageUrl) ? (
@@ -1101,9 +1125,15 @@ export default function CartPanel({
                                       {p.category}
                                     </span>
                                   )}
-                                  <span className="text-[11px] text-muted-foreground font-semibold">
-                                    · Stock: {p.stock_display} {p.stock_display_unit}
-                                  </span>
+                                  {isOutOfStock ? (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                      Out of stock
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground font-semibold">
+                                      · Stock: {p.stock_display} {p.stock_display_unit}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <span className="text-sm font-bold text-foreground shrink-0">
