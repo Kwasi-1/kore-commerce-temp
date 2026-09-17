@@ -31,6 +31,19 @@ interface ProductSearchBarProps {
   isCartCollapsed?: boolean;
 }
 
+const getActiveTenantId = (): string | null => {
+  try {
+    const rawAuth = localStorage.getItem('headlesspos-auth');
+    if (rawAuth) {
+      const parsedAuth = JSON.parse(rawAuth);
+      return parsedAuth?.state?.tenant?.id || null;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+};
+
 export default function ProductSearchBar({ isCartCollapsed = false }: ProductSearchBarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -72,12 +85,43 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     }, 100);
     return () => clearTimeout(timer);
   }, [isCartCollapsed]);
-  const [products, setProducts] = useState<Product[]>([]);
+
+  // Offline support & Cache
+  const { isOnline } = useNetworkStatus();
+  const { products: cachedProducts, categories: cachedCategories, setCache: setProductCache } = useProductCacheStore();
+
+  // Stale-While-Revalidate: Instant 0ms paint from local cache if valid for active tenant
+  const [products, setProducts] = useState<Product[]>(() => {
+    const state = useProductCacheStore.getState();
+    const activeTenantId = getActiveTenantId();
+    if (state.products.length > 0 && (!state.tenantId || state.tenantId === activeTenantId)) {
+      return state.products;
+    }
+    return [];
+  });
+
   // Store all category objects to display counts
-  const [categories, setCategories] = useState<{name: string, count: number}[]>([]);
+  const [categories, setCategories] = useState<{name: string, count: number}[]>(() => {
+    const state = useProductCacheStore.getState();
+    const activeTenantId = getActiveTenantId();
+    if (state.products.length > 0 && (!state.tenantId || state.tenantId === activeTenantId)) {
+      return state.categories;
+    }
+    return [];
+  });
+
   // Use array for multi-select
   const [activeCategories, setActiveCategories] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Only show full-screen spinner on cold start (first visit with zero cache)
+  const [isLoading, setIsLoading] = useState(() => {
+    const state = useProductCacheStore.getState();
+    const activeTenantId = getActiveTenantId();
+    if (state.products.length > 0 && (!state.tenantId || state.tenantId === activeTenantId)) {
+      return false;
+    }
+    return true;
+  });
   
   // Filter Modal State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -88,12 +132,19 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const { posSettings } = useFeaturesStore();
   const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
 
-  // Offline support
-  const { isOnline } = useNetworkStatus();
-  const { products: cachedProducts, categories: cachedCategories, setCache: setProductCache } = useProductCacheStore();
-
+  // Stale-While-Revalidate mount effect:
+  // If cache exists, render immediately (0ms) and silently revalidate in the background.
+  // If cold start, fetch with spinner.
   useEffect(() => {
-    fetchProducts();
+    const state = useProductCacheStore.getState();
+    const activeTenantId = getActiveTenantId();
+    const hasValidCache = state.products.length > 0 && (!state.tenantId || state.tenantId === activeTenantId);
+
+    if (hasValidCache) {
+      fetchProducts(true);
+    } else {
+      fetchProducts(false);
+    }
   }, []);
 
   const parseVal = (v: any, fallback = 0): number => {
@@ -209,17 +260,25 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   };
 
   const fetchProducts = async (silent = false) => {
+    const activeTenantId = getActiveTenantId();
+    const cacheState = useProductCacheStore.getState();
+    const hasValidCache = cacheState.products.length > 0 && (!cacheState.tenantId || cacheState.tenantId === activeTenantId);
+
     // If offline, fall back to cache
     if (!navigator.onLine) {
-      if (cachedProducts.length > 0) {
-        setProducts(cachedProducts);
-        setCategories(cachedCategories);
+      if (hasValidCache) {
+        setProducts(cacheState.products);
+        setCategories(cacheState.categories);
       }
-      if (!silent) setIsLoading(false);
+      setIsLoading(false);
       return;
     }
 
-    if (!silent) setIsLoading(true);
+    // Only show full-screen spinner on cold start (no cache and not silent)
+    if (!silent && !hasValidCache && products.length === 0) {
+      setIsLoading(true);
+    }
+
     try {
       const response = await apiClient.get('/pos/products');
       const fetchedProducts = response.data.success?.data?.products || [];
@@ -239,21 +298,21 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       const flatProducts = flattenProducts(fetchedProducts);
       setProducts(flatProducts);
 
-      // Write to offline cache
-      setProductCache(flatProducts, catsArray);
+      // Write to offline cache with current tenant
+      setProductCache(flatProducts, catsArray, activeTenantId);
 
     } catch (error) {
       console.error('Failed to fetch products:', error);
       // On network error, fall back to cache silently
-      if (cachedProducts.length > 0) {
-        setProducts(cachedProducts);
-        setCategories(cachedCategories);
+      if (hasValidCache) {
+        setProducts(cacheState.products);
+        setCategories(cacheState.categories);
         if (!silent) toast.error('Showing cached products (could not reach server)');
       } else {
         if (!silent) toast.error('Failed to load products');
       }
     } finally {
-      if (!silent) setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
