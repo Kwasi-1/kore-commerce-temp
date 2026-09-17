@@ -199,6 +199,76 @@ const saveRecentVariantId = (variantId: string) => {
   }
 };
 
+interface ScrollingMaskTextProps {
+  text: string;
+  className?: string;
+  isParentHovered?: boolean;
+}
+
+const ScrollingMaskText: React.FC<ScrollingMaskTextProps> = ({
+  text,
+  className = "",
+  isParentHovered = false,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [maxScroll, setMaxScroll] = useState(0);
+  const [isSelfHovered, setIsSelfHovered] = useState(false);
+
+  const isHovered = isParentHovered || isSelfHovered;
+  const isOverflowing = maxScroll > 4;
+
+  useEffect(() => {
+    const measure = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        const diff = textWidth - containerWidth;
+        setMaxScroll(diff > 0 ? diff : 0);
+      }
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (containerRef.current) observer.observe(containerRef.current);
+    if (textRef.current) observer.observe(textRef.current);
+
+    return () => observer.disconnect();
+  }, [text]);
+
+  // Reading duration proportional to overflow width (~35px/s)
+  const duration = Math.min(5, Math.max(1.2, maxScroll / 35));
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseEnter={() => setIsSelfHovered(true)}
+      onMouseLeave={() => setIsSelfHovered(false)}
+      onTouchStart={() => setIsSelfHovered(prev => !prev)}
+      className={cn(
+        "overflow-hidden w-full select-none relative cursor-default",
+        isOverflowing && !isHovered && "[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent_100%)]",
+        isOverflowing && isHovered && "[mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_100%)]",
+        className
+      )}
+      title={text}
+    >
+      <span
+        ref={textRef}
+        style={{
+          transform: isHovered && isOverflowing ? `translateX(-${maxScroll}px)` : 'translateX(0)',
+          transition: isHovered && isOverflowing
+            ? `transform ${duration}s ease-in-out`
+            : 'transform 0.35s ease-out'
+        }}
+        className="inline-block whitespace-nowrap will-change-transform"
+      >
+        {text}
+      </span>
+    </div>
+  );
+};
+
 export default function CartPanel({ 
   isMobileView = false,
   panelState = 'default',
@@ -207,6 +277,8 @@ export default function CartPanel({
   onOpenPaymentModal,
   onOpenSaveModal
 }: CartPanelProps) {
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+
   const {
     items,
     subtotal,
@@ -812,6 +884,8 @@ export default function CartPanel({
                 items.map((item) => (
                   <div
                     key={item.productId}
+                    onMouseEnter={() => setHoveredItemId(item.productId)}
+                    onMouseLeave={() => setHoveredItemId(null)}
                     className="flex items-center justify-between py-3 border-b border-border/40 last:border-0 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                   >
                     {/* Item Details */}
@@ -828,9 +902,11 @@ export default function CartPanel({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm text-foreground truncate pr-2" title={item.name}>
-                          {item.name}
-                        </h4>
+                        <ScrollingMaskText
+                          text={item.name}
+                          className="font-bold text-sm text-foreground pr-2"
+                          isParentHovered={hoveredItemId === item.productId}
+                        />
                         {renderItemBadges(item)}
                       </div>
                     </div>
@@ -1538,6 +1614,8 @@ export default function CartPanel({
             items.map((item) => (
               <div
                 key={item.productId}
+                onMouseEnter={() => setHoveredItemId(item.productId)}
+                onMouseLeave={() => setHoveredItemId(null)}
                 className="flex gap-3 p-3 rounded-[20px] bg-card shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300"
               >
                 {/* Image */}
@@ -1556,11 +1634,13 @@ export default function CartPanel({
                 {/* Info */}
                 <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
                   {/* Top row */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col min-w-0">
-                      <h3 className="font-bold text-[14px] text-foreground line-clamp-1 tracking-tight md:tracking-normal pr-2">
-                        {item.name}
-                      </h3>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <ScrollingMaskText
+                        text={item.name}
+                        className="font-bold text-[14px] text-foreground tracking-tight md:tracking-normal pr-2"
+                        isParentHovered={hoveredItemId === item.productId}
+                      />
                         {renderItemBadges(item)}
                     </div>
                     <Button
