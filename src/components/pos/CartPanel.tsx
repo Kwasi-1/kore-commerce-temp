@@ -522,6 +522,13 @@ export default function CartPanel({
 
       if (hideOutOfStock) {
         filtered = filtered.filter(p => (p.stock_quantity ?? 0) > 0);
+      } else {
+        // Float sellable in-stock items to top of search results, out-of-stock items sink to bottom
+        filtered = [...filtered].sort((a, b) => {
+          const aInStock = (a.stock_quantity ?? 0) > 0 ? 1 : 0;
+          const bInStock = (b.stock_quantity ?? 0) > 0 ? 1 : 0;
+          return bInStock - aInStock;
+        });
       }
 
       setSearchResults(filtered);
@@ -536,6 +543,13 @@ export default function CartPanel({
         let flat = flattenProducts(found);
         if (hideOutOfStock) {
           flat = flat.filter(p => (p.stock_quantity ?? 0) > 0);
+        } else {
+          // Float sellable in-stock items to top of search results, out-of-stock items sink to bottom
+          flat = [...flat].sort((a, b) => {
+            const aInStock = (a.stock_quantity ?? 0) > 0 ? 1 : 0;
+            const bInStock = (b.stock_quantity ?? 0) > 0 ? 1 : 0;
+            return bInStock - aInStock;
+          });
         }
         setSearchResults(flat);
       } catch (err) {
@@ -1032,14 +1046,24 @@ export default function CartPanel({
                           ) : (
                             quickPickProducts.map((p) => {
                               const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
+                              const isOutOfStock = (p.stock_quantity ?? 0) <= 0;
                               return (
                                 <button
                                   key={p.id}
                                   onMouseDown={(e) => {
                                     e.preventDefault();
+                                    if (isOutOfStock) {
+                                      toast.error(`${p.name} is out of stock!`);
+                                      return;
+                                    }
                                     handleQuickAddProduct(p);
                                   }}
-                                  className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors w-full"
+                                  className={cn(
+                                    "flex items-center gap-3 p-2 rounded-[14px] text-left transition-colors w-full",
+                                    isOutOfStock
+                                      ? "opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/30"
+                                      : "hover:bg-secondary"
+                                  )}
                                 >
                                   <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                                     {(showProductImages && p.imageUrl) ? (
@@ -1061,9 +1085,15 @@ export default function CartPanel({
                                           {p.category}
                                         </span>
                                       )}
-                                      <span className="text-[11px] text-muted-foreground font-semibold">
-                                        · Stock: {p.stock_display} {p.stock_display_unit}
-                                      </span>
+                                      {isOutOfStock ? (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                          Out of stock
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] text-muted-foreground font-semibold">
+                                          · Stock: {p.stock_display} {p.stock_display_unit}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <span className="text-sm font-bold text-foreground shrink-0">
