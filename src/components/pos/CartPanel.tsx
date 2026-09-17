@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { CartItem, useCartStore } from "@/store/cartStore";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
@@ -176,6 +176,27 @@ interface CartPanelProps {
   onOpenSaveModal?: () => void;
 }
 
+const RECENT_PICKS_KEY = 'headlesspos-recent-picks';
+
+const getRecentVariantIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem(RECENT_PICKS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRecentVariantId = (variantId: string) => {
+  try {
+    const existing = getRecentVariantIds().filter(id => id !== variantId);
+    const updated = [variantId, ...existing].slice(0, 8);
+    localStorage.setItem(RECENT_PICKS_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+};
+
 export default function CartPanel({ 
   isMobileView = false,
   panelState = 'default',
@@ -265,8 +286,36 @@ export default function CartPanel({
 
   // Expanded Overlay live search states & logic
   const [expandedSearchTerm, setExpandedSearchTerm] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [recentVariantIds, setRecentVariantIds] = useState<string[]>(() => getRecentVariantIds());
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  // Quick picks derived from recent additions and available cached catalog items
+  const quickPickProducts = useMemo(() => {
+    if (!cachedProducts || cachedProducts.length === 0) return [];
+
+    const inStock = cachedProducts.filter(p => (p.stock_quantity ?? 0) > 0);
+    const pool = inStock.length > 0 ? inStock : cachedProducts;
+
+    const matchedRecent: Product[] = [];
+    for (const vid of recentVariantIds) {
+      const found = pool.find(p => p.variant_id === vid);
+      if (found && !matchedRecent.some(p => p.id === found.id)) {
+        matchedRecent.push(found);
+      }
+    }
+
+    const picks = [...matchedRecent];
+    for (const p of pool) {
+      if (picks.length >= 6) break;
+      if (!picks.some(item => item.id === p.id)) {
+        picks.push(p);
+      }
+    }
+
+    return picks;
+  }, [cachedProducts, recentVariantIds]);
 
   // Inline editing state for quantities
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -531,6 +580,8 @@ export default function CartPanel({
     }
     
     setExpandedSearchTerm('');
+    saveRecentVariantId(p.variant_id);
+    setRecentVariantIds(getRecentVariantIds());
     toast.success(`${p.name} added to cart`);
   };
 
@@ -882,6 +933,10 @@ export default function CartPanel({
                     type="text"
                     placeholder="Search & add product"
                     value={expandedSearchTerm}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => {
+                      setTimeout(() => setIsSearchFocused(false), 200);
+                    }}
                     onChange={(e) => setExpandedSearchTerm(e.target.value)}
                     onKeyDown={async (e) => {
                       if (e.key === 'Enter') {
@@ -928,9 +983,11 @@ export default function CartPanel({
                         }
                       } else if (e.key === 'Escape') {
                         setExpandedSearchTerm('');
+                        setIsSearchFocused(false);
+                        (e.target as HTMLInputElement).blur();
                       }
                     }}
-                    className="w-full pl-10 pr-9 py-2.5 bg-background border border-border rounded-full text-sm font-semibold outline-none focus:ring-0 focus:ring-primary/40 focus:borderprimary transition-all"
+                    className="w-full pl-10 pr-9 py-2.5 bg-background border border-border rounded-full text-sm font-semibold outline-none focus:ring-0 focus:ring-primary/40 focus:border-primary transition-all"
                   />
                   {expandedSearchTerm && (
                     <button
@@ -941,10 +998,69 @@ export default function CartPanel({
                     </button>
                   )}
                   
-                  {/* Expanded Search Dropdown */}
-                  {expandedSearchTerm.trim() !== '' && (
+                  {/* Expanded Search Dropdown: Quick Picks (when empty) or Live Search Results */}
+                  {(isSearchFocused || expandedSearchTerm.trim() !== '') && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border/80 rounded-[20px] shadow-xl z-50 max-h-[300px] overflow-y-auto p-2 flex flex-col gap-1.5 scrollbar-hide">
-                      {isSearchLoading ? (
+                      {expandedSearchTerm.trim() === '' ? (
+                        /* Quick Picks / Popular Items Section */
+                        <div>
+                          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 mb-1">
+                            <span className="flex items-center gap-1.5 text-foreground/80">
+                              <Icon icon="solar:star-fall-minimalistic-bold" className="h-3.5 w-3.5 text-amber-500" />
+                              Quick Picks & Popular Items
+                            </span>
+                            <span className="text-[10px] text-muted-foreground/70 font-medium lowercase">1-tap add</span>
+                          </div>
+                          {quickPickProducts.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground font-semibold">
+                              No products available in catalog.
+                            </div>
+                          ) : (
+                            quickPickProducts.map((p) => {
+                              const tier = p.packaging_tiers.find(t => t.is_default_sale_unit) || p.packaging_tiers[0];
+                              return (
+                                <button
+                                  key={p.id}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleQuickAddProduct(p);
+                                  }}
+                                  className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors w-full"
+                                >
+                                  <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {(showProductImages && p.imageUrl) ? (
+                                      <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">📦</span>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-sm text-foreground truncate">{p.name}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                      {p.sku && (
+                                        <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-secondary text-muted-foreground border border-border/50">
+                                          {p.sku}
+                                        </span>
+                                      )}
+                                      {p.category && (
+                                        <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-secondary text-muted-foreground">
+                                          {p.category}
+                                        </span>
+                                      )}
+                                      <span className="text-[11px] text-muted-foreground font-semibold">
+                                        · Stock: {p.stock_display} {p.stock_display_unit}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <span className="text-sm font-bold text-foreground shrink-0">
+                                    <CurrencyDisplay amount={tier ? tier.prices.retail : p.price} />
+                                  </span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      ) : isSearchLoading ? (
                         <div className="py-6 text-center text-xs text-muted-foreground font-semibold flex items-center justify-center gap-2">
                           <span className="h-4 w-4 rounded-full border-2 border-muted border-t-primary animate-spin" />
                           Searching...
@@ -959,8 +1075,11 @@ export default function CartPanel({
                           return (
                             <button
                               key={p.id}
-                              onClick={() => handleQuickAddProduct(p)}
-                              className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleQuickAddProduct(p);
+                              }}
+                              className="flex items-center gap-3 p-2 hover:bg-secondary rounded-[14px] text-left transition-colors w-full"
                             >
                               <div className="h-10 w-10 bg-muted rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                                 {(showProductImages && p.imageUrl) ? (
