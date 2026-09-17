@@ -93,7 +93,7 @@ export default function CashMovementModal({ isOpen, onClose, onSuccess }: CashMo
           </div>
           ) : (
             <div className="mb-2">
-              <h4 className="text-md lg:text-lg !tracking-tight font-bold text-foreground">Log Petty Cash Expense (Paid Out)</h4>
+              <h4 className="text-md lg:text-lg !tracking-tight font-bold text-foreground pt-1">Log Petty Cash Expense (Paid Out)</h4>
               <p className="text-xs text-muted-foreground leading-[2]">Record cash taken out of the drawer for shop expenses</p>
             </div>
           )}
