@@ -672,7 +672,7 @@ export default function CartPanel({
         <div className="flex items-center justify-between px-6 pb-4 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-2">
             {/* <span className="text-xl font-bold text-foreground">≡</span> */}
-            <h2 className="text-[18px] font-bold text-foreground font-header">
+            <h2 className="text-[18px] font-bold text-foreground font-header tracking-tight">
               Detail Transaction
             </h2>
           </div>
