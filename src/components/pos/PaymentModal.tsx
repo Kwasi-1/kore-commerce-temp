@@ -488,19 +488,20 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
   const renderPaymentFlow = () => (
     <div className="flex flex-col h-full min-h-0">
-      <div className="mb-4 md:mb-6 flex justify-between items-end border-b border-border/50 pb-4 shrink-0">
+      {/* Desktop Fixed Header: Pinned at top above scroll container on desktop */}
+      <div className="hidden md:flex mb-6 justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
         {!isOnline && (
-          <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
+          <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
             <WifiOff className="h-3.5 w-3.5" />
             <span>Offline Mode</span>
           </div>
         )}
       </div>
 
-      {/* Offline banner */}
+      {/* Desktop Offline Banner (Fixed) */}
       {!isOnline && showOffline && (
-        <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
+        <div className="hidden md:flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
           <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-bold mb-0.5">No Internet Connection</p>
@@ -509,7 +510,34 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-fit pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-fit pr-1 py-1 scrollbar-hide overflow-x-hidden space-y-5 pb-6">
+        {/* Mobile-only receipt summary: sits at top and scrolls with content */}
+        <div className="md:hidden">
+          {renderMobileReceiptSummary()}
+        </div>
+
+        {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
+        <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
+          <span className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Payment Details</span>
+          {!isOnline && (
+            <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
+              <WifiOff className="h-3.5 w-3.5" />
+              <span>Offline Mode</span>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile-only Offline Banner (Scrolls with content) */}
+        {!isOnline && showOffline && (
+          <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+            <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold mb-0.5">No Internet Connection</p>
+              <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
+            </div>
+          </div>
+        )}
+
         {/* Credit Toggle Section — only shown when pos_credit_enabled */}
         {featureSettings.pos_credit_enabled && (
         <div>
@@ -790,21 +818,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     // sheet doesn't get cut off by the address bar), h-[80vh] from md up.
     <div className="flex flex-col md:flex-row w-full h-[85dvh] md:h-[80vh] min-h-0 overflow-hidden">
 
-      {/* Mobile-only compact summary: bounded height, never displaces the payment panel */}
-      {!isSuccess && (
-        <div className="md:hidden flex-shrink-0 px-4 pt-4">
-          {renderMobileReceiptSummary()}
-        </div>
-      )}
-
       {/* Left Column: full Receipt Preview — desktop/tablet only. Mobile relies on the
-          compact summary above; printing is handled separately via the portal below. */}
+          compact summary inside the scrollable flow; printing is handled separately via the portal below. */}
       <div className="hidden md:flex md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-5 m-2 flex-shrink-0 flex-col min-h-0">
          {renderReceiptPreview()}
       </div>
 
       {/* Right Column: Flow — always gets the remaining space, guaranteed */}
-      <div className="flex-1 p-6 md:p-8 overflow-hidden relative md:bg-card flex flex-col min-h-0">
+      <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-hidden relative md:bg-card flex flex-col min-h-0">
         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-between min-h-0">
            {isSuccess ? renderSuccessScreen() : renderPaymentFlow()}
         </div>
