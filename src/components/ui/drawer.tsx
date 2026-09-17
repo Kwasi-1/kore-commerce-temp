@@ -70,7 +70,7 @@ const DrawerContent = React.forwardRef<
       <DrawerPrimitive.Title className="sr-only">Mobile Cart Drawer</DrawerPrimitive.Title>
       <div
         className={cn(
-          "mx-auto mt-3 mb-2 shrink-0 h-[5px] w-11 rounded-full bg-muted",
+          "mx-auto mt-3 mb-2 shrink-0 h-[4px] w-11 rounded-full bg-muted",
           dragHandleClassName || drawerDragClassName || drawerDrag,
           typeof drawerDragStyle === "string" && drawerDragStyle
         )}
