@@ -7,13 +7,14 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { getPlanLabel } from '@/utils/permissions';
+import { getReceiptPrefix } from '@/utils/receipt';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 
 
 export default function POSSettings() {
-  const { posSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
+  const { posSettings, storeSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
   const { staffUser, tenant, setTenant } = useAuthStore();
   const { posSettings: featureSettings, plan, platform_paystack_enabled, updatePOSSettings: updateFeaturePOSSettings, loadFeatures } = useFeaturesStore();
   const isPaystackPlatformAllowed = platform_paystack_enabled ?? true;
@@ -23,6 +24,10 @@ export default function POSSettings() {
 
   const [localSettings, setLocalSettings] = useState(posSettings);
   const [localFeatures, setLocalFeatures] = useState(featureSettings);
+
+  const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || '';
+  const autoPrefix = getReceiptPrefix(effectiveStoreName);
+  const currentPrefix = getReceiptPrefix(effectiveStoreName, localSettings.receipt_prefix);
 
 
   useEffect(() => {
@@ -504,7 +509,7 @@ export default function POSSettings() {
               <label className="block text-sm font-bold text-foreground">Auto-Print Receipts</label>
               <p className="text-xs text-muted-foreground mb-3">Determine what happens after a successful transaction.</p>
               
-              <div className="flex bg-secondary/50 p-1.5 rounded-xl border border-border/50 max-w-md">
+              <div className="flex bg-secondary/50 p-1 rounded-xl border border-border/50 max-w-md">
                 {[
                   { value: 'always', label: 'Always Print' },
                   { value: 'ask', label: 'Ask Every Time' },
@@ -514,7 +519,7 @@ export default function POSSettings() {
                     key={option.value}
                     type="button"
                     onClick={() => setLocalSettings(p => ({ ...p, auto_print: option.value as any }))}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
                       localSettings.auto_print === option.value
                         ? 'bg-background shadow-sm text-foreground'
                         : 'text-muted-foreground hover:text-foreground'
@@ -565,6 +570,31 @@ export default function POSSettings() {
 
             <div className="border-t border-border/50 my-6"></div>
 
+            {/* Receipt Prefix (Store Code) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-foreground">Receipt Prefix (Store Code)</label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Short 2–4 character prefix for receipts and order numbers. Defaults to your store initials ({autoPrefix}).
+              </p>
+              <div className="max-w-xs">
+                <CustomInputTextField
+                  value={localSettings.receipt_prefix || ''}
+                  onChange={(e: any) => {
+                    const clean = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
+                    setLocalSettings(p => ({ ...p, receipt_prefix: clean }));
+                  }}
+                  placeholder={autoPrefix}
+                  maxLength={4}
+                  labelPlacement='outside'
+                />
+              </div>
+              <p className="text-xs font-mono text-muted-foreground mt-1.5">
+                Receipt preview: <span className="font-bold text-foreground">{currentPrefix}-20260919-A3F1B89C</span>
+              </p>
+            </div>
+
+            <div className="border-t border-border/50 my-6"></div>
+
             {/* Receipt Footer */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-foreground">Receipt Footer Message</label>
@@ -574,6 +604,7 @@ export default function POSSettings() {
                 onChange={(e) => setLocalSettings(p => ({ ...p, receipt_footer: e.target.value }))}
                 rows={3}
                 placeholder="e.g. Thank you for shopping with us! Return within 30 days."
+                labelPlacement='outside'
               />
             </div>
 

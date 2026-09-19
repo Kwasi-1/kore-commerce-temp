@@ -15,6 +15,7 @@ import { Switch } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueueStore } from '@/store/offlineQueueStore';
 import { APP_CONFIG } from '@/config/app.config';
+import { getReceiptPrefix, generatePosOrderNumber } from '@/utils/receipt';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const { storeName, storeLocation, storePhone } = useReceiptHeader(receiptData);
   const { formatQuantity, formatQuantityWithUnit } = useQuantityFormatter();
   const { posSettings, storeSettings } = useSettingsStore();
+  const tenant = useAuthStore((state) => state.tenant);
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
   const isPaystackEnabled = checkPaystack();
@@ -157,21 +159,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
 
-function generatePosOrderNumber(): string {
-  const d = new Date();
-  const year = d.getUTCFullYear();
-  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(4)))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase();
-  return `CPZ-${year}${month}${day}-${randomPart}`;
-}
-
   const saveOfflineSale = (toastId?: string) => {
     const localId = crypto.randomUUID();
-    const offlineReceiptNum = generatePosOrderNumber();
+    const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || '';
+    const prefix = getReceiptPrefix(effectiveStoreName, posSettings.receipt_prefix);
+    const offlineReceiptNum = generatePosOrderNumber(prefix);
     const offlinePayload: any = {
       orderNumber: offlineReceiptNum,
       items: items.map((item) => ({
