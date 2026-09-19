@@ -758,7 +758,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       {/* Bottom Footer — sticky, never scrolls away */}
-      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card m-2">
+      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card m-2 md:m-0">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
           <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
@@ -789,18 +789,17 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </p>
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
-        <Button
-          className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none"
-          variant="outline"
-          onClick={() => window.print()}
-        >
-          <Printer className="h-4 w-4" />
-          Print Receipt
-        </Button>
-        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-1">
-          <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
-        </div>
-        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-1 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
+        {posSettings.auto_print !== 'never' && (
+          <Button
+            className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none"
+            variant="outline"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4" />
+            Print Receipt
+          </Button>
+        )}
+        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold bg-foreground text-background hover:bg-foreground/90 shadow-sm">
           Done
         </Button>
       </div>
