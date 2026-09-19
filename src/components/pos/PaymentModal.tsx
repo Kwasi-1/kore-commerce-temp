@@ -157,9 +157,23 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
 
+function generatePosOrderNumber(): string {
+  const d = new Date();
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+  return `CPZ-${year}${month}${day}-${randomPart}`;
+}
+
   const saveOfflineSale = (toastId?: string) => {
     const localId = crypto.randomUUID();
+    const offlineReceiptNum = generatePosOrderNumber();
     const offlinePayload: any = {
+      orderNumber: offlineReceiptNum,
       items: items.map((item) => ({
         variant_id: item.variant_id,
         packaging_tier_id: item.packaging_tier_id,
@@ -184,13 +198,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       createdAt: new Date().toISOString(),
     });
 
-    const offlineReceiptNum = `OFFLINE-${Date.now().toString().slice(-6)}`;
     setReceiptData({ receiptNumber: offlineReceiptNum, dateCreated: new Date().toISOString() });
     setFrozenCart({ items, subtotal, discount, tax, total });
     clearCart();
     setIsOfflineSale(true);
     setIsSuccess(true);
     setIsProcessing(false);
+
+    if (posSettings.auto_print === 'always') {
+      setTimeout(() => window.print(), 100);
+    }
 
     if (toastId) {
       toast.success('Connection dropped — sale saved offline and will sync automatically', { id: toastId, duration: 5000 });
@@ -767,49 +784,31 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
   const renderSuccessScreen = () => (
     <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in zoom-in-95 duration-300 fade-in fill-mode-forwards">
-      {isOfflineSale ? (
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="h-16 w-16 rounded-full bg-amber-500/15 flex items-center justify-center">
-            <Clock className="h-8 w-8 text-amber-500" />
-          </div>
-          <span className="text-xs font-bold uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-            Pending Sync
-          </span>
-        </div>
-      ) : (
-        <div className="mb-6 text-foreground">
-          <CheckCircle2 className="h-16 w-16" />
-        </div>
-      )}
+      <div className="mb-6 text-foreground">
+        <CheckCircle2 className="h-16 w-16" />
+      </div>
+
       <h2 className="text-2xl font-bold tracking-tight mb-2 text-foreground">
-        {isOfflineSale ? 'Offline Sale Saved' : 'Transaction Complete'}
+        Transaction Complete
       </h2>
-      <p className="text-muted-foreground font-medium mb-2 text-sm">
+      <p className="text-muted-foreground font-medium mb-6 text-sm">
         Receipt <span className="text-foreground font-bold">{receiptData?.receiptNumber}</span>
         {isOfflineSale ? ' saved locally.' : ' processed successfully.'}
       </p>
-      {isOfflineSale && (
-        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-6">
-          This sale will sync to your records automatically when internet is restored.
-        </p>
-      )}
-      {!isOfflineSale && (
-        <p className="text-muted-foreground font-medium mb-6 text-sm"> </p>
-      )}
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
-        {!isOfflineSale && (
-          <>
-            <Button className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none" variant="outline" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" />
-              Print Receipt
-            </Button>
-            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-2">
-              <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
-            </div>
-          </>
-        )}
-        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-2 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
+        <Button
+          className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none"
+          variant="outline"
+          onClick={() => window.print()}
+        >
+          <Printer className="h-4 w-4" />
+          Print Receipt
+        </Button>
+        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground py-1">
+          <span>Auto-print is {posSettings.auto_print.toUpperCase()}</span>
+        </div>
+        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold mt-1 bg-foreground text-background hover:bg-foreground/90 shadow-sm">
           Done
         </Button>
       </div>
