@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
-import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter } from '@/hooks';
+import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter, formatPhoneNumber, isValidGhanaPhone } from '@/hooks';
 import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock, AlertTriangle, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
@@ -214,9 +214,15 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    if (activeTab === 'mobile_money' && !isCreditSale && !momoNumber) {
-      toast.error('Phone number is required for MoMo');
-      return;
+    if (activeTab === 'mobile_money' && !isCreditSale) {
+      if (!momoNumber) {
+        toast.error('Phone number is required for MoMo');
+        return;
+      }
+      if (!isValidGhanaPhone(momoNumber)) {
+        toast.error('Please enter a valid 10-digit MoMo number (e.g. 024XXXXXXX or 055XXXXXXX)');
+        return;
+      }
     }
 
     if (isCreditSale && posSettings.require_customer_for_credit && (!customerName || !customerPhone)) {
@@ -728,7 +734,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                       type="tel"
                       placeholder="e.g. 0241234567"
                       value={momoNumber}
-                      onChange={(e: any) => setMomoNumber(e.target.value)}
+                      onChange={(e: any) => setMomoNumber(e.target.value.replace(/[^\d+]/g, '').slice(0, 13))}
                       className="h-14 text-lg font-bold rounded-xl bg-background border-border"
                     />
 
@@ -774,37 +780,103 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     </div>
   );
 
-  const renderSuccessScreen = () => (
-    <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in zoom-in-95 duration-300 fade-in fill-mode-forwards">
-      <div className="mb-6 text-foreground">
-        <CheckCircle2 className="h-16 w-16" />
-      </div>
+  const renderSuccessScreen = () => {
+    const { displayTotal } = getDisplayData();
+    const changeDue = Math.max(0, amountTendered - displayTotal);
 
-      <h2 className="text-2xl font-bold tracking-tight mb-2 text-foreground">
-        Transaction Complete
-      </h2>
-      <p className="text-muted-foreground font-medium mb-6 text-sm">
-        Receipt <span className="text-foreground font-bold">{receiptData?.receiptNumber}</span>
-        {isOfflineSale ? ' saved locally.' : ' processed successfully.'}
-      </p>
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in zoom-in-95 duration-300 fade-in fill-mode-forwards">
+        <div className="mb-4 text-foreground">
+          <CheckCircle2 className="h-14 w-14 md:h-16 md:w-16" />
+        </div>
 
-      <div className="flex flex-col gap-3 w-full max-w-sm">
-        {posSettings.auto_print !== 'never' && (
-          <Button
-            className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none"
-            variant="outline"
-            onClick={() => window.print()}
-          >
-            <Printer className="h-4 w-4" />
-            Print Receipt
+        <h2 className="text-2xl font-bold tracking-tight mb-1 text-foreground">
+          Transaction Complete
+        </h2>
+        <p className="text-muted-foreground font-medium mb-5 text-sm">
+          Receipt <span className="text-foreground font-bold">{receiptData?.receiptNumber}</span>
+          {isOfflineSale ? ' saved locally.' : ' processed successfully.'}
+        </p>
+
+        {/* Transaction Summary Card */}
+        <div className="w-full max-w-sm bgsecondary/40 border border-border/60 rounded-xl p-4 mb-6 text-left space-y-2">
+          <div className="flex items-center justify-between py-1 border-b border-border/40 text-xs">
+            <span className="text-muted-foreground font-medium">Payment Method</span>
+            <span className="font-bold text-foreground uppercase">
+              {isCreditSale ? 'Store Credit' : activeTab === 'cash' ? 'Cash' : activeTab === 'mobile_money' ? 'Mobile Money' : 'Card'}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between py-1 border-b border-border/40 text-xs">
+            <span className="text-muted-foreground font-medium">Total Amount</span>
+            <span className="font-bold text-foreground text-sm">
+              <CurrencyDisplay amount={displayTotal} />
+            </span>
+          </div>
+
+          {activeTab === 'cash' && !isCreditSale && (
+            <>
+              <div className="flex items-center justify-between py-1 border-b border-border/40 text-xs">
+                <span className="text-muted-foreground font-medium">Amount Tendered</span>
+                <span className="font-medium text-foreground">
+                  <CurrencyDisplay amount={amountTendered} />
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-muted-foreground font-medium">Change Due</span>
+                <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                  <CurrencyDisplay amount={changeDue} />
+                </span>
+              </div>
+            </>
+          )}
+
+          {isCreditSale && customerName && (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-muted-foreground font-medium">Customer</span>
+              <span className="font-bold text-foreground truncate max-w-[160px]">
+                {customerName}
+              </span>
+            </div>
+          )}
+
+          {activeTab === 'mobile_money' && momoNumber && (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-muted-foreground font-medium">Phone</span>
+              <span className="font-sans font-medium text-foreground">
+                {formatPhoneNumber(momoNumber)}
+              </span>
+            </div>
+          )}
+
+          {isCreditSale && customerPhone && (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-muted-foreground font-medium">Phone</span>
+              <span className="font-sans font-medium text-foreground">
+                {formatPhoneNumber(customerPhone)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          {posSettings.auto_print !== 'never' && (
+            <Button
+              className="w-full h-12 rounded-full font-bold gap-2 border border-border bg-secondary hover:bg-secondary/80 text-foreground shadow-none"
+              variant="outline"
+              onClick={() => window.print()}
+            >
+              <Printer className="h-4 w-4" />
+              Print Receipt
+            </Button>
+          )}
+          <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold bg-foreground text-background hover:bg-foreground/90 shadow-sm">
+            Done
           </Button>
-        )}
-        <Button onClick={handleDone} className="w-full h-12 rounded-full font-bold bg-foreground text-background hover:bg-foreground/90 shadow-sm">
-          Done
-        </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const modalBody = (
     // h-[90dvh] on mobile (dvh accounts for the mobile browser chrome so the

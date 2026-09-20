@@ -83,9 +83,31 @@ export function cleanPhoneNumber(phone?: string | null): string {
   return digits;
 }
 
+/**
+ * Validates whether a phone number matches standard Ghanaian mobile formats:
+ * - 10 digits starting with 02, 03, 05 (e.g. 024XXXXXXX, 055XXXXXXX, 020XXXXXXX)
+ * - 12 digits starting with 2332, 2333, 2335 (e.g. 23324XXXXXXX)
+ * - 9 digits without leading 0 (e.g. 24XXXXXXX)
+ */
+export function isValidGhanaPhone(phone?: string | null): boolean {
+  if (!phone) return false;
+  const digits = phone.trim().replace(/\D/g, '');
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return /^0[235]/.test(digits);
+  }
+  if (digits.length === 12 && digits.startsWith('233')) {
+    return /^233[235]/.test(digits);
+  }
+  if (digits.length === 9) {
+    return /^[235]/.test(digits);
+  }
+  return false;
+}
+
 export function usePhoneFormatter() {
   return {
     formatPhone: formatPhoneNumber,
     cleanPhone: cleanPhoneNumber,
+    isValidPhone: isValidGhanaPhone,
   };
 }
