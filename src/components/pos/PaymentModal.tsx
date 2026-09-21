@@ -52,6 +52,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const { formatQuantity, formatQuantityWithUnit } = useQuantityFormatter();
   const { posSettings, storeSettings } = useSettingsStore();
   const tenant = useAuthStore((state) => state.tenant);
+  const staffUser = useAuthStore((state) => state.staffUser);
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
   const isPaystackEnabled = checkPaystack();
@@ -167,17 +168,29 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     const offlinePayload: any = {
       orderNumber: offlineReceiptNum,
       items: items.map((item) => ({
+        name: item.name,
+        productName: item.name,
         variant_id: item.variant_id,
         packaging_tier_id: item.packaging_tier_id,
+        tier_name: item.tier_name,
+        tierName: item.tier_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        unitPrice: item.unit_price,
         price_type: item.price_type,
+        subtotal: (item.unit_price || 0) * (item.quantity || 1),
       })),
       discount: discount || 0,
+      subtotal,
+      tax,
+      total,
+      cashierName: staffUser?.name || 'Staff',
       // When offline, mobile_money is recorded as manual MoMo
       paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
       isCreditSale,
       customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
+      customerName: isCreditSale ? customerName : undefined,
+      customerPhone: isCreditSale ? customerPhone : undefined,
       offlineCreatedAt: new Date().toISOString(),
     };
     if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;

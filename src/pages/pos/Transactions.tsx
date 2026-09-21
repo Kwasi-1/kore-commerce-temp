@@ -14,6 +14,9 @@ import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
 import CustomModal from "@/components/modals/modal";
 import { useAuthStore } from "@/store/authStore";
 import { useFeaturesStore } from "@/store/featuresStore";
+import { useSettingsStore } from "@/store/settingsStore";
+import { useOfflineQueueStore } from "@/store/offlineQueueStore";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { 
   X, 
   ShoppingCart, 
@@ -25,6 +28,7 @@ import {
   RotateCcw, 
   RefreshCw,
   Users,
+  Clock,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -107,6 +111,14 @@ export default function Transactions() {
 
   const [serverSummary, setServerSummary] = useState<any>(null);
 
+  const CACHE_KEY_TRANSACTIONS = "pos_transactions_cache";
+  const CACHE_KEY_SUMMARY = "pos_transactions_summary_cache";
+
+  const { queue: offlineQueue } = useOfflineQueueStore();
+  const { isOnline } = useNetworkStatus();
+  const tenant = useAuthStore((state) => state.tenant);
+  const { storeSettings } = useSettingsStore();
+
   const fetchTransactions = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
     if (append) {
       setIsLoadingMore(true);
@@ -146,6 +158,16 @@ export default function Transactions() {
       setServerSummary(summaryData);
       setPagination(pag);
       
+      // Update local storage cache for offline resilience
+      if (!append) {
+        try {
+          localStorage.setItem(CACHE_KEY_TRANSACTIONS, JSON.stringify(data));
+          if (summaryData) localStorage.setItem(CACHE_KEY_SUMMARY, JSON.stringify(summaryData));
+        } catch (storageErr) {
+          console.error("Failed to cache transactions in localStorage:", storageErr);
+        }
+      }
+
       if (append) {
         setTransactions((prev) => [...prev, ...data]);
       } else {
@@ -153,12 +175,27 @@ export default function Transactions() {
       }
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
+      // Restore from offline cache if available
+      try {
+        const cachedTx = localStorage.getItem(CACHE_KEY_TRANSACTIONS);
+        const cachedSum = localStorage.getItem(CACHE_KEY_SUMMARY);
+        if (cachedTx) {
+          setTransactions(JSON.parse(cachedTx));
+          if (cachedSum) setServerSummary(JSON.parse(cachedSum));
+          if (!isOnline) {
+            toast("Working Offline: Showing cached records", { icon: "📡" });
+          }
+          return;
+        }
+      } catch (cacheErr) {
+        console.error("Failed to load cached transactions:", cacheErr);
+      }
       toast.error("Failed to load transaction history");
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [paymentFilter, searchQuery, dateFilter, isCashier, staffUser]);
+  }, [paymentFilter, searchQuery, dateFilter, isCashier, staffUser, isOnline]);
 
   const handleLoadMore = () => {
     if (isLoading || isLoadingMore || !pagination?.hasNext) return;
@@ -171,7 +208,111 @@ export default function Transactions() {
     return () => clearTimeout(timer);
   }, [fetchTransactions]);
 
+  // Map offline queue items into unified transaction shape
+  const offlineTransactions = useMemo(() => {
+    return offlineQueue
+      .filter((tx) => tx.syncStatus !== "synced")
+      .map((tx) => {
+        const payload = tx.payload || {};
+        const items = payload.items || [];
+        const total = payload.total ?? items.reduce((sum: number, it: any) => sum + ((it.unit_price || it.unitPrice || 0) * (it.quantity || 1)), 0);
+        const dateCreated = tx.createdAt || payload.offlineCreatedAt || new Date().toISOString();
+
+        return {
+          id: tx.localId,
+          localId: tx.localId,
+          orderNumber: payload.orderNumber || `OFFLINE-${tx.localId.slice(0, 8).toUpperCase()}`,
+          date_created: dateCreated,
+          cashierName: payload.cashierName || staffUser?.name || "Cashier",
+          payment_method: payload.paymentMethod || "cash",
+          total: total,
+          status: "offline_pending",
+          syncStatus: tx.syncStatus,
+          failureReason: tx.failureReason,
+          isOffline: true,
+          items: items,
+          subtotal: payload.subtotal ?? total,
+          discount: payload.discount || 0,
+          tax: payload.tax,
+          customerName: payload.customerName || payload.customerDetails?.name,
+          customerPhone: payload.customerPhone || payload.customerDetails?.phone,
+          rawTx: tx,
+        };
+      });
+  }, [offlineQueue, staffUser]);
+
+  // Filter offline queue based on active payment filter, search query, and date range
+  const filteredOfflineTransactions = useMemo(() => {
+    const currentMethod = Array.from(paymentFilter as Set<string>)[0] || "all";
+    const query = searchQuery.trim().toLowerCase();
+
+    return offlineTransactions.filter((tx) => {
+      // Payment filter
+      if (currentMethod !== "all") {
+        if (currentMethod === "mobile_money") {
+          if (!tx.payment_method.includes("money")) return false;
+        } else if (tx.payment_method !== currentMethod) {
+          return false;
+        }
+      }
+
+      // Search query
+      if (query) {
+        const matchesOrder = tx.orderNumber.toLowerCase().includes(query);
+        const matchesCashier = tx.cashierName.toLowerCase().includes(query);
+        const matchesCustomer = tx.customerName?.toLowerCase().includes(query);
+        const matchesMethod = tx.payment_method.toLowerCase().includes(query);
+        if (!matchesOrder && !matchesCashier && !matchesCustomer && !matchesMethod) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (!isCashier && dateFilter.start_date && dateFilter.end_date) {
+        const txDate = new Date(tx.date_created).getTime();
+        const start = new Date(dateFilter.start_date).getTime();
+        const end = new Date(dateFilter.end_date).getTime();
+        if (txDate < start || txDate > end) return false;
+      }
+
+      return true;
+    });
+  }, [offlineTransactions, paymentFilter, searchQuery, isCashier, dateFilter]);
+
+  // Combine offline items at top with server transactions
+  const displayTransactions = useMemo(() => {
+    const existingOrderNumbers = new Set(transactions.map((t) => t.orderNumber || t.id));
+    const uniqueOffline = filteredOfflineTransactions.filter((t) => !existingOrderNumbers.has(t.orderNumber));
+    return [...uniqueOffline, ...transactions];
+  }, [filteredOfflineTransactions, transactions]);
+
   const handleViewReceipt = async (transactionId: string) => {
+    const offlineTx = offlineTransactions.find((t) => t.id === transactionId);
+    if (offlineTx) {
+      const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || "";
+      const payload = offlineTx.rawTx?.payload || {};
+      setSelectedReceiptData({
+        orderNumber: offlineTx.orderNumber,
+        receiptNumber: offlineTx.orderNumber,
+        date: offlineTx.date_created,
+        cashierName: offlineTx.cashierName,
+        paymentMethod: offlineTx.payment_method,
+        momoNumber: payload.momoNumber,
+        subtotal: offlineTx.subtotal ?? offlineTx.total,
+        total: offlineTx.total,
+        totalAmount: offlineTx.total,
+        amountTendered: payload.amountTendered,
+        changeGiven: Math.max(0, (payload.amountTendered || 0) - offlineTx.total),
+        discount: offlineTx.discount,
+        tax: offlineTx.tax,
+        items: offlineTx.items,
+        storeName: effectiveStoreName,
+        isOffline: true,
+      });
+      setIsReceiptOpen(true);
+      return;
+    }
+
     try {
       console.log("handleViewReceipt called with:", transactionId);
       const response = await apiClient.get(
@@ -192,29 +333,40 @@ export default function Transactions() {
   const isPaystackEnabled = posSettings.pos_paystack_enabled ?? true;
 
   const stats = useMemo(() => {
+    // Offline contributions
+    const offlineTotal = filteredOfflineTransactions.reduce((s, t) => s + (t.total || 0), 0);
+    const offlineCount = filteredOfflineTransactions.length;
+    const offlineCash = filteredOfflineTransactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total || 0), 0);
+    const offlineMomoAuto = filteredOfflineTransactions.filter(t => t.payment_method === 'mobile_money').reduce((s, t) => s + (t.total || 0), 0);
+    const offlineMomoManual = filteredOfflineTransactions.filter(t => t.payment_method === 'mobile_money_manual').reduce((s, t) => s + (t.total || 0), 0);
+    const offlineCard = filteredOfflineTransactions.filter(t => t.payment_method === 'card').reduce((s, t) => s + (t.total || 0), 0);
+    const offlineCredit = filteredOfflineTransactions.filter(t => t.payment_method === 'credit').reduce((s, t) => s + (t.total || 0), 0);
+
     if (serverSummary && !searchQuery.trim()) {
+      const net = (serverSummary.net_sales || 0) + offlineTotal;
+      const count = (serverSummary.completed_count || 0) + offlineCount;
       return {
-        total: serverSummary.net_sales || 0,
-        grossTotal: serverSummary.gross_sales || 0,
+        total: net,
+        grossTotal: (serverSummary.gross_sales || 0) + offlineTotal,
         refundTotal: serverSummary.total_refunds || 0,
-        completedCount: serverSummary.completed_count || 0,
+        completedCount: count,
         refundedCount: serverSummary.refunded_count || 0,
-        count: serverSummary.completed_count || 0,
-        avg: serverSummary.average_order_value || 0,
-        cashTotal: serverSummary.payment_breakdown?.cash || 0,
-        momoAutomatedTotal: serverSummary.payment_breakdown?.mobile_money || 0,
-        momoManualTotal: serverSummary.payment_breakdown?.mobile_money_manual || 0,
-        cardTotal: serverSummary.payment_breakdown?.card || 0,
-        creditTotal: serverSummary.payment_breakdown?.credit || 0,
+        count: count,
+        avg: count > 0 ? net / count : 0,
+        cashTotal: (serverSummary.payment_breakdown?.cash || 0) + offlineCash,
+        momoAutomatedTotal: (serverSummary.payment_breakdown?.mobile_money || 0) + offlineMomoAuto,
+        momoManualTotal: (serverSummary.payment_breakdown?.mobile_money_manual || 0) + offlineMomoManual,
+        cardTotal: (serverSummary.payment_breakdown?.card || 0) + offlineCard,
+        creditTotal: (serverSummary.payment_breakdown?.credit || 0) + offlineCredit,
         topCashier: serverSummary.top_cashier || "None",
         topCashierSales: serverSummary.top_cashier_sales || 0,
       };
     }
 
-    const netTransactions = transactions.filter(
+    const netTransactions = displayTransactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
-    const refundedTransactions = transactions.filter(
+    const refundedTransactions = displayTransactions.filter(
       (t) => t.status === "refunded",
     );
 
@@ -262,7 +414,7 @@ export default function Transactions() {
       topCashier: "None",
       topCashierSales: 0,
     };
-  }, [serverSummary, transactions, searchQuery]);
+  }, [serverSummary, displayTransactions, filteredOfflineTransactions, searchQuery]);
 
   const paymentBreakdownList = useMemo(() => {
     const definitions = [
@@ -286,7 +438,7 @@ export default function Transactions() {
 
   const cashierStats = useMemo(() => {
     const map: Record<string, number> = {};
-    const netTransactions = transactions.filter(
+    const netTransactions = displayTransactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
     netTransactions.forEach((t) => {
@@ -296,10 +448,10 @@ export default function Transactions() {
     return Object.entries(map)
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total);
-  }, [transactions]);
+  }, [displayTransactions]);
 
   const topSellingItem = useMemo(() => {
-    if (serverSummary && serverSummary.top_selling_item !== undefined) {
+    if (serverSummary && serverSummary.top_selling_item !== undefined && offlineTransactions.length === 0) {
       if (!serverSummary.top_selling_item) return null;
       return {
         name: serverSummary.top_selling_item.name,
@@ -310,9 +462,9 @@ export default function Transactions() {
       };
     }
 
-    // Fallback: derive top selling item from loaded transactions at variant granularity
+    // Derive top selling item from loaded and offline transactions at variant granularity
     const itemMap: Record<string, { name: string; variant_name?: string; full_name: string; qty: number; revenue: number; latest: number }> = {};
-    const netTransactions = transactions.filter(
+    const netTransactions = displayTransactions.filter(
       (t) => t.status !== "refunded" && t.status !== "voided",
     );
     netTransactions.forEach((t) => {
@@ -324,7 +476,7 @@ export default function Transactions() {
         const groupKey = vId || (vName ? `${pName} - ${vName}` : pName);
         const fullName = vName ? `${pName} (${vName})` : pName;
         const qty = Number(item.quantity || item.qty || 0);
-        const unitPrice = Number(item.unitPrice || item.price || 0);
+        const unitPrice = Number(item.unitPrice || item.price || item.unit_price || 0);
         const revenue = Number(item.subtotal ?? (unitPrice * qty));
 
         if (groupKey && qty > 0) {
@@ -358,7 +510,7 @@ export default function Transactions() {
     }
 
     return null;
-  }, [serverSummary, transactions]);
+  }, [serverSummary, displayTransactions, offlineTransactions.length]);
 
   const isCashierFiltered = useMemo(() => {
     if (isCashier || !searchQuery) return false;
@@ -382,10 +534,10 @@ export default function Transactions() {
     return cols;
   }, [isCashier]);
 
-  const rows = transactions.map((t: any) => ({
+  const rows = displayTransactions.map((t: any) => ({
     id: t.id,
     receipt_number: (
-      <span className="font-mono font-medium">
+      <span className="text-[13.5px] font-medium ">
         {t.orderNumber || t.id?.slice(0, 8)?.toUpperCase()}
       </span>
     ),
@@ -394,7 +546,7 @@ export default function Transactions() {
       : "N/A",
     cashier: t.cashierName || "Unknown",
     payment_method: (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`capitalize inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
           t.payment_method === 'mobile_money_manual'
             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
@@ -404,11 +556,28 @@ export default function Transactions() {
         }`}>
           {t.payment_method === 'mobile_money_manual' ? 'MoMo (Manual)' : t.payment_method?.replace("_", " ")}
         </span>
-        {t.status === "refunded" && (
+        {t.isOffline ? (
+          t.syncStatus === 'failed' ? (
+            <span className="capitalize inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20" title={t.failureReason || 'Sync failed'}>
+              <AlertCircle className="h-3 w-3" />
+              Sync Failed
+            </span>
+          ) : t.syncStatus === 'syncing' ? (
+            <span className="capitalize inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              <RefreshCw className="h-3 w-3 animate-spin" />
+              Syncing
+            </span>
+          ) : (
+            <span className="capitalize inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <Clock className="h-3 w-3" />
+              Pending Sync
+            </span>
+          )
+        ) : t.status === "refunded" ? (
           <span className="capitalize inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20">
             Refunded
           </span>
-        )}
+        ) : null}
       </div>
     ),
     amount: (
@@ -422,7 +591,7 @@ export default function Transactions() {
         label: "View Receipt",
         icon: "mdi:receipt-text-outline",
       },
-      ...(t.status !== "refunded"
+      ...(!t.isOffline && t.status !== "refunded"
         ? [
             {
               key: "issue_refund",
@@ -467,6 +636,7 @@ export default function Transactions() {
       subtitle={isCashier ? `Shift View: ${staffUser?.name}` : null}
       constrainHeight={true}
     >
+
       {/* ========================================================================= */}
       {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md) */}
       {/* ========================================================================= */}
@@ -637,20 +807,21 @@ export default function Transactions() {
           hasMore={pagination?.hasNext}
           isLoadingMore={isLoadingMore}
           onLoadMore={handleLoadMore}
-          totalCount={pagination?.total}
-          currentCount={transactions.length}
+          totalCount={(pagination?.total || 0) + filteredOfflineTransactions.length}
+          currentCount={displayTransactions.length}
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
-          ) : transactions.length === 0 ? (
+          ) : displayTransactions.length === 0 ? (
             <div className="py-10 text-center text-xs text-muted-foreground">
               {getEmptyStateTitle()}
             </div>
           ) : (
-            transactions.map((tx: any, idx: number) => {
+            displayTransactions.map((tx: any, idx: number) => {
               const amount = tx.total ?? (tx.amount_tendered?.parsedValue || tx.amount_tendered || 0);
               const isRefund = tx.status === 'refunded';
               const method = tx.payment_method || 'cash';
+              const isOffline = tx.isOffline;
               
               return (
                 <div
@@ -684,7 +855,7 @@ export default function Transactions() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-0.5">
                     <span className={cn(
                       "font-extrabold text-[12px] block",
                       isRefund ? "text-rose-600 dark:text-rose-400" : "text-foreground"
@@ -692,7 +863,33 @@ export default function Transactions() {
                       {isRefund && "-"}
                       <CurrencyDisplay amount={amount} symbolClassName="text-xs" />
                     </span>
-                    {tx.status && (
+                    {isOffline ? (
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1",
+                        tx.syncStatus === 'failed'
+                          ? "bg-red-500/10 text-red-500"
+                          : tx.syncStatus === 'syncing'
+                            ? "bg-blue-500/10 text-blue-500"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      )}>
+                        {tx.syncStatus === 'failed' ? (
+                          <>
+                            <AlertCircle className="h-2.5 w-2.5" />
+                            Failed
+                          </>
+                        ) : tx.syncStatus === 'syncing' ? (
+                          <>
+                            <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                            Syncing
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-2.5 w-2.5" />
+                            Pending Sync
+                          </>
+                        )}
+                      </span>
+                    ) : tx.status && (
                       <span className={cn(
                         "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
                         isRefund ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"

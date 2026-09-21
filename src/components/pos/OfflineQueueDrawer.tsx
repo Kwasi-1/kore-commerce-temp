@@ -177,9 +177,16 @@ export default function OfflineQueueDrawer({ isOpen, onClose }: OfflineQueueDraw
                       )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-bold text-foreground truncate">
-                        {tx.payload?.customerName || `Offline Sale #${tx.localId.slice(-4)}`}
-                      </span>
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-sm font-bold text-foreground font-sans truncate">
+                          {tx.payload?.orderNumber || `Offline Sale #${tx.localId.slice(-4)}`}
+                        </span>
+                        {tx.payload?.customerName && (
+                          <span className="text-xs text-muted-foreground truncate">
+                            ({tx.payload.customerName})
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <ShoppingCart className="h-3 w-3" />

@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Printer, RefreshCcw } from 'lucide-react';
 import { useCurrency, useReceiptHeader, useQuantityFormatter, formatPhoneNumber } from '@/hooks';
 import { APP_CONFIG } from '@/config/app.config';
+import { Tooltip } from '@nextui-org/react';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface TransactionSidePanelProps {
   isOpen: boolean;
@@ -51,6 +53,18 @@ export default function TransactionSidePanel({
   const discount = getVal(receiptData?.discount);
   const tax = receiptData?.tax !== undefined ? getVal(receiptData?.tax) : undefined;
   const isRefunded = receiptData?.status === 'refunded' || receiptData?.orderStatus === 'refunded';
+
+  const { isOnline } = useNetworkStatus();
+  const isOfflineTx = Boolean(receiptData?.isOffline);
+  const isRefundDisabled = isRefunded || isOfflineTx || !isOnline;
+
+  const refundTooltip = isOfflineTx
+    ? 'This transaction is pending synchronization. Once synced with the server, returns and refunds can be processed.'
+    : !isOnline
+      ? 'Internet connection required to verify and process refunds.'
+      : isRefunded
+        ? 'This transaction has already been refunded.'
+        : '';
 
   return (
     <CustomModal
@@ -226,15 +240,37 @@ export default function TransactionSidePanel({
               <Printer className="w-4 h-4 mr-2" />
               Reprint Receipt
             </Button>
-            <Button 
-              variant="destructive"
-              className="w-full"
-              onClick={onIssueRefund}
-              disabled={isRefunded}
-            >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              {isRefunded ? 'Already Refunded' : 'Issue Refund'}
-            </Button>
+            {isRefundDisabled ? (
+              <Tooltip 
+                content={refundTooltip}
+                placement="top"
+                className="max-w-xs text-xs py-1.5 px-3 text-center"
+              >
+                <div className="w-full">
+                  <Button 
+                    variant="destructive"
+                    className="w-full opacity-60 cursor-not-allowed"
+                    disabled={true}
+                  >
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    {isOfflineTx
+                      ? 'Sync Required to Refund'
+                      : !isOnline
+                        ? 'Offline - Cannot Refund'
+                        : 'Already Refunded'}
+                  </Button>
+                </div>
+              </Tooltip>
+            ) : (
+              <Button 
+                variant="destructive"
+                className="w-full"
+                onClick={onIssueRefund}
+              >
+                <RefreshCcw className="w-4 h-4 mr-2" />
+                Issue Refund
+              </Button>
+            )}
           </div>
         ) : null
       }
