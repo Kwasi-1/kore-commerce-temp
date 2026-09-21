@@ -122,8 +122,17 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           const res = await apiClient.get('/pos/credit-ledger');
           const debtors = res.data.success?.data?.debtors || [];
           setDebtorsList(debtors);
+          try {
+            localStorage.setItem('pos_credit_debtors_active', JSON.stringify(debtors));
+          } catch {}
         } catch (err) {
           console.error('Failed to load debtors for credit selector', err);
+          try {
+            const cached = localStorage.getItem('pos_credit_debtors_active');
+            if (cached) {
+              setDebtorsList(JSON.parse(cached));
+            }
+          } catch {}
         } finally {
           setIsLoadingDebtors(false);
         }

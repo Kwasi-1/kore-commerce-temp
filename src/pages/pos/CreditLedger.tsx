@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import {
@@ -29,10 +30,14 @@ import {
 export default function CreditLedger() {
   const { posSettings } = useFeaturesStore();
   const { storeName, storeLocation, storePhone } = useReceiptHeader();
+  const { isOnline } = useNetworkStatus();
   const [debtors, setDebtors] = useState<any[]>([]);
   const [settledThisMonth, setSettledThisMonth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const CACHE_KEY_DEBTORS_PREFIX = 'pos_credit_debtors_';
+  const CACHE_KEY_METRICS = 'pos_credit_metrics';
   
   // Drawer state
   const [selectedDebtor, setSelectedDebtor] = useState<any>(null);
@@ -61,13 +66,29 @@ export default function CreditLedger() {
       const response = await apiClient.get(`/pos/credit-ledger?status=${mode}`);
       const data = response.data.success?.data?.debtors || [];
       const settled = response.data.success?.data?.settled_this_month ?? 0;
+      const activeC = response.data.success?.data?.active_count ?? 0;
+      const settledC = response.data.success?.data?.settled_count ?? 0;
+      const sum = data.reduce((acc: number, d: any) => acc + (d.outstanding_debt || 0), 0);
+      const totalDebt = response.data.success?.data?.total_outstanding_debt ?? sum;
+
       setSettledThisMonth(settled);
-      setActiveCount(response.data.success?.data?.active_count ?? 0);
-      setSettledCount(response.data.success?.data?.settled_count ?? 0);
-      
+      setActiveCount(activeC);
+      setSettledCount(settledC);
       if (mode === 'active') {
-        const sum = data.reduce((acc: number, d: any) => acc + (d.outstanding_debt || 0), 0);
-        setTotalOutstandingDebt(response.data.success?.data?.total_outstanding_debt ?? sum);
+        setTotalOutstandingDebt(totalDebt);
+      }
+
+      // Save to localStorage cache
+      try {
+        localStorage.setItem(`${CACHE_KEY_DEBTORS_PREFIX}${mode}`, JSON.stringify(data));
+        localStorage.setItem(CACHE_KEY_METRICS, JSON.stringify({
+          settledThisMonth: settled,
+          activeCount: activeC,
+          settledCount: settledC,
+          totalOutstandingDebt: totalDebt,
+        }));
+      } catch (storageErr) {
+        console.error('Failed to cache credit ledger:', storageErr);
       }
       
       // Client-side search
@@ -79,6 +100,32 @@ export default function CreditLedger() {
       setDebtors(filtered);
     } catch (error) {
       console.error('Failed to fetch credit ledger:', error);
+      // Restore from offline cache if available
+      try {
+        const cachedRaw = localStorage.getItem(`${CACHE_KEY_DEBTORS_PREFIX}${mode}`);
+        const cachedMetricsRaw = localStorage.getItem(CACHE_KEY_METRICS);
+        if (cachedRaw) {
+          const cachedData = JSON.parse(cachedRaw);
+          if (cachedMetricsRaw) {
+            const m = JSON.parse(cachedMetricsRaw);
+            setSettledThisMonth(m.settledThisMonth || 0);
+            setActiveCount(m.activeCount || 0);
+            setSettledCount(m.settledCount || 0);
+            setTotalOutstandingDebt(m.totalOutstandingDebt || 0);
+          }
+          const filtered = smartSearch(cachedData, searchQuery, [
+            (c: any) => c.name,
+            (c: any) => c.phone,
+          ]);
+          setDebtors(filtered);
+          if (!isOnline) {
+            toast('Working Offline: Showing cached debtors', { icon: '📡' });
+          }
+          return;
+        }
+      } catch (cacheErr) {
+        console.error('Failed to restore cached credit ledger:', cacheErr);
+      }
       toast.error('Failed to load credit ledger');
     } finally {
       setIsLoading(false);
@@ -114,6 +161,10 @@ export default function CreditLedger() {
   };
 
   const handleSettle = async (amount: number, method: string) => {
+    if (!isOnline) {
+      toast.error('Internet connection required to settle debt and update ledger accounts');
+      return;
+    }
     try {
       let response;
       if (settlementMode === 'all') {
