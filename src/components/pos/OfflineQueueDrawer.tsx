@@ -11,6 +11,7 @@ import { CurrencyDisplay } from '@/hooks';
 import { WifiOff, Cloud, Clock, AlertTriangle, RefreshCw, ShoppingCart, RotateCcw, Trash2, CheckCircle2 } from 'lucide-react';
 import CustomModal from '@/components/modals/modal';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 
 interface OfflineQueueDrawerProps {
   isOpen: boolean;
@@ -59,6 +60,10 @@ export default function OfflineQueueDrawer({ isOpen, onClose }: OfflineQueueDraw
 
   const { isSyncing } = useOfflineSync();
   const [filterMode, setFilterMode] = useState<'all' | 'failed'>('all');
+
+  const staffUser = useAuthStore((state) => state.staffUser);
+  const isCashier = staffUser?.role === 'cashier';
+  const canManageQueue = !isCashier; // Only manager/owner/admin can discard failed offline sales
 
   const filteredQueue = useMemo(() => {
     if (filterMode === 'failed') return queue.filter(t => t.syncStatus === 'failed');
@@ -221,17 +226,21 @@ export default function OfflineQueueDrawer({ isOpen, onClose }: OfflineQueueDraw
                         >
                           Retry
                         </Button>
-                        <button
-                          type="button"
-                          className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          onClick={() => {
-                            removeTransaction(tx.localId);
-                            toast.success("Discarded offline sale");
-                          }}
-                          title="Discard sale"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {canManageQueue && (
+                          <button
+                            type="button"
+                            className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to discard this failed transaction? It will be permanently removed from the sync queue.")) {
+                                removeTransaction(tx.localId);
+                                toast.success("Discarded failed offline sale");
+                              }
+                            }}
+                            title="Discard failed sale (Manager only)"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     ) : isSyncingItem ? (
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
