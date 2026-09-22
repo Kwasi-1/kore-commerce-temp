@@ -239,7 +239,7 @@ export default function BottomNav() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 12 }}
               transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-neutral-900/90 dark:bg-neutral-950/95 backdrop-blur-2xl border border-white/15 shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/20 text-white select-none"
+              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-white/80 dark:bg-neutral-900/90 backdrop-blur-2xl border border-black/[0.08] dark:border-white/15 shadow-[0_10px_35px_rgba(0,0,0,0.10)] dark:shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/5 dark:ring-black/20 text-neutral-900 dark:text-white select-none"
             >
               {/* Subtle top loading transition indicator */}
               {isPending && (
@@ -263,7 +263,7 @@ export default function BottomNav() {
                     {isActive && (
                       <motion.div
                         layoutId="activePillBubble"
-                        className="absolute inset-0 bg-white rounded-full shadow-md -z-10"
+                        className="absolute inset-0 bg-neutral-950 dark:bg-white rounded-full shadow-md -z-10"
                         transition={{ type: 'spring', stiffness: 480, damping: 34 }}
                       />
                     )}
@@ -272,7 +272,7 @@ export default function BottomNav() {
                       icon={isActive ? item.activeIcon : item.icon}
                       className={clsx(
                         'transition-all duration-200 text-[22px]',
-                        isActive ? 'text-neutral-950 scale-105' : 'text-white/70 hover:text-white'
+                        isActive ? 'text-white dark:text-neutral-950 scale-105' : 'text-neutral-500 hover:text-neutral-950 dark:text-white/70 dark:hover:text-white'
                       )}
                     />
                   </button>
@@ -282,12 +282,12 @@ export default function BottomNav() {
               {/* Morphing Menu Trigger Button */}
               <button
                 onClick={() => setIsMenuOpen(true)}
-                className="relative flex items-center justify-center h-11 w-12 rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
+                className="relative flex items-center justify-center h-11 w-12 rounded-full text-neutral-600 hover:text-neutral-950 hover:bg-black/5 dark:text-white/75 dark:hover:text-white dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
                 title="All Modules & Menu"
               >
                 <Icon icon="solar:widget-2-linear" className="text-[22px]" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-neutral-900" />
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-white dark:ring-neutral-900" />
                 )}
               </button>
             </motion.nav>
@@ -302,19 +302,19 @@ export default function BottomNav() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 25 }}
               transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative w-full max-w-[370px] rounded-[2.25rem] bg-neutral-900/95 dark:bg-neutral-950/98 backdrop-blur-3xl border border-white/15 shadow-[0_25px_65px_rgba(0,0,0,0.65)] ring-1 ring-white/10 text-white overflow-hidden flex flex-col max-h-[82vh]"
+              className="pointer-events-auto relative w-full max-w-[370px] rounded-[2.25rem] bg-white/95 dark:bg-neutral-950/98 backdrop-blur-3xl border border-black/10 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_65px_rgba(0,0,0,0.65)] ring-1 ring-black/5 dark:ring-white/10 text-neutral-900 dark:text-white overflow-hidden flex flex-col max-h-[82vh]"
             >
               {/* Header: Business Identity + Logged-in Staff */}
-              <div className="flex items-center justify-between px-5 pt-4.5 pb-3 border-b border-white/10">
+              <div className="flex items-center justify-between px-5 pt-4.5 pb-3 border-b border-neutral-200/70 dark:border-white/10">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-white">
+                  <div className="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-white/10 border border-neutral-200 dark:border-white/15 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-white">
                     {tenantName.slice(0, 2)}
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-[13px] font-bold text-white leading-tight font-header truncate max-w-[170px]">
+                    <span className="text-[13px] font-bold text-neutral-900 dark:text-white leading-tight font-header truncate max-w-[170px]">
                       {tenantName}
                     </span>
-                    <span className="text-[10px] text-white/50 font-medium capitalize">
+                    <span className="text-[10px] text-neutral-500 dark:text-white/50 font-medium capitalize">
                       {staffName} • {staffUser?.role || 'Staff'}
                     </span>
                   </div>
@@ -323,7 +323,7 @@ export default function BottomNav() {
                 {/* Top Quick Close Pill */}
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white/80 transition-all"
+                  className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 flex items-center justify-center text-neutral-700 dark:text-white/80 transition-all"
                   title="Close Menu"
                 >
                   <Icon icon="solar:close-circle-linear" className="text-[18px]" />
@@ -334,7 +334,7 @@ export default function BottomNav() {
               <div className="flex-1 overflow-y-auto scrollbar-hide px-4 py-3 space-y-4">
                 {menuSections.map((section) => (
                   <div key={section.title} className="space-y-2">
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block text-left px-1">
+                    <span className="text-[10px] font-bold text-neutral-400 dark:text-white/40 uppercase tracking-widest block text-left px-1">
                       {section.title}
                     </span>
                     <div className="grid grid-cols-4 gap-2">
@@ -353,17 +353,17 @@ export default function BottomNav() {
                             className={clsx(
                               'relative flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl border transition-all duration-150 text-center group min-h-[66px]',
                               isActive
-                                ? 'bg-white text-neutral-950 border-white font-semibold shadow-md'
+                                ? 'bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 border-neutral-950 dark:border-white font-semibold shadow-md'
                                 : isLocked
-                                ? 'bg-white/[0.02] border-white/5 text-white/25 cursor-not-allowed'
-                                : 'bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/20 active:scale-95 border-white/10 text-white/90'
+                                ? 'bg-neutral-100/40 dark:bg-white/[0.02] border-neutral-200/40 dark:border-white/5 text-neutral-300 dark:text-white/25 cursor-not-allowed'
+                                : 'bg-neutral-100/70 hover:bg-neutral-200/80 active:bg-neutral-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:active:bg-white/20 active:scale-95 border-neutral-200/60 dark:border-white/10 text-neutral-700 dark:text-white/90'
                             )}
                           >
                             <Icon
                               icon={item.icon}
                               className={clsx(
                                 'text-[22px]',
-                                isActive ? 'text-neutral-950' : 'text-white/80 group-hover:scale-110 transition-transform'
+                                isActive ? 'text-white dark:text-neutral-950' : 'text-neutral-700 dark:text-white/80 group-hover:scale-110 transition-transform'
                               )}
                             />
                             <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
@@ -372,7 +372,7 @@ export default function BottomNav() {
                             {isLocked && (
                               <Icon
                                 icon="solar:lock-keyhole-minimalistic-bold-duotone"
-                                className="absolute top-1.5 right-1.5 text-[10px] text-white/40"
+                                className="absolute top-1.5 right-1.5 text-[10px] text-neutral-400 dark:text-white/40"
                               />
                             )}
                           </button>
@@ -384,12 +384,12 @@ export default function BottomNav() {
               </div>
 
               {/* Bottom Quick-Action Bar & Dedicated Close Button (Matching Image 3) */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-black/20">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-200/70 dark:border-white/10 bg-neutral-50/80 dark:bg-black/20">
                 <div className="flex items-center gap-2">
                   {/* Lock Screen Button */}
                   <button
                     onClick={() => handleNavigation('/pos/locked')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-[11px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/15 text-neutral-700 dark:text-white/80 text-[11px] font-medium transition-all"
                   >
                     <Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-[14px]" />
                     <span>Lock POS</span>
@@ -402,7 +402,7 @@ export default function BottomNav() {
                       logout();
                       window.location.href = '/login';
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[11px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-medium transition-all"
                   >
                     <Icon icon="solar:logout-2-linear" className="text-[14px]" />
                     <span>Logout</span>
@@ -412,7 +412,7 @@ export default function BottomNav() {
                 {/* Prominent Circular Morph Close Button (Matching Image 3 Bottom Right) */}
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 flex items-center justify-center text-white shadow-lg transition-all"
+                  className="w-10 h-10 rounded-full bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white/15 dark:hover:bg-white/25 dark:text-white active:scale-95 border border-neutral-900 dark:border-white/20 flex items-center justify-center shadow-lg transition-all"
                   title="Close Menu"
                 >
                   <Icon icon="solar:close-circle-bold-duotone" className="text-[22px]" />
