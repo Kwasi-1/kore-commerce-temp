@@ -88,7 +88,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   return (
     <div
       className={cn(
-        "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-106px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden",
+        "sticky top-[50px] z-20 flex flex-col h-[calc(100dvh-58px)] bg-background rounded-t-2xl p-4 space-y-3 custom-header overflow-hidden",
         secondary && " mx-1 rounded-b-2xl",
         className
       )}
@@ -144,7 +144,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
       )}
 
       {/* 2. Internal Scrollable List with Smooth Top & Bottom Fade Mask */}
-      <div className="flex-1 overflow-y-auto divide-y divide-border/50 pt-2 pr-1 scrollbar-hide min-h-0 [mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)]">
+      <div className="flex-1 overflow-y-auto divide-y divide-border/50 pt-2 pr-1 pb-16 scrollbar-hide min-h-0 [mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_20px,black_calc(100%-20px),transparent_100%)]">
         {children}
 
         {/* 3. Global Infinite Scroll Sentinel & Status Indicator */}

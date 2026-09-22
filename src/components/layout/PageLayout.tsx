@@ -2,7 +2,8 @@ import React from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import { useModuleContext } from "@/components/shared/ModuleRoute";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { isBottomNavRoute } from "@/components/navigation/BottomNav";
 import {
   Bell,
   Settings,
@@ -71,10 +72,20 @@ export default function PageLayout({
   };
 
   const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
+  const location = useLocation();
+  const showBottomNav = isBottomNavRoute(location.pathname);
 
   return (
     <div
-      className={`w-full min-h-full ${constrainHeight ? "md:h-full md:overflow-hidden" : ""} text-foreground scrollbar-hide flex flex-col py-2 md:p-4 ${className}`}
+      className={cn(
+        "w-full min-h-full text-foreground scrollbar-hide flex flex-col py-2 md:p-4",
+        constrainHeight
+          ? "md:h-full md:overflow-hidden"
+          : showBottomNav
+            ? "pb-20 md:pb-0"
+            : "pb-4 md:pb-0",
+        className
+      )}
     >
       {title && (
         <div

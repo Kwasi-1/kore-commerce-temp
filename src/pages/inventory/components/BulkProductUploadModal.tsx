@@ -594,7 +594,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                 <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
                   <Upload className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-medium text-foreground">Click or drag CSV file to upload</h3>
+                <h3 className="text-base md:text-lg font-medium text-foreground  text-center">Click or drag CSV file to upload</h3>
                 <p className="text-xs text-muted-foreground mt-2 text-center max-w-sm leading-relaxed">
                   Supports single items, multi-variant products, wholesale pricing, and bulk packaging tiers (Cartons/Packs).
                 </p>
