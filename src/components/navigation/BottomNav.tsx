@@ -239,8 +239,9 @@ export default function BottomNav() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 12 }}
               transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none"
+              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-white/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none"
             >
+              {/* Subtle top loading transition indicator */}
               {isPending && (
                 <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
               )}
@@ -255,7 +256,7 @@ export default function BottomNav() {
                   <button
                     key={item.name}
                     onClick={() => handleNavigation(item.to)}
-                    className="relative flex items-center justify-center h-11 w-12 rounded-full transition-all focus:outline-none"
+                    className="relative flex items-center justify-center h-11 w-11 rounded-full transition-all focus:outline-none"
                     title={item.name}
                   >
                     {/* Fluid capsule background slider with Framer Motion */}
@@ -281,7 +282,7 @@ export default function BottomNav() {
               {/* Morphing Menu Trigger Button */}
               <button
                 onClick={() => setIsMenuOpen(true)}
-                className="relative flex items-center justify-center h-11 w-12 rounded-full text-neutral-600 hover:text-neutral-950 hover:bg-black/5 dark:text-white/75 dark:hover:text-white dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
+                className="relative flex items-center justify-center h-11 w-11 rounded-full text-neutral-600 hover:text-neutral-950 hover:bg-black/5 dark:text-white/75 dark:hover:text-white dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
                 title="All Modules & Menu"
               >
                 <Icon icon="solar:widget-2-linear" className="text-[22px]" />
