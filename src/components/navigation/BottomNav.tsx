@@ -239,9 +239,8 @@ export default function BottomNav() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 12 }}
               transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-white/80 dark:bg-neutral-900/90 backdrop-blur-2xl border border-black/[0.08] dark:border-white/15 shadow-[0_10px_35px_rgba(0,0,0,0.10)] dark:shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/5 dark:ring-black/20 text-neutral-900 dark:text-white select-none"
+              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none"
             >
-              {/* Subtle top loading transition indicator */}
               {isPending && (
                 <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
               )}
