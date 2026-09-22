@@ -1,8 +1,16 @@
 import { useTransition, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
@@ -73,7 +81,7 @@ export default function BottomNav() {
   const modules = getModules(plan);
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const { unreadCount } = useNotificationStore();
   const { posSettings } = useFeaturesStore();
@@ -82,7 +90,7 @@ export default function BottomNav() {
   const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
   const handleNavigation = (to: string) => {
-    setIsMenuOpen(false);
+    setIsDrawerOpen(false);
     startTransition(() => navigate(to));
   };
 
@@ -211,217 +219,134 @@ export default function BottomNav() {
 
   return (
     <div className="md:hidden">
-      {/* ── 1. Frosted Translucent Backdrop Overlay ── */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setIsMenuOpen(false)}
-            className="fixed inset-0 bg-black/65 backdrop-blur-md z-50"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── 2. Morphing Navigation Island Container ── */}
+      {/* ── 1. Floating Liquid Frosted Capsule Pill ── */}
       <div className="fixed bottom-5 inset-x-0 mx-auto w-full flex justify-center items-end px-3.5 z-50 pointer-events-none">
-        <AnimatePresence mode="wait">
-          {!isMenuOpen ? (
-            /* ─────────────────────────────────────────────────────────────
-               STATE A: Floating Liquid Frosted Capsule Pill (Resting)
-            ───────────────────────────────────────────────────────────── */
-            <motion.nav
-              key="collapsed-pill"
-              layoutId="islandNav"
-              initial={{ scale: 0.95, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 12 }}
-              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-white/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none"
-            >
-              {/* Subtle top loading transition indicator */}
-              {isPending && (
-                <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
-              )}
-
-              {/* Primary Fast-Access Navigation Tabs */}
-              {primaryLinks.map((item) => {
-                const isActive =
-                  location.pathname === item.to ||
-                  (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
-
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => handleNavigation(item.to)}
-                    className="relative flex items-center justify-center h-11 w-11 rounded-full transition-all focus:outline-none"
-                    title={item.name}
-                  >
-                    {/* Fluid capsule background slider with Framer Motion */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activePillBubble"
-                        className="absolute inset-0 bg-neutral-950 dark:bg-white rounded-full shadow-md -z-10"
-                        transition={{ type: 'spring', stiffness: 480, damping: 34 }}
-                      />
-                    )}
-
-                    <Icon
-                      icon={isActive ? item.activeIcon : item.icon}
-                      className={clsx(
-                        'transition-all duration-200 text-[22px]',
-                        isActive ? 'text-white dark:text-neutral-950 scale-105' : 'text-neutral-500 hover:text-neutral-950 dark:text-white/70 dark:hover:text-white'
-                      )}
-                    />
-                  </button>
-                );
-              })}
-
-              {/* Morphing Menu Trigger Button */}
-              <button
-                onClick={() => setIsMenuOpen(true)}
-                className="relative flex items-center justify-center h-11 w-11 rounded-full text-neutral-600 hover:text-neutral-950 hover:bg-black/5 dark:text-white/75 dark:hover:text-white dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
-                title="All Modules & Menu"
-              >
-                <Icon icon="solar:widget-2-linear" className="text-[22px]" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-white dark:ring-neutral-900" />
-                )}
-              </button>
-            </motion.nav>
-          ) : (
-            /* ─────────────────────────────────────────────────────────────
-               STATE B: Morphing Floating Liquid Grid Menu (Inspired by Inspo #3)
-            ───────────────────────────────────────────────────────────── */
-            <motion.div
-              key="expanded-grid"
-              layoutId="islandNav"
-              initial={{ scale: 0.92, opacity: 0, y: 25 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 25 }}
-              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="pointer-events-auto relative w-full max-w-[370px] rounded-[2.25rem] bg-white/95 dark:bg-neutral-950/98 backdrop-blur-3xl border border-black/10 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_65px_rgba(0,0,0,0.65)] ring-1 ring-black/5 dark:ring-white/10 text-neutral-900 dark:text-white overflow-hidden flex flex-col max-h-[82vh]"
-            >
-              {/* Header: Business Identity + Logged-in Staff */}
-              <div className="flex items-center justify-between px-5 pt-4.5 pb-3 border-b border-neutral-200/70 dark:border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-white/10 border border-neutral-200 dark:border-white/15 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-white">
-                    {tenantName.slice(0, 2)}
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="text-[13px] font-bold text-neutral-900 dark:text-white leading-tight font-header truncate max-w-[170px]">
-                      {tenantName}
-                    </span>
-                    <span className="text-[10px] text-neutral-500 dark:text-white/50 font-medium capitalize">
-                      {staffName} • {staffUser?.role || 'Staff'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Top Quick Close Pill */}
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 flex items-center justify-center text-neutral-700 dark:text-white/80 transition-all"
-                  title="Close Menu"
-                >
-                  <Icon icon="solar:close-circle-linear" className="text-[18px]" />
-                </button>
-              </div>
-
-              {/* Scrollable Tactile Grid Area (4-Column Layout as in Image 3) */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide px-4 py-3 space-y-4">
-                {menuSections.map((section) => (
-                  <div key={section.title} className="space-y-2">
-                    <span className="text-[10px] font-bold text-neutral-400 dark:text-white/40 uppercase tracking-widest block text-left px-1">
-                      {section.title}
-                    </span>
-                    <div className="grid grid-cols-4 gap-2">
-                      {section.items.map((item) => {
-                        const isActive =
-                          location.pathname === item.to ||
-                          (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
-                        const itemWithKey = item as { moduleKey?: string };
-                        const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
-
-                        return (
-                          <button
-                            key={item.name}
-                            onClick={() => handleNavigation(item.to)}
-                            disabled={isLocked}
-                            className={clsx(
-                              'relative flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl border transition-all duration-150 text-center group min-h-[66px]',
-                              isActive
-                                ? 'bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 border-neutral-950 dark:border-white font-semibold shadow-md'
-                                : isLocked
-                                ? 'bg-neutral-100/40 dark:bg-white/[0.02] border-neutral-200/40 dark:border-white/5 text-neutral-300 dark:text-white/25 cursor-not-allowed'
-                                : 'bg-neutral-100/70 hover:bg-neutral-200/80 active:bg-neutral-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:active:bg-white/20 active:scale-95 border-neutral-200/60 dark:border-white/10 text-neutral-700 dark:text-white/90'
-                            )}
-                          >
-                            <Icon
-                              icon={item.icon}
-                              className={clsx(
-                                'text-[22px]',
-                                isActive ? 'text-white dark:text-neutral-950' : 'text-neutral-700 dark:text-white/80 group-hover:scale-110 transition-transform'
-                              )}
-                            />
-                            <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
-                              {item.name}
-                            </span>
-                            {isLocked && (
-                              <Icon
-                                icon="solar:lock-keyhole-minimalistic-bold-duotone"
-                                className="absolute top-1.5 right-1.5 text-[10px] text-neutral-400 dark:text-white/40"
-                              />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Bottom Quick-Action Bar & Dedicated Close Button (Matching Image 3) */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-200/70 dark:border-white/10 bg-neutral-50/80 dark:bg-black/20">
-                <div className="flex items-center gap-2">
-                  {/* Lock Screen Button */}
-                  <button
-                    onClick={() => handleNavigation('/pos/locked')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/15 text-neutral-700 dark:text-white/80 text-[11px] font-medium transition-all"
-                  >
-                    <Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-[14px]" />
-                    <span>Lock POS</span>
-                  </button>
-
-                  {/* Logout Button */}
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      logout();
-                      window.location.href = '/login';
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-medium transition-all"
-                  >
-                    <Icon icon="solar:logout-2-linear" className="text-[14px]" />
-                    <span>Logout</span>
-                  </button>
-                </div>
-
-                {/* Prominent Circular Morph Close Button (Matching Image 3 Bottom Right) */}
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-10 h-10 rounded-full bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white/15 dark:hover:bg-white/25 dark:text-white active:scale-95 border border-neutral-900 dark:border-white/20 flex items-center justify-center shadow-lg transition-all"
-                  title="Close Menu"
-                >
-                  <Icon icon="solar:close-circle-bold-duotone" className="text-[22px]" />
-                </button>
-              </div>
-            </motion.div>
+        <nav className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-white/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none">
+          {/* Subtle top loading transition indicator */}
+          {isPending && (
+            <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
           )}
-        </AnimatePresence>
+
+          {/* Primary Fast-Access Navigation Tabs */}
+          {primaryLinks.map((item) => {
+            const isActive =
+              location.pathname === item.to ||
+              (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
+
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.to)}
+                className="relative flex items-center justify-center h-11 w-11 rounded-full transition-all focus:outline-none"
+                title={item.name}
+              >
+                {/* Fluid capsule background slider with Framer Motion */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activePillBubble"
+                    className="absolute inset-0 bg-neutral-950 dark:bg-white rounded-full shadow-md -z-10"
+                    transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                  />
+                )}
+
+                <Icon
+                  icon={isActive ? item.activeIcon : item.icon}
+                  className={clsx(
+                    'transition-all duration-200 text-[22px]',
+                    isActive ? 'text-white dark:text-neutral-950 scale-105' : 'text-neutral-500 hover:text-neutral-950 dark:text-white/70 dark:hover:text-white'
+                  )}
+                />
+              </button>
+            );
+          })}
+
+          {/* Drawer Menu Trigger Button */}
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="relative flex items-center justify-center h-11 w-11 rounded-full text-neutral-600 hover:text-neutral-950 hover:bg-black/5 dark:text-white/75 dark:hover:text-white dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
+            title="All Modules & Menu"
+          >
+            <Icon icon="solar:widget-2-linear" className="text-[22px]" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-white dark:ring-neutral-900" />
+            )}
+          </button>
+        </nav>
       </div>
+
+      {/* ── 2. Native Mobile Menu Drawer (Hardware-Accelerated Vaul Sheet) ── */}
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent className="bg-card dark:bg-sidebar text-foreground dark:text-white max-h-[55vh] outline-none">
+
+          <div className="py-4 px-5 overflow-y-auto scrollbar-hide max-h-[calc(85vh-70px)] space-y-5">
+            {menuSections.map((section) => (
+              <div key={section.title} className="space-y-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block text-left px-1">
+                  {section.title}
+                </span>
+                <div className="flex flex-col gap-1">
+                  {section.items.map((item) => {
+                    const isActive =
+                      location.pathname === item.to ||
+                      (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
+                    const itemWithKey = item as { moduleKey?: string };
+                    const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
+
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => handleNavigation(item.to)}
+                        disabled={isLocked}
+                        className={clsx(
+                          'flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150',
+                          isActive
+                            ? 'bg-foreground text-background font-bold shadow-sm'
+                            : isLocked
+                            ? 'text-muted-foreground/40 hover:bg-muted/30 cursor-not-allowed'
+                            : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon icon={item.icon} className="h-4 w-4 text-base" />
+                          <span>{item.name}</span>
+                        </div>
+                        {isLocked ? (
+                          <Icon icon="solar:lock-keyhole-minimalistic-linear" className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                        ) : (
+                          <Icon icon="solar:alt-arrow-right-linear" className="h-3.5 w-3.5 opacity-40" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Quick Actions & Logout */}
+            <div className="border-t border-border dark:border-white/10 pt-3 mt-2 flex items-center justify-between">
+              <button
+                onClick={() => handleNavigation('/pos/locked')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-all"
+              >
+                <Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-sm" />
+                <span>Lock POS</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  logout();
+                  window.location.href = '/login';
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-all"
+              >
+                <Icon icon="solar:logout-2-linear" className="text-sm" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
