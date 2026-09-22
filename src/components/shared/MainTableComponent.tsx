@@ -531,8 +531,8 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
     return (
       <div className="flex flex-col gap-3">
         {title && (
-          <div className="flex items-center justify-between w-full">
-            <h4 className="capitalize text-muted-foreground text-sm font-semibold">
+          <div className="flex items-center justify-between w-full spacing-sm">
+            <h4 className="capitalize text-muted-foreground text-sm font-header font-semibold">
               {title}
             </h4>
             {onRefresh && (
