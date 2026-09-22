@@ -1,49 +1,16 @@
 import { useTransition, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Icon } from '@iconify/react';
+import clsx from 'clsx';
+
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { getModules } from '@/utils/permissions';
-import {
-  LayoutDashboard,
-  MonitorSmartphone,
-  Package,
-  History,
-  Receipt,
-  Users,
-  TrendingUp,
-  CalendarCheck,
-  Tag,
-  Truck,
-  FileBadge,
-  Layers,
-  Settings,
-  Menu,
-  ChevronRight,
-  BookOpen,
-  ArrowLeftRight,
-  LogOut,
-  Bell,
-  ShoppingBag,
-  Globe,
-  UserSquare2,
-  Sliders,
-  CreditCard,
-  ClipboardList,
-  Lock,
-  Banknote,
-  User,
-} from 'lucide-react';
-import clsx from 'clsx';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
+import { APP_CONFIG } from '@/config/app.config';
 
 // Top-level navigation routes that should show the BottomNav on mobile.
-// Internal subpages (e.g. /inventory/products/new, /inventory/products/:id/edit, /inventory/stock-upload/audit)
-// do not show the bottom nav bar, giving full-screen height to forms and sub-flows with back buttons.
 export const BOTTOM_NAV_ROUTES = new Set([
   // POS
   '/pos/register',
@@ -106,17 +73,18 @@ export default function BottomNav() {
   const modules = getModules(plan);
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const { unreadCount } = useNotificationStore();
+  const { posSettings } = useFeaturesStore();
 
   const previousPlanModules = getPlanModules((graceInfo as any)?.previous_plan || 'standard');
   const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
   const handleNavigation = (to: string) => {
-    setIsDrawerOpen(false);
+    setIsMenuOpen(false);
     startTransition(() => navigate(to));
   };
-
-  const { posSettings } = useFeaturesStore();
 
   const isModuleVisible = (moduleKey?: string) => {
     if (!moduleKey) return true;
@@ -128,263 +96,332 @@ export default function BottomNav() {
     return isUnlocked || inGracePeriod;
   };
 
-  // Primary bottom nav links — pick the most important 4 based on role & plan
+  // Primary bottom pill links (most essential 4 based on user role)
   const primaryLinks = isCashier
     ? [
-        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
-        { name: 'History', to: '/pos/transactions', icon: History },
-        { name: 'Credit', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
-        { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-      ].filter(item => isModuleVisible(item.moduleKey))
-    : [
-        { name: 'Overview', to: '/dashboard', icon: LayoutDashboard, show: true },
-        { name: 'Register', to: '/pos/register', icon: MonitorSmartphone, show: modules.pos },
-        { name: 'Products', to: '/inventory/products', icon: Package, show: modules.inventory },
-        { name: 'History', to: '/pos/transactions', icon: History, show: modules.pos },
-        { name: 'Expenses', to: '/expenses', icon: Receipt, show: modules.expenses && !modules.pos },
-      ].filter(link => link.show).slice(0, 4);
-
-  // Routes already pinned in the bottom nav — exclude these from the drawer
-  const pinnedRoutes = new Set(primaryLinks.map(l => l.to));
-
-  // All sections for the drawer — fully matching Sidebar.tsx navSections
-  const drawerSections = isCashier
-    ? [
         {
-          title: 'POS',
-          show: true,
-          items: [
-            { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
-            { name: 'Transactions', to: '/pos/transactions', icon: History },
-            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
-            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
+          name: 'Register',
+          to: '/pos/register',
+          icon: 'solar:cart-large-2-linear',
+          activeIcon: 'solar:cart-large-2-bold-duotone',
         },
         {
-          title: 'Account',
+          name: 'History',
+          to: '/pos/transactions',
+          icon: 'solar:clock-circle-linear',
+          activeIcon: 'solar:clock-circle-bold-duotone',
+        },
+        {
+          name: 'Credit',
+          to: '/pos/credit-ledger',
+          icon: 'solar:book-2-linear',
+          activeIcon: 'solar:book-2-bold-duotone',
+          moduleKey: 'credit_ledger',
+        },
+        {
+          name: 'Returns',
+          to: '/pos/returns',
+          icon: 'solar:restart-linear',
+          activeIcon: 'solar:restart-bold-duotone',
+          moduleKey: 'returns',
+        },
+      ].filter((item) => isModuleVisible(item.moduleKey))
+    : [
+        {
+          name: 'Home',
+          to: '/dashboard',
+          icon: 'solar:home-2-linear',
+          activeIcon: 'solar:home-2-bold-duotone',
           show: true,
+        },
+        {
+          name: 'Register',
+          to: '/pos/register',
+          icon: 'solar:cart-large-2-linear',
+          activeIcon: 'solar:cart-large-2-bold-duotone',
+          show: modules.pos,
+        },
+        {
+          name: 'Products',
+          to: '/inventory/products',
+          icon: 'solar:box-minimalistic-linear',
+          activeIcon: 'solar:box-minimalistic-bold-duotone',
+          show: modules.inventory,
+        },
+        {
+          name: 'History',
+          to: '/pos/transactions',
+          icon: 'solar:clock-circle-linear',
+          activeIcon: 'solar:clock-circle-bold-duotone',
+          show: modules.pos,
+        },
+      ].filter((link) => link.show).slice(0, 4);
+
+  // Grid categories for the morphing menu card
+  const menuSections = isCashier
+    ? [
+        {
+          title: 'POS Operations',
           items: [
-            { name: 'Lock Screen', to: '/pos/locked', icon: Settings },
-          ].filter(item => !pinnedRoutes.has(item.to)),
-        }
+            { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-bold-duotone' },
+            { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-bold-duotone' },
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-bold-duotone', moduleKey: 'credit_ledger' },
+            { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-bold-duotone', moduleKey: 'returns' },
+          ].filter((item) => isModuleVisible(item.moduleKey)),
+        },
       ]
     : [
         {
-          title: 'Dashboard',
-          show: true,
+          title: 'Point of Sale',
           items: [
-            { name: 'Overview', to: '/dashboard', icon: LayoutDashboard },
-          ].filter(item => !pinnedRoutes.has(item.to)),
-        },
-        {
-          title: 'POS',
-          show: modules.pos,
-          items: [
-            { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
-            { name: 'Transactions', to: '/pos/transactions', icon: History },
-            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: BookOpen, moduleKey: 'credit_ledger' },
-            { name: 'Returns', to: '/pos/returns', icon: ArrowLeftRight, moduleKey: 'returns' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
+            { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-bold-duotone' },
+            { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-bold-duotone' },
+            { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-bold-duotone', moduleKey: 'credit_ledger' },
+            { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-bold-duotone', moduleKey: 'returns' },
+          ].filter((item) => isModuleVisible(item.moduleKey)),
         },
         {
           title: 'Inventory',
-          show: modules.inventory || hasGraceModule('inventory_basic'),
           items: [
-            { name: 'Products', to: '/inventory/products', icon: Package },
-            { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
-            { name: 'Stock Levels', to: '/inventory/stock', icon: Layers },
-            { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: Layers, moduleKey: 'stock_reconciliation' },
-            { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
-            { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
+            { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-bold-duotone' },
+            { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-bold-duotone', moduleKey: 'adjustments' },
+            { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-bold-duotone' },
+            { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-bold-duotone', moduleKey: 'stock_reconciliation' },
+            { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-bold-duotone', moduleKey: 'suppliers' },
+            { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-bold-duotone', moduleKey: 'purchase_orders' },
+          ].filter((item) => isModuleVisible(item.moduleKey)),
         },
         {
-          title: 'Expenses',
-          show: modules.expenses || hasGraceModule('expenses'),
+          title: 'Management & Ecommerce',
           items: [
-            { name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
+            { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-bold-duotone', moduleKey: 'expenses' },
+            { name: 'Online Orders', to: '/ecommerce/orders', icon: 'solar:shop-2-bold-duotone', moduleKey: 'ecommerce' },
+            { name: 'Storefront', to: '/ecommerce/storefront', icon: 'solar:global-bold-duotone', moduleKey: 'ecommerce' },
+            { name: 'Discounts', to: '/ecommerce/discounts', icon: 'solar:tag-price-bold-duotone', moduleKey: 'ecommerce' },
+            { name: 'Customers', to: '/ecommerce/customers', icon: 'solar:users-group-rounded-bold-duotone', moduleKey: 'ecommerce' },
+            { name: 'Staff', to: '/staff', icon: 'solar:user-id-bold-duotone', moduleKey: 'staff' },
+            { name: 'Reports', to: '/reports/sales', icon: 'solar:chart-2-bold-duotone', moduleKey: 'reports_basic' },
+            { name: 'Settings', to: '/settings/account', icon: 'solar:settings-bold-duotone' },
+          ].filter((item) => isModuleVisible(item.moduleKey)),
         },
-        {
-          title: 'Ecommerce',
-          show: modules.ecommerce || hasGraceModule('ecommerce'),
-          items: [
-            { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, moduleKey: 'ecommerce' },
-            { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce' },
-            { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce' },
-            { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
-        },
-        {
-          title: 'Notifications',
-          show: true,
-          items: [
-            { name: 'Activity Log', to: '/notifications', icon: Bell },
-          ].filter(item => !pinnedRoutes.has(item.to)),
-        },
-        {
-          title: 'Staff',
-          show: modules.staff || hasGraceModule('staff'),
-          items: [
-            { name: 'Staff', to: '/staff', icon: Users, moduleKey: 'staff' },
-            { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'staff' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
-        },
-        {
-          title: 'Reports',
-          show: modules.reports || hasGraceModule('reports_basic'),
-          items: [
-            { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
-            { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced' },
-            { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced' },
-            { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced' },
-          ].filter(item => !pinnedRoutes.has(item.to) && isModuleVisible(item.moduleKey)),
-        },
-        {
-          title: 'Settings',
-          show: true,
-          items: [
-            { name: 'Account Settings', to: '/settings/account', icon: User },
-            { name: 'Business Profile', to: '/settings/profile', icon: Settings },
-            { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
-            { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },
-          ].filter(item => !pinnedRoutes.has(item.to)),
-        },
-      ].filter(section => section.show && section.items.length > 0);
+      ];
+
+  const tenantName = tenant?.name || tenant?.business_name || APP_CONFIG.name;
+  const staffName = staffUser?.name || `${staffUser?.first_name || ''} ${staffUser?.last_name || ''}`.trim() || 'Store User';
 
   return (
-    <>
-      {/* Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 dark:bg-sidebar/90 backdrop-blur-md bordert border-border dark:border-white/10 flex items-center justify-around px-2 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-        
-        {/* Slim top loading bar during transitions */}
-        <div
-          className={clsx(
-            "absolute top-0 left-0 right-0 h-[2px] bg-primary transition-opacity duration-300",
-            isPending ? "opacity-100" : "opacity-0"
-          )}
-          style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}
-        />
+    <div className="md:hidden">
+      {/* ── 1. Frosted Translucent Backdrop Overlay ── */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/65 backdrop-blur-md z-50"
+          />
+        )}
+      </AnimatePresence>
 
-        {primaryLinks.map((item) => {
-          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-          return (
-            <button
-              key={item.name}
-              onClick={() => handleNavigation(item.to)}
-              className="flex flex-col items-center justify-center w-full h-full relative transition-colors"
+      {/* ── 2. Morphing Navigation Island Container ── */}
+      <div className="fixed bottom-5 inset-x-0 mx-auto w-full flex justify-center items-end px-3.5 z-50 pointer-events-none">
+        <AnimatePresence mode="wait">
+          {!isMenuOpen ? (
+            /* ─────────────────────────────────────────────────────────────
+               STATE A: Floating Liquid Frosted Capsule Pill (Resting)
+            ───────────────────────────────────────────────────────────── */
+            <motion.nav
+              key="collapsed-pill"
+              layoutId="islandNav"
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 12 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-neutral-900/90 dark:bg-neutral-950/95 backdrop-blur-2xl border border-white/15 shadow-[0_12px_45px_rgba(0,0,0,0.45)] ring-1 ring-black/20 text-white select-none"
             >
-              {/* Active top indicator bar */}
-              <span
-                className={clsx(
-                  "absolute top-0 left-1/2 -translate-x-1/2 h[3px] rounded-b-full transition-all duration-300",
-                  isActive ? "w-8 bg-primary" : "w-0 bg-transparent"
-                )}
-              />
-              {/* Icon + label wrapper */}
-              <span
-                className={clsx(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 h-[70%] justify-center",
-                  isActive
-                    ? "text-background border border-primary/30 dark:border-primary/30 bg-foreground/85"
-                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted"
-                )}
+              {/* Subtle top loading transition indicator */}
+              {isPending && (
+                <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
+              )}
+
+              {/* Primary Fast-Access Navigation Tabs */}
+              {primaryLinks.map((item) => {
+                const isActive =
+                  location.pathname === item.to ||
+                  (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
+
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => handleNavigation(item.to)}
+                    className="relative flex items-center justify-center h-11 w-12 rounded-full transition-all focus:outline-none"
+                    title={item.name}
+                  >
+                    {/* Fluid capsule background slider with Framer Motion */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activePillBubble"
+                        className="absolute inset-0 bg-white rounded-full shadow-md -z-10"
+                        transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                      />
+                    )}
+
+                    <Icon
+                      icon={isActive ? item.activeIcon : item.icon}
+                      className={clsx(
+                        'transition-all duration-200 text-[22px]',
+                        isActive ? 'text-neutral-950 scale-105' : 'text-white/70 hover:text-white'
+                      )}
+                    />
+                  </button>
+                );
+              })}
+
+              {/* Morphing Menu Trigger Button */}
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="relative flex items-center justify-center h-11 w-12 rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-all focus:outline-none"
+                title="All Modules & Menu"
               >
-                <item.icon className="h-5 w-5" />
-                {/* <span className="text-[10px] font-semibold">{item.name}</span> */}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* Menu Button to open Drawer */}
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex flex-col items-center justify-center w-full h-full relative transition-colors"
-        >
-          <span
-            className={clsx(
-              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200",
-              isDrawerOpen
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground/80 hover:text-foreground hover:bg-muted"
-            )}
-          >
-            <Menu className="h-5 w-5" />
-            <span className="text-[10px] font-semibold">Menu</span>
-          </span>
-        </button>
-      </nav>
-
-      {/* Mobile Menu Drawer (Native Vaul Drawer) */}
-      <Drawer open={isDrawerOpen}   
-        onOpenChange={setIsDrawerOpen}>
-        <DrawerContent className="bg-card dark:bg-sidebar text-foreground dark:text-white max-h-[85vh] outline-none">
-          <DrawerHeader className="flex justify-between items-center border-b border-border dark:border-white/10 pb-3 px-5 text-left">
-            <DrawerTitle className="font-bold text-lg text-foreground">Menu</DrawerTitle>
-          </DrawerHeader>
-          <div className="py-4 px-5 overflow-y-auto scrollbar-hide max-h-[calc(85vh-70px)]">
-            <div className="flex flex-col gap-6">
-              {drawerSections.map((section) => (
-                <div key={section.title}>
-                  <span className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest mb-2 block">
-                    {section.title}
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    {section.items.map((item) => {
-                      const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-                      const itemWithKey = item as { moduleKey?: string };
-                      const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
-                      return (
-                        <button
-                          key={item.name}
-                          onClick={() => handleNavigation(item.to)}
-                          className={clsx(
-                            "flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150",
-                            isActive
-                              ? "bg-foreground/90 text-background font-bold shadow-sm"
-                              : isLocked
-                              ? "text-muted-foreground/50 hover:bg-muted/50"
-                              : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.name}</span>
-                          </div>
-                          {isLocked ? (
-                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-                          )}
-                        </button>
-                      );
-                    })}
+                <Icon icon="solar:widget-2-linear" className="text-[22px]" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-neutral-900" />
+                )}
+              </button>
+            </motion.nav>
+          ) : (
+            /* ─────────────────────────────────────────────────────────────
+               STATE B: Morphing Floating Liquid Grid Menu (Inspired by Inspo #3)
+            ───────────────────────────────────────────────────────────── */
+            <motion.div
+              key="expanded-grid"
+              layoutId="islandNav"
+              initial={{ scale: 0.92, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 25 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              className="pointer-events-auto relative w-full max-w-[370px] rounded-[2.25rem] bg-neutral-900/95 dark:bg-neutral-950/98 backdrop-blur-3xl border border-white/15 shadow-[0_25px_65px_rgba(0,0,0,0.65)] ring-1 ring-white/10 text-white overflow-hidden flex flex-col max-h-[82vh]"
+            >
+              {/* Header: Business Identity + Logged-in Staff */}
+              <div className="flex items-center justify-between px-5 pt-4.5 pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-white">
+                    {tenantName.slice(0, 2)}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[13px] font-bold text-white leading-tight font-header truncate max-w-[170px]">
+                      {tenantName}
+                    </span>
+                    <span className="text-[10px] text-white/50 font-medium capitalize">
+                      {staffName} • {staffUser?.role || 'Staff'}
+                    </span>
                   </div>
                 </div>
-              ))}
 
-              {/* Clean, premium divider and Logout action button in the Drawer */}
-              <div className="border-t border-border dark:border-white/10 pt-4 mt-2">
+                {/* Top Quick Close Pill */}
                 <button
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    logout();
-                    window.location.href = '/login';
-                  }}
-                  className="flex items-center justify-between w-full px-3 py-3 rounded-xl text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white/80 transition-all"
+                  title="Close Menu"
                 >
-                  <div className="flex items-center gap-3">
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                  <Icon icon="solar:close-circle-linear" className="text-[18px]" />
                 </button>
               </div>
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </>
+
+              {/* Scrollable Tactile Grid Area (4-Column Layout as in Image 3) */}
+              <div className="flex-1 overflow-y-auto scrollbar-hide px-4 py-3 space-y-4">
+                {menuSections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block text-left px-1">
+                      {section.title}
+                    </span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {section.items.map((item) => {
+                        const isActive =
+                          location.pathname === item.to ||
+                          (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'));
+                        const itemWithKey = item as { moduleKey?: string };
+                        const isLocked = itemWithKey.moduleKey ? !hasModule(itemWithKey.moduleKey) : false;
+
+                        return (
+                          <button
+                            key={item.name}
+                            onClick={() => handleNavigation(item.to)}
+                            disabled={isLocked}
+                            className={clsx(
+                              'relative flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl border transition-all duration-150 text-center group min-h-[66px]',
+                              isActive
+                                ? 'bg-white text-neutral-950 border-white font-semibold shadow-md'
+                                : isLocked
+                                ? 'bg-white/[0.02] border-white/5 text-white/25 cursor-not-allowed'
+                                : 'bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/20 active:scale-95 border-white/10 text-white/90'
+                            )}
+                          >
+                            <Icon
+                              icon={item.icon}
+                              className={clsx(
+                                'text-[22px]',
+                                isActive ? 'text-neutral-950' : 'text-white/80 group-hover:scale-110 transition-transform'
+                              )}
+                            />
+                            <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
+                              {item.name}
+                            </span>
+                            {isLocked && (
+                              <Icon
+                                icon="solar:lock-keyhole-minimalistic-bold-duotone"
+                                className="absolute top-1.5 right-1.5 text-[10px] text-white/40"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Quick-Action Bar & Dedicated Close Button (Matching Image 3) */}
+              <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-black/20">
+                <div className="flex items-center gap-2">
+                  {/* Lock Screen Button */}
+                  <button
+                    onClick={() => handleNavigation('/pos/locked')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-[11px] font-medium transition-all"
+                  >
+                    <Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-[14px]" />
+                    <span>Lock POS</span>
+                  </button>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      logout();
+                      window.location.href = '/login';
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[11px] font-medium transition-all"
+                  >
+                    <Icon icon="solar:logout-2-linear" className="text-[14px]" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+
+                {/* Prominent Circular Morph Close Button (Matching Image 3 Bottom Right) */}
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 flex items-center justify-center text-white shadow-lg transition-all"
+                  title="Close Menu"
+                >
+                  <Icon icon="solar:close-circle-bold-duotone" className="text-[22px]" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }
