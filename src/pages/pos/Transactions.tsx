@@ -845,7 +845,7 @@ export default function Transactions() {
                       <p className="font-bold text-foreground truncate max-w-[150px]">
                         {tx.orderNumber || `TX #${tx.id?.substring(0, 8)}`}
                       </p>
-                      <p className="text-[10px] text-muted-foreground capitalize fontmono">
+                      <p className="text-[10px] text-muted-foreground capitalize font-mono">
                         {method === 'mobile_money_manual' ? 'MoMo (Manual)' : method.replace('_', ' ')} • {tx.date_created ? (isCashier ? format(new Date(tx.date_created), 'hh:mm a') : format(new Date(tx.date_created), 'MMM dd, yyyy hh:mm a')) : 'Today'}
                       </p>
                     </div>
