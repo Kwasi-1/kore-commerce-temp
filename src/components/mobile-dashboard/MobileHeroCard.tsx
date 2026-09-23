@@ -40,7 +40,7 @@ export const MobileHeroCard: React.FC<MobileHeroCardProps> = ({
 
       <div className="py-2">
         <h2 className="text-3xl font-extrabold !font-sans text-foreground">
-          {isLoading ? <Spinner className="mr-auto w-fit my-5" /> : value}
+          {isLoading ? <Spinner className="mr-auto w-fit my3.5 h-[42px]" /> : value}
         </h2>
         {subtitle && (
           <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
