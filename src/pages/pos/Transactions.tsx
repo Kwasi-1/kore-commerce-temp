@@ -845,7 +845,7 @@ export default function Transactions() {
                       <p className="font-bold text-foreground truncate max-w-[150px]">
                         {tx.orderNumber || `TX #${tx.id?.substring(0, 8)}`}
                       </p>
-                      <p className="text-[10px] text-muted-foreground capitalize font-mono">
+                      <p className="text-[10px] text-muted-foreground capitalize fontmono">
                         {method === 'mobile_money_manual' ? 'MoMo (Manual)' : method.replace('_', ' ')} • {tx.date_created ? (isCashier ? format(new Date(tx.date_created), 'hh:mm a') : format(new Date(tx.date_created), 'MMM dd, yyyy hh:mm a')) : 'Today'}
                       </p>
                     </div>
@@ -887,7 +887,7 @@ export default function Transactions() {
                     ) : tx.status && (
                       <span className={cn(
                         "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                        isRefund ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        isRefund ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
                       )}>
                         {tx.status}
                       </span>

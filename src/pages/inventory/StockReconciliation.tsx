@@ -670,17 +670,17 @@ export default function StockReconciliation() {
           actions={[
             {
               label: selectedCategory !== 'all' ? selectedCategory : 'Categories',
-              icon: <Layers className="h-3.5 w-3.5 text-primary" />,
+              icon: <Layers className="h-3.5 w-3.5" />,
               onClick: () => setIsCategoryDrawerOpen(true),
-              className: selectedCategory !== 'all' ? '!border-primary/40 !bg-primary/20 !text-primary' : undefined,
+              className: selectedCategory !== 'all' ? '!border-primary/40 !bg-primary/20 ' : undefined,
             },
             {
               label: 'Reset Draft',
-              icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+              icon: <RotateCcw className="h-3.5 w-3.5" />,
               onClick: handleResetCounts,
             },
             {
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchProducts(1),
             },
           ]}

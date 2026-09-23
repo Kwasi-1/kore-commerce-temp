@@ -529,11 +529,11 @@ export default function StockAdjustments() {
           actions={[
             {
               label: 'New Request',
-              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              icon: <Plus className="h-3.5 w-3.5" />,
               onClick: () => setIsDrawerOpen(true),
             },
             {
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchAdjustments(1),
             },
           ]}

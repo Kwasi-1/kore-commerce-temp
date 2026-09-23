@@ -867,7 +867,7 @@ export default function Products() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
-                        <p className="font-bold text-foreground font-header tracking-[-0.02rem] truncate sm:text-sm">
+                        <p className="font-bold text-foreground truncate sm:text-sm">
                           {item.name}
                         </p>
                         {!item.isActive && (

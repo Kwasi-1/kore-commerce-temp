@@ -462,12 +462,12 @@ export default function CreditLedger() {
           actions={[
             {
               label: viewMode === 'active' ? 'Settled Accounts' : 'Active Debtors',
-              icon: viewMode === 'active' ? <UserCheck className="h-3.5 w-3.5 text-primary" /> : <AlertCircle className="h-3.5 w-3.5 text-primary" />,
+              icon: viewMode === 'active' ? <UserCheck className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />,
               onClick: () => setViewMode((prev) => (prev === 'active' ? 'settled' : 'active')),
             },
             {
               label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: () => fetchDebtors(viewMode),
             },
           ]}
@@ -511,14 +511,14 @@ export default function CreditLedger() {
                   className="py-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs bg-muted text-foreground border border-border">
+                    <div className="h-10 w-10 rounded-xl shrink-0 flex items-center justify-center font-bold text-[12px] bg-muted text-foreground border border-border">
                       {initials}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate max-w-[170px]">
+                      <p className="font-bold text-foreground truncate max-w-[170px] mb-[2px]">
                         {debtor.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px] font-mono">
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[170px] tracking-wide">
                         {debtor.phone || 'No phone'} • {debtor.unpaid_purchases_count ? `${debtor.unpaid_purchases_count} invoice(s)` : (debtor.last_credit_date ? format(new Date(debtor.last_credit_date), 'MMM dd, yyyy') : 'No credit history')}
                       </p>
                     </div>

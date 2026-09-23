@@ -258,16 +258,16 @@ export default function StockManagement() {
           actions={[
             {
               label: 'Bulk Receive',
-              icon: <Upload className="h-3.5 w-3.5 text-primary" />,
+              icon: <Upload className="h-3.5 w-3.5" />,
               onClick: () => setIsBulkStockModalOpen(true),
             },
             {
               label: 'Reconcile',
-              icon: <Layers className="h-3.5 w-3.5 text-primary" />,
+              icon: <Layers className="h-3.5 w-3.5" />,
               onClick: () => navigate('/inventory/stock-reconciliation'),
             },
             {
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchProducts(1),
             },
           ]}
