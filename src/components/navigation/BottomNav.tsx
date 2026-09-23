@@ -274,11 +274,11 @@ export default function BottomNav() {
         </nav>
       </div>
 
-      {/* ── 2. Native Mobile Menu Drawer (Hardware-Accelerated Vaul Sheet) ── */}
+      {/* ── 2. Native Mobile Menu Drawer (Hardware-Accelerated Floating Vaul Sheet) ── */}
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent className="bg-card dark:bg-sidebar text-foreground dark:text-white max-h-[55vh] outline-none mx-1 mb-1 rounded-b-3xl">
+        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[62vh] outline-none mx-3 mb-3 rounded-[2rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10">
 
-          <div className="py-4 px-5 overflow-y-auto scrollbar-hide max-h-[calc(85vh-70px)] space-y-5">
+          <div className="py-3 px-5 overflow-y-auto scrollbar-hide max-h-[calc(62vh-40px)] space-y-4 pb-2">
             {menuSections.map((section) => (
               <div key={section.title} className="space-y-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block text-left px-1">

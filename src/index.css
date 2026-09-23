@@ -370,3 +370,8 @@ input[type="number"] {
     @apply bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover active:scale-95 transition-all;
   }
 }
+
+/* Prevent Vaul from rendering an unwanted white ::after overscroll tail under floating / rounded drawers */
+[data-vaul-drawer]::after {
+  display: none !important;
+}
