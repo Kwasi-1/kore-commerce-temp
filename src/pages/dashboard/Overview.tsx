@@ -391,6 +391,7 @@ export default function Overview() {
           ]}
           activeTab={activeMobileFeedTab}
           onTabChange={(tabId) => setActiveMobileFeedTab(tabId as any)}
+          className='h-[calc(100dvh-100px)]'
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
