@@ -364,10 +364,11 @@ input[type="number"] {
 @layer utilities {
   .bg-action-bridge {
     background-color: hsl(var(--action-bridge));
+    @apply dark:bg-[#1C1C1E];
   }
 
   .action-pill-button {
-    @apply bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover active:scale-95 transition-all;
+    @apply bg-action-pill dark:bg-[#2C2C2E] text-action-pill-foreground hover:bg-action-pill-hover active:scale-95 transition-all;
   }
 }
 
