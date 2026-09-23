@@ -756,35 +756,30 @@ export default function Transactions() {
               ? [
                   {
                     label: 'Register',
-                    icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
+                    icon: <ShoppingCart className="h-3.5 w-3.5" />,
                     onClick: () => navigate('/pos/register'),
                   },
                   {
                     label: 'Returns',
-                    icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+                    icon: <RotateCcw className="h-3.5 w-3.5" />,
                     onClick: () => navigate('/pos/returns'),
                   },
                   {
                     label: 'Refresh',
-                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+                    icon: <RefreshCw className="h-3.5 w-3.5" />,
                     onClick: fetchTransactions,
                   },
                 ]
               : [
                   {
                     label: 'Cashiers',
-                    icon: <Users className="h-3.5 w-3.5 text-primary" />,
+                    icon: <Users className="h-3.5 w-3.5" />,
                     onClick: () => setIsMobileCashiersOpen(true),
                   },
                   {
                     label: 'Returns',
-                    icon: <RotateCcw className="h-3.5 w-3.5 text-primary" />,
+                    icon: <RotateCcw className="h-3.5 w-3.5" />,
                     onClick: () => navigate('/pos/returns'),
-                  },
-                  {
-                    // label: 'Refresh',
-                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
-                    onClick: fetchTransactions,
                   },
                 ]
           }

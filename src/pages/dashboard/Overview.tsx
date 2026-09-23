@@ -362,17 +362,17 @@ export default function Overview() {
           actions={[
             {
               label: 'Register',
-              icon: <ShoppingCart className="h-3.5 w-3.5 text-primary" />,
+              icon: <ShoppingCart className="h-3.5 w-3.5" />,
               onClick: () => navigate('/pos/register'),
             },
             {
               label: 'Product',
-              icon: <PackagePlus className="h-3.5 w-3.5 text-primary" />,
+              icon: <PackagePlus className="h-3.5 w-3.5" />,
               onClick: () => navigate('/inventory/products/new'),
             },
             {
               label: 'Sales',
-              icon: <HistoryIcon className="h-3.5 w-3.5 text-primary" />,
+              icon: <HistoryIcon className="h-3.5 w-3.5" />,
               onClick: () => navigate('/pos/transactions'),
             },
           ]}
@@ -391,7 +391,7 @@ export default function Overview() {
           ]}
           activeTab={activeMobileFeedTab}
           onTabChange={(tabId) => setActiveMobileFeedTab(tabId as any)}
-          className='h-[calc(100dvh-100px)]'
+          className='h-[calc(100dvh-104px)]'
         >
           {isLoading ? (
             <div className="py-8 text-center"><Spinner /></div>

@@ -22,7 +22,7 @@ export const MobileHeroCard: React.FC<MobileHeroCardProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("bg-background rounded-b-2xl p-5 shadow-sm text-center relative overflow-hidden space-y-3", className)}>
+    <div className={cn("bg-background rounded-b-3xl p-5 shadow-sm textcenter relative overflow-hidden space-y-3", className)}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           {title}
@@ -39,8 +39,8 @@ export const MobileHeroCard: React.FC<MobileHeroCardProps> = ({
       </div>
 
       <div className="py-2">
-        <h2 className="text-3xl font-extrabold font-header text-foreground tracking-tight">
-          {isLoading ? <Spinner className="mx-auto my-1" /> : value}
+        <h2 className="text-3xl font-extrabold !font-sans text-foreground">
+          {isLoading ? <Spinner className="mr-auto w-fit my-5" /> : value}
         </h2>
         {subtitle && (
           <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>

@@ -793,17 +793,17 @@ export default function Products() {
           actions={[
             {
               label: 'Add Product',
-              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              icon: <Plus className="h-3.5 w-3.5" />,
               onClick: openNewProduct,
             },
             {
               label: 'Bulk Import',
-              icon: <Upload className="h-3.5 w-3.5 text-primary" />,
+              icon: <Upload className="h-3.5 w-3.5" />,
               onClick: () => setIsBulkModalOpen(true),
             },
             {
               // label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: fetchProducts,
             },
           ]}

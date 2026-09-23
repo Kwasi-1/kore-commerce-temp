@@ -80,7 +80,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
               value={searchConfig.value}
               onChange={(e) => searchConfig.onChange(e.target.value)}
               placeholder={searchConfig.placeholder || "Search..."}
-              className="w-full h-9 pl-9 pr-8 rounded-full bg-white/10 text-white placeholder:text-white/50 text-xs font-medium border border-white/15 outline-none focus:borderprimary/80 focus:bg-white/15 transition-all"
+              className="w-full h-10 pl-9 pr-8 rounded-full bg-white/10 text-white placeholder:text-white/50 text-[12px] font-medium border border-white/15 outline-none focus:borderprimary/80 focus:bg-white/15 transition-all"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   handleCloseSearch();
@@ -113,7 +113,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
               onChange={dateFilterConfig.onChange}
               showLabelOnMobile={dateFilterConfig.showLabelOnMobile ?? true}
               className={cn(
-                "!rounded-full !bg-white/10 hover:!bg-white/15 !border-none !text-white !py-1.5 !px-3.5 !h-8 !text-xs font-bold transition-all actionpill-button shadow-none min-w-fit",
+                "!rounded-full !bg-white/10 hover:!bg-white/15 !border-none !gap-2 !text-white !h-10 !py-1.5 !px-3.5 !text-xs font-bold transition-all actionpill-button shadow-none min-w-fit",
                 dateFilterConfig.className
               )}
               excludeShortcuts={dateFilterConfig.excludeShortcuts}
@@ -132,12 +132,17 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
                 onClick={action.onClick}
                 disabled={action.disabled}
                 className={cn(
-                  "action-pill-button flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all",
+                  "action-pill-button flex items-center gap-1 px-1 py-1 rounded-full text-[12px] font-bold transition-all",
                   action.disabled && "opacity-50 pointer-events-none",
+                  action.label && "pr-3.5",
                   action.className
                 )}
               >
-                {action.icon}
+                {action.icon && (
+                  <span className="flex items-center justify-center h-8 w-8 rounded-full bgwhite/[0.03] shrink-0">
+                    {action.icon}
+                  </span>
+                )}
                 {action.label}
               </button>
             );
@@ -150,7 +155,7 @@ export const MobileActionCapsuleBar: React.FC<MobileActionCapsuleBarProps> = ({
               type="button"
               onClick={handleOpenSearch}
               title="Search"
-              className="action-pill-button flex items-center justify-center h-8 w-8 rounded-full text-xs font-bold text-primary hover:text-white transition-all shrink-0"
+              className="action-pill-button flex items-center justify-center h-10 w-10 rounded-full text-xs font-bold text-primary hover:text-white transition-all shrink-0"
             >
               <Search className="h-4 w-4" />
             </button>
