@@ -461,7 +461,7 @@ export default function BottomNav() {
                       >
                         <Icon
                           icon={item.icon}
-                          className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
+                          className="text-[26px] text-muted-foreground group-hover:text-foreground transition-colors mb-1"
                         />
                         <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-[0.015em]">
                           {item.name}
@@ -488,7 +488,7 @@ export default function BottomNav() {
                       >
                         <Icon
                           icon={item.icon}
-                          className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
+                          className="text-[26px] text-muted-foreground group-hover:text-foreground transition-colors mb-1"
                         />
                         <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-[0.015em]">
                           {item.name}
@@ -506,7 +506,7 @@ export default function BottomNav() {
                         <div className="relative mb-1">
                           <Icon
                             icon={group.icon}
-                            className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors"
+                            className="text-[26px] text-muted-foreground group-hover:text-foreground transition-colors"
                           />
                           <span className="absolute -top-1 -right-2 bg-muted-foreground/20 dark:bg-white/10 text-muted-foreground text-[8px] font-bold px-1 min-w-[14px] h-[14px] rounded-full flex items-center justify-center border border-border/40 dark:border-white/10">
                             {group.count}
