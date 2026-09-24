@@ -249,69 +249,73 @@ export default function BottomNav() {
         },
       ].filter((link) => link.show).slice(0, 4);
 
-  // Group definitions for Option A sub-view drilldowns
+  // Group definitions for Option A sub-view drilldowns (clean stroke/linear icons)
   const groupDefinitions = {
     reports: {
       title: 'Reports',
-      icon: 'solar:chart-2-bold-duotone',
+      icon: 'solar:chart-2-linear',
       items: [
-        { name: 'Sales', to: '/reports/sales', icon: 'solar:chart-2-bold-duotone' },
-        { name: 'Products', to: '/reports/products', icon: 'solar:box-minimalistic-bold-duotone' },
-        { name: 'Cashiers', to: '/reports/cashiers', icon: 'solar:users-group-rounded-bold-duotone' },
-        { name: 'End of Day', to: '/reports/end-of-day', icon: 'solar:calendar-date-bold-duotone' },
+        { name: 'Sales', to: '/reports/sales', icon: 'solar:chart-2-linear' },
+        { name: 'Products', to: '/reports/products', icon: 'solar:box-minimalistic-linear' },
+        { name: 'Cashiers', to: '/reports/cashiers', icon: 'solar:users-group-rounded-linear' },
+        { name: 'End of Day', to: '/reports/end-of-day', icon: 'solar:calendar-date-linear' },
       ],
     },
     settings: {
       title: 'Settings',
-      icon: 'solar:settings-bold-duotone',
+      icon: 'solar:settings-linear',
       items: [
-        { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-bold-duotone' },
-        { name: 'Business', to: '/settings/profile', icon: 'solar:shop-2-bold-duotone' },
-        { name: 'POS Config', to: '/settings/pos', icon: 'solar:tuning-square-2-bold-duotone' },
-        { name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-bold-duotone' },
+        { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' },
+        { name: 'Business', to: '/settings/profile', icon: 'solar:shop-2-linear' },
+        { name: 'POS Config', to: '/settings/pos', icon: 'solar:tuning-square-2-linear' },
+        { name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-linear' },
       ],
     },
     ecommerce: {
       title: 'E-Commerce',
-      icon: 'solar:shop-2-bold-duotone',
+      icon: 'solar:shop-2-linear',
       items: [
-        { name: 'Orders', to: '/ecommerce/orders', icon: 'solar:bag-2-bold-duotone' },
-        { name: 'Storefront', to: '/ecommerce/storefront', icon: 'solar:global-bold-duotone' },
-        { name: 'Discounts', to: '/ecommerce/discounts', icon: 'solar:tag-price-bold-duotone' },
-        { name: 'Customers', to: '/ecommerce/customers', icon: 'solar:users-group-two-rounded-bold-duotone' },
+        { name: 'Orders', to: '/ecommerce/orders', icon: 'solar:bag-2-linear' },
+        { name: 'Storefront', to: '/ecommerce/storefront', icon: 'solar:global-linear' },
+        { name: 'Discounts', to: '/ecommerce/discounts', icon: 'solar:tag-price-linear' },
+        { name: 'Customers', to: '/ecommerce/customers', icon: 'solar:users-group-two-rounded-linear' },
       ],
     },
   };
 
-  // Flat standalone items for the root drawer grid
+  // Flat standalone items for the root drawer grid (clean stroke/linear icons)
   const flatItems = isCashier
     ? [
-        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-bold-duotone' },
-        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-bold-duotone' },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-bold-duotone', moduleKey: 'credit_ledger' },
-        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-bold-duotone', moduleKey: 'returns' },
+        { name: 'Home', to: '/dashboard', icon: 'solar:home-2-linear' },
+        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
+        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
+        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
+        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
       ].filter((item) => isModuleVisible(item.moduleKey))
     : [
-        // POS operations
-        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-bold-duotone', moduleKey: 'pos' },
-        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-bold-duotone', moduleKey: 'pos' },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-bold-duotone', moduleKey: 'credit_ledger' },
-        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-bold-duotone', moduleKey: 'returns' },
+        // Core navigation
+        { name: 'Home', to: '/dashboard', icon: 'solar:home-2-linear' },
+        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
+        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
+        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
+        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
         // Inventory
-        { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-bold-duotone', moduleKey: 'inventory' },
-        { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-bold-duotone', moduleKey: 'adjustments' },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-bold-duotone', moduleKey: 'inventory' },
-        { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-bold-duotone', moduleKey: 'stock_reconciliation' },
-        { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-bold-duotone', moduleKey: 'suppliers' },
-        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-bold-duotone', moduleKey: 'purchase_orders' },
-        // Business
-        { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-bold-duotone', moduleKey: 'expenses' },
-        { name: 'Staff', to: '/staff', icon: 'solar:user-id-bold-duotone', moduleKey: 'staff' },
+        { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-linear', moduleKey: 'inventory' },
+        { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-linear', moduleKey: 'adjustments' },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-linear', moduleKey: 'inventory' },
+        { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-linear', moduleKey: 'stock_reconciliation' },
+        { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-linear', moduleKey: 'suppliers' },
+        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-linear', moduleKey: 'purchase_orders' },
+        // Operations & Staff
+        { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-linear', moduleKey: 'expenses' },
+        { name: 'Staff', to: '/staff', icon: 'solar:user-id-linear', moduleKey: 'staff' },
+        { name: 'Payroll', to: '/staff/payroll', icon: 'solar:card-recive-linear', moduleKey: 'staff' },
       ].filter((item) => isModuleVisible(item.moduleKey));
 
-  // Omit actions already visible in the primary bottom nav to avoid duplication
+  // Omit actions already visible on the current screen / primary nav.
+  // When on /pos/register, register is omitted so Home/Dashboard appears as the first item!
   const activePrimaryRoutes = new Set(
-    isRegisterPage ? [] : primaryLinks.map((l) => l.to)
+    isRegisterPage ? ['/pos/register'] : primaryLinks.map((l) => l.to)
   );
 
   const visibleFlatItems = flatItems.filter((item) => !activePrimaryRoutes.has(item.to));
@@ -321,11 +325,11 @@ export default function BottomNav() {
     ? []
     : [
         ...(isModuleVisible('reports_basic')
-          ? [{ key: 'reports' as const, title: 'Reports', icon: 'solar:chart-2-bold-duotone', count: groupDefinitions.reports.items.length }]
+          ? [{ key: 'reports' as const, title: 'Reports', icon: 'solar:chart-2-linear', count: groupDefinitions.reports.items.length }]
           : []),
-        { key: 'settings' as const, title: 'Settings', icon: 'solar:settings-bold-duotone', count: groupDefinitions.settings.items.length },
+        { key: 'settings' as const, title: 'Settings', icon: 'solar:settings-linear', count: groupDefinitions.settings.items.length },
         ...(isModuleVisible('ecommerce')
-          ? [{ key: 'ecommerce' as const, title: 'E-Commerce', icon: 'solar:shop-2-bold-duotone', count: groupDefinitions.ecommerce.items.length }]
+          ? [{ key: 'ecommerce' as const, title: 'E-Commerce', icon: 'solar:shop-2-linear', count: groupDefinitions.ecommerce.items.length }]
           : []),
       ];
 
@@ -393,7 +397,7 @@ export default function BottomNav() {
 
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[68vh] outline-none mx-2.5 mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
+        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[68vh] min-h-[30vh] outline-none mx-2.5 mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
           
           <div className="flex flex-col max-h-[calc(68vh-20px)] overflow-hidden">
             {/* Header Navigation Bar */}
@@ -401,14 +405,14 @@ export default function BottomNav() {
               {activeGroup ? (
                 <button
                   onClick={() => setActiveGroup(null)}
-                  className="flex items-center gap-1 text-xs font-semibold hover:text-primary/80 transition-colors active:scale-95 py-1 px-1 -ml-1 rounded-lg"
+                  className="flex items-center gap-1 text-xs font-semibold hover:text-foreground transition-colors active:scale-95 py-1 px-1 -ml-1 rounded-lg"
                 >
                   <Icon icon="solar:alt-arrow-left-linear" className="text-base" />
                   <span>All Modules</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Icon icon="solar:widget-2-bold-duotone" className="text-base text-primary" />
+                  <Icon icon="solar:widget-2-linear" className="text-base text-foreground/80" />
                   <span className="text-xs font-bold tracking-tight text-foreground">Modules & Operations</span>
                 </div>
               )}
@@ -441,11 +445,11 @@ export default function BottomNav() {
                       <button
                         key={item.name}
                         onClick={() => handleNavigation(item.to)}
-                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-muted/50 dark:bg-white/5 hover:bg-muted/90 dark:hover:bg-white/10 active:scale-95 transition-all text-center border border-border/30 dark:border-white/5 shadow-xs aspect-square focus:outline-none"
+                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-muted/70 dark:bg-white/5 hover:bg-muted/90 dark:hover:bg-white/10 active:scale-95 transition-all text-center border border-border/30 dark:border-white/5 shadow-xs aspect-square focus:outline-none"
                       >
                         <Icon
                           icon={item.icon}
-                          className="text-[26px] text-foreground/85 group-hover:text-primary transition-colors mb-1"
+                          className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
                         />
                         <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
                           {item.name}
@@ -468,11 +472,11 @@ export default function BottomNav() {
                       <button
                         key={item.name}
                         onClick={() => handleNavigation(item.to)}
-                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-muted/50 dark:bg-white/5 hover:bg-muted/90 dark:hover:bg-white/10 active:scale-95 transition-all text-center border border-border/30 dark:border-white/5 shadow-xs aspect-square focus:outline-none"
+                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-muted/70 dark:bg-white/5 hover:bg-muted/90 dark:hover:bg-white/10 active:scale-95 transition-all text-center border border-border/30 dark:border-white/5 shadow-xs aspect-square focus:outline-none"
                       >
                         <Icon
                           icon={item.icon}
-                          className="text-[26px] text-foreground/85 group-hover:text-primary transition-colors mb-1"
+                          className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
                         />
                         <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
                           {item.name}
@@ -485,18 +489,18 @@ export default function BottomNav() {
                       <button
                         key={group.key}
                         onClick={() => setActiveGroup(group.key)}
-                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/15 active:scale-95 transition-all text-center border border-primary/20 dark:border-primary/30 shadow-xs aspect-square focus:outline-none ring-1 ring-primary/10"
+                        className="group relative flex flex-col items-center justify-center p-2 rounded-2xl bg-muted/70 dark:bg-white/5 hover:bg-muted/90 dark:hover:bg-white/10 active:scale-95 transition-all text-center border border-border/30 dark:border-white/5 shadow-xs aspect-square focus:outline-none"
                       >
                         <div className="relative mb-1">
                           <Icon
                             icon={group.icon}
-                            className="text-[26px] text-primary transition-transform group-hover:scale-110"
+                            className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors"
                           />
-                          <span className="absolute -top-1 -right-2 bg-primary text-white dark:text-neutral-950 text-[8px] font-bold px-1 min-w-[14px] h-[14px] rounded-full flex items-center justify-center shadow-xs">
+                          <span className="absolute -top-1 -right-2 bg-muted-foreground/20 dark:bg-white/10 text-muted-foreground text-[8px] font-bold px-1 min-w-[14px] h-[14px] rounded-full flex items-center justify-center border border-border/40 dark:border-white/10">
                             {group.count}
                           </span>
                         </div>
-                        <span className="text-[10px] font-bold text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
+                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
                           {group.title}
                         </span>
                       </button>
