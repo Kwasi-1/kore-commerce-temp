@@ -114,26 +114,26 @@ export default function BottomNav() {
           name: 'Register',
           to: '/pos/register',
           icon: 'solar:cart-large-2-linear',
-          activeIcon: 'solar:cart-large-2-bold-duotone',
+          activeIcon: 'solar:cart-large-2-bold',
         },
         {
           name: 'History',
           to: '/pos/transactions',
           icon: 'solar:clock-circle-linear',
-          activeIcon: 'solar:clock-circle-bold-duotone',
+          activeIcon: 'solar:clock-circle-bold',
         },
         {
           name: 'Credit',
           to: '/pos/credit-ledger',
           icon: 'solar:book-2-linear',
-          activeIcon: 'solar:book-2-bold-duotone',
+          activeIcon: 'solar:book-2-bold',
           moduleKey: 'credit_ledger',
         },
         {
           name: 'Returns',
           to: '/pos/returns',
           icon: 'solar:restart-linear',
-          activeIcon: 'solar:restart-bold-duotone',
+          activeIcon: 'solar:restart-bold',
           moduleKey: 'returns',
         },
       ].filter((item) => isModuleVisible(item.moduleKey))
@@ -143,25 +143,25 @@ export default function BottomNav() {
           name: 'Home',
           to: '/dashboard',
           icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold-duotone',
+          activeIcon: 'solar:home-2-bold',
         },
         {
           name: 'Sales',
           to: '/reports/sales',
           icon: 'solar:chart-2-linear',
-          activeIcon: 'solar:chart-2-bold-duotone',
+          activeIcon: 'solar:chart-2-bold',
         },
         {
           name: 'Products',
           to: '/reports/products',
           icon: 'solar:box-minimalistic-linear',
-          activeIcon: 'solar:box-minimalistic-bold-duotone',
+          activeIcon: 'solar:box-minimalistic-bold',
         },
         {
           name: 'Cashiers',
           to: '/reports/cashiers',
           icon: 'solar:users-group-rounded-linear',
-          activeIcon: 'solar:users-group-rounded-bold-duotone',
+          activeIcon: 'solar:users-group-rounded-bold',
         },
       ]
     : isSettingsContext
@@ -170,25 +170,25 @@ export default function BottomNav() {
           name: 'Home',
           to: '/dashboard',
           icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold-duotone',
+          activeIcon: 'solar:home-2-bold',
         },
         {
           name: 'Account',
           to: '/settings/account',
           icon: 'solar:user-circle-linear',
-          activeIcon: 'solar:user-circle-bold-duotone',
+          activeIcon: 'solar:user-circle-bold',
         },
         {
           name: 'Business',
           to: '/settings/profile',
           icon: 'solar:shop-2-linear',
-          activeIcon: 'solar:shop-2-bold-duotone',
+          activeIcon: 'solar:shop-2-bold',
         },
         {
           name: 'POS',
           to: '/settings/pos',
           icon: 'solar:tuning-square-2-linear',
-          activeIcon: 'solar:tuning-square-2-bold-duotone',
+          activeIcon: 'solar:tuning-square-2-bold',
         },
       ]
     : isEcommerceContext
@@ -197,25 +197,25 @@ export default function BottomNav() {
           name: 'Home',
           to: '/dashboard',
           icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold-duotone',
+          activeIcon: 'solar:home-2-bold',
         },
         {
           name: 'Orders',
           to: '/ecommerce/orders',
           icon: 'solar:bag-2-linear',
-          activeIcon: 'solar:bag-2-bold-duotone',
+          activeIcon: 'solar:bag-2-bold',
         },
         {
           name: 'Store',
           to: '/ecommerce/storefront',
           icon: 'solar:global-linear',
-          activeIcon: 'solar:global-bold-duotone',
+          activeIcon: 'solar:global-bold',
         },
         {
           name: 'Customers',
           to: '/ecommerce/customers',
           icon: 'solar:users-group-two-rounded-linear',
-          activeIcon: 'solar:users-group-two-rounded-bold-duotone',
+          activeIcon: 'solar:users-group-two-rounded-bold',
         },
       ]
     : [
@@ -223,28 +223,28 @@ export default function BottomNav() {
           name: 'Home',
           to: '/dashboard',
           icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold-duotone',
+          activeIcon: 'solar:home-2-bold',
           show: true,
         },
         {
           name: 'Register',
           to: '/pos/register',
           icon: 'solar:cart-large-2-linear',
-          activeIcon: 'solar:cart-large-2-bold-duotone',
+          activeIcon: 'solar:cart-large-2-bold',
           show: modules.pos,
         },
         {
           name: 'Products',
           to: '/inventory/products',
           icon: 'solar:box-minimalistic-linear',
-          activeIcon: 'solar:box-minimalistic-bold-duotone',
+          activeIcon: 'solar:box-minimalistic-bold',
           show: modules.inventory,
         },
         {
           name: 'History',
           to: '/pos/transactions',
           icon: 'solar:clock-circle-linear',
-          activeIcon: 'solar:clock-circle-bold-duotone',
+          activeIcon: 'solar:clock-circle-bold',
           show: modules.pos,
         },
       ].filter((link) => link.show).slice(0, 4);
@@ -333,6 +333,15 @@ export default function BottomNav() {
           : []),
       ];
 
+  // Check if any primary pill tab is active
+  const isPrimaryTabActive = primaryLinks.some(
+    (item) =>
+      location.pathname === item.to ||
+      (item.to !== '/dashboard' && location.pathname.startsWith(item.to + '/'))
+  );
+  // If not on register and not on any primary pill tab, then user is viewing a drawer page!
+  const isDrawerPageActive = !isPrimaryTabActive && !isRegisterPage;
+
   return (
     <div className="md:hidden">
       {/* ── 1. Floating Capsule Nav & Detached Satellite Launcher (Hidden on /pos/register) ── */}
@@ -384,12 +393,27 @@ export default function BottomNav() {
           {/* Detached Drawer Trigger Button */}
           <button
             onClick={() => openDrawer()}
-            className="pointer-events-auto relative flex items-center justify-center h-12 w-12 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-700 hover:text-neutral-950 dark:text-white/80 dark:hover:text-white active:scale-95 transition-all focus:outline-none shrink-0"
+            className={clsx(
+              "pointer-events-auto relative flex items-center justify-center h-12 w-12 rounded-full transition-all focus:outline-none shrink-0",
+              isDrawerPageActive
+                ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-md ring-2 ring-black/10 dark:ring-white/20 scale-105 active:scale-95"
+                : "bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-700 hover:text-neutral-950 dark:text-white/80 dark:hover:text-white active:scale-95"
+            )}
             title="All Modules & Menu"
           >
-            <Icon icon="solar:widget-2-linear" className="text-[22px]" />
+            <Icon
+              icon={isDrawerPageActive ? "solar:widget-2-bold" : "solar:widget-2-linear"}
+              className="text-[22px] transition-transform"
+            />
             {unreadCount > 0 && (
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2 ring-white dark:ring-neutral-900" />
+              <span
+                className={clsx(
+                  "absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2",
+                  isDrawerPageActive
+                    ? "ring-neutral-950 dark:ring-white"
+                    : "ring-white dark:ring-neutral-900"
+                )}
+              />
             )}
           </button>
         </div>
@@ -402,7 +426,7 @@ export default function BottomNav() {
           <div className="flex flex-col max-h-[calc(70vh-20px)] overflow-hidden mt-2">
             {/* Sub-view Header Navigation Bar (only rendered when drilling into a group) */}
             {activeGroup && (
-              <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 dark:border-white/10 shrink-0">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 dark:border-border/10 shrink-0">
                 <button
                   onClick={() => setActiveGroup(null)}
                   className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80 hover:text-foreground transition-colors active:scale-95 py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-muted/50"
