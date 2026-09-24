@@ -397,39 +397,27 @@ export default function BottomNav() {
 
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[68vh] min-h-[35vh] outline-none mx-2.5 mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
+        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] min-h-[300px] outline-none mx-2.5 max-w-[440px] min-[460px]:mx-auto mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
           
-          <div className="flex flex-col max-h-[calc(68vh-20px)] overflow-hidden">
-            {/* Header Navigation Bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 dark:border-white/10 shrink-0">
-              {activeGroup ? (
+          <div className="flex flex-col max-h-[calc(70vh-20px)] overflow-hidden mt-2">
+            {/* Sub-view Header Navigation Bar (only rendered when drilling into a group) */}
+            {activeGroup && (
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 dark:border-white/10 shrink-0">
                 <button
                   onClick={() => setActiveGroup(null)}
-                  className="flex items-center gap-1 text-xs font-semibold hover:text-foreground transition-colors active:scale-95 py-1 px-1 -ml-1 rounded-lg"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80 hover:text-foreground transition-colors active:scale-95 py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-muted/50"
                 >
                   <Icon icon="solar:alt-arrow-left-linear" className="text-base" />
                   <span>All Modules</span>
                 </button>
-              ) : (
-                <div className=" items-center gap-2 hidden">
-                  <Icon icon="solar:widget-2-linear" className="text-base text-foreground/80" />
-                  <span className="text-xs font-bold tracking-tight text-foreground">Modules & Operations</span>
-                </div>
-              )}
-
-              {activeGroup && (
                 <span className="text-xs font-bold text-foreground">
                   {groupDefinitions[activeGroup].title}
                 </span>
-              )}
-
-              {/* <DrawerClose className="h-7 w-7 rounded-full bg-muted/60 dark:bg-white/10 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
-                <Icon icon="solar:close-circle-linear" className="text-lg" />
-              </DrawerClose> */}
-            </div>
+              </div>
+            )}
 
             {/* Scrollable Box Grid Area */}
-            <div className="overflow-y-auto scrollbar-hide py-3 px-3">
+            <div className={clsx("overflow-y-auto scrollbar-hide px-3 pb-3", activeGroup ? "pt-3" : "pt-1")}>
               <AnimatePresence mode="wait">
                 {activeGroup ? (
                   /* Sub-View Grid (Option A Drill-Down) */
@@ -439,7 +427,7 @@ export default function BottomNav() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -18 }}
                     transition={{ duration: 0.16 }}
-                    className="grid grid-cols-4 gap-2 pb-2"
+                    className="grid grid-cols-4 gap-2 pb-1"
                   >
                     {groupDefinitions[activeGroup].items.map((item) => (
                       <button
@@ -451,7 +439,7 @@ export default function BottomNav() {
                           icon={item.icon}
                           className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
                         />
-                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
+                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-[0.015em]">
                           {item.name}
                         </span>
                       </button>
@@ -465,7 +453,7 @@ export default function BottomNav() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 18 }}
                     transition={{ duration: 0.16 }}
-                    className="grid grid-cols-4 gap-2 pb-2"
+                    className="grid grid-cols-4 gap-2 pb-1"
                   >
                     {/* Standalone Flat Items */}
                     {visibleFlatItems.map((item) => (
@@ -478,7 +466,7 @@ export default function BottomNav() {
                           icon={item.icon}
                           className="text-[26px] text-foreground/85 group-hover:text-foreground transition-colors mb-1"
                         />
-                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
+                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-[0.015em]">
                           {item.name}
                         </span>
                       </button>
@@ -500,7 +488,7 @@ export default function BottomNav() {
                             {group.count}
                           </span>
                         </div>
-                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-tight">
+                        <span className="text-[10px] font-semibold text-foreground/80 group-hover:text-foreground line-clamp-1 truncate w-full text-center leading-tight tracking-[0.015em]">
                           {group.title}
                         </span>
                       </button>
