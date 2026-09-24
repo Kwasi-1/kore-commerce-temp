@@ -103,11 +103,16 @@ export default function BottomNav() {
 
   // Determine current contextual route group
   const isRegisterPage = location.pathname === '/pos/register';
+  const isAccountPage = location.pathname === '/settings/account';
   const isReportsContext = location.pathname.startsWith('/reports');
   const isSettingsContext = location.pathname.startsWith('/settings');
   const isEcommerceContext = location.pathname.startsWith('/ecommerce');
 
   // Primary bottom pill links (Context-Aware: dynamically adapts to functional group)
+  const hasCreditLedger = isModuleVisible('credit_ledger');
+  // For cashier: If store has credit ledger, slot 4 defaults to Credit, but alternates to Account when viewing Account!
+  const showCreditInPill = hasCreditLedger && !isAccountPage;
+
   const primaryLinks = isCashier
     ? [
         {
@@ -123,19 +128,26 @@ export default function BottomNav() {
           activeIcon: 'solar:clock-circle-bold',
         },
         {
-          name: 'Credit',
-          to: '/pos/credit-ledger',
-          icon: 'solar:book-2-linear',
-          activeIcon: 'solar:book-2-bold',
-          moduleKey: 'credit_ledger',
-        },
-        {
           name: 'Returns',
           to: '/pos/returns',
           icon: 'solar:restart-linear',
           activeIcon: 'solar:restart-bold',
           moduleKey: 'returns',
         },
+        showCreditInPill
+          ? {
+              name: 'Credit',
+              to: '/pos/credit-ledger',
+              icon: 'solar:book-2-linear',
+              activeIcon: 'solar:book-2-bold',
+              moduleKey: 'credit_ledger',
+            }
+          : {
+              name: 'Account',
+              to: '/settings/account',
+              icon: 'solar:user-circle-linear',
+              activeIcon: 'solar:user-circle-bold',
+            },
       ].filter((item) => isModuleVisible(item.moduleKey))
     : isReportsContext
     ? [
@@ -286,11 +298,11 @@ export default function BottomNav() {
   // Flat standalone items for the root drawer grid (clean stroke/linear icons)
   const flatItems = isCashier
     ? [
-        { name: 'Home', to: '/dashboard', icon: 'solar:home-2-linear' },
         { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
         { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
         { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
+        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
+        { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' },
       ].filter((item) => isModuleVisible(item.moduleKey))
     : [
         // Core navigation
@@ -313,7 +325,7 @@ export default function BottomNav() {
       ].filter((item) => isModuleVisible(item.moduleKey));
 
   // Omit actions already visible on the current screen / primary nav.
-  // When on /pos/register, register is omitted so Home/Dashboard appears as the first item!
+  // When on /pos/register, register is omitted so the other actions appear in the drawer!
   const activePrimaryRoutes = new Set(
     isRegisterPage ? ['/pos/register'] : primaryLinks.map((l) => l.to)
   );
@@ -343,6 +355,9 @@ export default function BottomNav() {
       ];
 
   const visibleGroups = allGroups.filter((group) => group.key !== currentContextGroup);
+
+  // Check if there are any items left to show in the drawer
+  const hasDrawerItems = visibleFlatItems.length > 0 || visibleGroups.length > 0;
 
   // Check if any primary pill tab is active
   const isPrimaryTabActive = primaryLinks.some(
@@ -401,38 +416,40 @@ export default function BottomNav() {
             })}
           </nav>
 
-          {/* Detached Drawer Trigger Button */}
-          <button
-            onClick={() => openDrawer()}
-            className={clsx(
-              "pointer-events-auto relative flex items-center justify-center h-12 w-12 rounded-full transition-all focus:outline-none shrink-0",
-              isDrawerPageActive
-                ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-md ring-2 ring-black/10 dark:ring-white/20 scale-105 active:scale-95"
-                : "bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-700 hover:text-neutral-950 dark:text-white/80 dark:hover:text-white active:scale-95"
-            )}
-            title="All Modules & Menu"
-          >
-            <Icon
-              icon={isDrawerPageActive ? "solar:widget-2-bold" : "solar:widget-2-linear"}
-              className="text-[22px] transition-transform"
-            />
-            {unreadCount > 0 && (
-              <span
-                className={clsx(
-                  "absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2",
-                  isDrawerPageActive
-                    ? "ring-neutral-950 dark:ring-white"
-                    : "ring-white dark:ring-neutral-900"
-                )}
+          {/* Detached Drawer Trigger Button (only rendered when there are drawer items) */}
+          {hasDrawerItems && (
+            <button
+              onClick={() => openDrawer()}
+              className={clsx(
+                "pointer-events-auto relative flex items-center justify-center h-12 w-12 rounded-full transition-all focus:outline-none shrink-0",
+                isDrawerPageActive
+                  ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-md ring-2 ring-black/10 dark:ring-white/20 scale-105 active:scale-95"
+                  : "bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-700 hover:text-neutral-950 dark:text-white/80 dark:hover:text-white active:scale-95"
+              )}
+              title="All Modules & Menu"
+            >
+              <Icon
+                icon={isDrawerPageActive ? "solar:widget-2-bold" : "solar:widget-2-linear"}
+                className="text-[22px] transition-transform"
               />
-            )}
-          </button>
+              {unreadCount > 0 && (
+                <span
+                  className={clsx(
+                    "absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2",
+                    isDrawerPageActive
+                      ? "ring-neutral-950 dark:ring-white"
+                      : "ring-white dark:ring-neutral-900"
+                  )}
+                />
+              )}
+            </button>
+          )}
         </div>
       )}
 
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] min-h-[300px] outline-none mx-2.5 max-w-[440px] min-[460px]:mx-auto mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
+        <DrawerContent className={`bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] ${!isCashier && "min-h-[250px]"} outline-none mx-2.5 max-w-[440px] min-[460px]:mx-auto mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden`}>
           
           <div className="flex flex-col max-h-[calc(70vh-20px)] overflow-hidden mt-2">
             {/* Sub-view Header Navigation Bar (only rendered when drilling into a group) */}
