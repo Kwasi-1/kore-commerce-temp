@@ -375,11 +375,6 @@ export default function BottomNav() {
         <div className="fixed bottom-5 inset-x-0 mx-auto w-full flex justify-center items-center gap-2 px-3.5 z-50 pointer-events-none">
           {/* Primary 4-Tab Capsule Pill */}
           <nav className="pointer-events-auto relative flex items-center gap-1.5 p-1.5 rounded-full bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.5)] ring-1 ring-black/[0.03] dark:ring-white/5 text-neutral-900 dark:text-white select-none">
-            {/* Subtle top loading transition indicator */}
-            {isPending && (
-              <div className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full animate-pulse" />
-            )}
-
             {/* Primary Fast-Access Navigation Tabs */}
             {primaryLinks.map((item) => {
               const isActive =
