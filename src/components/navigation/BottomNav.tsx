@@ -140,12 +140,6 @@ export default function BottomNav() {
     : isReportsContext
     ? [
         {
-          name: 'Home',
-          to: '/dashboard',
-          icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold',
-        },
-        {
           name: 'Sales',
           to: '/reports/sales',
           icon: 'solar:chart-2-linear',
@@ -163,15 +157,15 @@ export default function BottomNav() {
           icon: 'solar:users-group-rounded-linear',
           activeIcon: 'solar:users-group-rounded-bold',
         },
+        {
+          name: 'End of Day',
+          to: '/reports/end-of-day',
+          icon: 'solar:calendar-date-linear',
+          activeIcon: 'solar:calendar-date-bold',
+        },
       ]
     : isSettingsContext
     ? [
-        {
-          name: 'Home',
-          to: '/dashboard',
-          icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold',
-        },
         {
           name: 'Account',
           to: '/settings/account',
@@ -190,15 +184,15 @@ export default function BottomNav() {
           icon: 'solar:tuning-square-2-linear',
           activeIcon: 'solar:tuning-square-2-bold',
         },
+        {
+          name: 'Billing',
+          to: '/settings/plan',
+          icon: 'solar:card-2-linear',
+          activeIcon: 'solar:card-2-bold',
+        },
       ]
     : isEcommerceContext
     ? [
-        {
-          name: 'Home',
-          to: '/dashboard',
-          icon: 'solar:home-2-linear',
-          activeIcon: 'solar:home-2-bold',
-        },
         {
           name: 'Orders',
           to: '/ecommerce/orders',
@@ -210,6 +204,12 @@ export default function BottomNav() {
           to: '/ecommerce/storefront',
           icon: 'solar:global-linear',
           activeIcon: 'solar:global-bold',
+        },
+        {
+          name: 'Discounts',
+          to: '/ecommerce/discounts',
+          icon: 'solar:tag-price-linear',
+          activeIcon: 'solar:tag-price-bold',
         },
         {
           name: 'Customers',
@@ -320,8 +320,17 @@ export default function BottomNav() {
 
   const visibleFlatItems = flatItems.filter((item) => !activePrimaryRoutes.has(item.to));
 
-  // Visible group folder tiles in root grid
-  const visibleGroups: Array<{ key: NonNullable<NavDrawerGroup>; title: string; icon: string; count: number }> = isCashier
+  // Current contextual group key (if inside one)
+  const currentContextGroup: NavDrawerGroup | null = isReportsContext
+    ? 'reports'
+    : isSettingsContext
+    ? 'settings'
+    : isEcommerceContext
+    ? 'ecommerce'
+    : null;
+
+  // Visible group folder tiles in root grid (exclude the active group since all 4 of its items are in the bottom pill)
+  const allGroups: Array<{ key: NonNullable<NavDrawerGroup>; title: string; icon: string; count: number }> = isCashier
     ? []
     : [
         ...(isModuleVisible('reports_basic')
@@ -332,6 +341,8 @@ export default function BottomNav() {
           ? [{ key: 'ecommerce' as const, title: 'E-Commerce', icon: 'solar:shop-2-linear', count: groupDefinitions.ecommerce.items.length }]
           : []),
       ];
+
+  const visibleGroups = allGroups.filter((group) => group.key !== currentContextGroup);
 
   // Check if any primary pill tab is active
   const isPrimaryTabActive = primaryLinks.some(
