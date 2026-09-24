@@ -397,7 +397,7 @@ export default function BottomNav() {
 
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[68vh] min-h-[30vh] outline-none mx-2.5 mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
+        <DrawerContent className="bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[68vh] min-h-[35vh] outline-none mx-2.5 mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden">
           
           <div className="flex flex-col max-h-[calc(68vh-20px)] overflow-hidden">
             {/* Header Navigation Bar */}
@@ -411,7 +411,7 @@ export default function BottomNav() {
                   <span>All Modules</span>
                 </button>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className=" items-center gap-2 hidden">
                   <Icon icon="solar:widget-2-linear" className="text-base text-foreground/80" />
                   <span className="text-xs font-bold tracking-tight text-foreground">Modules & Operations</span>
                 </div>
@@ -423,9 +423,9 @@ export default function BottomNav() {
                 </span>
               )}
 
-              <DrawerClose className="h-7 w-7 rounded-full bg-muted/60 dark:bg-white/10 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
+              {/* <DrawerClose className="h-7 w-7 rounded-full bg-muted/60 dark:bg-white/10 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
                 <Icon icon="solar:close-circle-linear" className="text-lg" />
-              </DrawerClose>
+              </DrawerClose> */}
             </div>
 
             {/* Scrollable Box Grid Area */}
