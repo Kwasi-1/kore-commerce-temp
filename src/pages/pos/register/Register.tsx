@@ -13,6 +13,8 @@ import { useShift } from '@/hooks/useShift';
 import { Icon } from '@iconify/react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
+import { useNavDrawerStore } from '@/store/navDrawerStore';
+
 import PaymentModal from '@/components/pos/PaymentModal';
 import SaveTransactionModal from '@/components/pos/SaveTransactionModal';
 
@@ -26,6 +28,7 @@ interface CartToast {
 export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
   const { staffUser } = useAuthStore();
+  const openDrawer = useNavDrawerStore((state) => state.openDrawer);
   
   // Mount offline sync — drains queued transactions when internet returns
   useOfflineSync();
@@ -250,11 +253,11 @@ export default function Register() {
         </>
       )}
 
-      {/* Mobile Floating Cart Button */}
-      <div className="lg:hidden absolute bottom-4 left-4 right-4 z-40">
+      {/* Mobile Floating Cart & Menu Action Row */}
+      <div className="lg:hidden fixed bottom-4 left-3.5 right-3.5 z-40 flex items-center gap-2">
         <Button
           onClick={() => setIsMobileCartOpen(true)}
-          className="w-full h-14 rounded-2xl bg-primary/90 backdrop-blur-md border border-white/20 shadow-md flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
+          className="flex-1 h-14 rounded-2xl bg-primary/90 backdrop-blur-md border border-white/20 shadow-md flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
         >
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -271,6 +274,15 @@ export default function Register() {
             <CurrencyDisplay amount={calculatedTotal} />
           </span>
         </Button>
+
+        {/* Detached Drawer Trigger Button */}
+        <button
+          onClick={() => openDrawer()}
+          className="h-14 w-14 rounded-2xl bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-md flex items-center justify-center text-neutral-900 dark:text-white hover:bg-muted active:scale-95 transition-all shrink-0 focus:outline-none"
+          title="All Modules & Menu"
+        >
+          <Icon icon="solar:widget-2-linear" className="text-2xl" />
+        </button>
       </div>
 
       {/* Mobile Cart Drawer */}
