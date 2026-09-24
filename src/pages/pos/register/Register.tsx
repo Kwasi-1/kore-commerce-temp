@@ -278,7 +278,7 @@ export default function Register() {
         {/* Detached Drawer Trigger Button */}
         <button
           onClick={() => openDrawer()}
-          className="h-14 w-14 rounded-2xl bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-md flex items-center justify-center text-neutral-900 dark:text-white hover:bg-muted active:scale-95 transition-all shrink-0 focus:outline-none"
+          className="h-[52px] w-[52px] rounded-2xl bg-muted/80 dark:bg-neutral-900/85 backdrop-blur-2xl border border-border/40 dark:border-white/5 shadow-md flex items-center justify-center text-neutral-900 dark:text-white hover:bg-muted active:scale-95 transition-all shrink-0 focus:outline-none"
           title="All Modules & Menu"
         >
           <Icon icon="solar:widget-2-linear" className="text-2xl" />
