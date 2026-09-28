@@ -354,7 +354,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, cachedProducts]);
+  }, [searchTerm, cachedProducts.length]); // use .length (primitive) not the array ref to avoid infinite loop
 
   const performSearch = async (query: string) => {
     // 1. Cache-First: Search local cache immediately using smartSearch (0ms network delay)
