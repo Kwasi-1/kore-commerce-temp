@@ -175,7 +175,7 @@ export default function Notifications() {
 
   return (
     <PageLayout
-      title="Notifications & Activity Log"
+      title="Notifications"
       // subtitle="Real-time alerts, stock warnings, and transaction logs across your store."
       className="md:max-w-3xl mx-auto sm:px-4 md:px-8 xl:px-0"
     >
@@ -356,7 +356,7 @@ export default function Notifications() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4
                           className={clsx(
-                            'text-sm font-bold tracking-tight font-header',
+                            'text-sm font-bold',
                             item.read ? 'text-foreground/90' : 'text-foreground'
                           )}
                         >
