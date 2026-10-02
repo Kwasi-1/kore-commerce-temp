@@ -1215,7 +1215,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             {/* Attribute lines */}
             <div className="space-y-3">
               {attributes.map((attr, idx) => (
-                <div key={attr.id} className="flex gap-3 items-end">
+                <div key={attr.id} className="flex flex-col md:flex-row gap-3 md:items-end">
                   <div className="flex-1">
                     <CustomInputTextField
                       label={idx === 0 ? "Attribute Name" : undefined}
@@ -1266,8 +1266,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             {/* Bulk Edit Panel */}
             {variants.length > 0 && (
               <div className="p-4 border border-border rounded-xl bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Bulk Edit Variants</h4>
+                <div className="flex items-center justify-between !tracking-wide">
+                  <h4 className="text-xs font-bold text-foreground uppercase !tracking-wide">Bulk Edit Variants</h4>
                   <span className="text-[10px] text-muted-foreground">Quickly apply base values to all rows</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
@@ -1313,7 +1313,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
                   <Button
                     type="button"
                     size="sm"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg h-9"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg h-8"
                     onClick={handleApplyBulkVariants}
                   >
                     Apply to All
@@ -1325,10 +1325,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             {/* Combinations list */}
             {variants.length > 0 && (
               <div className="space-y-3">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Generated Combinations ({variants.length})</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">Generated Combinations ({variants.length})</label>
                 
                 {/* Desktop view table */}
-                <div className="hidden sm:block border border-border rounded-xl overflow-hidden shadow-sm bg-card">
+                <div className="hidden sm:block border border-border rounded overflow-hidden shadow-sm bg-card">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-muted border-b border-border/80 text-[10px] text-muted-foreground uppercase font-bold">
