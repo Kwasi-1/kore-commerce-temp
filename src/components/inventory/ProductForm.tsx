@@ -545,6 +545,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         name: `${name} - ${nameSuffix}`,
         variant_attributes,
         sku: generatedSku,
+        base_unit_name: simpleBaseUnitName || "unit",
         stock_quantity: "0",
         cost_price_per_base_unit: simpleCostPrice || "",
         low_stock_threshold: simpleLowStock || "5",
@@ -553,7 +554,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         packaging_tiers: [
           {
             id: Math.random().toString(),
-            name: "Unit",
+            name: simpleBaseUnitName || "Unit",
             units_per_tier: 1,
             is_base_unit: true,
             is_default_sale_unit: true,
@@ -822,50 +823,55 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       return;
     }
 
+    if (hasVariants && variants.length === 0) {
+      toast.error("Please generate at least one variant combination");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Build packaging tiers helper format
-      const mapTiersPayload = (tiers: any[]) => tiers.map(t => ({
-        name: t.name.trim() || "Unit",
-        units_per_tier: t.units_per_tier,
-        is_base_unit: t.is_base_unit,
-        is_default_sale_unit: t.is_default_sale_unit,
-        is_default_purchase_unit: t.is_default_purchase_unit,
+      // Build packaging tiers helper format with safe fallbacks
+      const mapTiersPayload = (tiers: any[]) => (tiers || []).map(t => ({
+        name: (t?.name || simpleBaseUnitName || "Unit").trim() || "Unit",
+        units_per_tier: parseInt(t?.units_per_tier) || 1,
+        is_base_unit: Boolean(t?.is_base_unit),
+        is_default_sale_unit: Boolean(t?.is_default_sale_unit),
+        is_default_purchase_unit: Boolean(t?.is_default_purchase_unit),
         prices: [
-          { price_type: "retail", price: parseFloat(t.retail_price) || 0 },
-          ...(t.wholesale_price ? [{ price_type: "wholesale", price: parseFloat(t.wholesale_price) }] : [])
+          { price_type: "retail", price: parseFloat(t?.retail_price) || 0 },
+          ...(t?.wholesale_price ? [{ price_type: "wholesale", price: parseFloat(t.wholesale_price) }] : [])
         ]
       }));
 
       const payload = {
-        name,
-        description,
+        name: name.trim(),
+        description: description?.trim() || "",
         category,
         status,
         tags: tags.map(t => t.trim()).filter(Boolean),
         has_variants: hasVariants,
         ...(hasVariants ? {
           variants: variants.map(v => ({
-            sku: v.sku.trim(),
-            variant_attributes: v.variant_attributes,
-            base_unit_name: v.base_unit_name.trim() || "unit",
-            cost_price_per_base_unit: v.cost_price_per_base_unit ? parseFloat(v.cost_price_per_base_unit) : null,
-            stock_quantity: parseInt(v.stock_quantity) || 0,
-            sell_mode: v.sell_mode,
-            low_stock_threshold: parseInt(v.low_stock_threshold) || 5,
-            track_expiry: v.track_expiry,
-            packaging_tiers: mapTiersPayload(v.packaging_tiers)
+            sku: (v?.sku || "").trim(),
+            variant_attributes: v?.variant_attributes || {},
+            base_unit_name: (v?.base_unit_name || simpleBaseUnitName || "unit").trim() || "unit",
+            cost_price_per_base_unit: v?.cost_price_per_base_unit ? parseFloat(v.cost_price_per_base_unit) : null,
+            stock_quantity: parseInt(v?.stock_quantity) || 0,
+            sell_mode: v?.sell_mode || "unit_only",
+            low_stock_threshold: parseInt(v?.low_stock_threshold) || 5,
+            track_expiry: Boolean(v?.track_expiry),
+            packaging_tiers: mapTiersPayload(v?.packaging_tiers || [])
           }))
         } : {
           variant: {
-            sku: simpleSku.trim(),
-            base_unit_name: simpleBaseUnitName.trim() || "unit",
+            sku: (simpleSku || "").trim(),
+            base_unit_name: (simpleBaseUnitName || "unit").trim() || "unit",
             cost_price_per_base_unit: simpleCostPrice ? parseFloat(simpleCostPrice) : null,
             stock_quantity: parseInt(simpleStock) || 0,
-            sell_mode: simpleSellMode,
+            sell_mode: simpleSellMode || "unit_only",
             low_stock_threshold: parseInt(simpleLowStock) || 5,
-            track_expiry: simpleTrackExpiry,
-            packaging_tiers: mapTiersPayload(simpleTiers)
+            track_expiry: Boolean(simpleTrackExpiry),
+            packaging_tiers: mapTiersPayload(simpleTiers || [])
           }
         })
       };
@@ -914,7 +920,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     } catch (error: any) {
       toast.dismiss("upload");
       console.error("Save product error:", error);
-      toast.error(error.response?.data?.error?.message || "Failed to save product");
+      const serverMsg = error?.response?.data?.error?.message;
+      const clientMsg = error?.message;
+      toast.error(serverMsg || clientMsg || "Failed to save product");
     } finally {
       setIsLoading(false);
     }
