@@ -1,19 +1,20 @@
 import React from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { useAuthStore } from '@/store/authStore';
-import { useFeaturesStore } from '@/store/featuresStore';
+import { useFeaturesStore, PLAN_MODULES } from '@/store/featuresStore';
 import { getPlanLabel } from '@/utils/permissions';
-import { CheckCircle2, Lock } from 'lucide-react';
+import { CheckCircle2, Lock, Puzzle, Sparkles } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 
 export default function PlanBilling() {
   const { tenant } = useAuthStore();
-  const { plan: featurePlan, hasModule } = useFeaturesStore();
+  const { plan: featurePlan, hasModule, addons } = useFeaturesStore();
 
   if (!tenant) return null;
 
   const currentPlan = tenant.plan || featurePlan || 'starter';
   const planLabel = getPlanLabel(currentPlan);
+  const basePlanModules = PLAN_MODULES[currentPlan] || PLAN_MODULES['starter'] || [];
 
   const planTiers = [
     {
@@ -63,36 +64,42 @@ export default function PlanBilling() {
       key: 'pos',
       description: 'In-store sale checkouts, cashier shift management, printed receipts.',
       available: hasModule('pos'),
+      isAddon: !basePlanModules.includes('pos') && hasModule('pos'),
     },
     {
       name: 'Inventory & Stock Reconciliation',
       key: 'inventory_basic',
       description: 'Product catalog, variant pricing, tier packaging, and stock adjustments.',
       available: hasModule('inventory_basic'),
+      isAddon: !basePlanModules.includes('inventory_basic') && hasModule('inventory_basic'),
     },
     {
       name: 'Suppliers & Purchase Orders',
       key: 'suppliers',
       description: 'Supplier tracking, purchase orders, and supplier credit ledgers.',
       available: hasModule('suppliers'),
+      isAddon: !basePlanModules.includes('suppliers') && hasModule('suppliers'),
     },
     {
       name: 'Staff & Expense Management',
       key: 'staff',
       description: 'Role-based access controls, expense tracking, and cashier shifts.',
       available: hasModule('staff'),
+      isAddon: !basePlanModules.includes('staff') && hasModule('staff'),
     },
     {
       name: 'Ecommerce Storefront',
       key: 'ecommerce',
       description: 'Integrated online store, digital customer checkout, and digital orders.',
       available: hasModule('ecommerce'),
+      isAddon: !basePlanModules.includes('ecommerce') && hasModule('ecommerce'),
     },
     {
       name: 'Payroll Management',
       key: 'payroll',
       description: 'Staff salaries, deductions, allowances, and payslip generation.',
       available: hasModule('payroll'),
+      isAddon: !basePlanModules.includes('payroll') && hasModule('payroll'),
     },
   ];
 
@@ -112,7 +119,7 @@ export default function PlanBilling() {
                   Active
                 </span>
               </div>
-              <h1 className="text-3xl font-extrabold font-header tracking-tight text-foreground">
+              <h1 className="text-[1.6rem] md:text-3xl font-extrabold font-header tracking-tight text-foreground">
                 {planLabel} Plan
               </h1>
               <p className="text-sm text-muted-foreground max-w-xl">
@@ -137,6 +144,45 @@ export default function PlanBilling() {
             </div>
           </div>
         </section>
+
+        {/* Active Add-ons Section */}
+        {addons && addons.length > 0 && (
+          <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold font-header tracking-tight text-foreground">
+                Active Add-ons
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5 pb-3 border-b">
+              Modular extensions attached to your subscription without altering your base plan.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {addons.map((a: any) => (
+                <div
+                  key={a.id || a.addon_key}
+                  className="p-4 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground capitalize text-sm font-header">
+                        {a.addon_key.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        {a.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {a.billing_cycle === 'complimentary' || !a.price
+                        ? 'Complimentary'
+                        : `GH₵ ${Number(a.price).toFixed(2)} / ${a.billing_cycle === 'one_time' ? 'setup' : 'mo'}`}
+                      {a.date_activated && ` · Activated ${new Date(a.date_activated).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Module Entitlements Breakdown */}
         <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
@@ -167,11 +213,15 @@ export default function PlanBilling() {
                     <h4 className="text-sm font-bold text-foreground font-header">
                       {item.name}
                     </h4>
-                    {!item.available && (
+                    {item.isAddon ? (
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.2 rounded-full border border-emerald-500/20">
+                        Active via Add-on
+                      </span>
+                    ) : !item.available ? (
                       <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.2 rounded-full border border-amber-500/20">
                         Upgrade Required
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {item.description}

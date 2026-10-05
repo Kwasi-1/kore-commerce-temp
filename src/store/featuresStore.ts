@@ -93,11 +93,14 @@ export const getPlanModules = (planName?: string): string[] => {
 interface FeaturesState {
   plan: string;
   modules: string[];
+  addons: any[];
   posSettings: POSSettings;
   platform_paystack_enabled: boolean;
   isLoaded: boolean;
   lastFetchedAt: number | null;    // timestamp ms — for cache invalidation
   hasModule: (key: string) => boolean;
+  hasAddon: (key: string) => boolean;
+  getActiveAddonKeys: () => string[];
   hasSetting: (key: keyof POSSettings) => boolean;
   isPaystackEnabled: () => boolean;
   getEffectivePaymentMethods: () => string[];
@@ -111,12 +114,23 @@ export const useFeaturesStore = create<FeaturesState>()(
     (set, get) => ({
       plan: 'starter',
       modules: PLAN_MODULES['starter'],
+      addons: [],
       posSettings: DEFAULT_POS_SETTINGS,
       platform_paystack_enabled: true,
       isLoaded: false,
       lastFetchedAt: null,
 
       hasModule: (key: string) => get().modules.includes(key),
+
+      hasAddon: (key: string) =>
+        (get().addons || []).some(
+          (a: any) => a.addon_key === key && (a.status === 'active' || a.status === 'trial')
+        ),
+
+      getActiveAddonKeys: () =>
+        (get().addons || [])
+          .filter((a: any) => a.status === 'active' || a.status === 'trial')
+          .map((a: any) => a.addon_key),
 
       hasSetting: (key: keyof POSSettings) => Boolean(get().posSettings[key]),
 
@@ -143,6 +157,7 @@ export const useFeaturesStore = create<FeaturesState>()(
           const modules: string[] = data.modules?.length
             ? data.modules
             : (PLAN_MODULES[plan] ?? PLAN_MODULES['starter']);
+          const addons: any[] = data.addons || [];
           const posSettings: POSSettings = {
             ...DEFAULT_POS_SETTINGS,
             ...(data.pos_settings || {}),
@@ -151,6 +166,7 @@ export const useFeaturesStore = create<FeaturesState>()(
           set({
             plan,
             modules,
+            addons,
             posSettings,
             platform_paystack_enabled,
             isLoaded: true,
@@ -178,6 +194,7 @@ export const useFeaturesStore = create<FeaturesState>()(
         set({
           plan: 'starter',
           modules: PLAN_MODULES['starter'],
+          addons: [],
           posSettings: DEFAULT_POS_SETTINGS,
           isLoaded: false,
           lastFetchedAt: null,
@@ -188,6 +205,7 @@ export const useFeaturesStore = create<FeaturesState>()(
       partialize: (state) => ({      // only persist plan + settings (not functions)
         plan: state.plan,
         modules: state.modules,
+        addons: state.addons,
         posSettings: state.posSettings,
         lastFetchedAt: state.lastFetchedAt,
       }),
