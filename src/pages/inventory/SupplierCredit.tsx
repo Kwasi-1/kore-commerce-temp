@@ -336,20 +336,20 @@ export default function SupplierCredit() {
       {/* ========================================================================= */}
       <MobileDashboardWrapper className="block md:hidden">
         {/* Compact Credit Metric Strip on Mobile (On top of Action Bar) */}
-        <div className="grid grid-cols-3 gap-2 px-4 pt-1 pb-1">
-          <div className="bg-inherit border border-border/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+        <div className="grid grid-cols-3 gap-2 mx-4 pt-1 pb-1 border border-border/20 rounded-xl">
+          <div className="bg-inherit borde borde-borde/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
             <span className="text-[10px] text-action-pill-foreground/60 font-medium">In Debt</span>
             <span className="text-sm font-bold text-action-pill-foreground/90 mt-0.5">{summary.total_suppliers_with_debt}</span>
           </div>
 
-          <div className="bg-inherit border border-border/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+          <div className="bg-inherit borde borde-borde/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
             <span className="text-[10px] text-action-pill-foreground/60 font-medium">Overdue</span>
             <span className={`text-sm font-bold mt-0.5 ${summary.overdue_count > 0 ? 'text-destructive' : 'text-action-pill-foreground/90'}`}>
               {summary.overdue_count}
             </span>
           </div>
 
-          <div className="bg-inherit border border-border/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
+          <div className="bg-inherit borde borde-borde/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
             <span className="text-[10px] text-action-pill-foreground/60 font-medium">Upcoming (7d)</span>
             <span className={`text-sm font-bold mt-0.5 ${summary.upcoming_due_7_days > 0 ? 'text-amber-500' : 'text-action-pill-foreground/90'}`}>
               {summary.upcoming_due_7_days}

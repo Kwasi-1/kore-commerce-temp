@@ -559,7 +559,7 @@ export default function PayrollManagement() {
               ? [
                   {
                     label: 'Process Run',
-                    icon: <Send className="h-3.5 w-3.5 text-primary" />,
+                    icon: <Send className="h-3.5 w-3.5" />,
                     onClick: () => {
                       setSingleRecipientId(undefined);
                       navigate('/staff/payroll/run', { state: { profiles: salaryProfiles } });
@@ -567,24 +567,24 @@ export default function PayrollManagement() {
                   },
                   {
                     // label: 'Refresh',
-                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+                    icon: <RefreshCw className="h-3.5 w-3.5" />,
                     onClick: fetchPayrollData,
                   },
                 ]
               : [
                   {
                     label: 'Import Staff',
-                    icon: <UserPlus className="h-3.5 w-3.5 text-primary" />,
+                    icon: <UserPlus className="h-3.5 w-3.5" />,
                     onClick: () => setIsImportStaffModalOpen(true),
                   },
                   {
                     label: 'External',
-                    icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+                    icon: <Plus className="h-3.5 w-3.5" />,
                     onClick: () => setIsOffPlatformModalOpen(true),
                   },
                   {
                     label: 'Refresh',
-                    icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+                    icon: <RefreshCw className="h-3.5 w-3.5" />,
                     onClick: fetchPayrollData,
                   },
                 ]

@@ -280,12 +280,12 @@ export default function StaffManagement() {
           actions={[
             {
               label: 'Add Staff',
-              icon: <UserPlus className="h-3.5 w-3.5 text-primary" />,
+              icon: <UserPlus className="h-3.5 w-3.5" />,
               onClick: openNewStaff,
             },
             {
               label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchStaff(1),
             },
           ]}

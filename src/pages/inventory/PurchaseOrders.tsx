@@ -379,7 +379,7 @@ export default function PurchaseOrders() {
           actions={[
             {
               label: 'New PO',
-              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              icon: <Plus className="h-3.5 w-3.5" />,
               onClick: () => {
                 setEditingPO(null);
                 setIsModalOpen(true);
@@ -387,7 +387,7 @@ export default function PurchaseOrders() {
             },
             {
               label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchPOs(1),
             },
           ]}

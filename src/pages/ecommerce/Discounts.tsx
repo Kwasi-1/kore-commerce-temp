@@ -198,12 +198,12 @@ export default function Discounts() {
           actions={[
             {
               label: "New Code",
-              icon: <Plus className="h-3.5 w-3.5 text-primary" />,
+              icon: <Plus className="h-3.5 w-3.5" />,
               onClick: handleCreate
             },
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: fetchDiscounts
             }
           ]}
