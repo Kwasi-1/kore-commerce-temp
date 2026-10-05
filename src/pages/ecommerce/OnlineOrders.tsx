@@ -332,7 +332,7 @@ export default function OnlineOrders() {
           actions={[
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: fetchOrders
             }
           ]}
@@ -342,7 +342,7 @@ export default function OnlineOrders() {
         <MobileActivitySheet
           title="Storefront Orders"
           viewAllLabel="Customers"
-          onViewAll={() => navigate('/ecommerce/customers')}
+          viewAllTo="/ecommerce/customers"
           tabs={mobileTabs}
           activeTab={activeStatusKey}
           onTabChange={handleMobileTabChange}

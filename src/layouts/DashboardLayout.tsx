@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/navigation/Sidebar';
 import BottomNav from '@/components/navigation/BottomNav';
@@ -31,7 +31,9 @@ export default function DashboardLayout() {
         <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 p-0 md:py-2 md:pr-2 ${isSidebarCollapsed ? 'md:pl-0' : 'md:pl-0'}`}>
           <div className={`flex flex-col flex-1 overflow-hidden bg-background shadow-inner relative transition-all duration-300 scrollbar-hide ${isSidebarCollapsed ? 'rounded-none  md:rounded-[1.25rem] lg:rounded-[1.15rem]' : 'rounded-none md:rounded-[1.0rem]'}`}>
             <main className="flex-1 overflow-y-auto px-4 md:px-5 py-2 md:py-0 scrollbar-hide pb-0">
-              <Outlet />
+              <Suspense fallback={null}>
+                <Outlet />
+              </Suspense>
             </main>
           </div>
         </div>

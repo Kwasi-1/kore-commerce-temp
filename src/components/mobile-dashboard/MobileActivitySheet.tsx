@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 import clsx from 'clsx';
 import { Icon } from '@iconify/react';
 import { Spinner } from '@/components/ui/spinner';
+import { useAppNavigate } from '@/hooks/useAppNavigate';
 
 export interface MobileTabOption {
   id: string;
@@ -14,6 +15,7 @@ export interface MobileActivitySheetProps {
   title?: string;
   viewAllLabel?: string;
   onViewAll?: () => void;
+  viewAllTo?: string;
   tabs?: MobileTabOption[];
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
@@ -34,6 +36,7 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   title = "Recent Activity",
   viewAllLabel = "View all",
   onViewAll,
+  viewAllTo,
   tabs,
   activeTab,
   onTabChange,
@@ -48,6 +51,18 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
   endMessage,
 }) => {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useAppNavigate();
+  const [, startTransition] = useTransition();
+
+  const handleViewAll = () => {
+    if (viewAllTo) {
+      navigate(viewAllTo);
+    } else if (onViewAll) {
+      startTransition(() => {
+        onViewAll();
+      });
+    }
+  };
 
   useEffect(() => {
     if (!onLoadMore || !hasMore || isLoadingMore) return;
@@ -94,15 +109,15 @@ export const MobileActivitySheet: React.FC<MobileActivitySheetProps> = ({
       )}
     >
       {/* 1. Static Sheet Header (Title + Filter Tabs) */}
-      {(title || onViewAll || (tabs && tabs.length > 0)) && (
+      {(title || viewAllTo || onViewAll || (tabs && tabs.length > 0)) && (
         <div className="shrink-0 space-y-3 pb-1">
-          {(title || onViewAll) && (
+          {(title || viewAllTo || onViewAll) && (
             <div className="flex items-center justify-between">
               {title && <h3 className="text-sm font-bold text-foreground !tracking-tighter">{title}</h3>}
-              {onViewAll && (
+              {(viewAllTo || onViewAll) && (
                 <button
                   type="button"
-                  onClick={onViewAll}
+                  onClick={handleViewAll}
                   className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
                 >
                   {viewAllLabel}

@@ -256,18 +256,18 @@ export default function Suppliers() {
           actions={[
             {
               label: 'New Supplier',
-              icon: <UserPlus className="h-3.5 w-3.5 text-primary" />,
+              icon: <UserPlus className="h-3.5 w-3.5" />,
               onClick: openNewSupplier,
             },
             ...(showCreditTab ? [
               {
                 label: 'Credit Ledger',
-                icon: <CreditCard className="h-3.5 w-3.5 text-primary" />,
+                icon: <CreditCard className="h-3.5 w-3.5" />,
                 onClick: () => navigate('/inventory/supplier-credit'),
               }
             ] : []),
             {
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary -mx-1" />,
+              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
               onClick: () => fetchSuppliers(1),
             },
           ]}

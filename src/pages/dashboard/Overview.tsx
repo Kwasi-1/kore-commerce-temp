@@ -382,7 +382,7 @@ export default function Overview() {
         <MobileActivitySheet
           title="Recent Activity"
           viewAllLabel="View all"
-          onViewAll={() => navigate('/pos/transactions')}
+          viewAllTo="/pos/transactions"
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'pos', label: 'POS Sales' },

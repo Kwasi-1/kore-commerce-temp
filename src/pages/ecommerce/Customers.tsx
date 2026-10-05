@@ -190,7 +190,7 @@ export default function Customers() {
           actions={[
             {
               label: "Refresh",
-              icon: <RefreshCw className="h-3.5 w-3.5 text-primary" />,
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: fetchCustomers
             }
           ]}
@@ -200,7 +200,7 @@ export default function Customers() {
         <MobileActivitySheet
           title="Customer Directory"
           viewAllLabel="Orders"
-          onViewAll={() => navigate('/ecommerce/orders')}
+          viewAllTo="/ecommerce/orders"
           tabs={mobileTabs}
           activeTab={activeMobileTab}
           onTabChange={setActiveMobileTab}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "@/hooks/useAppNavigate";
 import PageLayout from "@/components/layout/PageLayout";
 import EnhancedTableComponent from "@/components/shared/MainTableComponent";
 
@@ -41,7 +41,7 @@ import {
 } from "@/components/mobile-dashboard";
 
 export default function Transactions() {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const staffUser = useAuthStore((state) => state.staffUser);
   const isCashier = staffUser?.role === "cashier";
 
@@ -789,7 +789,7 @@ export default function Transactions() {
         <MobileActivitySheet
           title="Recent Transactions"
           viewAllLabel="Credit Ledger"
-          onViewAll={() => navigate('/pos/credit-ledger')}
+          viewAllTo="/pos/credit-ledger"
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'cash', label: 'Cash' },

@@ -1,5 +1,4 @@
-import { useTransition } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
@@ -15,7 +14,7 @@ import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useNavDrawerStore, NavDrawerGroup } from '@/store/navDrawerStore';
 import { getModules } from '@/utils/permissions';
-import { startTopProgress } from '@/components/shared/TopProgressBar';
+import { useAppNavigate } from '@/hooks/useAppNavigate';
 
 // Top-level navigation routes that should show the BottomNav on mobile.
 export const BOTTOM_NAV_ROUTES = new Set([
@@ -77,8 +76,7 @@ export default function BottomNav() {
   const isCashier = staffUser?.role === 'cashier';
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
-  const navigate = useNavigate();
-  const [isPending, startTransition] = useTransition();
+  const navigate = useAppNavigate();
 
   const { isOpen, setIsOpen, activeGroup, setActiveGroup, closeDrawer, openDrawer } = useNavDrawerStore();
   const { unreadCount } = useNotificationStore();
@@ -89,8 +87,7 @@ export default function BottomNav() {
 
   const handleNavigation = (to: string) => {
     closeDrawer();
-    startTopProgress();
-    startTransition(() => navigate(to));
+    navigate(to);
   };
 
   const isModuleVisible = (moduleKey?: string) => {
