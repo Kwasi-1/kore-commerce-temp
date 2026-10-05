@@ -15,6 +15,7 @@ import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useNavDrawerStore, NavDrawerGroup } from '@/store/navDrawerStore';
 import { getModules } from '@/utils/permissions';
+import { startTopProgress } from '@/components/shared/TopProgressBar';
 
 // Top-level navigation routes that should show the BottomNav on mobile.
 export const BOTTOM_NAV_ROUTES = new Set([
@@ -88,6 +89,7 @@ export default function BottomNav() {
 
   const handleNavigation = (to: string) => {
     closeDrawer();
+    startTopProgress();
     startTransition(() => navigate(to));
   };
 

@@ -27,6 +27,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Icon } from "@iconify/react";
 
 export interface DateFilterValue {
   active: string;
@@ -242,7 +243,8 @@ export const CustomOnlyDateFilterComponent = ({
             className
           )}
         >
-          <Calendar className="w-3.5 h-3.5 opacity-80 shrink-0" />
+          {/* <Calendar className="w-3.5 h-3.5 opacity-80 shrink-0" /> */}
+          <Icon icon={"bi:calendar2-date"} className="w-3.5 h-3.5 opacity-80 shrink-0" />
           <span className={`${showLabelOnMobile ? "inline" : "hidden sm:inline"} text-[13px]`}>{getButtonLabel()}</span>
         </button>
       </PopoverTrigger>
@@ -253,7 +255,7 @@ export const CustomOnlyDateFilterComponent = ({
         sideOffset={4}
         avoidCollisions
         collisionPadding={8}
-        className="p-0 w-[320px] md:w-[480px] bg-popover border-border text-popover-foreground font-header flex flex-col md:flex-row custom-calendar-container"
+        className="p-0 w-[320px] md:w-[480px] bg-popover border-border text-popover-foreground font-header spacing-sm flex flex-col md:flex-row custom-calendar-container"
       >
         <style>{css}</style>
           {/* Left sidebar with shortcuts (Desktop) */}
@@ -302,7 +304,7 @@ export const CustomOnlyDateFilterComponent = ({
                     setView("days");
                   }
                 }}
-                className="flex items-center mx-auto gap-2 px-3 py-1.5 hover:bg-muted rounded-md transition-colors font-bold text-base text-foreground"
+                className="flex items-center mx-auto gap-2 px-3 py-1.5 hover:bg-muted rounded-md transition-colors font-bold text-base text-foreground !tracking-tight"
               >
                 {view === "days" && format(currentMonth, "MMM yyyy")}
                 {view === "years" && format(currentMonth, "MMM yyyy")}

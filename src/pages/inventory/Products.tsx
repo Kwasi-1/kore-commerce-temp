@@ -498,7 +498,7 @@ export default function Products() {
           ),
           name: fullName,
           category: p.category || "—",
-          sku: v.sku || "—",
+          sku: <span className="font-mono">{v.sku || "—"}</span>,
           sell_mode: (
             <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground capitalize">
               {v.sell_mode?.replace("_", " ")}

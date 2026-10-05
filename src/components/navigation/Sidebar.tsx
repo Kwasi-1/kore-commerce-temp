@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useState, useEffect, useTransition, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
@@ -91,6 +91,39 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isPending, startTransition] = useTransition();
+  const [showLoadingBar, setShowLoadingBar] = useState(false);
+  const shownAtRef = useRef<number | null>(null);
+
+  // Debounce loading bar by 250ms to eliminate micro-flashes on fast transitions
+  useEffect(() => {
+    let delayTimer: NodeJS.Timeout;
+    let hideTimer: NodeJS.Timeout;
+
+    if (isPending) {
+      delayTimer = setTimeout(() => {
+        shownAtRef.current = Date.now();
+        setShowLoadingBar(true);
+      }, 250);
+    } else {
+      if (shownAtRef.current !== null) {
+        // Guarantee at least 250ms visibility so it fades out smoothly instead of blinking
+        const elapsed = Date.now() - shownAtRef.current;
+        const remaining = Math.max(0, 250 - elapsed);
+        hideTimer = setTimeout(() => {
+          setShowLoadingBar(false);
+          shownAtRef.current = null;
+        }, remaining);
+      } else {
+        setShowLoadingBar(false);
+      }
+    }
+
+    return () => {
+      clearTimeout(delayTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [isPending]);
+
   const [logoError, setLogoError] = useState(false);
 
   const rawTenantName = tenant?.name || tenant?.business_name || APP_CONFIG.name;
@@ -161,7 +194,7 @@ export default function Sidebar() {
     {
       title: 'POS',
       icon: MonitorSmartphone,
-      show: modules.pos,
+      show: modules.pos || hasModule('pos'),
       hasDividerAfter: true,
       items: [
         { name: 'Register', to: '/pos/register', icon: MonitorSmartphone },
@@ -174,7 +207,7 @@ export default function Sidebar() {
     {
       title: 'Inventory',
       icon: Package,
-      show: !isCashier && (modules.inventory || hasGraceModule('inventory_basic')),
+      show: !isCashier && (modules.inventory || hasModule('inventory_basic') || hasGraceModule('inventory_basic')),
       badge: lowStockCount > 0 ? lowStockCount : undefined,
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package },
@@ -189,13 +222,13 @@ export default function Sidebar() {
     {
       title: 'Expenses',
       icon: Receipt,
-      show: !isCashier && (modules.expenses || hasGraceModule('expenses')),
+      show: !isCashier && (modules.expenses || hasModule('expenses') || hasGraceModule('expenses')),
       items: [{ name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses' }],
     },
     {
       title: 'Ecommerce',
       icon: ShoppingBag,
-      show: !isCashier && (modules.ecommerce || hasGraceModule('ecommerce')),
+      show: !isCashier && (modules.ecommerce || hasModule('ecommerce') || hasGraceModule('ecommerce')),
       badge: 2,
       hasDividerAfter: true,
       items: [
@@ -215,16 +248,16 @@ export default function Sidebar() {
     {
       title: 'Staff',
       icon: Users,
-      show: !isCashier && (modules.staff || hasGraceModule('staff')),
+      show: !isCashier && (modules.staff || hasModule('staff') || hasModule('payroll') || hasGraceModule('staff')),
       items: [
         { name: 'Staff Management', to: '/staff', icon: Users, moduleKey: 'staff' },
-        { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'staff' }
+        { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'payroll' }
       ],
     },
     {
       title: 'Reports',
       icon: TrendingUp,
-      show: !isCashier && (modules.reports || hasGraceModule('reports_basic')),
+      show: !isCashier && (modules.reports || hasModule('reports_basic') || hasModule('reports_advanced') || hasGraceModule('reports_basic')),
       hasDividerAfter: true,
       items: [
         { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
@@ -303,13 +336,13 @@ export default function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      {/* Slim top loading bar during transitions */}
+      {/* Slim top loading bar during transitions (debounced to eliminate micro-flashes) */}
       <div
         className={clsx(
-          "absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-opacity duration-300 z-50",
-          isPending ? "opacity-100" : "opacity-0"
+          "absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-opacity duration-300 z-50 pointer-events-none",
+          showLoadingBar ? "opacity-100" : "opacity-0"
         )}
-        style={{ animation: isPending ? 'shimmer 1.2s infinite' : 'none' }}
+        style={{ animation: showLoadingBar ? 'shimmer 1.2s infinite' : 'none' }}
       />
 
       {/* --- Top Header / Company Card --- */}

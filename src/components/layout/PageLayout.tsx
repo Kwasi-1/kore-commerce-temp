@@ -92,7 +92,7 @@ export default function PageLayout({
           className={cn(
             "w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0",
             headerVariant === "action-bridge" &&
-              "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 md:w-full md:bg-transparent md:text-foreground md:mx-0 md:mt-0 md:px-0 md:pt-0 md:pb-0 md:mb-4",
+              "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 md:w-full md:bg-transparent dark:md:bg-transparent md:text-foreground md:mx-0 md:mt-0 md:px-0 md:pt-0 md:pb-0 md:mb-4",
             titleSection,
           )}
         >
