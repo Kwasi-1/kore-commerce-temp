@@ -23,10 +23,15 @@ import {
   ChevronDown,
   CheckCircle2,
   RefreshCw,
+  Globe,
+  Store,
 } from "lucide-react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
 import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
+import { ProductChannelModal } from "@/components/inventory/ProductChannelModal";
+import { StorefrontCatalogCuratorModal } from "@/components/inventory/StorefrontCatalogCuratorModal";
+import { useFeaturesStore } from "@/store/featuresStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +54,7 @@ import {
 
 export default function Products() {
   const navigate = useNavigate();
+  const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
@@ -60,6 +66,7 @@ export default function Products() {
   const [categoryFilter, setCategoryFilter] = useState<Selection>(
     new Set(["all"]),
   );
+  const [channelFilter, setChannelFilter] = useState<"all" | "online" | "in_store">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedProductForDetail, setSelectedProductForDetail] =
@@ -69,6 +76,14 @@ export default function Products() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [productToToggleStatus, setProductToToggleStatus] = useState<any>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Sales Channel Modal State
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [productToToggleChannel, setProductToToggleChannel] = useState<any>(null);
+  const [isUpdatingChannel, setIsUpdatingChannel] = useState(false);
+
+  // Storefront Catalog Curator Modal State
+  const [isCuratorModalOpen, setIsCuratorModalOpen] = useState(false);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -130,6 +145,9 @@ export default function Products() {
           : categoryFilter;
       if (categoryVal && categoryVal !== "all")
         url += `&category=${categoryVal}`;
+      if (hasEcommerce && channelFilter !== "all") {
+        url += `&channel=${channelFilter}`;
+      }
 
       const response = await apiClient.get(url);
       const data = response.data.success?.data?.products || [];
@@ -180,7 +198,7 @@ export default function Products() {
       fetchProducts(1, false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, categoryFilter]);
+  }, [searchQuery, statusFilter, categoryFilter, channelFilter]);
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
@@ -256,6 +274,40 @@ export default function Products() {
     if (row?.__record) {
       setSelectedProductForDetail(row.__record);
       setIsDetailModalOpen(true);
+    }
+  };
+
+  const promptToggleChannel = (product: any) => {
+    setProductToToggleChannel(product);
+    setIsChannelModalOpen(true);
+  };
+
+  const handleConfirmChannelToggle = async () => {
+    if (!productToToggleChannel) return;
+    const currentOnline =
+      productToToggleChannel.is_available_online !== false &&
+      productToToggleChannel.isAvailableOnline !== false;
+    const newStatus = !currentOnline;
+
+    setIsUpdatingChannel(true);
+    try {
+      await apiClient.put(`/tenant/products/${productToToggleChannel.id}`, {
+        is_available_online: newStatus,
+      });
+      toast.success(
+        newStatus
+          ? `"${productToToggleChannel.name}" is now available Online & in POS`
+          : `"${productToToggleChannel.name}" is now set to In-Store Only`
+      );
+      setIsChannelModalOpen(false);
+      setProductToToggleChannel(null);
+      fetchProducts(pagination?.page || 1, false);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error?.message || "Failed to update sales channel"
+      );
+    } finally {
+      setIsUpdatingChannel(false);
     }
   };
 
@@ -388,6 +440,36 @@ export default function Products() {
             ),
           name: p.name,
           category: p.category || "—",
+          ...(hasEcommerce
+            ? {
+                channel: (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      promptToggleChannel(p);
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80",
+                      p.is_available_online !== false && p.isAvailableOnline !== false
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-muted text-muted-foreground border border-border/60"
+                    )}
+                    title="Click to change sales channel"
+                  >
+                    {p.is_available_online !== false && p.isAvailableOnline !== false ? (
+                      <>
+                        <Globe className="h-3 w-3 shrink-0" /> Online & POS
+                      </>
+                    ) : (
+                      <>
+                        <Store className="h-3 w-3 shrink-0" /> In-Store Only
+                      </>
+                    )}
+                  </button>
+                ),
+              }
+            : {}),
           variants: (
             <span
               className={`${
@@ -499,6 +581,36 @@ export default function Products() {
           name: fullName,
           category: p.category || "—",
           sku: <span className="font-mono">{v.sku || "—"}</span>,
+          ...(hasEcommerce
+            ? {
+                channel: (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      promptToggleChannel(p);
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80",
+                      p.is_available_online !== false && p.isAvailableOnline !== false
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-muted text-muted-foreground border border-border/60"
+                    )}
+                    title="Click to change sales channel"
+                  >
+                    {p.is_available_online !== false && p.isAvailableOnline !== false ? (
+                      <>
+                        <Globe className="h-3 w-3 shrink-0" /> Online & POS
+                      </>
+                    ) : (
+                      <>
+                        <Store className="h-3 w-3 shrink-0" /> In-Store Only
+                      </>
+                    )}
+                  </button>
+                ),
+              }
+            : {}),
           sell_mode: (
             <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground capitalize">
               {v.sell_mode?.replace("_", " ")}
@@ -642,6 +754,7 @@ export default function Products() {
       const isProductActive = p.status
         ? p.status.toLowerCase() === "active"
         : p.is_active !== false;
+      const isOnline = p.is_available_online !== false && p.isAvailableOnline !== false;
 
       const vars = p.variants || [];
       if (vars.length === 0) {
@@ -660,6 +773,7 @@ export default function Products() {
           isOutOfStock: true,
           isLowStock: false,
           isActive: isProductActive,
+          isAvailableOnline: isOnline,
           status: p.status || (isProductActive ? "Active" : "Draft"),
         });
         return;
@@ -693,6 +807,7 @@ export default function Products() {
           isOutOfStock,
           isLowStock,
           isActive: isVariantActive,
+          isAvailableOnline: isOnline,
           status: p.status || (isVariantActive ? "Active" : "Draft"),
         });
       });
@@ -781,6 +896,18 @@ export default function Products() {
             iconColorClass="bg-blue-500/10 text-blue-500"
             isLoading={isLoading}
           />
+
+          {hasEcommerce && (
+            <MobileMetricPill
+              title="Storefront"
+              value={serverSummary?.online_products ?? flatMobileItems.filter((i: any) => i.isAvailableOnline).length}
+              subtitle="Live online"
+              icon={<Globe className="h-3.5 w-3.5" />}
+              iconColorClass="bg-emerald-500/10 text-emerald-500"
+              isLoading={isLoading}
+              onClick={() => setChannelFilter("online")}
+            />
+          )}
         </MobileHeroCard>
 
         {/* 2. Quick Action Capsule Bar */}
@@ -796,6 +923,15 @@ export default function Products() {
               icon: <Plus className="h-3.5 w-3.5" />,
               onClick: openNewProduct,
             },
+            ...(hasEcommerce
+              ? [
+                  {
+                    label: 'Curate Store',
+                    icon: <Globe className="h-3.5 w-3.5 text-emerald-500" />,
+                    onClick: () => setIsCuratorModalOpen(true),
+                  },
+                ]
+              : []),
             {
               label: 'Bulk Import',
               icon: <Upload className="h-3.5 w-3.5" />,
@@ -813,7 +949,7 @@ export default function Products() {
         <MobileActivitySheet
           title="Products Catalog"
           viewAllLabel="Manage Stock"
-          onViewAll={() => navigate("/inventory/stock")}
+          viewAllTo="/inventory/stock"
           tabs={[
             { id: "all", label: "All" },
             { id: "active", label: "Active" },
@@ -832,6 +968,60 @@ export default function Products() {
           totalCount={displayTotalCount}
           currentCount={flatMobileItems.length}
         >
+          {/* Dynamic Channel Filter Pill for Mobile */}
+          {hasEcommerce && (
+            <div className="flex items-center gap-1.5 pb-2.5 mb-2 border-b border-border/40 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setChannelFilter("all")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
+                  channelFilter === "all"
+                    ? "bg-foreground text-background font-bold shadow-xs"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                All Channels
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannelFilter("online")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
+                  channelFilter === "online"
+                    ? "bg-emerald-600 text-white font-bold shadow-xs"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Globe className="h-3 w-3" />
+                <span>E-Com Only</span>
+                {serverSummary?.online_products !== undefined && (
+                  <span className="text-[10px] opacity-90 font-mono">
+                    ({serverSummary.online_products})
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannelFilter("in_store")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
+                  channelFilter === "in_store"
+                    ? "bg-foreground text-background font-bold shadow-xs"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Store className="h-3 w-3" />
+                <span>In-Store</span>
+                {serverSummary?.instore_only_products !== undefined && (
+                  <span className="text-[10px] opacity-90 font-mono">
+                    ({serverSummary.instore_only_products})
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="py-8 text-center">
               <Spinner />
@@ -870,6 +1060,34 @@ export default function Products() {
                         <p className="font-bold text-foreground truncate sm:text-sm">
                           {item.name}
                         </p>
+                        {hasEcommerce && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              promptToggleChannel(item.product);
+                            }}
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 transition-transform active:scale-95",
+                              item.isAvailableOnline
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                : "bg-muted text-muted-foreground border border-border"
+                            )}
+                            title="Tap to toggle sales channel"
+                          >
+                            {item.isAvailableOnline ? (
+                              <>
+                                <Globe className="h-2.5 w-2.5 text-emerald-500" />
+                                <span>Online</span>
+                              </>
+                            ) : (
+                              <>
+                                <Store className="h-2.5 w-2.5" />
+                                <span>In-Store</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                         {!item.isActive && (
                           <span
                             className={cn(
@@ -957,6 +1175,7 @@ export default function Products() {
                 { key: "image", label: "Image" },
                 { key: "name", label: "Name" },
                 { key: "category", label: "Category" },
+                ...(hasEcommerce ? [{ key: "channel", label: "Channel" }] : []),
                 { key: "variants", label: "Variants" },
                 { key: "total_stock", label: "Total Stock" },
                 { key: "status", label: "Status" },
@@ -966,6 +1185,7 @@ export default function Products() {
                 { key: "name", label: "Name" },
                 { key: "category", label: "Category" },
                 { key: "sku", label: "SKU" },
+                ...(hasEcommerce ? [{ key: "channel", label: "Channel" }] : []),
                 { key: "sell_mode", label: "Sell Mode" },
                 { key: "price", label: "Price" },
                 { key: "stock", label: "Stock" },
@@ -989,6 +1209,79 @@ export default function Products() {
         renderInlineAccordion={effectiveViewMode === "group" ? renderVariantsAccordion : undefined}
         showTopContent={true}
         topActions={[
+          ...(hasEcommerce
+            ? [
+                {
+                  customComponent: (
+                    <div className="flex items-center gap-2">
+                      {/* Dynamic Channel Filter Pill */}
+                      <div className="flex items-center rounded-lg border border-border/80 p-0.5 bg-muted/40 h-[35px] md:h-[38px] text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setChannelFilter("all")}
+                          className={cn(
+                            "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full flex items-center gap-1",
+                            channelFilter === "all"
+                              ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChannelFilter("online")}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full",
+                            channelFilter === "online"
+                              ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-bold border border-border/60"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Globe className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>E-Com Only</span>
+                          {serverSummary?.online_products !== undefined && (
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1 py-0.2 rounded font-mono">
+                              {serverSummary.online_products}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChannelFilter("in_store")}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full",
+                            channelFilter === "in_store"
+                              ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>In-Store</span>
+                          {serverSummary?.instore_only_products !== undefined && (
+                            <span className="text-[10px] bg-muted-foreground/15 text-muted-foreground px-1 py-0.2 rounded font-mono">
+                              {serverSummary.instore_only_products}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Storefront Curator Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsCuratorModalOpen(true)}
+                        className="h-[35px] md:h-[38px] text-[12px] font-semibold gap-1.5 border-border/80 hover:bg-muted"
+                        title="Curate Storefront Catalog"
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                        <span className="hidden xl:inline">Curate Storefront</span>
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           {
             customComponent: (
               <div className="hidden sm:flex rounded-[7px] overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
@@ -1022,6 +1315,15 @@ export default function Products() {
         ]}
         rowActions={[
           { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
+          ...(hasEcommerce
+            ? [
+                {
+                  key: "toggle_channel",
+                  label: "Change Sales Channel",
+                  icon: "fluent:globe-20-filled",
+                },
+              ]
+            : []),
           {
             key: "archive",
             label: "Toggle Status",
@@ -1040,6 +1342,8 @@ export default function Products() {
           const originalProduct = rowData.__record;
           if (actionKey === "edit") {
             handleEdit(originalProduct);
+          } else if (actionKey === "toggle_channel") {
+            promptToggleChannel(originalProduct);
           } else if (actionKey === "archive" || actionKey === "toggle_status") {
             setProductToToggleStatus(originalProduct);
             setIsStatusModalOpen(true);
@@ -1110,6 +1414,14 @@ export default function Products() {
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
               </DropdownMenuItem>
+              {hasEcommerce && (
+                <DropdownMenuItem
+                  onClick={() => setIsCuratorModalOpen(true)}
+                  className="cursor-pointer text-[13px]"
+                >
+                  <Globe className="h-4 w-4 mr-2 text-emerald-500" /> Curate Storefront Catalog
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         }
@@ -1143,6 +1455,25 @@ export default function Products() {
         product={productToToggleStatus}
         onConfirm={handleConfirmStatusToggle}
         isUpdating={isUpdatingStatus}
+      />
+
+      {/* Product Channel Confirmation Modal */}
+      <ProductChannelModal
+        isOpen={isChannelModalOpen}
+        onClose={() => {
+          setIsChannelModalOpen(false);
+          setProductToToggleChannel(null);
+        }}
+        product={productToToggleChannel}
+        onConfirm={handleConfirmChannelToggle}
+        isUpdating={isUpdatingChannel}
+      />
+
+      {/* Storefront Catalog Curator Modal */}
+      <StorefrontCatalogCuratorModal
+        isOpen={isCuratorModalOpen}
+        onClose={() => setIsCuratorModalOpen(false)}
+        onSuccess={() => fetchProducts(1, false)}
       />
 
       {/* Delete Confirmation Modal */}
