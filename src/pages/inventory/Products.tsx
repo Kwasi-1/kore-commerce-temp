@@ -625,7 +625,7 @@ export default function Products() {
         const retailPrice = getRetailPrice(v);
         const isVariantOnline =
           v.is_available_online !== false && v.isAvailableOnline !== false;
-        const isVariantActive = v.is_active !== false && isActive;
+        const isVariantActive = v.is_active !== false;
 
         const isOutOfStock = v.stock_quantity === 0;
         const isLowStock = v.stock_quantity > 0 && v.stock_quantity <= 5;
@@ -651,7 +651,16 @@ export default function Products() {
               <Package className="h-5 w-5" />
             </div>
           ),
-          name: fullName,
+          name: (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="truncate">{fullName}</span>
+              {p.status?.toLowerCase() === "draft" && (
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground border border-border">
+                  Draft
+                </span>
+              )}
+            </div>
+          ),
           category: p.category || "—",
           sku: <span className="font-mono">{v.sku || "—"}</span>,
           ...(hasEcommerce
@@ -708,7 +717,7 @@ export default function Products() {
                 ? "text-green-600 dark:text-green-400 bg-green-500/10"
                 : "text-muted-foreground bg-muted border border-border"
             }`}>
-              {isVariantActive ? (p.status || "Active") : "Inactive"}
+              {isVariantActive ? "Active" : "Inactive"}
             </span>
           ),
         });
@@ -871,7 +880,7 @@ export default function Products() {
         const isOutOfStock = numStock <= 0;
         const isLowStock = numStock > 0 && numStock <= 5;
         const isVariantOnline = v.is_available_online !== false && v.isAvailableOnline !== false;
-        const isVariantActive = v.is_active !== false && isProductActive;
+        const isVariantActive = v.is_active !== false;
 
         items.push({
           id: `${p.id}-${v.id}`,
@@ -889,7 +898,7 @@ export default function Products() {
           isLowStock,
           isActive: isVariantActive,
           isAvailableOnline: isVariantOnline,
-          status: isVariantActive ? (p.status || "Active") : "Inactive",
+          status: isVariantActive ? "Active" : "Inactive",
         });
       });
     });
@@ -1168,16 +1177,14 @@ export default function Products() {
                         <p className="font-bold text-foreground truncate sm:text-sm">
                           {item.name}
                         </p>
+                        {item.product?.status?.toLowerCase() === "draft" && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground border border-border">
+                            DRAFT
+                          </span>
+                        )}
                         {!item.isActive && (
-                          <span
-                            className={cn(
-                              "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
-                              item.status?.toLowerCase() === "draft"
-                                ? "bg-muted text-muted-foreground"
-                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            )}
-                          >
-                            {item.status?.toUpperCase() || "DRAFT"}
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            INACTIVE
                           </span>
                         )}
                       </div>
@@ -1387,7 +1394,7 @@ export default function Products() {
             if (effectiveViewMode === "list" && variantData) {
               const attrStr = Object.values(variantData.variant_attributes || {}).join(" / ");
               const fullName = attrStr ? `${originalProduct.name} (${attrStr})` : originalProduct.name;
-              const isVActive = variantData.is_active !== false && (originalProduct.status ? originalProduct.status.toLowerCase() === "active" : originalProduct.is_active !== false);
+              const isVActive = variantData.is_active !== false;
               setProductToToggleStatus({
                 ...variantData,
                 name: fullName,
@@ -1395,6 +1402,7 @@ export default function Products() {
                 isActive: isVActive,
                 isVariant: true,
                 productId: originalProduct.id,
+                parentStatus: originalProduct.status,
               });
               setIsStatusModalOpen(true);
             } else {

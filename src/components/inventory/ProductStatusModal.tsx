@@ -21,9 +21,13 @@ export function ProductStatusModal({
   if (!product) return null;
 
   const isVariant = Boolean(product.isVariant);
-  const isActive = product.status
-    ? product.status.toLowerCase() === "active"
-    : product.is_active !== false;
+  const isActive = isVariant
+    ? (product.isActive !== false && product.is_active !== false)
+    : (product.status
+        ? product.status.toLowerCase() === "active"
+        : product.is_active !== false);
+
+  const isParentDraft = isVariant && product.parentStatus?.toLowerCase() === "draft";
 
   return (
     <CustomModal
@@ -60,10 +64,17 @@ export function ProductStatusModal({
               This {isVariant ? "variant" : "product"} will be hidden from POS register sales and online catalog until reactivated.
             </p>
           ) : (
-            <p>
-              Activate <strong className="text-foreground">{product.name}</strong>?
-              This {isVariant ? "variant" : "product"} will immediately become available for sale on the POS register and online storefront.
-            </p>
+            <div className="space-y-2">
+              <p>
+                Activate <strong className="text-foreground">{product.name}</strong>?
+                This {isVariant ? "variant" : "product"} will immediately become available for sale on the POS register and online storefront.
+              </p>
+              {isParentDraft && (
+                <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-md border border-amber-500/20 leading-relaxed">
+                  <strong>Note:</strong> The parent product is currently in <strong>Draft</strong> status. To make this variant sellable, the product must also be published/activated.
+                </div>
+              )}
+            </div>
           )}
         </div>
       }
