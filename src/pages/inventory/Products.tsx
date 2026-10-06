@@ -306,6 +306,13 @@ export default function Products() {
           ? `"${productToToggleChannel.name}" is now available Online & in POS`
           : `"${productToToggleChannel.name}" is now set to In-Store Only`
       );
+      if (selectedProductForDetail && selectedProductForDetail.id === productToToggleChannel.id) {
+        setSelectedProductForDetail({
+          ...selectedProductForDetail,
+          is_available_online: newStatus,
+          isAvailableOnline: newStatus,
+        });
+      }
       setIsChannelModalOpen(false);
       setProductToToggleChannel(null);
       fetchProducts(pagination?.page || 1, false);
@@ -1094,28 +1101,6 @@ export default function Products() {
                         <p className="font-bold text-foreground truncate sm:text-sm">
                           {item.name}
                         </p>
-                        {hasEcommerce && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              promptToggleChannel(item.product);
-                            }}
-                            className={cn(
-                              "text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 transition-transform active:scale-95 border",
-                              item.isAvailableOnline
-                                ? "bg-muted text-foreground border-border/80"
-                                : "bg-muted/40 text-muted-foreground border-border/50"
-                            )}
-                            title="Tap to toggle sales channel"
-                          >
-                            <Icon
-                              icon={item.isAvailableOnline ? "solar:global-linear" : "solar:shop-2-linear"}
-                              className="h-2.5 w-2.5"
-                            />
-                            <span>{item.isAvailableOnline ? "Online" : "In-Store"}</span>
-                          </button>
-                        )}
                         {!item.isActive && (
                           <span
                             className={cn(
@@ -1414,6 +1399,9 @@ export default function Products() {
         onEdit={(prod) => {
           setIsDetailModalOpen(false);
           handleEdit(prod);
+        }}
+        onToggleChannel={(prod) => {
+          promptToggleChannel(prod);
         }}
       />
 

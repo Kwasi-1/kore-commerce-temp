@@ -6,12 +6,15 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { Package } from "lucide-react";
 import apiClient from "@/api/client";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
+import { useFeaturesStore } from "@/store/featuresStore";
+import { cn } from "@/lib/utils";
 
 interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: any | null;
   onEdit?: (product: any) => void;
+  onToggleChannel?: (product: any) => void;
 }
 
 export function ProductDetailModal({
@@ -19,7 +22,9 @@ export function ProductDetailModal({
   onClose,
   product,
   onEdit,
+  onToggleChannel,
 }: ProductDetailModalProps) {
+  const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [detailTab, setDetailTab] = useState<"details" | "history">("details");
   const [productData, setProductData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +111,10 @@ export function ProductDetailModal({
       ? currentProduct.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
       : [];
 
+  const isOnline =
+    currentProduct.is_available_online !== false &&
+    currentProduct.isAvailableOnline !== false;
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -131,7 +140,7 @@ export function ProductDetailModal({
                 </div>
               )}
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-bold uppercase text-foreground truncate">
                     {currentProduct.name}
                   </h2>
@@ -144,6 +153,27 @@ export function ProductDetailModal({
                   >
                     {currentProduct.status || (isActive ? "Active" : "Draft")}
                   </span>
+                  {hasEcommerce && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleChannel && onToggleChannel(currentProduct)}
+                      disabled={!onToggleChannel}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 !leading-[1.5] rounded text-[11px] font-semibold border transition-all shrink-0",
+                        isOnline
+                          ? "bg-muted text-foreground border-border/80 shadow-xs"
+                          : "bg-muted/40 text-muted-foreground border-border/50",
+                        onToggleChannel ? "cursor-pointer hover:bg-muted active:scale-95" : ""
+                      )}
+                      title={onToggleChannel ? "Click to change sales channel" : undefined}
+                    >
+                      <Icon
+                        icon={isOnline ? "solar:global-linear" : "iconoir:shop-window"}
+                        className="h-3 w-3"
+                      />
+                      <span>{isOnline ? "Online & POS" : "In-Store Only"}</span>
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   <span>{currentProduct.category || "Uncategorized"}</span>
@@ -166,6 +196,45 @@ export function ProductDetailModal({
           {/* TAB 1: PRODUCT DETAILS */}
           {detailTab === "details" && (
             <div className="space-y-4">
+              {/* Sales Channel Card if E-Commerce is enabled */}
+              {hasEcommerce && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card">
+                  <div className="flex items-center gap-2.5">
+                    {/* <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 border border-border/40">
+                      <Icon
+                        icon={isOnline ? "solar:global-linear" : "solar:shop-2-linear"}
+                        className="h-4 w-4 text-foreground"
+                      />
+                    </div> */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-foreground">
+                          {isOnline ? "Online Storefront & POS" : "In-Store POS Only"}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-muted text-muted-foreground border border-border/40">
+                          {isOnline ? "Published" : "Hidden Online"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {isOnline
+                          ? "Item is live on online storefront and available for in-store checkout"
+                          : "Item is restricted to physical in-store POS register"}
+                      </p>
+                    </div>
+                  </div>
+                  {onToggleChannel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onToggleChannel(currentProduct)}
+                      className="h-7 text-[11px] font-semibold px-2.5 rounded-md shrink-0 ml-2"
+                    >
+                      Change
+                    </Button>
+                  )}
+                </div>
+              )}
+
               {/* Snapshot Highlight Card */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3  rounded-sm bg-muted/30">
                 <div className="space-y-1.5">
