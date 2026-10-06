@@ -20,10 +20,10 @@ export function ProductStatusModal({
 }: ProductStatusModalProps) {
   if (!product) return null;
 
+  const isVariant = Boolean(product.isVariant);
   const isActive = product.status
     ? product.status.toLowerCase() === "active"
     : product.is_active !== false;
-  const targetAction = isActive ? "draft" : "active";
 
   return (
     <CustomModal
@@ -35,25 +35,15 @@ export function ProductStatusModal({
       header={
         <div className="pt-1 px-1 border-b border-border/50 pb-2">
           <div className="flex items-center gap-2">
-            {/* <div
-              className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                isActive
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              }`}
-            >
-              <Icon
-                icon={
-                  isActive
-                    ? "solar:pause-circle-linear"
-                    : "solar:play-circle-linear"
-                }
-                className="h-5 w-5"
-              />
-            </div> */}
             <div>
               <h2 className="text-base font-bold text-foreground">
-                {isActive ? "Set Product to Draft" : "Activate Product"}
+                {isActive
+                  ? isVariant
+                    ? "Deactivate Variant"
+                    : "Set Product to Draft"
+                  : isVariant
+                    ? "Activate Variant"
+                    : "Activate Product"}
               </h2>
               <p className="text-xs text-muted-foreground leading-normal">
                 {product.name}
@@ -66,13 +56,13 @@ export function ProductStatusModal({
         <div className="pb-3 text-sm space-y-2 text-muted-foreground">
           {isActive ? (
             <p>
-              Are you sure you want to set <strong className="text-foreground">{product.name}</strong> to <span className="font-semibold text-foreground">Draft</span>?
-              This product will be hidden from POS register sales and online catalog until reactivated.
+              Are you sure you want to {isVariant ? "deactivate" : "set"} <strong className="text-foreground">{product.name}</strong> to {isVariant ? <span className="font-semibold text-foreground">Inactive</span> : <span className="font-semibold text-foreground">Draft</span>}?
+              This {isVariant ? "variant" : "product"} will be hidden from POS register sales and online catalog until reactivated.
             </p>
           ) : (
             <p>
               Activate <strong className="text-foreground">{product.name}</strong>?
-              This product will immediately become available for sale on the POS register and online storefront.
+              This {isVariant ? "variant" : "product"} will immediately become available for sale on the POS register and online storefront.
             </p>
           )}
         </div>
@@ -106,19 +96,15 @@ export function ProductStatusModal({
                 <span>Updating...</span>
               </>
             ) : (
-              <>
-                {/* <Icon
-                  icon={
-                    isActive
-                      ? "solar:pause-circle-linear"
-                      : "solar:check-circle-linear"
-                  }
-                  className="h-4 w-4"
-                /> */}
-                <span>
-                  {isActive ? "Set to Draft" : "Activate Product"}
-                </span>
-              </>
+              <span>
+                {isActive
+                  ? isVariant
+                    ? "Deactivate Variant"
+                    : "Set to Draft"
+                  : isVariant
+                    ? "Activate Variant"
+                    : "Activate Product"}
+              </span>
             )}
           </Button>
         </div>

@@ -45,7 +45,11 @@ export function ProductDetailModal({
           const freshData = res.data.success?.data?.product || product;
           setProductData(freshData);
           if (freshData.variants?.length > 0) {
-            setSelectedVariantId(freshData.variants[0].id);
+            setSelectedVariantId((prev) =>
+              prev && freshData.variants.some((v: any) => v.id === prev)
+                ? prev
+                : freshData.variants[0].id
+            );
           }
         })
         .catch((err) => {
@@ -115,6 +119,33 @@ export function ProductDetailModal({
     currentProduct.is_available_online !== false &&
     currentProduct.isAvailableOnline !== false;
 
+  const isSelectedVariantOnline = activeVariant
+    ? activeVariant.is_available_online !== false &&
+      activeVariant.isAvailableOnline !== false
+    : isOnline;
+
+  const activeVariantName =
+    Object.values(activeVariant?.variant_attributes || {}).join(" / ") ||
+    activeVariant?.sku ||
+    "";
+
+  const targetToToggle =
+    variants.length > 1 && activeVariant
+      ? {
+          ...activeVariant,
+          name: activeVariantName
+            ? `${currentProduct.name} (${activeVariantName})`
+            : currentProduct.name,
+          is_available_online: isSelectedVariantOnline,
+          isAvailableOnline: isSelectedVariantOnline,
+          isVariant: true,
+          productId: currentProduct.id,
+        }
+      : currentProduct;
+
+  const currentDisplayOnline =
+    variants.length > 1 ? isSelectedVariantOnline : isOnline;
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -156,11 +187,11 @@ export function ProductDetailModal({
                   {hasEcommerce && (
                     <button
                       type="button"
-                      onClick={() => onToggleChannel && onToggleChannel(currentProduct)}
+                      onClick={() => onToggleChannel && onToggleChannel(targetToToggle)}
                       disabled={!onToggleChannel}
                       className={cn(
                         "inline-flex items-center gap-1.5 px-2 py-1 !leading-[1.5] rounded text-[11px] font-semibold border transition-all shrink-0",
-                        isOnline
+                        currentDisplayOnline
                           ? "bg-muted text-foreground border-border/80 shadow-xs"
                           : "bg-muted/40 text-muted-foreground border-border/50",
                         onToggleChannel ? "cursor-pointer hover:bg-muted active:scale-95" : ""
@@ -168,10 +199,10 @@ export function ProductDetailModal({
                       title={onToggleChannel ? "Click to change sales channel" : undefined}
                     >
                       <Icon
-                        icon={isOnline ? "solar:global-linear" : "iconoir:shop-window"}
+                        icon={currentDisplayOnline ? "solar:global-linear" : "iconoir:shop-window"}
                         className="h-3 w-3"
                       />
-                      <span>{isOnline ? "Online & POS" : "In-Store Only"}</span>
+                      <span>{currentDisplayOnline ? "Online & POS" : "In-Store Only"}</span>
                     </button>
                   )}
                 </div>
@@ -200,25 +231,25 @@ export function ProductDetailModal({
               {hasEcommerce && (
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card">
                   <div className="flex items-center gap-2.5">
-                    {/* <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 border border-border/40">
-                      <Icon
-                        icon={isOnline ? "solar:global-linear" : "solar:shop-2-linear"}
-                        className="h-4 w-4 text-foreground"
-                      />
-                    </div> */}
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-foreground">
-                          {isOnline ? "Online Storefront & POS" : "In-Store POS Only"}
+                          {isSelectedVariantOnline ? "Online Storefront & POS" : "In-Store POS Only"}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-muted text-muted-foreground border border-border/40">
-                          {isOnline ? "Published" : "Hidden Online"}
+                          {isSelectedVariantOnline ? "Published" : "Hidden Online"}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {isOnline
-                          ? "Item is live on online storefront and available for in-store checkout"
-                          : "Item is restricted to physical in-store POS register"}
+                        {variants.length > 1 ? (
+                          isSelectedVariantOnline
+                            ? `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is available online and for in-store checkout`
+                            : `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is exclusive to physical in-store POS register`
+                        ) : (
+                          isOnline
+                            ? "Item is live on online storefront and available for in-store checkout"
+                            : "Item is restricted to physical in-store POS register"
+                        )}
                       </p>
                     </div>
                   </div>
@@ -226,7 +257,7 @@ export function ProductDetailModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onToggleChannel(currentProduct)}
+                      onClick={() => onToggleChannel(targetToToggle)}
                       className="h-7 text-[11px] font-semibold px-2.5 rounded-md shrink-0 ml-2"
                     >
                       Change
@@ -325,21 +356,36 @@ export function ProductDetailModal({
                 {variants.length > 1 && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide flex-wrap">
-                      {variants.map((v: any) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          onClick={() => setSelectedVariantId(v.id)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-md border transition-all ${
-                            activeVariant?.id === v.id
-                              ? "bg-foreground text-background border-foreground font-bold shadow-xs"
-                              : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          {Object.values(v.variant_attributes || {}).join(" / ") ||
-                            v.sku}
-                        </button>
-                      ))}
+                      {variants.map((v: any) => {
+                        const isVOnline =
+                          v.is_available_online !== false &&
+                          v.isAvailableOnline !== false;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => setSelectedVariantId(v.id)}
+                            className={`px-3 py-1 text-xs font-semibold rounded-md border transition-all flex items-center gap-1.5 ${
+                              activeVariant?.id === v.id
+                                ? "bg-foreground text-background border-foreground font-bold shadow-xs"
+                                : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <span>
+                              {Object.values(v.variant_attributes || {}).join(" / ") ||
+                                v.sku}
+                            </span>
+                            {hasEcommerce && (
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  isVOnline ? "bg-emerald-500" : "bg-muted-foreground/40"
+                                }`}
+                                title={isVOnline ? "Available Online & POS" : "In-Store Only"}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

@@ -20,6 +20,7 @@ export function ProductChannelModal({
 }: ProductChannelModalProps) {
   if (!product) return null;
 
+  const isVariant = Boolean(product.isVariant);
   const currentOnline = product.is_available_online !== false && product.isAvailableOnline !== false;
   const targetAction = currentOnline ? "in_store" : "online";
 
@@ -35,7 +36,13 @@ export function ProductChannelModal({
           <div className="flex items-center gap-2">
             <div>
               <h2 className="text-base font-bold text-foreground">
-                {currentOnline ? "Set to In-Store Only?" : "Publish to Online Storefront?"}
+                {currentOnline
+                  ? isVariant
+                    ? "Set Variant to In-Store Only?"
+                    : "Set Product to In-Store Only?"
+                  : isVariant
+                    ? "Publish Variant to Storefront?"
+                    : "Publish Product to Storefront?"}
               </h2>
               <p className="text-xs text-muted-foreground leading-normal truncate max-w-[280px]">
                 {product.name}
@@ -49,7 +56,7 @@ export function ProductChannelModal({
           {currentOnline ? (
             <p>
               Remove <strong className="text-foreground">{product.name}</strong> from your online storefront?
-              This product will only be available on the in-store POS register and hidden from online shoppers.
+              This {isVariant ? "variant" : "product"} will only be available on the in-store POS register and hidden from online shoppers.
             </p>
           ) : (
             <p>

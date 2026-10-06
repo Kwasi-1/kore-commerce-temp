@@ -244,6 +244,34 @@ export default function Products() {
 
   const handleConfirmStatusToggle = async () => {
     if (!productToToggleStatus) return;
+    const isVariant = Boolean(productToToggleStatus.isVariant);
+
+    if (isVariant) {
+      const isCurrentlyActive =
+        productToToggleStatus.isActive !== false &&
+        productToToggleStatus.is_active !== false;
+      const targetActive = !isCurrentlyActive;
+
+      setIsUpdatingStatus(true);
+      try {
+        await apiClient.patch(
+          `/tenant/products/variants/${productToToggleStatus.id}/status`,
+          { is_active: targetActive }
+        );
+        toast.success(
+          `Variant marked as ${targetActive ? "Active" : "Inactive"}`
+        );
+        setIsStatusModalOpen(false);
+        setProductToToggleStatus(null);
+        fetchProducts();
+      } catch (error) {
+        toast.error("Failed to update variant status");
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+      return;
+    }
+
     const isActive = productToToggleStatus.status
       ? productToToggleStatus.status.toLowerCase() === "active"
       : productToToggleStatus.is_active !== false;
@@ -291,6 +319,7 @@ export default function Products() {
 
   const handleConfirmChannelToggle = async () => {
     if (!productToToggleChannel) return;
+    const isVariant = Boolean(productToToggleChannel.isVariant);
     const currentOnline =
       productToToggleChannel.is_available_online !== false &&
       productToToggleChannel.isAvailableOnline !== false;
@@ -298,21 +327,48 @@ export default function Products() {
 
     setIsUpdatingChannel(true);
     try {
-      await apiClient.put(`/tenant/products/${productToToggleChannel.id}`, {
-        is_available_online: newStatus,
-      });
-      toast.success(
-        newStatus
-          ? `"${productToToggleChannel.name}" is now available Online & in POS`
-          : `"${productToToggleChannel.name}" is now set to In-Store Only`
-      );
-      if (selectedProductForDetail && selectedProductForDetail.id === productToToggleChannel.id) {
-        setSelectedProductForDetail({
-          ...selectedProductForDetail,
-          is_available_online: newStatus,
-          isAvailableOnline: newStatus,
+      if (isVariant) {
+        await apiClient.post("/tenant/products/bulk-channel", {
+          variant_updates: [
+            {
+              id: productToToggleChannel.id,
+              is_available_online: newStatus,
+            },
+          ],
         });
+        toast.success(
+          newStatus
+            ? `"${productToToggleChannel.name}" is now available Online & in POS`
+            : `"${productToToggleChannel.name}" is now set to In-Store Only`
+        );
+      } else {
+        await apiClient.put(`/tenant/products/${productToToggleChannel.id}`, {
+          is_available_online: newStatus,
+        });
+        toast.success(
+          newStatus
+            ? `"${productToToggleChannel.name}" is now available Online & in POS`
+            : `"${productToToggleChannel.name}" is now set to In-Store Only`
+        );
       }
+
+      const parentId = productToToggleChannel.productId || productToToggleChannel.id;
+      if (
+        selectedProductForDetail &&
+        (selectedProductForDetail.id === parentId ||
+          selectedProductForDetail.id === productToToggleChannel.id)
+      ) {
+        try {
+          const freshRes = await apiClient.get(`/tenant/products/${parentId}`);
+          const freshProduct = freshRes.data?.success?.data?.product;
+          if (freshProduct) {
+            setSelectedProductForDetail(freshProduct);
+          }
+        } catch (e) {
+          console.error("Failed to refresh product details after channel toggle:", e);
+        }
+      }
+
       setIsChannelModalOpen(false);
       setProductToToggleChannel(null);
       fetchProducts(pagination?.page || 1, false);
@@ -567,6 +623,9 @@ export default function Products() {
         const fullName = attrStr ? `${p.name} (${attrStr})` : p.name;
         const stockInfo = getStockDisplay(v);
         const retailPrice = getRetailPrice(v);
+        const isVariantOnline =
+          v.is_available_online !== false && v.isAvailableOnline !== false;
+        const isVariantActive = v.is_active !== false && isActive;
 
         const isOutOfStock = v.stock_quantity === 0;
         const isLowStock = v.stock_quantity > 0 && v.stock_quantity <= 5;
@@ -602,17 +661,24 @@ export default function Products() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      promptToggleChannel(p);
+                      promptToggleChannel({
+                        ...v,
+                        name: fullName,
+                        is_available_online: isVariantOnline,
+                        isAvailableOnline: isVariantOnline,
+                        isVariant: true,
+                        productId: p.id,
+                      });
                     }}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80 border",
-                      p.is_available_online !== false && p.isAvailableOnline !== false
+                      isVariantOnline
                         ? "bg-muted text-foreground border-border/80"
                         : "bg-muted/40 text-muted-foreground border-border/50"
                     )}
                     title="Click to change sales channel"
                   >
-                    {p.is_available_online !== false && p.isAvailableOnline !== false ? (
+                    {isVariantOnline ? (
                       <>
                         <Icon icon="solar:global-linear" className="h-3 w-3 shrink-0" /> Online & POS
                       </>
@@ -638,11 +704,11 @@ export default function Products() {
           stock: getStockCell(stockInfo.value, stockInfo.unit, v.packaging_tiers || p.packaging_tiers),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              isActive
+              isVariantActive
                 ? "text-green-600 dark:text-green-400 bg-green-500/10"
                 : "text-muted-foreground bg-muted border border-border"
             }`}>
-              {p.status || (isActive ? "Active" : "Draft")}
+              {isVariantActive ? (p.status || "Active") : "Inactive"}
             </span>
           ),
         });
@@ -804,6 +870,7 @@ export default function Products() {
         const retailPrice = getRetailPrice(v);
         const isOutOfStock = numStock <= 0;
         const isLowStock = numStock > 0 && numStock <= 5;
+        const isVariantOnline = v.is_available_online !== false && v.isAvailableOnline !== false;
         const isVariantActive = v.is_active !== false && isProductActive;
 
         items.push({
@@ -821,8 +888,8 @@ export default function Products() {
           isOutOfStock,
           isLowStock,
           isActive: isVariantActive,
-          isAvailableOnline: isOnline,
-          status: p.status || (isVariantActive ? "Active" : "Draft"),
+          isAvailableOnline: isVariantOnline,
+          status: isVariantActive ? (p.status || "Active") : "Inactive",
         });
       });
     });
@@ -1297,13 +1364,43 @@ export default function Products() {
         onclick={handleRowClick}
         onRowActionClick={(actionKey, rowData) => {
           const originalProduct = rowData.__record;
+          const variantData = rowData.__variant;
           if (actionKey === "edit") {
             handleEdit(originalProduct);
           } else if (actionKey === "toggle_channel") {
-            promptToggleChannel(originalProduct);
+            if (effectiveViewMode === "list" && variantData) {
+              const attrStr = Object.values(variantData.variant_attributes || {}).join(" / ");
+              const fullName = attrStr ? `${originalProduct.name} (${attrStr})` : originalProduct.name;
+              const isVOnline = variantData.is_available_online !== false && variantData.isAvailableOnline !== false;
+              promptToggleChannel({
+                ...variantData,
+                name: fullName,
+                is_available_online: isVOnline,
+                isAvailableOnline: isVOnline,
+                isVariant: true,
+                productId: originalProduct.id,
+              });
+            } else {
+              promptToggleChannel(originalProduct);
+            }
           } else if (actionKey === "archive" || actionKey === "toggle_status") {
-            setProductToToggleStatus(originalProduct);
-            setIsStatusModalOpen(true);
+            if (effectiveViewMode === "list" && variantData) {
+              const attrStr = Object.values(variantData.variant_attributes || {}).join(" / ");
+              const fullName = attrStr ? `${originalProduct.name} (${attrStr})` : originalProduct.name;
+              const isVActive = variantData.is_active !== false && (originalProduct.status ? originalProduct.status.toLowerCase() === "active" : originalProduct.is_active !== false);
+              setProductToToggleStatus({
+                ...variantData,
+                name: fullName,
+                is_active: isVActive,
+                isActive: isVActive,
+                isVariant: true,
+                productId: originalProduct.id,
+              });
+              setIsStatusModalOpen(true);
+            } else {
+              setProductToToggleStatus(originalProduct);
+              setIsStatusModalOpen(true);
+            }
           } else if (actionKey === "delete") {
             setProductToDelete(originalProduct);
             setIsDeleteModalOpen(true);
