@@ -26,6 +26,7 @@ import {
   Globe,
   Store,
 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
 import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
@@ -84,6 +85,12 @@ export default function Products() {
 
   // Storefront Catalog Curator Modal State
   const [isCuratorModalOpen, setIsCuratorModalOpen] = useState(false);
+
+  // Mobile Add Product Choice Modal (Single vs Bulk)
+  const [isAddChoiceModalOpen, setIsAddChoiceModalOpen] = useState(false);
+
+  // Mobile Channel Filter Modal
+  const [isChannelFilterModalOpen, setIsChannelFilterModalOpen] = useState(false);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -450,20 +457,20 @@ export default function Products() {
                       promptToggleChannel(p);
                     }}
                     className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80",
+                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80 border",
                       p.is_available_online !== false && p.isAvailableOnline !== false
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-muted text-muted-foreground border border-border/60"
+                        ? "bg-muted text-foreground border-border/80"
+                        : "bg-muted/40 text-muted-foreground border-border/50"
                     )}
                     title="Click to change sales channel"
                   >
                     {p.is_available_online !== false && p.isAvailableOnline !== false ? (
                       <>
-                        <Globe className="h-3 w-3 shrink-0" /> Online & POS
+                        <Icon icon="solar:global-linear" className="h-3 w-3 shrink-0" /> Online & POS
                       </>
                     ) : (
                       <>
-                        <Store className="h-3 w-3 shrink-0" /> In-Store Only
+                        <Icon icon="solar:shop-2-linear" className="h-3 w-3 shrink-0" /> In-Store Only
                       </>
                     )}
                   </button>
@@ -591,20 +598,20 @@ export default function Products() {
                       promptToggleChannel(p);
                     }}
                     className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80",
+                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-transform active:scale-95 cursor-pointer hover:opacity-80 border",
                       p.is_available_online !== false && p.isAvailableOnline !== false
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-muted text-muted-foreground border border-border/60"
+                        ? "bg-muted text-foreground border-border/80"
+                        : "bg-muted/40 text-muted-foreground border-border/50"
                     )}
                     title="Click to change sales channel"
                   >
                     {p.is_available_online !== false && p.isAvailableOnline !== false ? (
                       <>
-                        <Globe className="h-3 w-3 shrink-0" /> Online & POS
+                        <Icon icon="solar:global-linear" className="h-3 w-3 shrink-0" /> Online & POS
                       </>
                     ) : (
                       <>
-                        <Store className="h-3 w-3 shrink-0" /> In-Store Only
+                        <Icon icon="solar:shop-2-linear" className="h-3 w-3 shrink-0" /> In-Store Only
                       </>
                     )}
                   </button>
@@ -848,7 +855,79 @@ export default function Products() {
   ];
 
   return (
-    <PageLayout title="Products Inventory" constrainHeight={true}>
+    <PageLayout
+      title="Products Inventory"
+      constrainHeight={true}
+      actions={
+        hasEcommerce ? (
+          <div className="hidden md:flex items-center gap-2">
+            {/* Dynamic Channel Filter Segmented Pill */}
+            <div className="inline-flex items-center rounded-lg border border-border/70 p-0.5 bg-muted/40 h-9 text-xs">
+              <button
+                type="button"
+                onClick={() => setChannelFilter("all")}
+                className={cn(
+                  "px-3 py-1 rounded-md text-[11px] font-semibold transition-all h-full flex items-center gap-1 cursor-pointer",
+                  channelFilter === "all"
+                    ? "bg-background text-foreground shadow-xs font-bold border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannelFilter("online")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all h-full cursor-pointer",
+                  channelFilter === "online"
+                    ? "bg-background text-foreground shadow-xs font-bold border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {/* <Icon icon="solar:global-linear" className="h-3.5 w-3.5" /> */}
+                <span>E-Com Only</span>
+                {/* {serverSummary?.online_products !== undefined && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.2 rounded font-mono text-muted-foreground">
+                    {serverSummary.online_products}
+                  </span>
+                )} */}
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannelFilter("in_store")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all h-full cursor-pointer",
+                  channelFilter === "in_store"
+                    ? "bg-background text-foreground shadow-xs font-bold border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {/* <Icon icon="solar:shop-2-linear" className="h-3.5 w-3.5" /> */}
+                <span>In-Store</span>
+                {/* {serverSummary?.instore_only_products !== undefined && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.2 rounded font-mono text-muted-foreground">
+                    {serverSummary.instore_only_products}
+                  </span>
+                )} */}
+              </button>
+            </div>
+
+            {/* Curate Storefront Catalog Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCuratorModalOpen(true)}
+              className="h-9 text-xs font-semibold gap-1.5 border-border/70 hover:bg-muted text-foreground cursor-pointer rounded-lg"
+              title="Curate Storefront Catalog"
+            >
+              <Icon icon="solar:global-linear" className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Curate Storefront</span>
+            </Button>
+          </div>
+        ) : undefined
+      }
+    >
       {/* ========================================================================= */}
       {/* MOBILE PRODUCTS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)     */}
       {/* ========================================================================= */}
@@ -856,7 +935,36 @@ export default function Products() {
         {/* 1. Hero Products Count / Overview Card + Carousel */}
         <MobileHeroCard
           title={displayTotalLabel}
-          badge={`${activeProductsCount} Active`}
+          badge={
+            hasEcommerce ? (
+              <button
+                type="button"
+                onClick={() => setIsChannelFilterModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-muted/80 hover:bg-muted border border-border/80 text-foreground px-2.5 py-1 rounded-full cursor-pointer transition-all active:scale-95"
+              >
+                <Icon
+                  icon={
+                    channelFilter === "online"
+                      ? "solar:global-linear"
+                      : channelFilter === "in_store"
+                      ? "solar:shop-2-linear"
+                      : "solar:filter-linear"
+                  }
+                  className="h-3 w-3"
+                />
+                <span>
+                  {channelFilter === "online"
+                    ? "E-Com Only"
+                    : channelFilter === "in_store"
+                    ? "In-Store Only"
+                    : "All Channels"}
+                </span>
+                <Icon icon="solar:alt-arrow-down-linear" className="h-2.5 w-2.5 opacity-60 ml-0.5" />
+              </button>
+            ) : (
+              `${activeProductsCount} Active`
+            )
+          }
           value={`${isLoading ? '...' : displayTotalCount} ${displayTotalCount > 1 ? "Items" : "Item"}`}
           isLoading={isLoading}
         >
@@ -896,18 +1004,6 @@ export default function Products() {
             iconColorClass="bg-blue-500/10 text-blue-500"
             isLoading={isLoading}
           />
-
-          {hasEcommerce && (
-            <MobileMetricPill
-              title="Storefront"
-              value={serverSummary?.online_products ?? flatMobileItems.filter((i: any) => i.isAvailableOnline).length}
-              subtitle="Live online"
-              icon={<Globe className="h-3.5 w-3.5" />}
-              iconColorClass="bg-emerald-500/10 text-emerald-500"
-              isLoading={isLoading}
-              onClick={() => setChannelFilter("online")}
-            />
-          )}
         </MobileHeroCard>
 
         {/* 2. Quick Action Capsule Bar */}
@@ -920,26 +1016,30 @@ export default function Products() {
           actions={[
             {
               label: 'Add Product',
-              icon: <Plus className="h-3.5 w-3.5" />,
-              onClick: openNewProduct,
+              icon: <Icon icon="solar:add-circle-linear" className="h-3.5 w-3.5" />,
+              onClick: hasEcommerce ? () => setIsAddChoiceModalOpen(true) : openNewProduct,
             },
             ...(hasEcommerce
               ? [
                   {
                     label: 'Curate Store',
-                    icon: <Globe className="h-3.5 w-3.5 text-emerald-500" />,
+                    icon: <Icon icon="solar:global-linear" className="h-3.5 w-3.5" />,
                     onClick: () => setIsCuratorModalOpen(true),
                   },
                 ]
               : []),
-            {
-              label: 'Bulk Import',
-              icon: <Upload className="h-3.5 w-3.5" />,
-              onClick: () => setIsBulkModalOpen(true),
-            },
+            ...(!hasEcommerce
+              ? [
+                  {
+                    label: 'Bulk Import',
+                    icon: <Icon icon="solar:cloud-upload-linear" className="h-3.5 w-3.5" />,
+                    onClick: () => setIsBulkModalOpen(true),
+                  },
+                ]
+              : []),
             {
               // label: 'Refresh',
-              icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
+              icon: <Icon icon="solar:restart-linear" className="h-3.5 w-3.5 -mx-1" />,
               onClick: fetchProducts,
             },
           ]}
@@ -968,60 +1068,6 @@ export default function Products() {
           totalCount={displayTotalCount}
           currentCount={flatMobileItems.length}
         >
-          {/* Dynamic Channel Filter Pill for Mobile */}
-          {hasEcommerce && (
-            <div className="flex items-center gap-1.5 pb-2.5 mb-2 border-b border-border/40 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => setChannelFilter("all")}
-                className={cn(
-                  "px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
-                  channelFilter === "all"
-                    ? "bg-foreground text-background font-bold shadow-xs"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                All Channels
-              </button>
-              <button
-                type="button"
-                onClick={() => setChannelFilter("online")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
-                  channelFilter === "online"
-                    ? "bg-emerald-600 text-white font-bold shadow-xs"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Globe className="h-3 w-3" />
-                <span>E-Com Only</span>
-                {serverSummary?.online_products !== undefined && (
-                  <span className="text-[10px] opacity-90 font-mono">
-                    ({serverSummary.online_products})
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setChannelFilter("in_store")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0",
-                  channelFilter === "in_store"
-                    ? "bg-foreground text-background font-bold shadow-xs"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Store className="h-3 w-3" />
-                <span>In-Store</span>
-                {serverSummary?.instore_only_products !== undefined && (
-                  <span className="text-[10px] opacity-90 font-mono">
-                    ({serverSummary.instore_only_products})
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
           {isLoading ? (
             <div className="py-8 text-center">
               <Spinner />
@@ -1068,24 +1114,18 @@ export default function Products() {
                               promptToggleChannel(item.product);
                             }}
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 transition-transform active:scale-95",
+                              "text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 transition-transform active:scale-95 border",
                               item.isAvailableOnline
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : "bg-muted text-muted-foreground border border-border"
+                                ? "bg-muted text-foreground border-border/80"
+                                : "bg-muted/40 text-muted-foreground border-border/50"
                             )}
                             title="Tap to toggle sales channel"
                           >
-                            {item.isAvailableOnline ? (
-                              <>
-                                <Globe className="h-2.5 w-2.5 text-emerald-500" />
-                                <span>Online</span>
-                              </>
-                            ) : (
-                              <>
-                                <Store className="h-2.5 w-2.5" />
-                                <span>In-Store</span>
-                              </>
-                            )}
+                            <Icon
+                              icon={item.isAvailableOnline ? "solar:global-linear" : "solar:shop-2-linear"}
+                              className="h-2.5 w-2.5"
+                            />
+                            <span>{item.isAvailableOnline ? "Online" : "In-Store"}</span>
                           </button>
                         )}
                         {!item.isActive && (
@@ -1209,79 +1249,6 @@ export default function Products() {
         renderInlineAccordion={effectiveViewMode === "group" ? renderVariantsAccordion : undefined}
         showTopContent={true}
         topActions={[
-          ...(hasEcommerce
-            ? [
-                {
-                  customComponent: (
-                    <div className="flex items-center gap-2">
-                      {/* Dynamic Channel Filter Pill */}
-                      <div className="flex items-center rounded-lg border border-border/80 p-0.5 bg-muted/40 h-[35px] md:h-[38px] text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setChannelFilter("all")}
-                          className={cn(
-                            "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full flex items-center gap-1",
-                            channelFilter === "all"
-                              ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChannelFilter("online")}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full",
-                            channelFilter === "online"
-                              ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-bold border border-border/60"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <Globe className="h-3.5 w-3.5 text-emerald-500" />
-                          <span>E-Com Only</span>
-                          {serverSummary?.online_products !== undefined && (
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1 py-0.2 rounded font-mono">
-                              {serverSummary.online_products}
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChannelFilter("in_store")}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all h-full",
-                            channelFilter === "in_store"
-                              ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <Store className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>In-Store</span>
-                          {serverSummary?.instore_only_products !== undefined && (
-                            <span className="text-[10px] bg-muted-foreground/15 text-muted-foreground px-1 py-0.2 rounded font-mono">
-                              {serverSummary.instore_only_products}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Storefront Curator Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsCuratorModalOpen(true)}
-                        className="h-[35px] md:h-[38px] text-[12px] font-semibold gap-1.5 border-border/80 hover:bg-muted"
-                        title="Curate Storefront Catalog"
-                      >
-                        <Globe className="h-3.5 w-3.5" />
-                        <span className="hidden xl:inline">Curate Storefront</span>
-                      </Button>
-                    </div>
-                  ),
-                },
-              ]
-            : []),
           {
             customComponent: (
               <div className="hidden sm:flex rounded-[7px] overflow-hidden border shadow-sm h-[35px] md:h-[38px] bg-muted p-0.5">
@@ -1474,6 +1441,173 @@ export default function Products() {
         isOpen={isCuratorModalOpen}
         onClose={() => setIsCuratorModalOpen(false)}
         onSuccess={() => fetchProducts(1, false)}
+      />
+
+      {/* Mobile Add Product Choice Modal (Single vs Bulk) */}
+      <CustomModal
+        isOpen={isAddChoiceModalOpen}
+        onOpenChange={() => setIsAddChoiceModalOpen(false)}
+        size="md"
+        placement="top-center"
+        header={
+          <div className="pt-2 px-1 pb-2 border-b border-border/50">
+            <h2 className="text-base font-bold text-foreground">
+              Add Products
+            </h2>
+            <p className="text-xs text-muted-foreground font-normal">
+              Select how you would like to add items to your catalog
+            </p>
+          </div>
+        }
+        body={
+          <div className="py-3 px-1 flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddChoiceModalOpen(false);
+                openNewProduct();
+              }}
+              className="flex items-center gap-3.5 p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/50 transition-all text-left cursor-pointer group active:scale-[0.99]"
+            >
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60 text-foreground">
+                <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Single Product
+                  </h3>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                  Create a new product with custom variants, tiers, and pricing
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddChoiceModalOpen(false);
+                setIsBulkModalOpen(true);
+              }}
+              className="flex items-center gap-3.5 p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/50 transition-all text-left cursor-pointer group active:scale-[0.99]"
+            >
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60 text-foreground">
+                <Icon icon="solar:cloud-upload-linear" className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Bulk Import (CSV)
+                  </h3>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                  Upload multiple products and inventory quantities in bulk
+                </p>
+              </div>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Mobile Channel Filter Modal */}
+      <CustomModal
+        isOpen={isChannelFilterModalOpen}
+        onOpenChange={() => setIsChannelFilterModalOpen(false)}
+        size="md"
+        placement="top-center"
+        header={
+          <div className="pt-2 px-1 pb-2 border-b border-border/50">
+            <h2 className="text-base font-bold text-foreground">
+              Filter by Sales Channel
+            </h2>
+            <p className="text-xs text-muted-foreground font-normal">
+              Select which inventory channel you want to view
+            </p>
+          </div>
+        }
+        body={
+          <div className="py-3 px-1 flex flex-col gap-2">
+            {[
+              {
+                id: "all" as const,
+                title: "All Channels",
+                subtitle: "View complete inventory across POS & online store",
+                icon: "solar:layers-minimalistic-linear",
+                count: displayTotalCount,
+              },
+              {
+                id: "online" as const,
+                title: "E-Commerce Only",
+                subtitle: "Products published and visible on the online store",
+                icon: "solar:global-linear",
+                count: serverSummary?.online_products,
+              },
+              {
+                id: "in_store" as const,
+                title: "In-Store POS Only",
+                subtitle: "Products restricted to physical in-store sales",
+                icon: "solar:shop-2-linear",
+                count: serverSummary?.instore_only_products,
+              },
+            ].map((option) => {
+              const isSelected = channelFilter === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    setChannelFilter(option.id);
+                    setIsChannelFilterModalOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                    isSelected
+                      ? "border-foreground bg-muted/60 shadow-xs"
+                      : "border-border/70 bg-card hover:bg-muted/40"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 border",
+                        isSelected
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-muted text-foreground border-border/60"
+                      )}
+                    >
+                      <Icon icon={option.icon} className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-foreground">
+                          {option.title}
+                        </span>
+                        {option.count !== undefined && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                            {option.count}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                        {option.subtitle}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="ml-3 shrink-0">
+                    {isSelected ? (
+                      <Icon icon="solar:check-circle-bold" className="h-4 w-4 text-foreground" />
+                    ) : (
+                      <div className="h-4 w-4 rounded-full border border-border" />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        }
       />
 
       {/* Delete Confirmation Modal */}

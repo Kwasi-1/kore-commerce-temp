@@ -15,6 +15,7 @@ import {
   Layers,
   Sparkles
 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -243,16 +244,16 @@ export function StorefrontCatalogCuratorModal({
                 variant="ghost"
                 size="sm"
                 onClick={() => handleSetAll(true)}
-                className="h-8 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                className="h-8 text-xs font-semibold text-foreground hover:bg-muted"
               >
-                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                <Icon icon="solar:check-read-linear" className="h-3.5 w-3.5 mr-1" />
                 Select All
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleSetAll(false)}
-                className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 Set All In-Store
               </Button>
@@ -391,7 +392,7 @@ export function StorefrontCatalogCuratorModal({
         <div className="flex items-center justify-between w-full pt-2 pb-1 border-t border-border/50">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-muted/60 !tracking-wide !font-sans text-foreground">
-              <Globe className="h-3 w-3 text-emerald-500" />
+              <Icon icon="solar:global-linear" className="h-3.5 w-3.5 text-foreground/80" />
               {onlineCount} of {totalCount} online
             </span>
           </div>

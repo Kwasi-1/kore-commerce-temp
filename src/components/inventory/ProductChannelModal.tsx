@@ -1,7 +1,7 @@
 import React from "react";
 import CustomModal from "@/components/modals/modal";
 import { Button } from "@/components/ui/button";
-import { Globe, Store } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 interface ProductChannelModalProps {
   isOpen: boolean;
@@ -33,19 +33,6 @@ export function ProductChannelModal({
       header={
         <div className="pt-1 px-1 border-b border-border/50 pb-2">
           <div className="flex items-center gap-2">
-            {/* <div
-              className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                currentOnline
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              }`}
-            >
-              {currentOnline ? (
-                <Store className="h-4 w-4" />
-              ) : (
-                <Globe className="h-4 w-4" />
-              )}
-            </div> */}
             <div>
               <h2 className="text-base font-bold text-foreground">
                 {currentOnline ? "Set to In-Store Only?" : "Publish to Online Storefront?"}
@@ -73,20 +60,14 @@ export function ProductChannelModal({
 
           <div className="bg-muted/40 rounded-lg p-3 text-xs flex items-center justify-between">
             <span className="text-muted-foreground font-medium">New Sales Channel:</span>
-            <span
-              className={`font-semibold inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] ${
-                targetAction === "online"
-                  ? "text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  : "bg-muted text-foreground border border-border"
-              }`}
-            >
+            <span className="font-semibold inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] bg-muted text-foreground border border-border">
               {targetAction === "online" ? (
                 <>
-                  <Globe className="h-3 w-3" /> Online & POS
+                  <Icon icon="solar:global-linear" className="h-3 w-3" /> Online & POS
                 </>
               ) : (
                 <>
-                  <Store className="h-3 w-3" /> In-Store Only
+                  <Icon icon="solar:shop-2-linear" className="h-3 w-3" /> In-Store Only
                 </>
               )}
             </span>
