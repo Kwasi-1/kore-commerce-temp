@@ -221,7 +221,7 @@ export function StorefrontCatalogCuratorModal({
       onOpenChange={() => {
         if (!isSaving) onClose();
       }}
-      size="3xl"
+      size="xl"
       header={
         <div className="pt-1 px-1 border-b border-border/50 pb-3">
           <div className="flex items-center justify-between">
@@ -230,12 +230,12 @@ export function StorefrontCatalogCuratorModal({
                 <Globe className="h-4 w-4" />
               </div> */}
               <div>
-                <h2 className="text-base md:text-lg font-bold text-foreground">
+                <h2 className="text-lg font-bold text-foreground !tracking-tight">
                   Curate Storefront Catalog
                 </h2>
-                <p className="text-xs text-muted-foreground leading-tight">
+                {/* <p className="text-xs text-muted-foreground leading-tight">
                   Choose which categories and individual items are available to online shoppers
-                </p>
+                </p> */}
               </div>
             </div>
 

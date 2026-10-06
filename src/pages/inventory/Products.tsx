@@ -912,18 +912,6 @@ export default function Products() {
                 )} */}
               </button>
             </div>
-
-            {/* Curate Storefront Catalog Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCuratorModalOpen(true)}
-              className="h-9 text-xs font-semibold gap-1.5 border-border/70 hover:bg-muted text-foreground cursor-pointer rounded-lg"
-              title="Curate Storefront Catalog"
-            >
-              <Icon icon="solar:global-linear" className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">Curate Storefront</span>
-            </Button>
           </div>
         ) : undefined
       }
@@ -1277,8 +1265,25 @@ export default function Products() {
                   {/* Grouped */}
                 </Button>
               </div>
-            )
-          }
+            ),
+          },
+          ...(hasEcommerce
+            ? [
+                {
+                  customComponent: (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsCuratorModalOpen(true)}
+                      className="h-[35px] md:h-[38px] w-[35px] md:w-[38px] text-foreground border-border hover:bg-muted rounded-[8px] cursor-pointer"
+                      title="Curate Storefront Catalog"
+                    >
+                      <Icon icon="solar:global-linear" className="h-4 w-4" />
+                    </Button>
+                  ),
+                },
+              ]
+            : []),
         ]}
         rowActions={[
           { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
@@ -1447,39 +1452,43 @@ export default function Products() {
       <CustomModal
         isOpen={isAddChoiceModalOpen}
         onOpenChange={() => setIsAddChoiceModalOpen(false)}
+        onClose={() => setIsAddChoiceModalOpen(false)}
         size="md"
-        placement="top-center"
+        placement="top"
+        classNames={{
+          base: "!w-full !max-w-md rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
+          header: "pb-2 px-5 sm:px-6 pt-4",
+          body: "py-3 px-4 sm:px-6",
+        }}
         header={
-          <div className="pt-2 px-1 pb-2 border-b border-border/50">
-            <h2 className="text-base font-bold text-foreground">
-              Add Products
-            </h2>
-            <p className="text-xs text-muted-foreground font-normal">
-              Select how you would like to add items to your catalog
-            </p>
+          <div className="flex items-center gap-2.5 px-1 w-full">
+            <div>
+              <h3 className="font-bold text-base text-foreground leading-tight">Add Products</h3>
+              {/* <p className="text-xs text-muted-foreground">Select how you would like to add items</p> */}
+            </div>
           </div>
         }
         body={
-          <div className="py-3 px-1 flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 py-1">
             <button
               type="button"
               onClick={() => {
                 setIsAddChoiceModalOpen(false);
                 openNewProduct();
               }}
-              className="flex items-center gap-3.5 p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/50 transition-all text-left cursor-pointer group active:scale-[0.99]"
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all text-left cursor-pointer group active:scale-[0.99]"
             >
-              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60 text-foreground">
+              <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center shrink-0 border border-border/40 text-foreground">
                 <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h4 className="text-sm font-semibold text-foreground">
                     Single Product
-                  </h3>
-                  <Icon icon="solar:alt-arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </h4>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   Create a new product with custom variants, tiers, and pricing
                 </p>
               </div>
@@ -1491,19 +1500,19 @@ export default function Products() {
                 setIsAddChoiceModalOpen(false);
                 setIsBulkModalOpen(true);
               }}
-              className="flex items-center gap-3.5 p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/50 transition-all text-left cursor-pointer group active:scale-[0.99]"
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all text-left cursor-pointer group active:scale-[0.99]"
             >
-              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60 text-foreground">
+              <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center shrink-0 border border-border/40 text-foreground">
                 <Icon icon="solar:cloud-upload-linear" className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h4 className="text-sm font-semibold text-foreground">
                     Bulk Import (CSV)
-                  </h3>
-                  <Icon icon="solar:alt-arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </h4>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   Upload multiple products and inventory quantities in bulk
                 </p>
               </div>
@@ -1516,20 +1525,27 @@ export default function Products() {
       <CustomModal
         isOpen={isChannelFilterModalOpen}
         onOpenChange={() => setIsChannelFilterModalOpen(false)}
+        onClose={() => setIsChannelFilterModalOpen(false)}
         size="md"
-        placement="top-center"
+        placement="top"
+        classNames={{
+          base: "!w-full !max-w-md rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
+          header: "pb-2 borderb border-border/40 px-5 sm:px-6 pt-4",
+          body: "py-3 px-4 sm:px-6",
+        }}
         header={
-          <div className="pt-2 px-1 pb-2 border-b border-border/50">
-            <h2 className="text-base font-bold text-foreground">
-              Filter by Sales Channel
-            </h2>
-            <p className="text-xs text-muted-foreground font-normal">
-              Select which inventory channel you want to view
-            </p>
+          <div className="flex items-center gap-2.5 px-1 w-full">
+            {/* <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <Icon icon="solar:filter-linear" className="h-4 w-4 text-foreground" />
+            </div> */}
+            <div>
+              <h3 className="font-bold text-base text-foreground leading-tight">Filter by Sales Channel</h3>
+              {/* <p className="text-xs text-muted-foreground">Select which inventory channel you want to view</p> */}
+            </div>
           </div>
         }
         body={
-          <div className="py-3 px-1 flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5 py-1">
             {[
               {
                 id: "all" as const,
@@ -1563,22 +1579,22 @@ export default function Products() {
                     setIsChannelFilterModalOpen(false);
                   }}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                    "flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
                     isSelected
-                      ? "border-foreground bg-muted/60 shadow-xs"
-                      : "border-border/70 bg-card hover:bg-muted/40"
+                      ? "border-foreground/30 bg-muted/40 shadow-xs ring-1 ring-foreground/10"
+                      : "border-border/60 bg-card hover:bg-muted/30"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div
                       className={cn(
-                        "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 border",
+                        "h-10 w-10 rounded-full flex items-center justify-center shrink-0 border transition-colors",
                         isSelected
                           ? "bg-foreground text-background border-foreground"
-                          : "bg-muted text-foreground border-border/60"
+                          : "bg-muted/60 text-foreground border-border/40"
                       )}
                     >
-                      <Icon icon={option.icon} className="h-4 w-4" />
+                      <Icon icon={option.icon} className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -1586,7 +1602,7 @@ export default function Products() {
                           {option.title}
                         </span>
                         {option.count !== undefined && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/40 font-semibold">
                             {option.count}
                           </span>
                         )}
@@ -1598,9 +1614,9 @@ export default function Products() {
                   </div>
                   <div className="ml-3 shrink-0">
                     {isSelected ? (
-                      <Icon icon="solar:check-circle-bold" className="h-4 w-4 text-foreground" />
+                      <Icon icon="solar:check-circle-bold" className="h-5 w-5 text-foreground" />
                     ) : (
-                      <div className="h-4 w-4 rounded-full border border-border" />
+                      <div className="h-5 w-5 rounded-full border-2 border-border/80" />
                     )}
                   </div>
                 </button>
@@ -1618,38 +1634,50 @@ export default function Products() {
           setProductToDelete(null);
         }}
         size="md"
+        placement="top"
+        classNames={{
+          base: "!w-full !max-w-md rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
+          header: "pb-2 border-b border-border/40 px-4 sm:px-6 pt-4",
+          body: "py-3 px-4 sm:px-6",
+          footer: "px-4 sm:px-6 pb-4 pt-1",
+        }}
         header={
-          <div className="pt-4 px-2">
-            <h2 className="text-xl font-bold text-destructive">
-              Delete Product
-            </h2>
-            <p className="text-sm text-muted-foreground font-normal">
-              This action cannot be undone.
-            </p>
+          <div className="flex items-center gap-2.5 px-1 w-full">
+            <div className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+              <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-destructive leading-tight">Delete Product</h3>
+              <p className="text-xs text-muted-foreground">This action cannot be undone</p>
+            </div>
           </div>
         }
         body={
-          <div className="p-2 py-4">
-            <p className="text-sm text-foreground">
+          <div className="py-1 text-sm text-muted-foreground">
+            <p>
               Are you sure you want to delete{" "}
-              <strong>{productToDelete?.name}</strong>? This will remove it
+              <strong className="text-foreground">{productToDelete?.name}</strong>? This will remove it
               permanently from your inventory.
             </p>
           </div>
         }
         footer={
-          <div className="flex gap-2 w-full justify-end px-2 pb-2">
+          <div className="flex items-center justify-end gap-2 w-full pt-1 pb-1">
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setIsDeleteModalOpen(false)}
               disabled={isDeleting}
+              className="font-medium flex-1 h-9 rounded-xl border-border hover:bg-muted"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleDeleteProduct}
               disabled={isDeleting}
+              className="font-semibold flex-1 h-9 rounded-xl"
             >
               {isDeleting ? "Deleting..." : "Delete Product"}
             </Button>
