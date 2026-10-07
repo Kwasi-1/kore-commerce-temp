@@ -135,12 +135,22 @@ export default function Sidebar() {
   const hasGraceModule = (key: string) => inGracePeriod && previousPlanModules.includes(key);
 
   const [lowStockCount, setLowStockCount] = useState<number>(0);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
   const { unreadCount: unreadNotificationsCount, fetchUnreadCount } = useNotificationStore();
 
   useEffect(() => {
     if (!tenant?.id) return;
     let isMounted = true;
     fetchUnreadCount();
+
+    apiClient.get('/tenant/orders?channel=online&status=pending&limit=1')
+      .then((res) => {
+        if (!isMounted) return;
+        const total = res.data?.success?.data?.pagination?.total ?? 0;
+        setPendingOrdersCount(total);
+      })
+      .catch(console.error);
+
     apiClient.get('/tenant/products?limit=20')
       .then((res) => {
         if (!isMounted) return;
@@ -229,10 +239,10 @@ export default function Sidebar() {
       title: 'Ecommerce',
       icon: ShoppingBag,
       show: !isCashier && (modules.ecommerce || hasModule('ecommerce') || hasGraceModule('ecommerce')),
-      badge: 2,
+      badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
       hasDividerAfter: true,
       items: [
-        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: 2, moduleKey: 'ecommerce' },
+        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined, moduleKey: 'ecommerce' },
         { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce' },
         { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce' },
         { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce' },
