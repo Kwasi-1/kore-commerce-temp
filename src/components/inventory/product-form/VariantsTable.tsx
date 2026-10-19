@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Switch } from '@/components/ui/switch';
-import { useIsMobile } from '@/hooks/useScreenSize';
 import { cn } from '@/lib/utils';
 import PriceInput from './PriceInput';
 import TiersEditor from './TiersEditor';
@@ -22,9 +21,9 @@ interface Props {
 const input =
   'w-full h-8 px-2 text-xs border rounded-md bg-card focus:outline-none focus:border-foreground/40 tabular-nums disabled:opacity-70 disabled:bg-muted/30 disabled:cursor-not-allowed';
 
-export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled }: Props) {
-  const isMobile = useIsMobile();
+const rowLabel = 'block text-[10px] font-bold uppercase text-muted-foreground mb-1 truncate';
 
+export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled }: Props) {
   // Bulk edit (only filled-in fields are applied)
   const [bulk, setBulk] = useState({ stock: '', cost: '', retail: '', wholesale: '', lowStock: '', sellMode: '' as '' | SellMode });
 
@@ -101,7 +100,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         <SellModePicker value={v.sell_mode} onChange={(m) => update(v.key, { sell_mode: m })} />
       </div>
       <div className="space-y-1.5">
-        <span className="text-[10px] font-bold uppercase text-muted-foreground">Packs & wholesale prices</span>
+        <span className="text-[10px] font-bold uppercase text-muted-foreground">Sizes & prices</span>
         <TiersEditor
           tiers={v.packaging_tiers}
           onChange={(tiers) => update(v.key, { packaging_tiers: tiers })}
@@ -112,14 +111,13 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
     </div>
   );
 
-  const packsButton = (v: VariantRow, compact = false) => (
+  const packsButton = (v: VariantRow) => (
     <button
       type="button"
       onClick={() => update(v.key, { isExpanded: !v.isExpanded })}
       aria-expanded={v.isExpanded}
       className={cn(
-        'inline-flex items-center gap-1 h-8 rounded-lg border text-xs font-semibold transition-colors whitespace-nowrap',
-        compact ? 'px-2' : 'px-2.5',
+        'inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border text-xs font-semibold transition-colors whitespace-nowrap',
         v.isExpanded ? 'border-foreground/30 bg-muted' : 'border-border hover:bg-muted',
       )}
     >
@@ -197,186 +195,97 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         </div>
       </div>
 
-      {/* Rows */}
-      {!isMobile ? (
-        <div className="rounded-xl border border-border overflow-x-auto bg-card">
-          <table className="w-full min-w-[760px] text-left text-xs">
-            <thead>
-              <tr className="bg-muted/60 border-b border-border text-[10px] uppercase font-bold text-muted-foreground">
-                <th className="p-2.5 pl-3">Variant</th>
-                <th className="p-2.5 w-44">SKU / Barcode</th>
-                <th className="p-2.5 w-24">{isEditing ? 'In stock' : 'Opening stock'}</th>
-                <th className="p-2.5 w-28">Cost / unit</th>
-                <th className="p-2.5 w-36">
-                  Retail price <span className="text-destructive">*</span>
-                </th>
-                <th className="p-2.5 w-[11rem]" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {variants.map((v) => {
-                const err = errors[v.key] || {};
-                const saleTier = v.packaging_tiers[saleTierIndex(v.packaging_tiers)];
-                return (
-                  <React.Fragment key={v.key}>
-                    <tr className={cn(err.retail || err.sku ? 'bg-destructive/[0.03]' : 'hover:bg-muted/20')}>
-                      <td className="p-2 pl-3">
-                        <div className="flex items-center gap-2.5">
-                          <VariantImagePicker value={v.image} gallery={gallery} label={variantLabel(v)} onChange={(img) => update(v.key, { image: img })} />
-                          <div className="min-w-0">
-                            <div className="font-semibold text-foreground capitalize truncate">{Object.values(v.variant_attributes).join(' / ')}</div>
-                            <div className="text-[10px] text-muted-foreground truncate">
-                              {Object.keys(v.variant_attributes).join(' / ')}
-                              {v.id ? '' : ' · new'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-2 align-top">
-                        <input
-                          id={`pf-variant-${v.key}-sku`}
-                          className={cn(input, 'font-mono', err.sku ? 'border-destructive' : 'border-border')}
-                          value={v.sku}
-                          onKeyDown={enterToNextField}
-                          onChange={(e) => update(v.key, { sku: e.target.value, skuEdited: true })}
-                          aria-label={`SKU for ${variantLabel(v)}`}
-                        />
-                        {err.sku && <span className="block text-[10px] font-semibold text-destructive mt-0.5">{err.sku}</span>}
-                      </td>
-                      <td className="p-2 align-top">
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          disabled={isEditing && !!v.id}
-                          title={isEditing && v.id ? 'Change stock with Stock Adjustments or Stock In' : undefined}
-                          className={cn(input, 'border-border')}
-                          value={v.stock_quantity}
-                          onWheel={blurOnWheel}
-                          onChange={(e) => update(v.key, { stock_quantity: e.target.value })}
-                          aria-label={`Stock for ${variantLabel(v)}`}
-                        />
-                      </td>
-                      <td className="p-2 align-top">
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="any"
-                          placeholder="Optional"
-                          className={cn(input, 'border-border')}
-                          value={v.cost_price_per_base_unit}
-                          onWheel={blurOnWheel}
-                          onChange={(e) => update(v.key, { cost_price_per_base_unit: e.target.value })}
-                          aria-label={`Cost for ${variantLabel(v)}`}
-                        />
-                      </td>
-                      <td className="p-2 align-top">
-                        <PriceInput
-                          id={`pf-variant-${v.key}-retail`}
-                          value={saleTier?.retail_price || ''}
-                          onChange={(val) => update(v.key, { packaging_tiers: setSaleTierRetail(v.packaging_tiers, val) })}
-                          cost={v.cost_price_per_base_unit}
-                          units={saleTier?.is_base_unit ? 1 : saleTier?.units_per_tier}
-                          error={err.retail}
-                          ariaLabel={`Retail price for ${variantLabel(v)}`}
-                        />
-                        {!err.retail && <span className="block text-[10px] text-muted-foreground leading-tight">{saleUnitHint(v)}</span>}
-                      </td>
-                      <td className="p-2 align-top">
-                        <div className="flex items-center justify-end gap-1">
-                          {packsButton(v)}
-                          {deleteButton(v)}
-                        </div>
-                      </td>
-                    </tr>
-                    {v.isExpanded && (
-                      <tr>
-                        <td colSpan={6} className="p-3 bg-muted/10">
-                          {detailsPanel(v)}
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {variants.map((v) => {
-            const err = errors[v.key] || {};
-            const saleTier = v.packaging_tiers[saleTierIndex(v.packaging_tiers)];
-            return (
-              <div key={v.key} className={cn('rounded-xl border bg-card p-3 space-y-3', err.retail || err.sku ? 'border-destructive/50' : 'border-border')}>
-                <div className="flex items-center gap-3">
-                  <VariantImagePicker value={v.image} gallery={gallery} label={variantLabel(v)} onChange={(img) => update(v.key, { image: img })} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold capitalize truncate">{Object.values(v.variant_attributes).join(' / ')}</div>
-                    <div className="text-[10px] text-muted-foreground">{v.id ? Object.keys(v.variant_attributes).join(' / ') : 'New variant'}</div>
+      {/* Rows: one layout for every width. Line 1 = identity + price (the field that must not be missed),
+          line 2 = SKU / stock / cost. Everything wraps instead of scrolling sideways. */}
+      <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        {variants.map((v) => {
+          const err = errors[v.key] || {};
+          const saleTier = v.packaging_tiers[saleTierIndex(v.packaging_tiers)];
+          const stockLocked = isEditing && !!v.id;
+          return (
+            <div key={v.key} className={cn('p-3 space-y-2.5', (err.retail || err.sku) && 'bg-destructive/[0.03]')}>
+              <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+                <VariantImagePicker value={v.image} gallery={gallery} label={variantLabel(v)} onChange={(img) => update(v.key, { image: img })} size="md" />
+                <div className="min-w-[8rem] flex-1 pt-1">
+                  <div className="font-semibold text-sm text-foreground capitalize truncate">{Object.values(v.variant_attributes).join(' / ')}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {Object.keys(v.variant_attributes).join(' / ')}
+                    {v.id ? '' : ' · new'}
                   </div>
+                </div>
+                <label className="w-full sm:w-40 shrink-0">
+                  <span className={rowLabel}>
+                    Retail price <span className="text-destructive">*</span>
+                    <span className="ml-1 font-normal normal-case">{saleUnitHint(v)}</span>
+                  </span>
+                  <PriceInput
+                    id={`pf-variant-${v.key}-retail`}
+                    value={saleTier?.retail_price || ''}
+                    onChange={(val) => update(v.key, { packaging_tiers: setSaleTierRetail(v.packaging_tiers, val) })}
+                    cost={v.cost_price_per_base_unit}
+                    units={saleTier?.is_base_unit ? 1 : saleTier?.units_per_tier}
+                    error={err.retail}
+                    ariaLabel={`Retail price for ${variantLabel(v)}`}
+                  />
+                </label>
+                <div className="flex items-center gap-1 self-start sm:pt-[1.15rem] ml-auto">
+                  {packsButton(v)}
                   {deleteButton(v)}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="col-span-2 space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Retail price *</span>
-                    <PriceInput
-                      id={`pf-variant-${v.key}-retail`}
-                      value={saleTier?.retail_price || ''}
-                      onChange={(val) => update(v.key, { packaging_tiers: setSaleTierRetail(v.packaging_tiers, val) })}
-                      cost={v.cost_price_per_base_unit}
-                      units={saleTier?.is_base_unit ? 1 : saleTier?.units_per_tier}
-                      error={err.retail}
-                      size="md"
-                    />
-                  </label>
-                  <label className="col-span-2 space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">SKU / Barcode</span>
-                    <input
-                      id={`pf-variant-${v.key}-sku`}
-                      className={cn(input, 'h-10 font-mono', err.sku ? 'border-destructive' : 'border-border')}
-                      value={v.sku}
-                      onKeyDown={enterToNextField}
-                      onChange={(e) => update(v.key, { sku: e.target.value, skuEdited: true })}
-                    />
-                    {err.sku && <span className="block text-[10px] font-semibold text-destructive">{err.sku}</span>}
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">{isEditing && v.id ? 'In stock' : 'Opening stock'}</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      disabled={isEditing && !!v.id}
-                      className={cn(input, 'h-10 border-border')}
-                      value={v.stock_quantity}
-                      onWheel={blurOnWheel}
-                      onChange={(e) => update(v.key, { stock_quantity: e.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Cost / unit</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="any"
-                      placeholder="Optional"
-                      className={cn(input, 'h-10 border-border')}
-                      value={v.cost_price_per_base_unit}
-                      onWheel={blurOnWheel}
-                      onChange={(e) => update(v.key, { cost_price_per_base_unit: e.target.value })}
-                    />
-                  </label>
-                </div>
-                {packsButton(v, true)}
-                {v.isExpanded && detailsPanel(v)}
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                <label className="col-span-2 sm:col-span-1">
+                  <span className={rowLabel}>SKU / Barcode</span>
+                  <input
+                    id={`pf-variant-${v.key}-sku`}
+                    className={cn(input, 'font-mono', err.sku ? 'border-destructive' : 'border-border')}
+                    value={v.sku}
+                    onKeyDown={enterToNextField}
+                    onChange={(e) => update(v.key, { sku: e.target.value, skuEdited: true })}
+                    aria-label={`SKU for ${variantLabel(v)}`}
+                  />
+                  {err.sku && <span className="block text-[10px] font-semibold text-destructive mt-0.5">{err.sku}</span>}
+                </label>
+                <label>
+                  <span className={rowLabel}>{stockLocked ? 'In stock (locked)' : 'Opening stock'}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    placeholder="0"
+                    disabled={stockLocked}
+                    title={stockLocked ? 'Change stock with Stock Adjustments or Stock In' : undefined}
+                    className={cn(input, 'border-border')}
+                    value={v.stock_quantity}
+                    onWheel={blurOnWheel}
+                    onChange={(e) => update(v.key, { stock_quantity: e.target.value })}
+                    aria-label={`Stock for ${variantLabel(v)}`}
+                  />
+                </label>
+                <label>
+                  <span className={rowLabel}>Cost / {v.base_unit_name || 'unit'}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    placeholder="Optional"
+                    className={cn(input, 'border-border')}
+                    value={v.cost_price_per_base_unit}
+                    onWheel={blurOnWheel}
+                    onChange={(e) => update(v.key, { cost_price_per_base_unit: e.target.value })}
+                    aria-label={`Cost for ${variantLabel(v)}`}
+                  />
+                </label>
+              </div>
+
+              {v.isExpanded && detailsPanel(v)}
+            </div>
+          );
+        })}
+      </div>
       {isEditing && (
         <p className="text-[11px] text-muted-foreground">
           Stock for existing variants is changed with <b>Stock Adjustments</b> or <b>Stock In</b>. Removing a variant hides it from sale but keeps its sales history.

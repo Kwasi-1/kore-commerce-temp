@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { cn } from '@/lib/utils';
 import PriceInput from './PriceInput';
@@ -12,28 +11,36 @@ interface Props {
   cost: string;
 }
 
-const cellInput =
-  'w-full h-8 px-2 text-xs border border-border rounded-lg bg-card focus:outline-none focus:border-foreground/40 disabled:opacity-70 disabled:bg-muted/30';
+const field =
+  'w-full h-8 px-2 text-xs border border-border rounded-lg bg-card focus:outline-none focus:border-foreground/40';
+const label = 'block text-[10px] font-bold uppercase text-muted-foreground mb-1';
+
+const tierLabel = (t: TierRow, unitName: string) => {
+  if (t.is_base_unit) return unitName || 'unit';
+  const name = t.name.trim() || 'Pack';
+  const units = toNum(t.units_per_tier);
+  return units && units > 1 ? `${name} of ${units}` : name;
+};
 
 /**
- * Packaging tiers (unit, pack, carton…) with retail + wholesale prices and the default
- * sale / purchase tier. Defaults are radio buttons, so exactly one of each is always set.
+ * The base unit plus optional packs (pack, crate, carton…), each with retail and wholesale
+ * prices. Rows wrap to fit the available width — no horizontal scrolling.
+ * When there's more than one size, two dropdowns pick the default at the till and on purchase orders.
  */
 export default function TiersEditor({ tiers, onChange, unitName, cost }: Props) {
-  const group = useId();
-
+  const unit = unitName || 'unit';
   const update = (idx: number, patch: Partial<TierRow>) => onChange(tiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
 
-  const setDefault = (idx: number, flag: 'is_default_sale_unit' | 'is_default_purchase_unit') =>
-    onChange(tiers.map((t, i) => ({ ...t, [flag]: i === idx })));
+  const setDefault = (key: string, flag: 'is_default_sale_unit' | 'is_default_purchase_unit') =>
+    onChange(tiers.map((t) => ({ ...t, [flag]: t.key === key })));
 
   const remove = (idx: number) => {
     const removed = tiers[idx];
     let next = tiers.filter((_, i) => i !== idx);
-    // Keep exactly one default sale / purchase tier
-    const baseIdx = Math.max(next.findIndex((t) => t.is_base_unit), 0);
-    if (removed.is_default_sale_unit) next = next.map((t, i) => ({ ...t, is_default_sale_unit: i === baseIdx }));
-    if (removed.is_default_purchase_unit) next = next.map((t, i) => ({ ...t, is_default_purchase_unit: i === baseIdx }));
+    // Keep exactly one default sale / purchase size: fall back to the base unit
+    const baseKey = (next.find((t) => t.is_base_unit) || next[0])?.key;
+    if (removed.is_default_sale_unit) next = next.map((t) => ({ ...t, is_default_sale_unit: t.key === baseKey }));
+    if (removed.is_default_purchase_unit) next = next.map((t) => ({ ...t, is_default_purchase_unit: t.key === baseKey }));
     onChange(next);
   };
 
@@ -42,128 +49,129 @@ export default function TiersEditor({ tiers, onChange, unitName, cost }: Props) 
     update(idx, { units_per_tier: n === null || n < 2 ? '' : String(Math.round(n)) });
   };
 
+  const saleKey = (tiers.find((t) => t.is_default_sale_unit) || tiers.find((t) => t.is_base_unit) || tiers[0])?.key;
+  const buyKey = (tiers.find((t) => t.is_default_purchase_unit) || tiers.find((t) => t.is_base_unit) || tiers[0])?.key;
+
   return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full min-w-[620px] text-left text-xs">
-          <thead>
-            <tr className="bg-muted/60 border-b border-border text-[10px] uppercase font-bold text-muted-foreground">
-              <th className="p-2.5">Sold as</th>
-              <th className="p-2.5 w-24">Units inside</th>
-              <th className="p-2.5 w-36">Retail price</th>
-              <th className="p-2.5 w-32">Wholesale</th>
-              <th className="p-2.5 w-16 text-center" title="Default tier at the till">Sell</th>
-              <th className="p-2.5 w-16 text-center" title="Default tier on purchase orders">Buy</th>
-              <th className="p-2.5 w-10" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {tiers.map((t, idx) => (
-              <tr key={t.key}>
-                <td className="p-2">
-                  {t.is_base_unit ? (
-                    <div className="h-8 px-2 flex items-center rounded-lg bg-muted/30 text-xs font-semibold capitalize">
-                      {unitName || 'Unit'}
-                      <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(base)</span>
-                    </div>
-                  ) : (
-                    <input
-                      className={cn(cellInput, 'font-semibold')}
-                      placeholder="e.g. Pack, Crate"
-                      value={t.name}
-                      aria-label="Pack name"
-                      onChange={(e) => update(idx, { name: e.target.value })}
-                    />
-                  )}
-                </td>
-                <td className="p-2">
-                  {t.is_base_unit ? (
-                    <div className="h-8 px-2 flex items-center text-xs text-muted-foreground">1</div>
-                  ) : (
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={2}
-                      step={1}
-                      className={cellInput}
-                      placeholder="e.g. 24"
-                      value={t.units_per_tier}
-                      aria-label="Units inside this pack"
-                      onWheel={blurOnWheel}
-                      onChange={(e) => update(idx, { units_per_tier: e.target.value })}
-                      onBlur={() => normaliseUnits(idx)}
-                    />
-                  )}
-                </td>
-                <td className="p-2">
-                  <PriceInput
-                    value={t.retail_price}
-                    onChange={(v) => update(idx, { retail_price: v })}
-                    cost={cost}
-                    units={t.is_base_unit ? 1 : t.units_per_tier}
-                    placeholder={t.is_default_sale_unit ? 'Required' : 'Optional'}
-                    ariaLabel={`Retail price per ${t.is_base_unit ? unitName : t.name || 'pack'}`}
-                  />
-                </td>
-                <td className="p-2">
-                  <PriceInput
-                    value={t.wholesale_price}
-                    onChange={(v) => update(idx, { wholesale_price: v })}
-                    cost={cost}
-                    units={t.is_base_unit ? 1 : t.units_per_tier}
-                    placeholder="Optional"
-                    ariaLabel="Wholesale price"
-                  />
-                </td>
-                <td className="p-2 text-center">
+    <div className="space-y-2.5">
+      {tiers.map((t, idx) => (
+        <div key={t.key} className="rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+            {/* Size */}
+            {t.is_base_unit ? (
+              <div className="min-w-[9rem] flex-1">
+                <span className={label}>Sold as</span>
+                <div className="h-8 flex items-center gap-1.5 text-xs font-semibold capitalize">
+                  {unit}
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case text-muted-foreground">single unit</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-[14rem] flex-[2] items-end gap-2">
+                <label className="flex-1 min-w-0">
+                  <span className={label}>Pack name</span>
                   <input
-                    type="radio"
-                    name={`${group}-sale`}
-                    className="h-4 w-4 accent-primary"
-                    checked={t.is_default_sale_unit}
-                    onChange={() => setDefault(idx, 'is_default_sale_unit')}
-                    aria-label="Default tier at the till"
+                    className={cn(field, 'font-semibold')}
+                    placeholder="e.g. Crate"
+                    value={t.name}
+                    onChange={(e) => update(idx, { name: e.target.value })}
                   />
-                </td>
-                <td className="p-2 text-center">
+                </label>
+                <label className="w-24 shrink-0">
+                  <span className={label}>{unit}s inside</span>
                   <input
-                    type="radio"
-                    name={`${group}-buy`}
-                    className="h-4 w-4 accent-primary"
-                    checked={t.is_default_purchase_unit}
-                    onChange={() => setDefault(idx, 'is_default_purchase_unit')}
-                    aria-label="Default tier on purchase orders"
+                    type="number"
+                    inputMode="numeric"
+                    min={2}
+                    step={1}
+                    className={field}
+                    placeholder="e.g. 24"
+                    value={t.units_per_tier}
+                    onWheel={blurOnWheel}
+                    onChange={(e) => update(idx, { units_per_tier: e.target.value })}
+                    onBlur={() => normaliseUnits(idx)}
                   />
-                </td>
-                <td className="p-2 text-right">
-                  {!t.is_base_unit && (
-                    <button
-                      type="button"
-                      className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                      onClick={() => remove(idx)}
-                      aria-label={`Remove ${t.name || 'pack'}`}
-                    >
-                      <Icon icon="lucide:trash-2" className="text-[14px]" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] text-muted-foreground">
-          Sell or buy in packs? Add a pack and say how many {unitName || 'units'} are inside. <b>Sell</b> / <b>Buy</b> pick the default at the till and on purchase orders.
-        </p>
-        <button
-          type="button"
-          onClick={() => onChange([...tiers, makePackTier()])}
-          className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-border text-xs font-semibold hover:bg-muted"
-        >
-          <Icon icon="fluent:add-12-filled" className="text-[13px]" /> Add pack
-        </button>
-      </div>
+                </label>
+              </div>
+            )}
+
+            {/* Prices */}
+            <label className="w-[8.5rem] shrink-0">
+              <span className={label}>Retail price</span>
+              <PriceInput
+                value={t.retail_price}
+                onChange={(v) => update(idx, { retail_price: v })}
+                cost={cost}
+                units={t.is_base_unit ? 1 : t.units_per_tier}
+                placeholder={t.key === saleKey ? 'Required' : 'Optional'}
+                ariaLabel={`Retail price per ${tierLabel(t, unit)}`}
+              />
+            </label>
+            <label className="w-[8.5rem] shrink-0">
+              <span className={label}>Wholesale</span>
+              <PriceInput
+                value={t.wholesale_price}
+                onChange={(v) => update(idx, { wholesale_price: v })}
+                cost={cost}
+                units={t.is_base_unit ? 1 : t.units_per_tier}
+                placeholder="Optional"
+                ariaLabel={`Wholesale price per ${tierLabel(t, unit)}`}
+              />
+            </label>
+
+            {!t.is_base_unit && (
+              <button
+                type="button"
+                className="ml-auto h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => remove(idx)}
+                aria-label={`Remove ${tierLabel(t, unit)}`}
+                title="Remove this pack size"
+              >
+                <Icon icon="lucide:trash-2" className="text-[14px]" />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onChange([...tiers, makePackTier()])}
+        className="w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-xl border border-dashed border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      >
+        <Icon icon="fluent:add-12-filled" className="text-[13px]" /> Add a pack size (e.g. crate of 24)
+      </button>
+
+      {/* Defaults only mean something once there's more than one size */}
+      {tiers.length > 1 && (
+        <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label>
+              <span className={label}>Sold at the till by default as</span>
+              <select className={field} value={saleKey} onChange={(e) => setDefault(e.target.value, 'is_default_sale_unit')}>
+                {tiers.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {tierLabel(t, unit)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className={label}>Ordered from suppliers by default as</span>
+              <select className={field} value={buyKey} onChange={(e) => setDefault(e.target.value, 'is_default_purchase_unit')}>
+                {tiers.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {tierLabel(t, unit)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            e.g. sell by the {unit}, order by the crate. To let cashiers choose the size at the till, set "How it's sold" to Units or packs.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
