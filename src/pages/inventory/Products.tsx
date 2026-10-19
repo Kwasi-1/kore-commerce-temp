@@ -67,6 +67,8 @@ export default function Products() {
   const [categoryFilter, setCategoryFilter] = useState<Selection>(
     new Set(["all"]),
   );
+  const [brandFilter, setBrandFilter] = useState<Selection>(new Set(["all"]));
+  const [brands, setBrands] = useState<string[]>([]);
   const [channelFilter, setChannelFilter] = useState<"all" | "online" | "in_store">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -152,6 +154,10 @@ export default function Products() {
           : categoryFilter;
       if (categoryVal && categoryVal !== "all")
         url += `&category=${categoryVal}`;
+      const brandVal =
+        brandFilter instanceof Set ? Array.from(brandFilter)[0] : brandFilter;
+      if (brandVal && brandVal !== "all")
+        url += `&brand=${encodeURIComponent(String(brandVal))}`;
       if (hasEcommerce && channelFilter !== "all") {
         url += `&channel=${channelFilter}`;
       }
@@ -194,6 +200,12 @@ export default function Products() {
     } catch (err) {
       console.error('Failed to fetch categories:', err);
     }
+    try {
+      const res = await apiClient.get('/tenant/products/brands');
+      setBrands(res.data.success?.data?.brands || []);
+    } catch (err) {
+      console.error('Failed to fetch brands:', err);
+    }
   };
 
   useEffect(() => {
@@ -205,7 +217,7 @@ export default function Products() {
       fetchProducts(1, false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, categoryFilter, channelFilter]);
+  }, [searchQuery, statusFilter, categoryFilter, brandFilter, channelFilter]);
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
@@ -1435,6 +1447,19 @@ export default function Products() {
               ...categories.map((c) => ({ uid: c, name: c })),
             ],
           },
+          ...(brands.length > 0
+            ? [
+                {
+                  label: "Brand",
+                  value: brandFilter,
+                  onChange: (keys: any) => setBrandFilter(keys),
+                  options: [
+                    { uid: "all", name: "All Brands" },
+                    ...brands.map((b) => ({ uid: b, name: b })),
+                  ],
+                },
+              ]
+            : []),
         ]}
         // Actions
         showAddButton={false}

@@ -59,7 +59,7 @@ const Discounts = lazyWithRetry(() => import('@/pages/ecommerce/Discounts'));
 
 // Reports
 const SalesSummary = lazyWithRetry(() => import('@/pages/reports/SalesSummary'));
-const ProductReport = lazyWithRetry(() => import('@/pages/reports/ProductReport'));
+const ProductReport = lazyWithRetry(() => import('@/pages/reports/product-report'));
 const CashierReport = lazyWithRetry(() => import('@/pages/reports/CashierReport'));
 const EndOfDay = lazyWithRetry(() => import('@/pages/reports/EndOfDay'));
 

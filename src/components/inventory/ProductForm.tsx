@@ -255,6 +255,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
+  const [brandOptions, setBrandOptions] = useState<string[]>([]);
   const [status, setStatus] = useState("active");
   const [hasVariants, setHasVariants] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -361,6 +363,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
       setCategories(merged);
     }).catch(console.error);
 
+    apiClient.get("/tenant/products/brands").then((res) => {
+      setBrandOptions(res.data.success?.data?.brands || []);
+    }).catch(() => setBrandOptions([]));
+
     apiClient.get("/tenant/settings").then((res) => {
       const storeData = res.data.success?.data?.store || {};
       setTrackExpiryEnabled(storeData.track_expiry_enabled || false);
@@ -377,6 +383,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           setName(fullProduct.name || "");
           setDescription(fullProduct.description || "");
           setCategory(fullProduct.category || "");
+          setBrand(fullProduct.brand || "");
           setStatus(fullProduct.status || "active");
           setHasVariants(fullProduct.has_variants || false);
           
@@ -847,6 +854,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
         name: name.trim(),
         description: description?.trim() || "",
         category,
+        brand: brand.trim() || null,
         status,
         tags: tags.map(t => t.trim()).filter(Boolean),
         has_variants: hasVariants,
@@ -964,6 +972,20 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
             required
             placeholder="e.g. Coca-Cola Drink"
           />
+
+          <CustomInputTextField
+            label="Brand (Optional)"
+            name="brand"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            placeholder="e.g. Kalypo — used to group and compare products in reports"
+            inputProps={{ list: "product-brand-options", maxLength: 100, autoComplete: "off" }}
+          />
+          <datalist id="product-brand-options">
+            {brandOptions.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <CreatableCategorySelect

@@ -1288,22 +1288,6 @@ export function setupMockApi() {
     }
   });
 
-  // Product Report
-  mock.onGet(/\/tenant\/reports\/products/).reply(200, {
-    success: {
-      status: 'OK',
-      code: 200,
-      data: {
-        products: [
-          { id: 'p1', name: 'Nike Air Max', units_sold: 12, revenue: 10200.00, cogs: 6000.00, margin: 41.18 },
-          { id: 'p2', name: 'Adidas Ultraboost', units_sold: 8, revenue: 7360.00, cogs: 4800.00, margin: 34.78 },
-          { id: 'p3', name: 'Apple AirPods Pro', units_sold: 5, revenue: 17500.00, cogs: 14000.00, margin: 20.00 },
-          { id: 'p4', name: 'Sony WH-1000XM4', units_sold: 4, revenue: 16800.00, cogs: 12400.00, margin: 26.19 }
-        ]
-      }
-    }
-  });
-
   // Sales Summary
   mock.onGet(/\/tenant\/reports\/sales/).reply(200, {
     success: {
@@ -1326,6 +1310,57 @@ export function setupMockApi() {
   // INVENTORY
   // -----------------------------------------------------
   
+  const mockProductGroups: any[] = [
+    {
+      id: 'grp-kalypo',
+      name: 'Kalypo flavours',
+      description: 'All Kalypo juice drinks',
+      color: null,
+      item_count: 6,
+      product_ids: ['p-kal-mango', 'p-kal-pine', 'p-kal-orange', 'p-kal-apple', 'p-kal-cocktail', 'p-kal-coconut'],
+      variant_ids: [],
+    },
+  ];
+
+  // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  mock.onGet(/\/tenant\/products\/brands$/).reply(200, {
+    success: { status: 'OK', code: 200, data: { brands: ['Coca-Cola', 'Kalypo', 'Logitech', 'Nestlé', 'Voltic'] } },
+  });
+  mock.onGet(/\/tenant\/products\/categories$/).reply(200, {
+    success: { status: 'OK', code: 200, data: { categories: ['Bakery', 'Beverages', 'Electronics', 'Fashion', 'Grocery'] } },
+  });
+
+  // Product groups (saved comparison sets for the product report)
+  mock.onGet(/\/tenant\/product-groups$/).reply(() => [200, { success: { status: 'OK', code: 200, data: { groups: mockProductGroups } } }]);
+  mock.onPost(/\/tenant\/product-groups$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const group = {
+      id: `grp-${Date.now()}`,
+      name: body.name,
+      description: body.description || null,
+      color: null,
+      product_ids: body.product_ids || [],
+      variant_ids: body.variant_ids || [],
+      item_count: (body.product_ids || []).length + (body.variant_ids || []).length,
+    };
+    mockProductGroups.push(group);
+    return [201, { success: { status: 'CREATED', code: 201, data: { group } } }];
+  });
+  mock.onPatch(/\/tenant\/product-groups\/[^/]+$/).reply((config) => {
+    const id = (config.url || '').split('/').pop();
+    const group = mockProductGroups.find((g) => g.id === id);
+    if (!group) return [404, { error: { status: 'NOT_FOUND', message: 'Product group not found', code: 404 } }];
+    Object.assign(group, JSON.parse(config.data || '{}'));
+    group.item_count = group.product_ids.length + group.variant_ids.length;
+    return [200, { success: { status: 'OK', code: 200, data: { group } } }];
+  });
+  mock.onDelete(/\/tenant\/product-groups\/[^/]+$/).reply((config) => {
+    const id = (config.url || '').split('/').pop();
+    const idx = mockProductGroups.findIndex((g) => g.id === id);
+    if (idx >= 0) mockProductGroups.splice(idx, 1);
+    return [200, { success: { status: 'OK', code: 200, message: 'Product group deleted' } }];
+  });
+
   mock.onGet(/\/tenant\/products\/[^/]+$/).reply((config) => {
     const url = config.url || '';
     const id = url.split('/').pop() || '';
@@ -5333,178 +5368,202 @@ export function setupMockApi() {
     ];
   });
 
-  // GET /tenant/reports/products
+  // GET /tenant/reports/products (+ /trend) — demo catalog incl. a "Kalypo" brand with flavour SKUs
+  const REPORT_CATALOG = [
+    { id: 'v-kal-mango', product_id: 'p-kal-mango', name: 'Kalypo Mango', variant_label: null, sku: 'KAL-MAN', category: 'Beverages', brand: 'Kalypo', cost: 3.2, price: 5, stock: 18, threshold: 24, units: 142, prevUnits: 120 },
+    { id: 'v-kal-pine', product_id: 'p-kal-pine', name: 'Kalypo Pineapple', variant_label: null, sku: 'KAL-PIN', category: 'Beverages', brand: 'Kalypo', cost: 3.2, price: 5, stock: 60, threshold: 24, units: 96, prevUnits: 101 },
+    { id: 'v-kal-orange', product_id: 'p-kal-orange', name: 'Kalypo Orange', variant_label: null, sku: 'KAL-ORA', category: 'Beverages', brand: 'Kalypo', cost: 3.2, price: 5, stock: 44, threshold: 24, units: 71, prevUnits: 88 },
+    { id: 'v-kal-apple', product_id: 'p-kal-apple', name: 'Kalypo Apple', variant_label: null, sku: 'KAL-APP', category: 'Beverages', brand: 'Kalypo', cost: 3.2, price: 5, stock: 72, threshold: 24, units: 38, prevUnits: 35 },
+    { id: 'v-kal-cocktail', product_id: 'p-kal-cocktail', name: 'Kalypo Cocktail', variant_label: null, sku: 'KAL-COC', category: 'Beverages', brand: 'Kalypo', cost: 3.2, price: 5, stock: 96, threshold: 24, units: 12, prevUnits: 30 },
+    { id: 'v-kal-coconut', product_id: 'p-kal-coconut', name: 'Kalypo Coconut', variant_label: null, sku: 'KAL-COCO', category: 'Beverages', brand: 'Kalypo', cost: 3.4, price: 5.5, stock: 48, threshold: 24, units: 0, prevUnits: 6 },
+    { id: 'v-coke-330', product_id: 'p-coke', name: 'Coca-Cola', variant_label: '330ml Can', sku: 'BEV-COK-330', category: 'Beverages', brand: 'Coca-Cola', cost: 4, price: 7, stock: 54, threshold: 10, units: 63, prevUnits: 58 },
+    { id: 'v-coke-15', product_id: 'p-coke', name: 'Coca-Cola', variant_label: '1.5L Bottle', sku: 'BEV-COK-1500', category: 'Beverages', brand: 'Coca-Cola', cost: 9, price: 14, stock: 6, threshold: 10, units: 27, prevUnits: 22 },
+    { id: 'v-voltic', product_id: 'p-voltic', name: 'Voltic Mineral Water', variant_label: '500ml', sku: 'WAT-VOL-01', category: 'Beverages', brand: 'Voltic', cost: 1.5, price: 3, stock: 140, threshold: 30, units: 120, prevUnits: 131 },
+    { id: 'v-tee-red-l', product_id: 'p-tee', name: 'Anime Cotton T-Shirt', variant_label: 'Red / L', sku: 'TSHIRT-RED-L', category: 'Fashion', brand: null, cost: 15, price: 34.5, stock: 10, threshold: 5, units: 51.9, prevUnits: 40 },
+    { id: 'v-tee-blu-m', product_id: 'p-tee', name: 'Anime Cotton T-Shirt', variant_label: 'Blue / M', sku: 'TSHIRT-BLU-M', category: 'Fashion', brand: null, cost: 15, price: 35, stock: 5, threshold: 5, units: 28.5, prevUnits: 31 },
+    { id: 'v-mouse', product_id: 'p-mouse', name: 'Wireless Mouse', variant_label: null, sku: 'ACC-MOU-03', category: 'Electronics', brand: 'Logitech', cost: null, price: 45, stock: 111, threshold: 15, units: 16, prevUnits: 9 },
+    { id: 'v-bread', product_id: 'p-bread', name: 'Sugar Bread', variant_label: null, sku: 'BRD-001', category: 'Bakery', brand: null, cost: 8, price: 12, stock: 4, threshold: 5, units: 33, prevUnits: 29 },
+    { id: 'v-nido', product_id: 'p-nido', name: 'Nido Milk', variant_label: '400g', sku: 'NID-002', category: 'Grocery', brand: 'Nestlé', cost: 35, price: 48, stock: 12, threshold: 5, units: 0, prevUnits: 2 },
+    { id: 'v-wallet', product_id: 'p-wallet', name: 'Premium Leather Wallet', variant_label: null, sku: 'ACC-WAL-05', category: 'Fashion', brand: null, cost: 40, price: 95, stock: 0, threshold: 3, units: 0, prevUnits: 1 },
+  ];
+  const reportScope = (url: URL) => {
+    const csv = (k: string) => (url.searchParams.get(k) || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const categories = csv('category');
+    const brands = csv('brand');
+    const vids = csv('variant_ids');
+    const pids = csv('product_ids');
+    const group = mockProductGroups.find((g) => g.id === url.searchParams.get('group_id'));
+    const search = (url.searchParams.get('search') || '').toLowerCase();
+    return REPORT_CATALOG.filter((c) => {
+      if (categories.length && !categories.includes(c.category.toLowerCase())) return false;
+      if (brands.length && !brands.includes((c.brand || '').toLowerCase())) return false;
+      if (group && !(group.variant_ids.includes(c.id) || group.product_ids.includes(c.product_id))) return false;
+      if ((vids.length || pids.length) && !(vids.includes(c.id) || pids.includes(c.product_id))) return false;
+      if (search && ![c.name, c.variant_label, c.sku, c.category, c.brand].join(' ').toLowerCase().includes(search)) return false;
+      return true;
+    });
+  };
+  const mockRollupKey = (c: (typeof REPORT_CATALOG)[number], by: string) =>
+    by === 'product' ? c.product_id : by === 'brand' ? `brand:${c.brand || 'No brand'}` : by === 'category' ? `category:${c.category}` : c.id;
+
+  mock.onGet(/\/tenant\/reports\/products\/trend/).reply((config) => {
+    const url = new URL(`http://localhost${config.url || ''}`);
+    const by = url.searchParams.get('group_by') || 'variant';
+    const items = reportScope(url);
+    const buckets = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      return d.toISOString().slice(0, 10);
+    });
+    const groups: Record<string, { label: string; units: number[] }> = {};
+    items.forEach((c, ci) => {
+      const key = mockRollupKey(c, by);
+      const label = by === 'brand' ? c.brand || 'No brand' : by === 'category' ? c.category : by === 'variant' && c.variant_label ? `${c.name} · ${c.variant_label}` : c.name;
+      const g = (groups[key] ||= { label, units: buckets.map(() => 0) });
+      buckets.forEach((_, bi) => {
+        const wave = 1 + 0.35 * Math.sin((bi + ci * 2) / 2);
+        g.units[bi] += Math.round(((c.units / 14) * wave) * 10) / 10;
+      });
+    });
+    const ranked = Object.entries(groups).sort((a, b) => b[1].units.reduce((s, x) => s + x, 0) - a[1].units.reduce((s, x) => s + x, 0)).filter(([, g]) => g.units.some((u) => u > 0));
+    const toSeries = (id: string, label: string, units: number[]) => ({
+      id,
+      label,
+      total_units: units.reduce((s, x) => s + x, 0),
+      points: buckets.map((date, i) => ({ date, units: units[i], revenue: 0 })),
+    });
+    const series = ranked.slice(0, 7).map(([id, g]) => toSeries(id, g.label, g.units));
+    const rest = ranked.slice(7);
+    if (rest.length) series.push(toSeries('others', `Others (${rest.length})`, buckets.map((_, i) => rest.reduce((s, [, g]) => s + g.units[i], 0))));
+    return [200, { success: { code: 200, data: { bucket: 'day', buckets, series } } }];
+  });
+
   mock.onGet(/\/tenant\/reports\/products/).reply((config) => {
     const url = new URL(`http://localhost${config.url || ''}`);
     const sort = url.searchParams.get('sort') || 'top_selling';
-    const search = (url.searchParams.get('search') || '').toLowerCase();
+    const by = url.searchParams.get('group_by') || 'variant';
+    const compare = url.searchParams.get('compare');
+    const comparing = compare === 'previous_period' || compare === 'previous_year';
+    const periodDays = 30;
+    const items = reportScope(url);
 
-    let products = [
-      {
-        id: 'p1',
-        name: 'Graphic Cotton T-Shirt',
-        sku: 'TSH-BLK-01',
-        category: 'Apparel',
-        image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=200',
-        units_sold: 30,
-        revenue: 1029.00,
-        cost_of_goods: 450.00,
-        cost_price: 15.00,
-        gross_profit: 579.00,
-        gross_margin: 56.3,
-        has_cost: true,
-        stock_quantity: 45,
-        low_stock_threshold: 5,
-        stock_status: 'in_stock'
-      },
-      {
-        id: 'p2',
-        name: 'Voltic Mineral Water 500ml',
-        sku: 'WAT-VOL-01',
-        category: 'Beverages',
-        image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200',
-        units_sold: 14,
-        revenue: 360.00,
-        cost_of_goods: 140.00,
-        cost_price: 10.00,
-        gross_profit: 220.00,
-        gross_margin: 61.1,
-        has_cost: true,
-        stock_quantity: 75,
-        low_stock_threshold: 10,
-        stock_status: 'in_stock'
-      },
-      {
-        id: 'p3',
-        name: 'Coca Cola 330ml Can',
-        sku: 'BEV-COK-02',
-        category: 'Beverages',
-        image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200',
-        units_sold: 13,
-        revenue: 506.50,
-        cost_of_goods: 260.00,
-        cost_price: 20.00,
-        gross_profit: 246.50,
-        gross_margin: 48.7,
-        has_cost: true,
-        stock_quantity: 54,
-        low_stock_threshold: 10,
-        stock_status: 'in_stock'
-      },
-      {
-        id: 'p4',
-        name: 'Wireless Mouse',
-        sku: 'ACC-MOU-03',
-        category: 'Accessories',
-        image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=200',
-        units_sold: 4,
-        revenue: 180.00,
-        cost_of_goods: 80.00,
-        cost_price: 20.00,
-        gross_profit: 100.00,
-        gross_margin: 55.6,
-        has_cost: true,
-        stock_quantity: 114,
-        low_stock_threshold: 15,
-        stock_status: 'in_stock'
-      },
-      {
-        id: 'p5',
-        name: 'Sugar Bread',
-        sku: 'BRD-001',
-        category: 'Bakery',
-        image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200',
-        units_sold: 3,
-        revenue: 36.00,
-        cost_of_goods: 24.00,
-        cost_price: 8.00,
-        gross_profit: 12.00,
-        gross_margin: 33.3,
-        has_cost: true,
-        stock_quantity: 4,
-        low_stock_threshold: 5,
-        stock_status: 'low_stock'
-      },
-      {
-        id: 'p6',
-        name: 'Nido Milk 400g',
-        sku: 'NID-002',
-        category: 'Groceries',
-        image: null,
-        units_sold: 0,
-        revenue: 0.00,
-        cost_of_goods: 0.00,
-        cost_price: 35.00,
-        gross_profit: 0.00,
-        gross_margin: null,
-        has_cost: true,
-        stock_quantity: 12,
-        low_stock_threshold: 5,
-        stock_status: 'in_stock'
-      },
-      {
-        id: 'p7',
-        name: 'Premium Leather Wallet',
-        sku: 'ACC-WAL-05',
-        category: 'Accessories',
-        image: null,
-        units_sold: 0,
-        revenue: 0.00,
-        cost_of_goods: 0.00,
-        cost_price: 40.00,
-        gross_profit: 0.00,
-        gross_margin: null,
-        has_cost: true,
-        stock_quantity: 0,
-        low_stock_threshold: 3,
-        stock_status: 'out_of_stock'
-      }
-    ];
-
-    if (search) {
-      products = products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search) ||
-          p.sku.toLowerCase().includes(search) ||
-          p.category.toLowerCase().includes(search)
-      );
-    }
-
-    if (sort === 'units_sold') {
-      products.sort((a, b) => b.units_sold - a.units_sold);
-    } else if (sort === 'margin') {
-      products.sort((a, b) => (b.gross_margin || -999) - (a.gross_margin || -999));
-    } else if (sort === 'slow_movers') {
-      products.sort((a, b) => a.units_sold - b.units_sold);
-    } else if (sort === 'low_stock') {
-      products.sort((a, b) => a.stock_quantity - b.stock_quantity);
-    } else {
-      products.sort((a, b) => b.revenue - a.revenue);
-    }
-
-    const summary = {
-      total_revenue: 2342.50,
-      total_units_sold: 66.5,
-      total_cogs: 541.05,
-      total_gross_profit: 1801.45,
-      overall_gross_margin_pct: 76.9,
-      cost_coverage_pct: 100,
-      unique_products_sold: 9,
-      total_catalog_products: 13
+    const pct = (cur: number, prev: number) => (prev === 0 ? (cur === 0 ? null : 100) : Math.round(((cur - prev) / prev) * 1000) / 10);
+    const insightOf = (units: number, stock: number, threshold: number) => {
+      const velocity = units / periodDays;
+      const cover = velocity > 0 ? stock / velocity : null;
+      if (units <= 0) return { insight: stock > 0 ? 'dead_stock' : 'inactive', cover, velocity };
+      if (stock <= threshold || (cover !== null && cover < 7)) return { insight: 'restock', cover, velocity };
+      if (cover !== null && cover > 90) return { insight: 'overstocked', cover, velocity };
+      return { insight: 'healthy', cover, velocity };
     };
 
-    return [
-      200,
-      {
-        success: {
-          code: 200,
-          data: {
-            summary,
-            products
-          }
-        }
+    const grouped: Record<string, any> = {};
+    items.forEach((c) => {
+      const key = mockRollupKey(c, by);
+      const revenue = c.units * c.price;
+      const cogs = c.cost !== null ? c.units * c.cost : 0;
+      const g = (grouped[key] ||= {
+        id: key,
+        variant_id: by === 'variant' ? c.id : null,
+        product_id: by === 'variant' || by === 'product' ? c.product_id : null,
+        name: by === 'brand' ? c.brand || 'No brand' : by === 'category' ? c.category : c.name,
+        variant_label: by === 'variant' ? c.variant_label : null,
+        sku: c.sku,
+        category: c.category,
+        brand: c.brand,
+        image: null,
+        units_sold: 0, revenue: 0, cogs: 0, costedRevenue: 0, has_cost: false,
+        stock_quantity: 0, low_stock_threshold: 0, prev_units: 0, prev_revenue: 0,
+        children_count: 0, children_needing_restock: 0,
+        cost_price: by === 'variant' ? c.cost : null,
+      });
+      g.units_sold += c.units;
+      g.revenue += revenue;
+      g.cogs += cogs;
+      g.costedRevenue += c.cost !== null ? revenue : 0;
+      g.has_cost = g.has_cost || c.cost !== null;
+      g.stock_quantity += c.stock;
+      g.low_stock_threshold += c.threshold;
+      g.prev_units += c.prevUnits;
+      g.prev_revenue += c.prevUnits * c.price;
+      g.children_count += 1;
+      if (insightOf(c.units, c.stock, c.threshold).insight === 'restock') g.children_needing_restock += 1;
+      if (g.children_count > 1) g.sku = by === 'product' ? `${g.children_count} variants` : `${g.children_count} items`;
+    });
+
+    const totalUnits = items.reduce((s, c) => s + c.units, 0);
+    const totalRevenue = items.reduce((s, c) => s + c.units * c.price, 0);
+    const products = Object.values(grouped).map((g: any) => {
+      const { insight, cover, velocity } = insightOf(g.units_sold, g.stock_quantity, g.low_stock_threshold);
+      const row: any = {
+        ...g,
+        revenue: Math.round(g.revenue * 100) / 100,
+        cost_of_goods: g.has_cost ? Math.round(g.cogs * 100) / 100 : null,
+        gross_profit: Math.round((g.revenue - g.cogs) * 100) / 100,
+        gross_margin: g.has_cost && g.costedRevenue > 0 ? Math.round(((g.costedRevenue - g.cogs) / g.costedRevenue) * 1000) / 10 : null,
+        stock_status: g.stock_quantity <= 0 ? 'out_of_stock' : g.stock_quantity <= g.low_stock_threshold ? 'low_stock' : 'in_stock',
+        units_share_pct: totalUnits ? Math.round((g.units_sold / totalUnits) * 1000) / 10 : 0,
+        revenue_share_pct: totalRevenue ? Math.round((g.revenue / totalRevenue) * 1000) / 10 : 0,
+        velocity_per_day: Math.round(velocity * 1000) / 1000,
+        days_of_cover: cover === null ? null : Math.round(cover * 10) / 10,
+        last_sold_at: g.units_sold > 0 ? new Date().toISOString() : null,
+        insight,
+      };
+      delete row.cogs;
+      delete row.costedRevenue;
+      if (comparing) {
+        row.units_change_pct = pct(g.units_sold, g.prev_units);
+        row.revenue_change_pct = pct(g.revenue, g.prev_revenue);
+      } else {
+        delete row.prev_units;
+        delete row.prev_revenue;
       }
-    ];
+      return row;
+    });
+
+    if (sort === 'units_sold') products.sort((a, b) => b.units_sold - a.units_sold);
+    else if (sort === 'margin') products.sort((a, b) => (b.gross_margin ?? -999) - (a.gross_margin ?? -999));
+    else if (sort === 'slow_movers') products.sort((a, b) => a.units_sold - b.units_sold || a.revenue - b.revenue);
+    else if (sort === 'low_stock') products.sort((a, b) => a.stock_quantity - b.stock_quantity);
+    else if (sort === 'decliners' && comparing) products.sort((a, b) => (a.units_change_pct ?? 0) - (b.units_change_pct ?? 0));
+    else products.sort((a, b) => b.revenue - a.revenue);
+
+    const totalCogs = items.reduce((s, c) => s + (c.cost !== null ? c.units * c.cost : 0), 0);
+    const costedRevenue = items.reduce((s, c) => s + (c.cost !== null ? c.units * c.price : 0), 0);
+    const prevUnits = items.reduce((s, c) => s + c.prevUnits, 0);
+    const prevRevenue = items.reduce((s, c) => s + c.prevUnits * c.price, 0);
+    const now = new Date();
+    const summary: any = {
+      total_revenue: Math.round(totalRevenue * 100) / 100,
+      total_units_sold: Math.round(totalUnits * 1000) / 1000,
+      total_cogs: Math.round(totalCogs * 100) / 100,
+      total_gross_profit: Math.round((totalRevenue - totalCogs) * 100) / 100,
+      overall_gross_margin_pct: totalRevenue ? Math.round(((totalRevenue - totalCogs) / totalRevenue) * 1000) / 10 : 0,
+      cost_coverage_pct: totalRevenue ? Math.round((costedRevenue / totalRevenue) * 1000) / 10 : 100,
+      unique_products_sold: items.filter((c) => c.units > 0).length,
+      total_catalog_products: REPORT_CATALOG.length,
+      filtered_item_count: items.length,
+      restock_count: items.filter((c) => insightOf(c.units, c.stock, c.threshold).insight === 'restock').length,
+      dead_stock_count: items.filter((c) => c.units <= 0 && c.stock > 0).length,
+      period_days: periodDays,
+      group_by: by,
+      filters_applied: {
+        ...(mockProductGroups.find((g) => g.id === url.searchParams.get('group_id'))
+          ? { group: { id: url.searchParams.get('group_id'), name: mockProductGroups.find((g) => g.id === url.searchParams.get('group_id'))!.name } }
+          : {}),
+      },
+      comparison: comparing
+        ? { mode: compare, start_date: new Date(now.getTime() - 60 * 86400000).toISOString(), end_date: new Date(now.getTime() - 30 * 86400000).toISOString() }
+        : null,
+    };
+    if (comparing) {
+      summary.prev_total_revenue = Math.round(prevRevenue * 100) / 100;
+      summary.prev_total_units_sold = prevUnits;
+      summary.revenue_change_pct = pct(totalRevenue, prevRevenue);
+      summary.units_change_pct = pct(totalUnits, prevUnits);
+    }
+
+    return [200, { success: { code: 200, data: { summary, products } } }];
   });
 
   // GET /tenant/reports/cashiers

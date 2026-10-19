@@ -41,7 +41,7 @@ export function usePrefetchModules() {
       if (modules.reports) {
         prefetchQueue.push(
           () => import('@/pages/reports/SalesSummary'),
-          () => import('@/pages/reports/ProductReport'),
+          () => import('@/pages/reports/product-report'),
           () => import('@/pages/reports/CashierReport'),
           () => import('@/pages/reports/EndOfDay'),
         );
