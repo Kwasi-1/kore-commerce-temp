@@ -1,5 +1,6 @@
 import { useState, useEffect, useTransition, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
@@ -339,13 +340,37 @@ export default function Sidebar() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  return (
-    <aside
-      className={clsx(
-        "h-full bg-[#121316] dark:bg-sidebar text-white flex-col transition-all duration-300 relative hidden md:flex select-none",
-        isCollapsed ? "w-20" : "w-64"
-      )}
-    >
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1280);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1280);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Auto-collapse drawer on navigation for screens below xl (< 1280px)
+  const handleNavigate = (to: string) => {
+    startTransition(() => navigate(to));
+    if (!isDesktop) {
+      setIsCollapsed(true);
+    }
+  };
+
+  // Close drawer on Escape key press on tablet screens (< 1280px)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isCollapsed && !isDesktop) {
+        setIsCollapsed(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCollapsed, isDesktop, setIsCollapsed]);
+
+  const renderSidebarBody = (isExpanded: boolean) => (
+    <>
       {/* Slim top loading bar during transitions (debounced to eliminate micro-flashes) */}
       <div
         className={clsx(
@@ -357,7 +382,7 @@ export default function Sidebar() {
 
       {/* --- Top Header / Company Card --- */}
       <div className="p-3">
-        {!isCollapsed ? (
+        {isExpanded ? (
           <div className="bg-white/[3%] border border-[#1a1b1e] rounded-xl p-3 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-9 w-9 rounded-[0.6rem] bg-primary text-zinc-950 font-black text-base flex items-center justify-center shadow-md shrink-0 overflow-hidden p1">
@@ -394,7 +419,7 @@ export default function Sidebar() {
           <div
             onClick={() => setIsCollapsed(false)}
             title="Expand sidebar"
-            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-3 overflow-hidden p1.5"
+            className="h-10 w-10 mx-auto rounded-xl bg-primary text-zinc-950 font-black text-lg flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-transform mt-3 overflow-hidden"
           >
             {!logoError ? (
               <img
@@ -433,7 +458,7 @@ export default function Sidebar() {
           const isOpen = openSections[section.title];
           const SectionIcon = section.icon;
 
-          if (isCollapsed) {
+          if (!isExpanded) {
             // --- Collapsed State ---
             return (
               <div key={section.title} className="flex flex-col items-center gap-1.5 py-1">
@@ -444,7 +469,7 @@ export default function Sidebar() {
                   return (
                     <button
                       key={item.name}
-                      onClick={() => startTransition(() => navigate(item.to))}
+                      onClick={() => handleNavigate(item.to)}
                       title={item.name}
                       className={clsx(
                         "relative min-h-10 min-w-10 p-3 rounded-xl flex items-center justify-center transition-all",
@@ -481,7 +506,7 @@ export default function Sidebar() {
                     onClick={() => {
                       setOpenSections((prev) => ({ ...prev, [section.title]: true }));
                       if (visibleItems[0]?.to) {
-                        startTransition(() => navigate(visibleItems[0].to));
+                        handleNavigate(visibleItems[0].to);
                       }
                     }}
                     className={clsx(
@@ -525,7 +550,7 @@ export default function Sidebar() {
                         return (
                           <button
                             key={item.name}
-                            onClick={() => startTransition(() => navigate(item.to))}
+                            onClick={() => handleNavigate(item.to)}
                             className={clsx(
                               "relative flex items-center justify-between w-full px-3 py-2 rounded-md text-[12px] tracking-wide font-medium transition-all group",
                               isActive
@@ -561,7 +586,7 @@ export default function Sidebar() {
                   return (
                     <button
                       type="button"
-                      onClick={() => startTransition(() => navigate(singleItem.to))}
+                      onClick={() => handleNavigate(singleItem.to)}
                       className={clsx(
                         "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs lg:text-sm font-bold capitalize tracking-wider transition-all",
                         isActive
@@ -595,15 +620,16 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
       {/* Grace Period Warning Banner */}
-      {!isCollapsed && <PlanGraceBanner />}
+      {isExpanded && <PlanGraceBanner />}
 
       {/* --- Bottom User Profile Card --- */}
       <div className="p-3 mt-auto">
-        {!isCollapsed ? (
+        {isExpanded ? (
           <div className="bg-white/[4%] border border-[#1a1b1e] hover:border-white/10 rounded-xl p-2.5 flex items-center justify-between shadow-sm transition-all">
             <div
-              onClick={() => startTransition(() => navigate('/settings/account'))}
+              onClick={() => handleNavigate('/settings/account')}
               className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1 group"
               title="View Account Settings"
             >
@@ -633,7 +659,7 @@ export default function Sidebar() {
           </div>
         ) : (
           <button
-            onClick={() => startTransition(() => navigate('/settings/account'))}
+            onClick={() => handleNavigate('/settings/account')}
             title="Account Settings"
             className="h-10 w-10 mx-auto rounded-2xl bg-[#1a1b1e] border border-white/5 text-zinc-400 hover:text-primary flex items-center justify-center transition-colors"
           >
@@ -641,6 +667,56 @@ export default function Sidebar() {
           </button>
         )}
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Tablet Slide-Over Drawer (< xl) using Framer Motion slide-in and slide-out */}
+      <AnimatePresence>
+        {!isCollapsed && !isDesktop && (
+          <>
+            {/* Dimmed backdrop */}
+            <motion.div
+              key="tablet-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsCollapsed(true)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-[2px] z-40 xl:hidden cursor-pointer"
+              aria-hidden="true"
+            />
+
+            {/* Slide-over floating drawer */}
+            <motion.aside
+              key="tablet-drawer"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed inset-y-0 left-0 z-50 w-64 bg-[#121316] dark:bg-sidebar text-white flex flex-col shadow-2xl border-r border-white/10 xl:hidden select-none"
+            >
+              {renderSidebarBody(true)}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* In-flow Sidebar:
+          - On tablet (< xl): stays locked at w-20 rail, never changing in-flow width!
+          - On desktop (>= xl): in-flow collapsible sidebar (w-20 <-> w-64) with smooth transition
+      */}
+      <aside
+        className={clsx(
+          "h-full bg-[#121316] dark:bg-sidebar text-white flex-col select-none hidden md:flex relative z-auto",
+          isDesktop
+            ? clsx("transition-all duration-300", isCollapsed ? "w-20" : "w-64")
+            : "w-20"
+        )}
+      >
+        {renderSidebarBody(isDesktop ? !isCollapsed : false)}
+      </aside>
+    </>
   );
 }
