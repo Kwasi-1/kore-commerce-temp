@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Users,
   Clock,
+  Calendar,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -632,8 +633,24 @@ export default function Transactions() {
 
   return (
     <PageLayout
-      title={isCashier ? `POS Transactions` : "POS Transactions"}
-      subtitle={isCashier ? `Shift View: ${staffUser?.name}` : null}
+      title="POS Transactions"
+      subtitle={
+        isCashier ? (
+          <span className="inline-flex items-center gap-2 flex-wrap">
+            <span>
+              Shift View:{" "}
+              <span className="capitalize font-semibold text-foreground">
+                {staffUser?.name || "Cashier"}
+              </span>
+            </span>
+            <span className="text-muted-foreground/50">&bull;</span>
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground font-medium">
+              <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>Today, {format(new Date(), "EEEE, MMMM d, yyyy")}</span>
+            </span>
+          </span>
+        ) : null
+      }
       constrainHeight={true}
     >
 
@@ -644,7 +661,7 @@ export default function Transactions() {
         {/* 1. Hero Balance / Revenue Card + Metric Carousel */}
         <MobileHeroCard
           title={isCashier ? "My Sales" : "Total Sales"}
-          badge={dateFilter.active?.replace('_', ' ') || 'Today'}
+          badge={isCashier ? `Today • ${format(new Date(), 'MMM d')}` : (dateFilter.active?.replace('_', ' ') || 'Today')}
           value={<CurrencyDisplay amount={stats.total} className="!tracking-normal"/>}
           isLoading={isLoading}
         >
@@ -1098,7 +1115,9 @@ export default function Transactions() {
             searchQuery.trim() ||
             Array.from(paymentFilter as Set<string>)[0] !== "all"
               ? "Try clearing the payment filter or search to see more results."
-              : "Adjust the date filter if you want to check a different period."
+              : isCashier
+                ? `You have no transactions recorded yet for today (${format(new Date(), "MMM d, yyyy")}).`
+                : "Adjust the date filter if you want to check a different period."
           }
           showSearch={true}
           searchPlaceholder={
