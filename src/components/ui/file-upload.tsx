@@ -86,49 +86,48 @@ export function FileUpload({
     return null;
   };
 
-  const handleFiles = (files: FileList | null) => {
+  const readPreview = (file: File) =>
+    new Promise<string | undefined>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : undefined);
+      reader.onerror = () => resolve(undefined);
+      reader.readAsDataURL(file);
+    });
+
+  const handleFiles = async (files: FileList | null) => {
     if (!files || disabled) return;
 
-    const newFiles: UploadedFile[] = [];
+    const accepted: File[] = [];
     const errors: string[] = [];
 
     Array.from(files).forEach((file) => {
-      if (value.length + newFiles.length >= maxFiles) {
+      if (value.length + accepted.length >= maxFiles) {
         errors.push(`Maximum ${maxFiles} files allowed`);
         return;
       }
-
       const error = validateFile(file);
       if (error) {
         errors.push(`${file.name}: ${error}`);
         return;
       }
-
-      const uploadedFile: UploadedFile = {
-        id: Math.random().toString(36).substring(7),
-        file,
-      };
-
-      // Create preview for images
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          uploadedFile.preview = reader.result as string;
-          onChange?.([...value, uploadedFile]);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        newFiles.push(uploadedFile);
-      }
+      accepted.push(file);
     });
-
-    if (newFiles.length > 0) {
-      onChange?.([...value, ...newFiles]);
-    }
 
     if (errors.length > 0 && onError) {
       onError(errors[0]);
     }
+    if (accepted.length === 0) return;
+
+    // Read every image preview first, then emit ONE change. Emitting per file from each
+    // reader callback used a stale `value`, so only the last file of a multi-select survived.
+    const newFiles: UploadedFile[] = await Promise.all(
+      accepted.map(async (file) => ({
+        id: Math.random().toString(36).substring(2, 10),
+        file,
+        preview: file.type.startsWith("image/") ? await readPreview(file) : undefined,
+      })),
+    );
+    onChange?.([...value, ...newFiles]);
   };
 
   const handleDragOver = (e: React.DragEvent) => {

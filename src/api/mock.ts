@@ -1598,6 +1598,18 @@ export function setupMockApi() {
     }];
   });
 
+  // PATCH /tenant/products/:id/variant-images — link variants to gallery images
+  mock.onPatch(/\/tenant\/products\/[^/]+\/variant-images$/).reply((config) => {
+    const id = (config.url || '').split('/').slice(-2)[0];
+    const body = JSON.parse(config.data || '{}');
+    const product = mockProducts.find(p => p.id === id);
+    (body.images || []).forEach((item: any) => {
+      const v = product?.variants?.find((x: any) => x.id === item.variant_id || x.sku === item.sku);
+      if (v) v.image_url = item.image_url || null;
+    });
+    return [200, { success: { status: 'OK', code: 200, data: { product } } }];
+  });
+
   mock.onPost('/tenant/products').reply((config) => {
     const payload = JSON.parse(config.data);
     const newId = `p${Date.now()}`;
@@ -1614,6 +1626,8 @@ export function setupMockApi() {
         low_stock_threshold: Number(v.low_stock_threshold) || 5,
         sell_mode: v.sell_mode || 'unit_only',
         track_expiry: !!v.track_expiry,
+          image_url: v.image_url || null,
+          is_active: true,
         packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
           id: t.id || `tier-${newId}-${index}-${tIdx}`,
           name: t.name,
@@ -1637,6 +1651,8 @@ export function setupMockApi() {
           low_stock_threshold: Number(v.low_stock_threshold) || 5,
           sell_mode: v.sell_mode || 'unit_only',
           track_expiry: !!v.track_expiry,
+          image_url: v.image_url || null,
+          is_active: true,
           packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
             id: t.id || `tier-${newId}-${tIdx}`,
             name: t.name,
@@ -1698,6 +1714,8 @@ export function setupMockApi() {
           low_stock_threshold: Number(v.low_stock_threshold) || 5,
           sell_mode: v.sell_mode || 'unit_only',
           track_expiry: !!v.track_expiry,
+          image_url: v.image_url || null,
+          is_active: true,
           packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
             id: t.id || `tier-${id}-${index}-${tIdx}`,
             name: t.name,
@@ -1721,6 +1739,8 @@ export function setupMockApi() {
             low_stock_threshold: Number(v.low_stock_threshold) || 5,
             sell_mode: v.sell_mode || 'unit_only',
             track_expiry: !!v.track_expiry,
+          image_url: v.image_url || null,
+          is_active: true,
             packaging_tiers: (v.packaging_tiers || []).map((t: any, tIdx: number) => ({
               id: t.id || `tier-${id}-${tIdx}`,
               name: t.name,

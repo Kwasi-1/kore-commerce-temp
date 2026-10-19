@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { simpleSearch } from '@/lib/searchUtils';
-import { 
-  CustomInputTextField, 
-  CustomSelectField, 
-  CustomTextareaField 
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CustomInputTextField,
+  CustomSelectField,
+  CustomTextareaField
 } from "@/components/shared/text-field";
 import { FileUpload, UploadedFile } from "@/components/ui/file-upload";
 import { Icon } from "@iconify/react/dist/iconify.js";
@@ -14,244 +13,86 @@ import toast from "react-hot-toast";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { PillSidebar } from "../shared/pill-sidebar";
+import CustomModal from "@/components/modals/modal";
+import CreatableCategorySelect from "./product-form/CategorySelect";
+import PriceInput from "./product-form/PriceInput";
+import TiersEditor from "./product-form/TiersEditor";
+import VariantsTable from "./product-form/VariantsTable";
+import SellModePicker from "./product-form/SellModePicker";
+import type { AttributeRow, FormErrors, GalleryImage, ImageRef, SellMode, TierRow, VariantRow } from "./product-form/types";
+import {
+  blurOnWheel,
+  cartesian,
+  comboKey,
+  enterToNextField,
+  generateSimpleSku,
+  generateVariantSku,
+  hasErrors,
+  makeBaseTier,
+  marginInfo,
+  namePrefix,
+  newKey,
+  parseOptions,
+  randomCode,
+  saleTierIndex,
+  setSaleTierRetail,
+  tiersFromServer,
+  tiersToPayload,
+  toNum,
+  validateForm,
+  variantLabel,
+} from "./product-form/utils";
 
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+export interface ProductSaveResult {
+  productId: string;
+  created: boolean;
+  /** Set when the product saved but a follow-up step (images) failed. */
+  warning?: string;
+}
 
 interface ProductFormProps {
+  /** Full product (with variants) when editing, as returned by GET /tenant/products/:id. */
   initialData?: any;
-  onSuccess: () => void;
+  onSuccess: (result: ProductSaveResult) => void;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-const generateSkuFromName = (prodName: string, suffix?: string) => {
-  if (!prodName || !prodName.trim()) {
-    const rand = Math.floor(100 + Math.random() * 900);
-    return suffix ? `PRD-${suffix.toUpperCase()}-${rand}` : `PRD-${rand}`;
-  }
-  const words = prodName
-    .trim()
-    .split(/[\s\-_/]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w.replace(/[^A-Za-z0-9]/g, "").slice(0, 5).toUpperCase())
-    .filter(Boolean);
+const DEFAULT_CATEGORIES = ["Beverages", "Bakery", "Dairy", "Grocery", "Fashion", "Electronics", "Snacks", "General"];
 
-  const prefix = words.join("-") || "PRD";
-  const rand = Math.floor(100 + Math.random() * 900);
-  return suffix ? `${prefix}-${suffix.toUpperCase()}-${rand}` : `${prefix}-${rand}`;
-};
+const emptyErrors: FormErrors = { variants: {} };
 
-function CreatableCategorySelect({
-  value,
-  onChange,
-  categories,
-  onAddCategory,
-  error,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  categories: string[];
-  onAddCategory: (newCat: string) => void;
-  error?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+const newAttribute = (name = ""): AttributeRow => ({ key: newKey(), name, values: "" });
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return categories;
-    return simpleSearch(categories, search, [(c) => c]);
-  }, [categories, search]);
-
-  const exactMatch = categories.some(
-    (c) => c.toLowerCase() === search.trim().toLowerCase()
-  );
-
-  const handleSelect = (cat: string) => {
-    onChange(cat);
-    setSearch("");
-    setOpen(false);
-  };
-
-  const handleCreate = () => {
-    const trimmed = search.trim();
-    if (!trimmed) return;
-    onAddCategory(trimmed);
-    onChange(trimmed);
-    setSearch("");
-    setOpen(false);
-  };
-
-  const hasValue = Boolean(value);
-
-  return (
-    <div className="relative w-full font-header">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "w-full text-left rounded-lg border border-input bg-card px-3.5 h-[3.5rem] relative flex items-center justify-between transition-all duration-200 outline-none focus:outline-none focus:ring-0",
-              open && "border-foreground/30",
-              error && "border-destructive"
-            )}
-          >
-            {/* Floating Label */}
-            <span
-              className={cn(
-                "absolute left-3.5 transition-all duration-200 pointer-events-none text-muted-foreground",
-                hasValue || open
-                  ? "top-2 text-[10px] uppercase font-bold tracking-wider"
-                  : "top-1/2 -translate-y-1/2 text-sm"
-              )}
-            >
-              Category <span className="text-red-500">*</span>
-            </span>
-
-            {/* Selected Value */}
-            <span
-              className={cn(
-                "text-sm font-semibold text-foreground pt-4 truncate",
-                !hasValue && "opacity-0"
-              )}
-            >
-              {value || "Select Category"}
-            </span>
-
-            <Icon
-              icon="lucide:chevrons-up-down"
-              className="text-muted-foreground h-4 w-4 shrink-0 ml-2"
-            />
-          </button>
-        </PopoverTrigger>
-
-        <PopoverContent
-          align="start"
-          sideOffset={6}
-          className="w-[calc(100vw-2rem)] sm:w-[320px] p-2 rounded-xl shadow-xl border border-border bg-card z-50"
-        >
-          {/* Search bar inside popover */}
-          <div className="flex items-center gap-2 px-2.5 py-1.5 border border-border rounded-lg bg-muted/20 mb-2">
-            <Icon icon="lucide:search" className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search or type new category..."
-              className="w-full bg-transparent text-xs text-foreground focus:outline-none placeholder:text-muted-foreground"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (!exactMatch && search.trim()) {
-                    handleCreate();
-                  } else if (filtered.length > 0) {
-                    handleSelect(filtered[0]);
-                  }
-                }
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Icon icon="lucide:x" className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Options List */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
-            {filtered.map((cat) => {
-              const isSelected = cat.toLowerCase() === value.toLowerCase();
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => handleSelect(cat)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors font-medium",
-                    isSelected
-                      ? "bg-muted font-semibold text-foreground"
-                      : "text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <span className="truncate">{cat}</span>
-                  {isSelected && <Icon icon="lucide:check" className="h-3.5 w-3.5 shrink-0 text-foreground" />}
-                </button>
-              );
-            })}
-
-            {filtered.length === 0 && !search.trim() && (
-              <p className="text-center text-xs text-muted-foreground py-4">
-                No categories available.
-              </p>
-            )}
-
-            {/* Creatable option if typed text is new */}
-            {search.trim() && !exactMatch && (
-              <button
-                type="button"
-                onClick={handleCreate}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-foreground font-medium bg-muted/40 hover:bg-muted border border-dashed border-border mt-1.5 transition-colors"
-              >
-                <Icon icon="lucide:plus" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">
-                  Create <strong className="font-semibold text-foreground">"{search.trim()}"</strong>
-                </span>
-              </button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-      {error && <span className="text-destructive text-xs mt-1 block">{error}</span>}
-    </div>
-  );
-}
-
-export default function ProductForm({ initialData, onSuccess, onCancel }: ProductFormProps) {
+export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyChange }: ProductFormProps) {
   const isEditing = !!initialData;
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Section refs for anchor navigation
+  const [isSaving, setIsSaving] = useState(false);
+
+  // ── Section navigation ──────────────────────────────────────────────────
   const basicInfoRef = useRef<HTMLDivElement>(null);
+  const imagesRef = useRef<HTMLDivElement>(null);
   const configRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
-  const imagesRef = useRef<HTMLDivElement>(null);
-
   const [activeSection, setActiveSection] = useState("basic");
-
   const sidebarOptions = [
     { key: "basic", label: "Basic Info" },
-    { key: "config", label: "Configuration" },
-    { key: "pricing", label: "Pricing & Inventory" },
-    { key: "images", label: "Images" }
+    { key: "images", label: "Images" },
+    { key: "config", label: "Variants" },
+    { key: "pricing", label: "Pricing & Stock" },
   ];
-
   const refsMap: Record<string, React.RefObject<HTMLDivElement>> = {
     basic: basicInfoRef,
+    images: imagesRef,
     config: configRef,
     pricing: pricingRef,
-    images: imagesRef
   };
-
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const handleNavClick = (key: string) => {
-    const targetRef = refsMap[key];
-    if (targetRef) {
-      setActiveSection(key);
-      scrollToSection(targetRef);
-    }
+    setActiveSection(key);
+    refsMap[key]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-
-  const [categories, setCategories] = useState<string[]>([]);
-  
-  // Basic Info States
+  // ── Basic info ──────────────────────────────────────────────────────────
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -261,13 +102,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
   const [hasVariants, setHasVariants] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>(
-    Array.isArray(initialData?.tags)
-      ? initialData.tags
-      : typeof initialData?.tags === 'string' && initialData.tags.trim()
-        ? initialData.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
-        : []
-  );
+  const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
   const addCurrentTag = () => {
@@ -291,77 +126,38 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     }
   };
 
-  const removeTag = (idx: number) => {
-    setTags(prev => prev.filter((_, i) => i !== idx));
-  };
-
   // Settings
   const { tenant } = useAuthStore();
   const [trackExpiryEnabled, setTrackExpiryEnabled] = useState(tenant?.track_expiry_enabled || false);
 
-  // Simple Product Variant State (used if hasVariants === false)
+  // ── Simple product ──────────────────────────────────────────────────────
+  const [baseUnitName, setBaseUnitName] = useState("unit");
   const [simpleSku, setSimpleSku] = useState("");
-  const [simpleBaseUnitName, setSimpleBaseUnitName] = useState("unit");
-  const [simpleSellMode, setSimpleSellMode] = useState<"unit_only" | "pack_only" | "flexible">("unit_only");
-  const [simpleStock, setSimpleStock] = useState("0");
+  const [simpleSellMode, setSimpleSellMode] = useState<SellMode>("unit_only");
+  const [simpleStock, setSimpleStock] = useState("");
   const [simpleCostPrice, setSimpleCostPrice] = useState("");
   const [simpleLowStock, setSimpleLowStock] = useState("5");
   const [simpleTrackExpiry, setSimpleTrackExpiry] = useState(false);
-  const [simpleTiers, setSimpleTiers] = useState<any[]>([
-    {
-      id: Math.random().toString(),
-      name: "Unit",
-      units_per_tier: 1,
-      is_base_unit: true,
-      is_default_sale_unit: true,
-      is_default_purchase_unit: true,
-      retail_price: "0.00",
-      wholesale_price: ""
-    }
-  ]);
+  const [simpleTiers, setSimpleTiers] = useState<TierRow[]>(() => [makeBaseTier("unit")]);
+  const [showSimplePacks, setShowSimplePacks] = useState(false);
 
-  // Variant Product Builder State (used if hasVariants === true)
-  const [attributes, setAttributes] = useState<any[]>([
-    { id: Math.random().toString(), name: "Size", values: "" }
-  ]);
-  const [variants, setVariants] = useState<any[]>([]);
+  // ── Variants ────────────────────────────────────────────────────────────
+  const [attributes, setAttributes] = useState<AttributeRow[]>([newAttribute("Size")]);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
+  const skuCodeRef = useRef(randomCode(3)); // keeps generated variant SKUs unique per product
+  const variantSkuPrefix = `${namePrefix(name)}-${skuCodeRef.current}`;
 
-  // Bulk-edit states for variants
-  const [bulkStock, setBulkStock] = useState("");
-  const [bulkCost, setBulkCost] = useState("");
-  const [bulkSellMode, setBulkSellMode] = useState<"unit_only" | "pack_only" | "flexible">("unit_only");
+  // ── Validation / confirmations ──────────────────────────────────────────
+  const [errors, setErrors] = useState<FormErrors>(emptyErrors);
+  const [pendingRegen, setPendingRegen] = useState<{ next: VariantRow[]; removed: VariantRow[]; added: number } | null>(null);
+  const [belowCostItems, setBelowCostItems] = useState<string[] | null>(null);
 
-  const handleApplyBulkVariants = () => {
-    if (!bulkStock && !bulkCost) {
-      toast.error("Please enter a Stock or Cost value to apply.");
-      return;
-    }
-    setVariants(prev => prev.map(v => {
-      let updated = { ...v };
-      if (bulkStock !== "") updated.stock_quantity = bulkStock;
-      if (bulkCost !== "") updated.cost_price_per_base_unit = bulkCost;
-      updated.sell_mode = bulkSellMode;
-      return updated;
-    }));
-    toast.success("Bulk changes applied to all variants locally!");
-  };
-
-  // Update base unit tier name dynamically on change of base unit name label
+  // ── Load reference data ─────────────────────────────────────────────────
   useEffect(() => {
-    setSimpleTiers(prev => 
-      prev.map(t => t.is_base_unit ? { ...t, name: simpleBaseUnitName || "Unit" } : t)
-    );
-  }, [simpleBaseUnitName]);
-
-  // Fetch unique categories and store preferences on mount
-  useEffect(() => {
-    apiClient.get("/tenant/products?limit=100").then((res) => {
-      const prods = res.data.success?.data?.products || [];
-      const fetchedCats = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean))) as string[];
-      const defaultCats = ["Beverages", "Bakery", "Dairy", "Grocery", "Fashion", "Electronics", "Snacks", "General"];
-      const merged = Array.from(new Set([...defaultCats, ...fetchedCats])).sort();
-      setCategories(merged);
-    }).catch(console.error);
+    apiClient.get("/tenant/products/categories").then((res) => {
+      const fetched: string[] = res.data.success?.data?.categories || [];
+      setCategories(Array.from(new Set([...DEFAULT_CATEGORIES, ...fetched])).sort());
+    }).catch(() => {});
 
     apiClient.get("/tenant/products/brands").then((res) => {
       setBrandOptions(res.data.success?.data?.brands || []);
@@ -370,584 +166,375 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
     apiClient.get("/tenant/settings").then((res) => {
       const storeData = res.data.success?.data?.store || {};
       setTrackExpiryEnabled(storeData.track_expiry_enabled || false);
-    }).catch(console.error);
+    }).catch(() => {});
   }, []);
 
-  // Fetch full nested product details if editing
+  // ── Populate from the product being edited (already fetched by the page) ─
+  const [ready, setReady] = useState(!isEditing);
   useEffect(() => {
-    if (initialData && initialData.id) {
-      setIsLoading(true);
-      apiClient.get(`/tenant/products/${initialData.id}`)
-        .then((res) => {
-          const fullProduct = res.data.success?.data?.product;
-          setName(fullProduct.name || "");
-          setDescription(fullProduct.description || "");
-          setCategory(fullProduct.category || "");
-          setBrand(fullProduct.brand || "");
-          setStatus(fullProduct.status || "active");
-          setHasVariants(fullProduct.has_variants || false);
-          
-          if (Array.isArray(fullProduct.tags)) {
-            setTags(fullProduct.tags.filter(Boolean));
-          } else if (typeof fullProduct.tags === 'string' && fullProduct.tags.trim()) {
-            setTags(fullProduct.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean));
-          } else {
-            setTags([]);
-          }
-          
-          if (fullProduct.images) {
-            setUploadedFiles(fullProduct.images.map((url: string) => ({
-              id: url,
-              file: new File([], "existing_image"),
-              preview: url
-            })));
-          }
+    if (!initialData) return;
+    const p = initialData;
+    setName(p.name || "");
+    setDescription(p.description || "");
+    setCategory(p.category || "");
+    setBrand(p.brand || "");
+    setStatus(p.status || "active");
+    setHasVariants(!!p.has_variants);
+    setTags(
+      Array.isArray(p.tags)
+        ? p.tags.filter(Boolean)
+        : typeof p.tags === "string" && p.tags.trim()
+          ? p.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
+          : []
+    );
+    setUploadedFiles((p.images || []).map((url: string) => ({ id: url, file: new File([], "existing_image"), preview: url })));
 
-          if (!fullProduct.has_variants) {
-            const v = fullProduct.variants?.[0];
-            if (v) {
-              setSimpleSku(v.sku || "");
-              setSimpleBaseUnitName(v.base_unit_name || "unit");
-              setSimpleSellMode(v.sell_mode || "unit_only");
-              setSimpleStock(v.stock_quantity?.toString() || "0");
-              setSimpleCostPrice(v.cost_price_per_base_unit?.toString() || "");
-              setSimpleLowStock(v.low_stock_threshold?.toString() || "5");
-              setSimpleTrackExpiry(v.track_expiry || false);
-              
-              if (v.packaging_tiers && v.packaging_tiers.length > 0) {
-                setSimpleTiers(v.packaging_tiers.map((t: any) => {
-                  const retail = t.prices?.find((p: any) => p.price_type === "retail")?.price || "0.00";
-                  const wholesale = t.prices?.find((p: any) => p.price_type === "wholesale")?.price || "";
-                  return {
-                    id: t.id || Math.random().toString(),
-                    name: t.name,
-                    units_per_tier: t.units_per_tier,
-                    is_base_unit: t.is_base_unit,
-                    is_default_sale_unit: t.is_default_sale_unit,
-                    is_default_purchase_unit: t.is_default_purchase_unit,
-                    retail_price: retail.toString(),
-                    wholesale_price: wholesale.toString()
-                  };
-                }));
-              }
-            }
-          } else {
-            // Load list of variants
-            setVariants(fullProduct.variants.map((v: any) => {
-              const tiers = v.packaging_tiers?.map((t: any) => {
-                const retail = t.prices?.find((p: any) => p.price_type === "retail")?.price || "0.00";
-                const wholesale = t.prices?.find((p: any) => p.price_type === "wholesale")?.price || "";
-                return {
-                  id: t.id || Math.random().toString(),
-                  name: t.name,
-                  units_per_tier: t.units_per_tier,
-                  is_base_unit: t.is_base_unit,
-                  is_default_sale_unit: t.is_default_sale_unit,
-                  is_default_purchase_unit: t.is_default_purchase_unit,
-                  retail_price: retail.toString(),
-                  wholesale_price: wholesale.toString()
-                };
-              }) || [];
-              
-              return {
-                id: v.id,
-                sku: v.sku,
-                variant_attributes: v.variant_attributes || {},
-                base_unit_name: v.base_unit_name || "unit",
-                stock_quantity: v.stock_quantity?.toString() || "0",
-                cost_price_per_base_unit: v.cost_price_per_base_unit?.toString() || "",
-                low_stock_threshold: v.low_stock_threshold?.toString() || "5",
-                sell_mode: v.sell_mode || "unit_only",
-                track_expiry: v.track_expiry || false,
-                packaging_tiers: tiers,
-                isExpanded: false
-              };
-            }));
-            
-            // Build attributes array based on variant attributes keys/values
-            const attrMap: Record<string, Set<string>> = {};
-            fullProduct.variants.forEach((v: any) => {
-              Object.entries(v.variant_attributes || {}).forEach(([key, val]) => {
-                if (!attrMap[key]) attrMap[key] = new Set();
-                attrMap[key].add(String(val));
-              });
-            });
-            const loadedAttrs = Object.entries(attrMap).map(([key, valSet]) => ({
-              id: Math.random().toString(),
-              name: key,
-              values: Array.from(valSet).join(", ")
-            }));
-            setAttributes(loadedAttrs.length > 0 ? loadedAttrs : [{ id: Math.random().toString(), name: "Size", values: "" }]);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load product details:", err);
-          toast.error("Failed to load product details for editing");
-        })
-        .finally(() => {
-          setIsLoading(false);
+    // Only active variants are edited; removed (deactivated) ones stay hidden
+    const active = (p.variants || []).filter((v: any) => v.is_active !== false);
+    const unit = active[0]?.base_unit_name || "unit";
+    setBaseUnitName(unit);
+
+    if (!p.has_variants) {
+      const v = active[0];
+      if (v) {
+        setSimpleSku(v.sku || "");
+        setSimpleSellMode(v.sell_mode || "unit_only");
+        setSimpleStock(v.stock_quantity?.toString() ?? "0");
+        setSimpleCostPrice(v.cost_price_per_base_unit?.toString() ?? "");
+        setSimpleLowStock(v.low_stock_threshold?.toString() ?? "5");
+        setSimpleTrackExpiry(!!v.track_expiry);
+        const tiers = tiersFromServer(v.packaging_tiers, unit);
+        setSimpleTiers(tiers);
+        setShowSimplePacks(tiers.length > 1 || tiers.some(t => t.wholesale_price));
+      }
+    } else {
+      setVariants(active.map((v: any): VariantRow => ({
+        key: newKey(),
+        id: v.id,
+        sku: v.sku || "",
+        skuEdited: true,
+        variant_attributes: v.variant_attributes || {},
+        base_unit_name: v.base_unit_name || "unit",
+        stock_quantity: v.stock_quantity?.toString() ?? "0",
+        cost_price_per_base_unit: v.cost_price_per_base_unit?.toString() ?? "",
+        low_stock_threshold: v.low_stock_threshold?.toString() ?? "5",
+        sell_mode: v.sell_mode || "unit_only",
+        track_expiry: !!v.track_expiry,
+        packaging_tiers: tiersFromServer(v.packaging_tiers, v.base_unit_name || "unit"),
+        image: v.image_url ? { kind: "url", url: v.image_url } : null,
+        isExpanded: false,
+      })));
+
+      const attrMap = new Map<string, string[]>();
+      active.forEach((v: any) => {
+        Object.entries(v.variant_attributes || {}).forEach(([key, val]) => {
+          const list = attrMap.get(key) || [];
+          if (!list.some(x => x.toLowerCase() === String(val).toLowerCase())) list.push(String(val));
+          attrMap.set(key, list);
         });
+      });
+      const loaded = Array.from(attrMap.entries()).map(([key, vals]) => ({ key: newKey(), name: key, values: vals.join(", ") }));
+      setAttributes(loaded.length ? loaded : [newAttribute("Size")]);
     }
+    setReady(true);
   }, [initialData]);
 
-  // Attribute Builder Actions
-  const addAttribute = () => {
-    if (attributes.length >= 3) {
-      toast.error("Maximum 3 attributes allowed");
-      return;
-    }
-    setAttributes(prev => [...prev, { id: Math.random().toString(), name: "", values: "" }]);
-  };
+  // ── Unsaved-changes tracking ────────────────────────────────────────────
+  const snapshot = useMemo(
+    () =>
+      JSON.stringify({
+        name, description, category, brand, status, hasVariants, tags,
+        files: uploadedFiles.map(f => f.id),
+        baseUnitName, simpleSku, simpleSellMode, simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers,
+        attributes: attributes.map(a => [a.name, a.values]),
+        variants: variants.map(v => ({ ...v, isExpanded: undefined, key: undefined })), // UI-only fields don't count
+      }),
+    [name, description, category, brand, status, hasVariants, tags, uploadedFiles, baseUnitName, simpleSku, simpleSellMode,
+      simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers, attributes, variants]
+  );
+  const baselineRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (ready && baselineRef.current === null) baselineRef.current = snapshot;
+  }, [ready, snapshot]);
+  const isDirty = ready && baselineRef.current !== null && snapshot !== baselineRef.current;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
-  const removeAttribute = (id: string) => {
-    setAttributes(prev => prev.filter(a => a.id !== id));
-  };
-
-  const updateAttribute = (idx: number, field: "name" | "values", value: string) => {
-    setAttributes(prev => prev.map((a, i) => i === idx ? { ...a, [field]: value } : a));
-  };
-
-  // Generate combinations from attribute definitions
-  const generateVariants = () => {
-    const validAttrs = attributes.filter(a => a.name.trim() && a.values.trim());
-    if (validAttrs.length === 0) {
-      toast.error("Add at least one attribute with values");
-      return;
-    }
-
-    const attrNames = validAttrs.map(a => a.name.trim());
-    const attrValuesList = validAttrs.map(a => 
-      a.values.split(",").map((v: string) => v.trim()).filter(Boolean)
-    );
-
-    // Cartesian product function
-    const cartesian = (arrays: string[][]): string[][] => {
-      return arrays.reduce((acc, curr) => 
-        acc.flatMap(d => curr.map(e => [...d, e])), [[]] as string[][]
-      );
-    };
-
-    const combinations = cartesian(attrValuesList);
-
-    const generated = combinations.map(combo => {
-      const variant_attributes: Record<string, string> = {};
-      combo.forEach((val, idx) => {
-        variant_attributes[attrNames[idx]] = val;
+  // Generated variant SKUs follow the product name until the user edits them
+  useEffect(() => {
+    if (!hasVariants) return;
+    setVariants(prev => {
+      let changed = false;
+      const next = prev.map(v => {
+        if (v.id || v.skuEdited) return v;
+        const sku = generateVariantSku(variantSkuPrefix, Object.values(v.variant_attributes));
+        if (sku === v.sku) return v;
+        changed = true;
+        return { ...v, sku };
       });
-
-      const nameSuffix = combo.join(" / ");
-      const skuSuffix = combo.map(v => v.toUpperCase().replace(/\s+/g, "")).join("-");
-      const words = (name || "PRD")
-        .trim()
-        .split(/[\s\-_/]+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(w => w.replace(/[^A-Za-z0-9]/g, "").slice(0, 5).toUpperCase())
-        .filter(Boolean);
-      const cleanPrefix = words.join("-") || "PRD";
-      const generatedSku = `${cleanPrefix}-${skuSuffix}`;
-
-      return {
-        id: Math.random().toString(),
-        name: `${name} - ${nameSuffix}`,
-        variant_attributes,
-        sku: generatedSku,
-        base_unit_name: simpleBaseUnitName || "unit",
-        stock_quantity: "0",
-        cost_price_per_base_unit: simpleCostPrice || "",
-        low_stock_threshold: simpleLowStock || "5",
-        sell_mode: simpleSellMode || "unit_only",
-        track_expiry: simpleTrackExpiry || false,
-        packaging_tiers: [
-          {
-            id: Math.random().toString(),
-            name: simpleBaseUnitName || "Unit",
-            units_per_tier: 1,
-            is_base_unit: true,
-            is_default_sale_unit: true,
-            is_default_purchase_unit: true,
-            retail_price: "0.00",
-            wholesale_price: ""
-          }
-        ],
-        isExpanded: false
-      };
+      return changed ? next : prev;
     });
+  }, [variantSkuPrefix, hasVariants]);
 
-    setVariants(generated);
-    toast.success(`Generated ${generated.length} variant combinations`);
-  };
+  // ── Gallery (existing URLs + newly added files) ─────────────────────────
+  const gallery: GalleryImage[] = useMemo(
+    () =>
+      uploadedFiles.map(f => ({
+        ref: f.file.size > 0 ? { kind: "file" as const, fileId: f.id } : { kind: "url" as const, url: f.id },
+        src: f.preview || f.id,
+      })),
+    [uploadedFiles]
+  );
 
-  // Variant combinations manipulation
-  const updateVariantField = (idx: number, field: string, value: any) => {
-    setVariants(prev => prev.map((v, i) => i === idx ? { ...v, [field]: value } : v));
-  };
-
-  const deleteVariant = (idx: number) => {
-    setVariants(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const addVariantTier = (vIdx: number) => {
-    const variant = variants[vIdx];
-    const newTier = {
-      id: Math.random().toString(),
-      name: "",
-      units_per_tier: 1,
-      is_base_unit: false,
-      is_default_sale_unit: false,
-      is_default_purchase_unit: false,
-      retail_price: "0.00",
-      wholesale_price: ""
-    };
-    updateVariantField(vIdx, "packaging_tiers", [...variant.packaging_tiers, newTier]);
-  };
-
-  // Simple Product Tier actions
-  const addSimpleTier = () => {
-    setSimpleTiers(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(),
-        name: "",
-        units_per_tier: 1,
-        is_base_unit: false,
-        is_default_sale_unit: false,
-        is_default_purchase_unit: false,
-        retail_price: "0.00",
-        wholesale_price: ""
-      }
-    ]);
-  };
-
-  // Generic Packaging Tiers table component renderer
-  const renderTiersTable = (tiers: any[], onTiersChange: (newTiers: any[]) => void, costPriceValue: string) => {
-    const updateTierField = (tierIdx: number, field: string, value: any) => {
-      const updated = tiers.map((t, i) => {
-        if (i !== tierIdx) return t;
-        
-        let newTier = { ...t, [field]: value };
-        if (field === "units_per_tier") {
-          const num = parseInt(value);
-          newTier.units_per_tier = isNaN(num) || num < 1 ? 1 : num;
-        }
-        return newTier;
-      });
-
-      // Maintain radio button semantics for default selectors
-      if (field === "is_default_sale_unit" && value === true) {
-        updated.forEach((t, i) => {
-          if (i !== tierIdx) t.is_default_sale_unit = false;
-        });
-      }
-      if (field === "is_default_purchase_unit" && value === true) {
-        updated.forEach((t, i) => {
-          if (i !== tierIdx) t.is_default_purchase_unit = false;
-        });
-      }
-
-      onTiersChange(updated);
-    };
-
-    const deleteTier = (tierIdx: number) => {
-      const t = tiers[tierIdx];
-      if (t.is_base_unit) return;
-      onTiersChange(tiers.filter((_, i) => i !== tierIdx));
-    };
-
-    if (tiers.length === 1) {
-      const t = tiers[0];
-      return (
-        <div className="p-4 border border-border dark:border-gray-800 rounded-xl bg-muted/10 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Base Unit Name</label>
-              <input
-                type="text"
-                required
-                disabled={t.is_base_unit}
-                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none disabled:opacity-80 disabled:bg-muted/20 text-foreground font-semibold h-9"
-                value={t.name}
-                onChange={(e) => updateTierField(0, "name", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Retail Price (GHS) *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                className={cn(
-                  "w-full px-3 py-2 text-xs border rounded-lg bg-card focus:outline-none text-foreground font-semibold h-9",
-                  costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier)
-                    ? "border-amber-500 bg-amber-500/5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                    : "border-border"
-                )}
-                value={t.retail_price}
-                onChange={(e) => updateTierField(0, "retail_price", e.target.value)}
-              />
-              {costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier) && (
-                <span className="text-[9px] text-amber-500 block mt-0.5 font-semibold leading-none">
-                  Below cost!
-                </span>
-              )}
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Wholesale Price (GHS)</label>
-              <input
-                type="number"
-                step="0.01"
-                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none text-foreground h-9"
-                value={t.wholesale_price}
-                placeholder="Optional"
-                onChange={(e) => updateTierField(0, "wholesale_price", e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="overflow-x-auto border border-border dark:border-gray-800 rounded-md bg-muted/10">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-muted border-b border-border/70 text-[10px] text-muted-foreground uppercase font-bold">
-              <th className="p-3">Name</th>
-              <th className="p-3 w-24">Units/Tier</th>
-              <th className="p-3 text-center w-24">Default Sale</th>
-              <th className="p-3 text-center w-28">Default Purchase</th>
-              <th className="p-3 w-28">Retail (GHS)</th>
-              <th className="p-3 w-28">Wholesale (GHS)</th>
-              <th className="p-3 text-right w-16">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-xs">
-            {tiers.map((t, tierIdx) => (
-              <tr key={t.id} className="hover:bg-muted/30">
-                <td className="p-2">
-                  <input
-                    type="text"
-                    required
-                    disabled={t.is_base_unit}
-                    className="w-full px-2 py-1 text-xs border border-border rounded bg-card focus:outline-none disabled:opacity-80 disabled:bg-muted/20 text-foreground font-semibold"
-                    value={t.name}
-                    onChange={(e) => updateTierField(tierIdx, "name", e.target.value)}
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    required
-                    disabled={t.is_base_unit}
-                    className="w-full px-2 py-1 text-xs border border-border rounded bg-card focus:outline-none disabled:opacity-80 disabled:bg-muted/20"
-                    value={t.units_per_tier}
-                    min="1"
-                    onChange={(e) => updateTierField(tierIdx, "units_per_tier", e.target.value)}
-                  />
-                </td>
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary focus:outline-none"
-                    checked={t.is_default_sale_unit}
-                    onChange={(e) => updateTierField(tierIdx, "is_default_sale_unit", e.target.checked)}
-                  />
-                </td>
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary focus:outline-none"
-                    checked={t.is_default_purchase_unit}
-                    onChange={(e) => updateTierField(tierIdx, "is_default_purchase_unit", e.target.checked)}
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    className={cn(
-                      "w-full px-2 py-1 text-xs border rounded bg-card focus:outline-none text-foreground font-semibold",
-                      costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier)
-                        ? "border-amber-500 bg-amber-500/5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        : "border-border"
-                    )}
-                    value={t.retail_price}
-                    onChange={(e) => updateTierField(tierIdx, "retail_price", e.target.value)}
-                  />
-                  {costPriceValue && Number(t.retail_price) < (Number(costPriceValue) * t.units_per_tier) && (
-                    <span className="text-[9px] text-amber-500 block mt-0.5 font-semibold leading-none">
-                      Below cost!
-                    </span>
-                  )}
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full px-2 py-1 text-xs border border-border rounded bg-card focus:outline-none text-foreground"
-                    value={t.wholesale_price}
-                    placeholder="Optional"
-                    onChange={(e) => updateTierField(tierIdx, "wholesale_price", e.target.value)}
-                  />
-                </td>
-                <td className="p-2 text-right">
-                  <button
-                    type="button"
-                    disabled={t.is_base_unit}
-                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-40"
-                    onClick={() => deleteTier(tierIdx)}
-                  >
-                    <Icon icon="lucide:trash-2" className="text-[14px]" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  // Image Upload removal tracking
   const handleFilesChange = (newFiles: UploadedFile[]) => {
-    // Check if any existing file URL has been deleted
     const newIds = new Set(newFiles.map(f => f.id));
-    uploadedFiles.forEach(f => {
-      if (!newIds.has(f.id) && (f.id.startsWith("http") || f.id.includes("/"))) {
+    const removed = uploadedFiles.filter(f => !newIds.has(f.id));
+    removed.forEach(f => {
+      if (f.file.size === 0 && (f.id.startsWith("http") || f.id.includes("/"))) {
         setRemovedImageUrls(prev => [...prev, f.id]);
       }
     });
+    if (removed.length) {
+      const gone = new Set(removed.map(f => f.id));
+      const stillThere = (ref: ImageRef) => !ref || !gone.has(ref.kind === "url" ? ref.url : ref.fileId);
+      setVariants(prev => prev.map(v => (stillThere(v.image) ? v : { ...v, image: null })));
+    }
     setUploadedFiles(newFiles);
   };
 
-  // Submit form handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Attribute builder ───────────────────────────────────────────────────
+  const updateAttribute = (key: string, field: "name" | "values", value: string) =>
+    setAttributes(prev => prev.map(a => (a.key === key ? { ...a, [field]: value } : a)));
 
-    if (!name || !category) {
-      toast.error("Product Name and Category are required");
+  const addAttribute = () => {
+    if (attributes.length >= 3) {
+      toast.error("Up to 3 options (e.g. Flavour, Size, Colour)");
+      return;
+    }
+    setAttributes(prev => [...prev, newAttribute()]);
+  };
+
+  /**
+   * Build the variant list from the options. Existing rows (prices, SKUs, images, ids) are kept,
+   * new combinations are added, and rows that no longer match are only removed after confirmation.
+   */
+  const generateVariants = () => {
+    const valid = attributes
+      .map(a => ({ name: a.name.trim(), options: parseOptions(a.values) }))
+      .filter(a => a.name && a.options.length);
+    if (valid.length === 0) {
+      toast.error("Add an option name and at least one value, e.g. Flavour: Mango, Pineapple");
+      return;
+    }
+    const names = valid.map(a => a.name);
+    if (new Set(names.map(n => n.toLowerCase())).size !== names.length) {
+      toast.error("Each option needs a different name");
       return;
     }
 
-    if (hasVariants && variants.length === 0) {
-      toast.error("Please generate at least one variant combination");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Build packaging tiers helper format with safe fallbacks
-      const mapTiersPayload = (tiers: any[]) => (tiers || []).map(t => ({
-        name: (t?.name || simpleBaseUnitName || "Unit").trim() || "Unit",
-        units_per_tier: parseInt(t?.units_per_tier) || 1,
-        is_base_unit: Boolean(t?.is_base_unit),
-        is_default_sale_unit: Boolean(t?.is_default_sale_unit),
-        is_default_purchase_unit: Boolean(t?.is_default_purchase_unit),
-        prices: [
-          { price_type: "retail", price: parseFloat(t?.retail_price) || 0 },
-          ...(t?.wholesale_price ? [{ price_type: "wholesale", price: parseFloat(t.wholesale_price) }] : [])
-        ]
-      }));
-
-      const payload = {
-        name: name.trim(),
-        description: description?.trim() || "",
-        category,
-        brand: brand.trim() || null,
-        status,
-        tags: tags.map(t => t.trim()).filter(Boolean),
-        has_variants: hasVariants,
-        ...(hasVariants ? {
-          variants: variants.map(v => ({
-            sku: (v?.sku || "").trim(),
-            variant_attributes: v?.variant_attributes || {},
-            base_unit_name: (v?.base_unit_name || simpleBaseUnitName || "unit").trim() || "unit",
-            cost_price_per_base_unit: v?.cost_price_per_base_unit ? parseFloat(v.cost_price_per_base_unit) : null,
-            stock_quantity: parseInt(v?.stock_quantity) || 0,
-            sell_mode: v?.sell_mode || "unit_only",
-            low_stock_threshold: parseInt(v?.low_stock_threshold) || 5,
-            track_expiry: Boolean(v?.track_expiry),
-            packaging_tiers: mapTiersPayload(v?.packaging_tiers || [])
-          }))
-        } : {
-          variant: {
-            sku: (simpleSku || "").trim(),
-            base_unit_name: (simpleBaseUnitName || "unit").trim() || "unit",
-            cost_price_per_base_unit: simpleCostPrice ? parseFloat(simpleCostPrice) : null,
-            stock_quantity: parseInt(simpleStock) || 0,
-            sell_mode: simpleSellMode || "unit_only",
-            low_stock_threshold: parseInt(simpleLowStock) || 5,
-            track_expiry: Boolean(simpleTrackExpiry),
-            packaging_tiers: mapTiersPayload(simpleTiers || [])
-          }
-        })
+    const combos = cartesian(valid.map(a => a.options));
+    const existing = new Map(variants.map(v => [comboKey(Object.values(v.variant_attributes)), v]));
+    let added = 0;
+    const next: VariantRow[] = combos.map(combo => {
+      const attrs = Object.fromEntries(names.map((n, i) => [n, combo[i]]));
+      const old = existing.get(comboKey(combo));
+      if (old) {
+        return {
+          ...old,
+          variant_attributes: attrs,
+          sku: old.id || old.skuEdited ? old.sku : generateVariantSku(variantSkuPrefix, combo),
+        };
+      }
+      added += 1;
+      return {
+        key: newKey(),
+        sku: generateVariantSku(variantSkuPrefix, combo),
+        skuEdited: false,
+        variant_attributes: attrs,
+        base_unit_name: baseUnitName || "unit",
+        stock_quantity: "",
+        cost_price_per_base_unit: "",
+        low_stock_threshold: "5",
+        sell_mode: "unit_only",
+        track_expiry: false,
+        packaging_tiers: [makeBaseTier(baseUnitName || "unit")],
+        image: null,
+        isExpanded: false,
       };
+    });
+    const keep = new Set(next.map(v => v.key));
+    const removed = variants.filter(v => !keep.has(v.key));
 
-      let productId = "";
-      if (isEditing) {
-        await apiClient.put(`/tenant/products/${initialData.id}`, payload);
-        productId = initialData.id;
-        toast.success("Product updated successfully");
-      } else {
-        const response = await apiClient.post("/tenant/products", payload);
-        productId = response.data.success.data.product.id;
-        toast.success("Product created successfully");
-      }
+    if (removed.length > 0) {
+      setPendingRegen({ next, removed, added });
+      return;
+    }
+    applyVariants(next, added, 0);
+  };
 
-      // Handle removed images on server
-      if (isEditing && removedImageUrls.length > 0) {
-        for (const url of removedImageUrls) {
-          try {
-            await apiClient.delete(`/tenant/products/${productId}/images`, {
-              data: { imageUrl: url }
-            });
-          } catch (err) {
-            console.error("Failed to delete product image:", url, err);
-          }
-        }
-      }
-
-      // Handle uploading new images
-      const newFiles = uploadedFiles.filter(f => f.file.size > 0).map(f => f.file);
-      if (newFiles.length > 0) {
-        toast.loading("Uploading product images...", { id: "upload" });
-        const imgFormData = new FormData();
-        newFiles.forEach(file => {
-          imgFormData.append("files", file);
-        });
-
-        await apiClient.post(`/tenant/products/${productId}/images`, imgFormData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-        toast.dismiss("upload");
-        toast.success("Images uploaded successfully");
-      }
-
-      onSuccess();
-    } catch (error: any) {
-      toast.dismiss("upload");
-      console.error("Save product error:", error);
-      const serverMsg = error?.response?.data?.error?.message;
-      const clientMsg = error?.message;
-      toast.error(serverMsg || clientMsg || "Failed to save product");
-    } finally {
-      setIsLoading(false);
+  const applyVariants = (next: VariantRow[], added: number, removed: number) => {
+    setVariants(next);
+    setPendingRegen(null);
+    setErrors(e => ({ ...e, general: undefined }));
+    if (added || removed) {
+      toast.success(
+        [added && `${added} variant${added === 1 ? "" : "s"} added`, removed && `${removed} removed`].filter(Boolean).join(", ")
+      );
+    } else {
+      toast("Variants already match these options");
     }
   };
 
-  const categoryOptions = categories.map(c => ({ label: c, value: c }));
-  if (category && !categories.includes(category)) {
-    categoryOptions.push({ label: category, value: category });
+  // ── Submit ──────────────────────────────────────────────────────────────
+  const scrollToField = (id: string | null) => {
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) setTimeout(() => el.focus({ preventScroll: true }), 300);
+  };
+
+  const belowCostList = () => {
+    if (!hasVariants) {
+      const t = simpleTiers[saleTierIndex(simpleTiers)];
+      const m = marginInfo(t?.retail_price, simpleCostPrice, t?.is_base_unit ? 1 : t?.units_per_tier);
+      return m?.below ? [name || "This product"] : [];
+    }
+    return variants
+      .filter(v => {
+        const t = v.packaging_tiers[saleTierIndex(v.packaging_tiers)];
+        return marginInfo(t?.retail_price, v.cost_price_per_base_unit, t?.is_base_unit ? 1 : t?.units_per_tier)?.below;
+      })
+      .map(variantLabel);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const result = validateForm({ name, category, hasVariants, simpleTiers, variants });
+    setErrors(result.errors);
+    if (hasErrors(result.errors)) {
+      toast.error(result.summary.join(" · "));
+      scrollToField(result.firstErrorId);
+      return;
+    }
+    const below = belowCostList();
+    if (below.length > 0) {
+      setBelowCostItems(below);
+      return;
+    }
+    await save();
+  };
+
+  const save = async () => {
+    setBelowCostItems(null);
+    setIsSaving(true);
+    const unit = (baseUnitName || "unit").trim() || "unit";
+    const payload: Record<string, any> = {
+      name: name.trim(),
+      description: description?.trim() || "",
+      category,
+      brand: brand.trim() || null,
+      status,
+      tags: tags.map(t => t.trim()).filter(Boolean),
+      has_variants: hasVariants,
+    };
+    if (hasVariants) {
+      payload.variants = variants.map(v => {
+        const vUnit = (v.base_unit_name || unit).trim() || "unit";
+        return {
+          ...(v.id ? { id: v.id } : { stock_quantity: toNum(v.stock_quantity) ?? 0 }),
+          sku: v.sku.trim(),
+          variant_attributes: v.variant_attributes,
+          base_unit_name: vUnit,
+          cost_price_per_base_unit: toNum(v.cost_price_per_base_unit),
+          sell_mode: v.sell_mode,
+          low_stock_threshold: toNum(v.low_stock_threshold) ?? 5,
+          track_expiry: v.track_expiry,
+          image_url: v.image?.kind === "url" ? v.image.url : null,
+          packaging_tiers: tiersToPayload(v.packaging_tiers, vUnit),
+        };
+      });
+    } else {
+      payload.variant = {
+        sku: simpleSku.trim(),
+        base_unit_name: unit,
+        cost_price_per_base_unit: toNum(simpleCostPrice),
+        ...(isEditing ? {} : { stock_quantity: toNum(simpleStock) ?? 0 }),
+        sell_mode: simpleSellMode,
+        low_stock_threshold: toNum(simpleLowStock) ?? 5,
+        track_expiry: simpleTrackExpiry,
+        packaging_tiers: tiersToPayload(simpleTiers, unit),
+      };
+    }
+
+    let productId = "";
+    try {
+      const res = isEditing
+        ? await apiClient.put(`/tenant/products/${initialData.id}`, payload)
+        : await apiClient.post("/tenant/products", payload);
+      productId = res.data?.success?.data?.product?.id || initialData?.id;
+    } catch (error: any) {
+      setIsSaving(false);
+      toast.error(error?.response?.data?.error?.message || error?.message || "Failed to save product");
+      return;
+    }
+
+    // The product is saved; images are follow-up steps. Failures here must not cause a duplicate on retry.
+    let warning: string | undefined;
+    try {
+      for (const url of isEditing ? removedImageUrls : []) {
+        await apiClient.delete(`/tenant/products/${productId}/images`, { data: { imageUrl: url } }).catch(() => {});
+      }
+
+      const newFiles = uploadedFiles.filter(f => f.file.size > 0);
+      const fileUrl = new Map<string, string>();
+      if (newFiles.length > 0) {
+        const form = new FormData();
+        newFiles.forEach(f => form.append("files", f.file));
+        const up = await apiClient.post(`/tenant/products/${productId}/images`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        const urls: string[] = up.data?.success?.data?.uploadedUrls || [];
+        newFiles.forEach((f, i) => urls[i] && fileUrl.set(f.id, urls[i]));
+      }
+
+      const links = hasVariants
+        ? variants
+          .filter(v => v.image?.kind === "file" && fileUrl.has(v.image.fileId))
+          .map(v => ({ sku: v.sku.trim(), image_url: fileUrl.get((v.image as { kind: "file"; fileId: string }).fileId) }))
+        : [];
+      if (links.length > 0) {
+        await apiClient.patch(`/tenant/products/${productId}/variant-images`, { images: links });
+      }
+    } catch (error: any) {
+      warning = `Product saved, but images didn't finish uploading: ${error?.response?.data?.error?.message || error?.message || "unknown error"}. Open it again to retry.`;
+    }
+
+    setIsSaving(false);
+    baselineRef.current = snapshot; // nothing unsaved any more
+    onDirtyChange?.(false);
+    onSuccess({ productId, created: !isEditing, warning });
+  };
+
+  if (!ready) {
+    return (
+      <div className="space-y-4 py-4">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="h-40 rounded-xl bg-muted/40 animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
+  const simpleSale = simpleTiers[saleTierIndex(simpleTiers)];
+
   return (
-    <form onSubmit={handleSubmit} className="w-full bg-transparent md:py-4 spacing-sm font-header">
-      {/* Two Column Grid layout */}
+    <form onSubmit={handleSubmit} noValidate className="w-full bg-transparent md:py-4 spacing-sm font-header">
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full relative">
-        
+
         {/* Left column sidebar (sticky on desktop, horizontal scrollable on mobile) */}
-        <div className="sticky top-4 lg:top-6 z-50 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 md:py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 w-full lg:w-[17rem] 2xl:w-72">
+        <div className="sticky top-4 lg:top-6 z-30 bg-background/95 backdrop-blur-md lg:border-r lg:border-border/50 lg:pr-4 md:py-2 lg:py-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0 w-full lg:w-[17rem] 2xl:w-72">
           <PillSidebar
             options={sidebarOptions}
             activeKey={activeSection}
@@ -957,639 +544,493 @@ export default function ProductForm({ initialData, onSuccess, onCancel }: Produc
           />
         </div>
 
-        {/* Right column scrollable cards container */}
-        <div className="flex-1 w-full space-y-6 pb-10">
-        
-        {/* SECTION 1: BASIC INFO */}
-        <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-3 md:space-y-5 shadow-sm">
-          <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 1: Basic Info</h3>
-          
-          <CustomInputTextField
-            label="Product Name"
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            placeholder="e.g. Coca-Cola Drink"
-          />
+        <div className="flex-1 w-full min-w-0 space-y-6 pb-6">
 
-          <CustomInputTextField
-            label="Brand (Optional)"
-            name="brand"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="e.g. Kalypo — used to group and compare products in reports"
-            inputProps={{ list: "product-brand-options", maxLength: 100, autoComplete: "off" }}
-          />
-          <datalist id="product-brand-options">
-            {brandOptions.map((b) => (
-              <option key={b} value={b} />
-            ))}
-          </datalist>
+          {/* SECTION 1: BASIC INFO */}
+          <div ref={basicInfoRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-3 md:space-y-5 shadow-sm">
+            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <CreatableCategorySelect
-              value={category}
-              onChange={setCategory}
-              categories={categories}
-              onAddCategory={(newCat) => {
-                setCategories((prev) => Array.from(new Set([...prev, newCat])).sort());
-              }}
-            />
-
-            <CustomSelectField
-              label="Status"
-              options={[
-                { label: "Active", value: "active" },
-                { label: "Draft", value: "draft" },
-              ]}
-              value={status}
-              inputProps={{
-                onSelectionChange: (keys) => setStatus(Array.from(keys)[0] as string || "active")
-              }}
-              required
-            />
-          </div>
-
-          <CustomTextareaField
-            label="Description"
-            name="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detailed description..."
-            rows={3}
-          />
-
-          {/* SECTION 1a: TAGS / SEARCH KEYWORDS */}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Search Tags & Keywords <span className="text-[11px] font-normal lowercase tracking-normal text-muted-foreground">(Optional)</span>
-              </label>
-              <span className="text-[11px] font-semibold text-muted-foreground">
-                {tags.length} {tags.length === 1 ? "tag" : "tags"}
-              </span>
-            </div>
-
-            <div className="min-h-[3.25rem] w-full p-2 rounded-lg border border-input bg-card hover:border-foreground/30 focus-within:border-foreground/50 transition-all duration-200 flex flex-wrap items-center gap-1.5">
-              {tags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground border border-border shadow-2xs group transition-all"
-                >
-                  <span className="text-muted-foreground font-mono">#</span>
-                  <span>{tag}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeTag(idx)}
-                    className="text-muted-foreground hover:text-destructive rounded-full p-0.5 hover:bg-muted transition-colors"
-                    title={`Remove "${tag}"`}
-                  >
-                    <Icon icon="lucide:x" className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-
-              <div className="flex-1 min-w-[150px] flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  placeholder={tags.length === 0 ? "Add keywords for quick POS search (e.g. coke, soda, painkiller)..." : "Add another tag..."}
-                  className="w-full bg-transparent text-xs font-medium text-foreground outline-none placeholder:text-muted-foreground/60 py-1 px-1"
-                />
-                {tagInput.trim() && (
-                  <button
-                    type="button"
-                    onClick={addCurrentTag}
-                    className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground rounded-md hover:bg-primary/90 shrink-0 transition-colors shadow-2xs"
-                  >
-                    Add
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Add keywords or synonyms that make this product quickly searchable at POS checkout. Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">Enter</kbd> or <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">,</kbd> to add.
-            </p>
-          </div>
-
-          {/* SECTION 1b: IMAGES */}
-          <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
-            <FileUpload
-              value={uploadedFiles}
-              onChange={handleFilesChange}
-              accept="image/*"
-              maxFiles={6}
-            />
-          </div>
-        </div>
-
-        {/* SECTION 2: CONFIGURATION */}
-        <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-4 md:p-6 rounded-xl space-y-4 shadow-sm">
-          <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 2: Configuration</h3>
-          <div className="flex items-center justify-between p-4 border border-border dark:border-gray-800 rounded-lg bg-muted/10">
-            <div className="space-y-0.5">
-              <label className="text-sm font-bold text-foreground">Multiple Variants</label>
-              <p className="text-xs text-muted-foreground">Toggle on if product has different sizes, colors, flavors, etc.</p>
-            </div>
-            <Switch
-              checked={hasVariants}
-              onCheckedChange={setHasVariants}
-              disabled={isEditing} // Cannot toggle has_variants post-creation for DB integrity
-            />
-          </div>
-        </div>
-
-        {/* SECTION 3a: SIMPLE PRODUCT FORM */}
-        {!hasVariants ? (
-          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
-            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Product Inventory & Pricing</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div id="pf-name">
               <CustomInputTextField
-                label="SKU / Barcode"
-                name="sku"
-                value={simpleSku}
-                onChange={(e) => setSimpleSku(e.target.value)}
-                placeholder="Auto-generate or scan barcode"
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setSimpleSku(generateSkuFromName(name))}
-                    className="text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors"
-                    title="Auto-generate SKU"
-                  >
-                    <Icon icon="lucide:refresh-cw" className="text-[14px]" />
-                  </button>
-                }
-              />
-
-              <CustomInputTextField
-                label="Base Unit Name"
-                name="baseUnit"
-                value={simpleBaseUnitName}
-                onChange={(e) => setSimpleBaseUnitName(e.target.value)}
+                label="Product Name"
+                name="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors(prev => ({ ...prev, name: undefined }));
+                }}
                 required
-                placeholder="e.g. bottle, box, piece"
+                error={errors.name}
+                placeholder="e.g. Kalypo Juice Drink"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-              <CustomInputTextField
-                label={isEditing ? "Current Stock (Locked)" : "Initial Stock"}
-                name="stock"
-                type="number"
-                disabled={isEditing}
-                value={simpleStock}
-                onChange={(e) => setSimpleStock(e.target.value)}
-                placeholder="0"
-                inputProps={{ min: "0", disabled: isEditing }}
-                className={cn(isEditing && "opacity-75 bg-muted/40 cursor-not-allowed text-muted-foreground")}
-              />
-              <CustomInputTextField
-                label="Cost / Base Unit"
-                name="costPrice"
-                type="number"
-                step="any"
-                value={simpleCostPrice}
-                onChange={(e) => setSimpleCostPrice(e.target.value)}
-                placeholder="0.00"
-                inputProps={{ min: "0", step: "any" }}
+            <CustomInputTextField
+              label="Brand (Optional)"
+              name="brand"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="e.g. Kalypo — used to group and compare products in reports"
+              inputProps={{ list: "product-brand-options", maxLength: 100, autoComplete: "off" }}
+            />
+            <datalist id="product-brand-options">
+              {brandOptions.map((b) => (
+                <option key={b} value={b} />
+              ))}
+            </datalist>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <CreatableCategorySelect
+                id="pf-category"
+                value={category}
+                onChange={(c) => {
+                  setCategory(c);
+                  if (errors.category) setErrors(prev => ({ ...prev, category: undefined }));
+                }}
+                categories={categories}
+                error={errors.category}
+                onAddCategory={(newCat) => {
+                  setCategories((prev) => Array.from(new Set([...prev, newCat])).sort());
+                }}
               />
 
-              <CustomInputTextField
-                label="Low Stock Alert"
-                name="lowStock"
-                type="number"
-                value={simpleLowStock}
-                onChange={(e) => setSimpleLowStock(e.target.value)}
-                placeholder="5"
-                inputProps={{ min: "0" }}
+              <CustomSelectField
+                label="Status"
+                options={[
+                  { label: "Active — available for sale", value: "active" },
+                  { label: "Draft — hidden from POS & store", value: "draft" },
+                ]}
+                value={status}
+                inputProps={{
+                  onSelectionChange: (keys) => setStatus(Array.from(keys)[0] as string || "active")
+                }}
+                required
               />
-              {isEditing && (
-                <p className="text-[10px] text-muted-foreground md:col-span-2">
-                  To adjust on-hand stock, use <span className="font-semibold text-foreground">Stock Adjustments</span>, <span className="font-semibold text-foreground">Stock In</span>, or <span className="font-semibold text-foreground">Reconcile</span>.
-                </p>
-              )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Sell Mode</label>
-              <div className="flex gap-2">
-                {(["unit_only", "pack_only", "flexible"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={cn(
-                      "flex-1 py-2 text-xs font-bold border rounded-lg transition-all capitalize shadow-sm",
-                      simpleSellMode === mode
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-card text-foreground border-border hover:bg-muted"
-                    )}
-                    onClick={() => setSimpleSellMode(mode)}
-                  >
-                    {mode.replace("_", " ")}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <CustomTextareaField
+              label="Description"
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Detailed description..."
+              rows={3}
+            />
 
-            {trackExpiryEnabled && (
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/10">
-                <div className="space-y-0.5">
-                  <label className="text-xs font-bold text-foreground">Track Expiry Dates</label>
-                  <p className="text-[10px] text-muted-foreground">Prompts cashiers and tracks batches automatically.</p>
-                </div>
-                <Switch
-                  checked={simpleTrackExpiry}
-                  onCheckedChange={setSimpleTrackExpiry}
-                />
-              </div>
-            )}
-
-            <div className="space-y-3">
+            {/* Tags / search keywords */}
+            <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Packaging Tiers</label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1 rounded-lg text-xs"
-                  onClick={addSimpleTier}
-                >
-                  <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add Tier
-                </Button>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Search Tags & Keywords <span className="text-[11px] font-normal lowercase tracking-normal text-muted-foreground">(Optional)</span>
+                </label>
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  {tags.length} {tags.length === 1 ? "tag" : "tags"}
+                </span>
               </div>
 
-              {renderTiersTable(simpleTiers, setSimpleTiers, simpleCostPrice)}
-            </div>
-          </div>
-        ) : (
-          
-          /* SECTION 3b: VARIANT BUILDER */
-          <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
-            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Section 3: Variant Options Builder</h3>
-            
-            {/* Attribute lines */}
-            <div className="space-y-3">
-              {attributes.map((attr, idx) => (
-                <div key={attr.id} className="flex flex-col md:flex-row gap-3 md:items-end">
-                  <div className="flex-1">
-                    <CustomInputTextField
-                      label={idx === 0 ? "Attribute Name" : undefined}
-                      value={attr.name}
-                      onChange={(e) => updateAttribute(idx, "name", e.target.value)}
-                      placeholder="e.g. Size, Color, Flavor"
-                    />
-                  </div>
-                  <div className="flex-[2]">
-                    <CustomInputTextField
-                      label={idx === 0 ? "Attribute Options (comma-separated)" : undefined}
-                      value={attr.values}
-                      onChange={(e) => updateAttribute(idx, "values", e.target.value)}
-                      placeholder="e.g. S, M, L"
-                    />
-                  </div>
-                  {attributes.length > 1 && (
+              <div className="min-h-[3.25rem] w-full p-2 rounded-lg border border-input bg-card hover:border-foreground/30 focus-within:border-foreground/50 transition-all duration-200 flex flex-wrap items-center gap-1.5">
+                {tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground border border-border shadow-2xs group transition-all"
+                  >
+                    <span className="text-muted-foreground font-mono">#</span>
+                    <span>{tag}</span>
                     <button
                       type="button"
-                      className="p-2 mb-1.5 rounded-lg border border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors h-[38px] flex items-center justify-center"
-                      onClick={() => removeAttribute(attr.id)}
+                      onClick={() => setTags(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-muted-foreground hover:text-destructive rounded-full p-0.5 hover:bg-muted transition-colors"
+                      title={`Remove "${tag}"`}
+                      aria-label={`Remove tag ${tag}`}
                     >
-                      <Icon icon="lucide:trash-2" className="text-[16px]" />
+                      <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+
+                <div className="flex-1 min-w-[150px] flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    placeholder={tags.length === 0 ? "Add keywords for quick POS search (e.g. coke, soda, painkiller)..." : "Add another tag..."}
+                    className="w-full bg-transparent text-xs font-medium text-foreground outline-none placeholder:text-muted-foreground/60 py-1 px-1"
+                  />
+                  {tagInput.trim() && (
+                    <button
+                      type="button"
+                      onClick={addCurrentTag}
+                      className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground rounded-md hover:bg-primary/90 shrink-0 transition-colors shadow-2xs"
+                    >
+                      Add
                     </button>
                   )}
                 </div>
-              ))}
+              </div>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-primary gap-1 pl-0 font-bold hover:bg-transparent"
-                onClick={addAttribute}
-              >
-                <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add Attribute
-              </Button>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Add keywords or synonyms that make this product quickly searchable at POS checkout. Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">Enter</kbd> or <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border border-border">,</kbd> to add.
+              </p>
             </div>
 
-            <Button
-              type="button"
-              className="w-full bg-secondary-gray text-foreground border font-bold py-2 rounded-xl"
-              onClick={generateVariants}
-            >
-              <Icon icon="fluent:settings-20-filled" className="mr-2 text-lg" /> Generate Variant Combinations
-            </Button>
+            {/* Images */}
+            <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
+                <span className="text-[11px] text-muted-foreground">First image is the main photo{hasVariants ? " · pick one per variant below" : ""}</span>
+              </div>
+              <FileUpload
+                value={uploadedFiles}
+                onChange={handleFilesChange}
+                accept="image/*"
+                maxFiles={6}
+              />
+            </div>
+          </div>
 
-            {/* Bulk Edit Panel */}
-            {variants.length > 0 && (
-              <div className="p-4 border border-border rounded-xl bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between !tracking-wide">
-                  <h4 className="text-xs font-bold text-foreground uppercase !tracking-wide">Bulk Edit Variants</h4>
-                  <span className="text-[10px] text-muted-foreground">Quickly apply base values to all rows</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      {isEditing ? "Stock (Locked)" : "Initial Stock"}
-                    </label>
-                    <input
-                      type="number"
-                      disabled={isEditing}
-                      className={cn(
-                        "w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none",
-                        isEditing && "opacity-70 bg-muted/40 cursor-not-allowed text-muted-foreground"
-                      )}
-                      placeholder={isEditing ? "Managed in Inventory" : "e.g. 50"}
-                      value={isEditing ? "" : bulkStock}
-                      onChange={(e) => setBulkStock(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Cost Price (Base Unit)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-full px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none"
-                      placeholder="e.g. 25.00"
-                      value={bulkCost}
-                      onChange={(e) => setBulkCost(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Sell Mode</label>
-                    <select
-                      className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none w-full capitalize"
-                      value={bulkSellMode}
-                      onChange={(e) => setBulkSellMode(e.target.value as any)}
+          {/* SECTION 2: VARIANTS TOGGLE */}
+          <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-4 md:p-6 rounded-xl space-y-4 shadow-sm">
+            <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Variants</h3>
+            <div className="flex items-center justify-between gap-4 p-4 border border-border dark:border-gray-800 rounded-lg bg-muted/10">
+              <div className="space-y-0.5">
+                <label className="text-sm font-bold text-foreground">This product comes in different flavours, sizes or colours</label>
+                <p className="text-xs text-muted-foreground">
+                  {isEditing
+                    ? "This can't be changed after the product is created."
+                    : "Each variant gets its own SKU, price, stock and image."}
+                </p>
+              </div>
+              <Switch
+                checked={hasVariants}
+                onCheckedChange={setHasVariants}
+                disabled={isEditing}
+                aria-label="Product has variants"
+              />
+            </div>
+          </div>
+
+          {/* SECTION 3a: SIMPLE PRODUCT */}
+          {!hasVariants ? (
+            <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
+              <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Pricing & Stock</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <CustomInputTextField
+                  label="SKU / Barcode"
+                  name="sku"
+                  value={simpleSku}
+                  onChange={(e) => setSimpleSku(e.target.value)}
+                  onKeyDown={enterToNextField}
+                  placeholder="Scan, type, or leave blank to auto-generate"
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setSimpleSku(generateSimpleSku(name))}
+                      className="text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors"
+                      title="Generate a SKU"
+                      aria-label="Generate a SKU"
                     >
-                      <option value="unit_only">Unit Only</option>
-                      <option value="pack_only">Pack Only</option>
-                      <option value="flexible">Flexible</option>
-                    </select>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg h-8"
-                    onClick={handleApplyBulkVariants}
-                  >
-                    Apply to All
-                  </Button>
+                      <Icon icon="lucide:refresh-cw" className="text-[14px]" />
+                    </button>
+                  }
+                />
+                <CustomInputTextField
+                  label="Sold per (unit name)"
+                  name="baseUnit"
+                  value={baseUnitName}
+                  onChange={(e) => setBaseUnitName(e.target.value)}
+                  placeholder="e.g. bottle, box, piece"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Retail price {simpleSale && !simpleSale.is_base_unit ? `per ${simpleSale.name || "pack"}` : `per ${baseUnitName || "unit"}`} <span className="text-destructive">*</span>
+                  </label>
+                  <PriceInput
+                    id="pf-simple-retail"
+                    size="md"
+                    value={simpleSale?.retail_price || ""}
+                    onChange={(v) => {
+                      setSimpleTiers(prev => setSaleTierRetail(prev, v));
+                      if (errors.simple?.retail) setErrors(prev => ({ ...prev, simple: undefined }));
+                    }}
+                    cost={simpleCostPrice}
+                    units={simpleSale?.is_base_unit ? 1 : simpleSale?.units_per_tier}
+                    error={errors.simple?.retail}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Cost per {baseUnitName || "unit"} (what you pay)</label>
+                  <PriceInput
+                    size="md"
+                    value={simpleCostPrice}
+                    onChange={setSimpleCostPrice}
+                    placeholder="Optional — needed for profit reports"
+                    showMargin={false}
+                  />
                 </div>
               </div>
-            )}
 
-            {/* Combinations list */}
-            {variants.length > 0 && (
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">Generated Combinations ({variants.length})</label>
-                
-                {/* Desktop view table */}
-                <div className="hidden sm:block border border-border rounded overflow-hidden shadow-sm bg-card">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-muted border-b border-border/80 text-[10px] text-muted-foreground uppercase font-bold">
-                        <th className="p-3">Attributes</th>
-                        <th className="p-3">SKU</th>
-                        <th className="p-3 w-20">Stock {isEditing && "(Locked)"}</th>
-                        <th className="p-3 w-24">Cost</th>
-                        <th className="p-3 w-28">Sell Mode</th>
-                        <th className="p-3 text-right w-24">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {variants.map((v, idx) => (
-                        <React.Fragment key={v.id}>
-                          <tr className="hover:bg-muted/10">
-                            <td className="p-3 font-semibold text-foreground capitalize">
-                              {Object.entries(v.variant_attributes).map(([key, val]) => `${key}: ${val}`).join(", ")}
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                required
-                                className="w-full px-2 py-1 text-xs border border-border rounded bg-transparent focus:outline-none font-mono"
-                                value={v.sku}
-                                onChange={(e) => updateVariantField(idx, "sku", e.target.value)}
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                disabled={isEditing}
-                                className={cn(
-                                  "w-full px-2 py-1 text-xs border border-border rounded bg-transparent focus:outline-none",
-                                  isEditing && "opacity-70 bg-muted/40 cursor-not-allowed text-muted-foreground"
-                                )}
-                                value={v.stock_quantity}
-                                onChange={(e) => updateVariantField(idx, "stock_quantity", e.target.value)}
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                step="0.01"
-                                className="w-full px-2 py-1 text-xs border border-border rounded bg-transparent focus:outline-none"
-                                value={v.cost_price_per_base_unit}
-                                onChange={(e) => updateVariantField(idx, "cost_price_per_base_unit", e.target.value)}
-                              />
-                            </td>
-                            <td className="p-2">
-                              <select
-                                className="px-2 py-1 text-xs border border-border rounded bg-card focus:outline-none w-full capitalize"
-                                value={v.sell_mode}
-                                onChange={(e) => updateVariantField(idx, "sell_mode", e.target.value)}
-                              >
-                                <option value="unit_only">Unit Only</option>
-                                <option value="pack_only">Pack Only</option>
-                                <option value="flexible">Flexible</option>
-                              </select>
-                            </td>
-                            <td className="p-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  className={cn("p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground", v.isExpanded && "bg-muted text-foreground")}
-                                  onClick={() => updateVariantField(idx, "isExpanded", !v.isExpanded)}
-                                  title="Packaging Tiers"
-                                >
-                                  <Icon icon="fluent:box-multiple-20-filled" className="text-[16px]" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                  onClick={() => deleteVariant(idx)}
-                                  title="Delete Combination"
-                                >
-                                  <Icon icon="lucide:trash-2" className="text-[16px]" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <CustomInputTextField
+                  label={isEditing ? "In stock (locked)" : "Opening stock"}
+                  name="stock"
+                  type="number"
+                  disabled={isEditing}
+                  value={simpleStock}
+                  onChange={(e) => setSimpleStock(e.target.value)}
+                  placeholder="0"
+                  inputProps={{ min: "0", step: "any", inputMode: "decimal", disabled: isEditing, onWheel: blurOnWheel }}
+                  className={cn(isEditing && "opacity-75 bg-muted/40 cursor-not-allowed text-muted-foreground")}
+                />
+                <CustomInputTextField
+                  label="Low stock alert"
+                  name="lowStock"
+                  type="number"
+                  value={simpleLowStock}
+                  onChange={(e) => setSimpleLowStock(e.target.value)}
+                  placeholder="5"
+                  inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
+                />
+                {isEditing && (
+                  <p className="col-span-2 text-[10px] text-muted-foreground">
+                    To change stock on hand, use <span className="font-semibold text-foreground">Stock Adjustments</span>, <span className="font-semibold text-foreground">Stock In</span> or <span className="font-semibold text-foreground">Reconcile</span>.
+                  </p>
+                )}
+              </div>
 
-                          {/* Expanded packaging tiers for this specific variant */}
-                          {v.isExpanded && (
-                            <tr>
-                              <td colSpan={6} className="bg-muted/10 p-4 border-b border-border">
-                                <div className="border border-border rounded-xl bg-card p-4 shadow-sm animate-in fade-in duration-300">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tiers for {Object.values(v.variant_attributes).join("/")}</h4>
-                                    <div className="flex items-center gap-4">
-                                      {trackExpiryEnabled && (
-                                        <div className="flex items-center gap-2 mr-2 bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
-                                          <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">Track Expiry</span>
-                                          <Switch
-                                            checked={v.track_expiry || false}
-                                            onCheckedChange={(val) => updateVariantField(idx, "track_expiry", val)}
-                                          />
-                                        </div>
-                                      )}
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 gap-1 rounded-lg text-xs"
-                                        onClick={() => addVariantTier(idx)}
-                                      >
-                                        <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add Tier
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  
-                                  {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers), v.cost_price_per_base_unit)}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">How it's sold</label>
+                <SellModePicker value={simpleSellMode} onChange={setSimpleSellMode} />
+              </div>
+
+              {trackExpiryEnabled && (
+                <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/10">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-foreground">Track expiry dates</label>
+                    <p className="text-[10px] text-muted-foreground">Prompts cashiers and tracks batches automatically.</p>
+                  </div>
+                  <Switch checked={simpleTrackExpiry} onCheckedChange={setSimpleTrackExpiry} />
                 </div>
+              )}
 
-                {/* Mobile view stacked cards */}
-                <div className="block sm:hidden space-y-3">
-                  {variants.map((v, idx) => (
-                    <div key={v.id} className="border border-border bg-card rounded-xl p-4 space-y-4 shadow-sm">
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <span className="font-bold text-foreground capitalize">
-                          {Object.entries(v.variant_attributes).map(([key, val]) => `${key}: ${val}`).join(", ")}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            className={cn("p-1.5 rounded hover:bg-muted text-muted-foreground", v.isExpanded && "bg-muted text-foreground")}
-                            onClick={() => updateVariantField(idx, "isExpanded", !v.isExpanded)}
-                            title="Packaging Tiers"
-                          >
-                            <Icon icon="fluent:box-multiple-20-filled" className="text-base" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteVariant(idx)}
-                            title="Delete Combination"
-                          >
-                            <Icon icon="lucide:trash-2" className="text-base" />
-                          </button>
-                        </div>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSimplePacks(s => !s)}
+                  aria-expanded={showSimplePacks}
+                  className="w-full flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left hover:bg-muted/40"
+                >
+                  <span>
+                    <span className="block text-xs font-bold uppercase text-muted-foreground">Packs & wholesale prices</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {simpleTiers.length > 1
+                        ? `${simpleTiers.length - 1} pack size${simpleTiers.length > 2 ? "s" : ""} set up`
+                        : "Optional — sell by the pack/crate, or set a wholesale price"}
+                    </span>
+                  </span>
+                  <Icon icon={showSimplePacks ? "lucide:chevron-up" : "lucide:chevron-down"} className="text-muted-foreground" />
+                </button>
+                {showSimplePacks && (
+                  <TiersEditor tiers={simpleTiers} onChange={setSimpleTiers} unitName={baseUnitName} cost={simpleCostPrice} />
+                )}
+              </div>
+            </div>
+          ) : (
+
+            /* SECTION 3b: VARIANTS */
+            <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
+              <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Variant Options, Pricing & Stock</h3>
+
+              <div className="space-y-3">
+                {attributes.map((attr, idx) => {
+                  const count = parseOptions(attr.values).length;
+                  return (
+                    <div key={attr.key} className="flex flex-col md:flex-row gap-3 md:items-end">
+                      <div className="flex-1">
+                        <CustomInputTextField
+                          label={idx === 0 ? "Option name" : undefined}
+                          value={attr.name}
+                          onChange={(e) => updateAttribute(attr.key, "name", e.target.value)}
+                          placeholder="e.g. Flavour, Size, Colour"
+                          labelPlacement={idx === 0 ? "inside" : "outside"}
+                        />
                       </div>
-
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="space-y-1 col-span-2">
-                          <label className="text-[10px] font-bold text-muted-foreground uppercase">SKU</label>
-                          <input
-                            type="text"
-                            required
-                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none font-mono"
-                            value={v.sku}
-                            onChange={(e) => updateVariantField(idx, "sku", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Stock</label>
-                          <input
-                            type="number"
-                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none"
-                            value={v.stock_quantity}
-                            onChange={(e) => updateVariantField(idx, "stock_quantity", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Cost</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-transparent focus:outline-none"
-                            value={v.cost_price_per_base_unit}
-                            onChange={(e) => updateVariantField(idx, "cost_price_per_base_unit", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1 col-span-2">
-                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Sell Mode</label>
-                          <select
-                            className="px-2.5 py-1.5 text-xs border border-border rounded bg-card focus:outline-none w-full capitalize"
-                            value={v.sell_mode}
-                            onChange={(e) => updateVariantField(idx, "sell_mode", e.target.value)}
-                          >
-                            <option value="unit_only">Unit Only</option>
-                            <option value="pack_only">Pack Only</option>
-                            <option value="flexible">Flexible</option>
-                          </select>
-                        </div>
+                      <div className="flex-[2]">
+                        <CustomInputTextField
+                          label={idx === 0 ? "Values (comma-separated)" : undefined}
+                          value={attr.values}
+                          onChange={(e) => updateAttribute(attr.key, "values", e.target.value)}
+                          placeholder="e.g. Mango, Pineapple, Apple"
+                          endContent={count > 0 ? <span className="text-[10px] text-muted-foreground whitespace-nowrap">{count} value{count === 1 ? "" : "s"}</span> : undefined}
+                          labelPlacement={idx === 0 ? "inside" : "outside"}
+                        />
                       </div>
-
-                      {v.isExpanded && (
-                        <div className="border border-border rounded-xl bg-muted/10 p-3 shadow-inner animate-in fade-in duration-300 space-y-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tiers list</h4>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 gap-1 rounded-lg text-[10px]"
-                              onClick={() => addVariantTier(idx)}
-                            >
-                              <Icon icon="fluent:add-12-filled" className="text-[12px]" /> Add Tier
-                            </Button>
-                          </div>
-                          {renderTiersTable(v.packaging_tiers, (tiers) => updateVariantField(idx, "packaging_tiers", tiers), v.cost_price_per_base_unit)}
-                        </div>
+                      {attributes.length > 1 && (
+                        <button
+                          type="button"
+                          className="p-2 mb-1.5 rounded-lg border border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors h-[38px] flex items-center justify-center"
+                          onClick={() => setAttributes(prev => prev.filter(a => a.key !== attr.key))}
+                          aria-label={`Remove option ${attr.name || idx + 1}`}
+                          title="Remove this option"
+                        >
+                          <Icon icon="lucide:trash-2" className="text-[16px]" />
+                        </button>
                       )}
                     </div>
-                  ))}
+                  );
+                })}
+
+                <div className="flex flex-col md:flex-row md:items-end gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary gap-1 pl-0 font-bold hover:bg-transparent self-start"
+                    onClick={addAttribute}
+                  >
+                    <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add another option
+                  </Button>
+                  <div className="md:ml-auto md:w-64">
+                    <CustomInputTextField
+                      label="Sold per (unit name)"
+                      value={baseUnitName}
+                      onChange={(e) => setBaseUnitName(e.target.value)}
+                      placeholder="e.g. bottle"
+                    />
+                  </div>
                 </div>
-
               </div>
-            )}
-          </div>
-        )}
 
+              <div id="pf-variants">
+                <Button
+                  type="button"
+                  className="w-full bg-secondary-gray text-foreground border font-bold py-2 rounded-xl"
+                  onClick={generateVariants}
+                >
+                  <Icon icon={variants.length ? "lucide:refresh-cw" : "fluent:settings-20-filled"} className="mr-2 text-lg" />
+                  {variants.length ? "Update variants from options" : "Create variants"}
+                </Button>
+                <p className={cn("mt-1.5 text-[11px]", errors.general ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                  {errors.general || (variants.length
+                    ? "Adds new combinations and keeps the prices, SKUs and images you've already entered."
+                    : "One variant is created for each combination of values.")}
+                </p>
+              </div>
+
+              {variants.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">
+                    Variants ({variants.length})
+                  </label>
+                  <VariantsTable
+                    variants={variants}
+                    onChange={(rows) => {
+                      setVariants(rows);
+                      if (Object.keys(errors.variants).length) setErrors(prev => ({ ...prev, variants: {} }));
+                    }}
+                    errors={errors.variants}
+                    isEditing={isEditing}
+                    gallery={gallery}
+                    trackExpiryEnabled={trackExpiryEnabled}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="pt-4 border-t border-border dark:border-gray-800 flex justify-end gap-3 mt-auto shrink-0">
-        <Button 
-          variant="outline" 
+      {/* Sticky footer so Save stays reachable on long variant lists */}
+      <div className="sticky bottom-0 z-30 -mx-1 px-1 py-3 bg-background/95 backdrop-blur border-t border-border dark:border-gray-800 flex items-center justify-end gap-3">
+        {isDirty && <span className="mr-auto text-[11px] text-muted-foreground hidden sm:block">Unsaved changes</span>}
+        <Button
+          variant="outline"
           type="button"
           onClick={onCancel}
           className="font-medium px-6 rounded-full"
         >
           Cancel
         </Button>
-        <Button 
+        <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isSaving}
           className="bg-primary text-primary-foreground font-bold px-6 rounded-full"
         >
-          {isLoading ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
+          {isSaving ? "Saving…" : isEditing ? "Save Changes" : "Create Product"}
         </Button>
       </div>
+
+      {/* Confirm removing variants that no longer match the options */}
+      <CustomModal
+        isOpen={!!pendingRegen}
+        onOpenChange={() => setPendingRegen(null)}
+        size="md"
+        header={
+          <div className="pt-2 px-2 border-b border-border/60 pb-3">
+            <h2 className="text-lg font-bold !tracking-tight">Remove {pendingRegen?.removed.length} variant{pendingRegen?.removed.length === 1 ? "" : "s"}?</h2>
+            <p className="text-xs md:text-[13px] text-muted-foreground">These no longer match your options{isEditing ? " — they'll be hidden from sale, but their sales history is kept" : ""}.</p>
+          </div>
+        }
+        body={
+          <ul className="py-2 space-y-1 max-h-60 overflow-y-auto">
+            {pendingRegen?.removed.map(v => (
+              <li key={v.key} className="flex items-center justify-between text-sm rounded-md bg-muted/40 px-3 py-1.5">
+                <span className="capitalize">{variantLabel(v)}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">{v.sku}</span>
+              </li>
+            ))}
+          </ul>
+        }
+        footer={
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
+            <Button variant="outline" size="sm" type="button" onClick={() => setPendingRegen(null)}>
+              Keep them
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold"
+              onClick={() => pendingRegen && applyVariants(pendingRegen.next, pendingRegen.added, pendingRegen.removed.length)}
+            >
+              Remove & update
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Confirm saving with prices below cost */}
+      <CustomModal
+        isOpen={!!belowCostItems}
+        onOpenChange={() => setBelowCostItems(null)}
+        size="md"
+        header={
+          <div className="pt-2 px-2 border-b border-border/60 pb-3">
+            <h2 className="text-lg font-bold !tracking-tight">Selling below cost?</h2>
+            <p className="text-xs md:text-[13px] text-muted-foreground">The retail price is lower than what you pay for:</p>
+          </div>
+        }
+        body={
+          <ul className="py-2 space-y-1 max-h-60 overflow-y-auto">
+            {belowCostItems?.map(label => (
+              <li key={label} className="text-sm rounded-md bg-amber-500/10 text-amber-800 dark:text-amber-300 px-3 py-1.5 capitalize">{label}</li>
+            ))}
+          </ul>
+        }
+        footer={
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
+            <Button variant="outline" size="sm" type="button" onClick={() => setBelowCostItems(null)}>
+              Fix prices
+            </Button>
+            <Button size="sm" type="button" className="bg-primary text-primary-foreground font-semibold" onClick={save} disabled={isSaving}>
+              Save anyway
+            </Button>
+          </div>
+        }
+      />
     </form>
   );
 }
