@@ -290,17 +290,17 @@ export default function Overview() {
           <Button
             variant="outline"
             onClick={() => navigate('/inventory/products')}
-            className="rounded-md h-10 px-4 font-bold"
+            className="rounded-lg h-10 px-4 font-bold"
           >
-            <PackagePlus className="w-4 h-4 mr-2" />
-            Add Product
+            <PackagePlus className="w-4 h-4" />
+            <span className="hidden lg:inline ml-2">Add Product</span>
           </Button>
           <Button
             onClick={() => navigate('/pos/register')}
-            className="bg-primary text-primary-foreground rounded-md font-bold h-10 px-4"
+            className="bg-primary text-primary-foreground rounded-lg font-bold h-10 px-4"
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Open Register
+            <ShoppingCart className="w-4 h-4" />
+            <span className="hidden lg:inline ml-2">Open Register</span>
           </Button>
         </div>
       }
