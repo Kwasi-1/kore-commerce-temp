@@ -3,7 +3,7 @@ import { Icon } from '@iconify/react';
 import { format, parseISO } from 'date-fns';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import apiClient from '@/api/client';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import CustomModal from '@/components/modals/modal';
 import type { ProductReportFilters } from '../types';
 import { SHARE_BAR_COLOR } from '../constants';
 import { formatRangeLabel } from '../utils/dates';
@@ -130,21 +130,29 @@ export default function ProductDetailDrawer({ target, onClose, filters, isMultiC
   const totalChannelUnits = (detail?.channels || []).reduce((s, c) => s + c.units, 0);
 
   return (
-    <Sheet open={!!target} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-xl bg-card text-card-foreground border-border overflow-y-auto p-0">
-        <SheetHeader className="p-5 pb-3 border-b border-border text-left">
-          <SheetTitle className="text-lg leading-tight pr-6">
+    <CustomModal
+      isOpen={!!target}
+      onOpenChange={onClose}
+      size="lg"
+      placement="right"
+      classNames={{
+        base: 'min-w-[calc(100%-0.75rem)] sm:w-[540px] md:w-[600px] scrollbar-hide',
+      }}
+      header={
+        <div className="pt-2 px-1 border-b border-border/50 pb-3 pr-6">
+          <h2 className="text-lg font-bold !tracking-tight leading-tight">
             {detail?.product.name || target?.title}
             {detail?.product.variant_label && <span className="font-normal text-muted-foreground"> · {detail.product.variant_label}</span>}
-          </SheetTitle>
-          <SheetDescription>
+          </h2>
+          <p className="text-xs md:text-[13px] text-muted-foreground">
             {[detail?.product.brand, detail?.product.category].filter(Boolean).join(' • ')}
             {detail?.product.brand || detail?.product.category ? ' · ' : ''}
             {formatRangeLabel(filters.range, filters.start, filters.end)}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="p-5 space-y-6">
+          </p>
+        </div>
+      }
+      body={
+        <div className="py-3 pb-6 space-y-6 md:px-1">
           {isLoading && (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -325,7 +333,7 @@ export default function ProductDetailDrawer({ target, onClose, filters, isMultiC
             </>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      }
+    />
   );
 }

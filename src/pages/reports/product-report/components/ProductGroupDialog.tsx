@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import apiClient from '@/api/client';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CustomModal from '@/components/modals/modal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import type { ProductGroup } from '../types';
@@ -112,123 +112,131 @@ export default function ProductGroupDialog({ open, onOpenChange, group, initial,
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-card text-card-foreground border-border max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{group ? 'Edit product group' : 'New product group'}</DialogTitle>
-          <DialogDescription>
+    <CustomModal
+      isOpen={open}
+      onOpenChange={() => onOpenChange(false)}
+      size="2xl"
+      header={
+        <div className="pt-2 px-2 border-b border-border/60 pb-3">
+          <h2 className="text-lg font-bold !tracking-tight">{group ? 'Edit product group' : 'New product group'}</h2>
+          <p className="text-xs md:text-[13px] text-muted-foreground">
             Save a set of products to compare them side by side, e.g. all Kalypo flavours. Ticking a product includes all its variants.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium">Name</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={120}
-              placeholder="Kalypo flavours"
-              className="h-9 px-3 rounded-md bg-background border border-border outline-none focus:border-foreground/30"
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium">
-              Description <span className="text-muted-foreground font-normal">(optional)</span>
-            </span>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={500}
-              placeholder="Juice drinks restocked weekly"
-              className="h-9 px-3 rounded-md bg-background border border-border outline-none focus:border-foreground/30"
-            />
-          </label>
+          </p>
         </div>
-
-        {selected.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-            {selected.map((s) => (
-              <span key={s.id} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-muted text-xs font-medium">
-                <Icon icon={s.kind === 'product' ? 'lucide:package' : 'lucide:box'} className="w-3 h-3 text-muted-foreground" />
-                <span className="max-w-[220px] truncate">{s.label}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${s.label}`}
-                  onClick={() => (s.kind === 'product' ? toggle(productIds, setProductIds, s.id) : toggle(variantIds, setVariantIds, s.id))}
-                  className="w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-foreground/10"
-                >
-                  <Icon icon="lucide:x" className="w-3 h-3" />
-                </button>
+      }
+      body={
+        <div className="space-y-4 py-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium">Name</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={120}
+                placeholder="Kalypo flavours"
+                className="h-9 px-3 rounded-md bg-background border border-border outline-none focus:border-foreground/30"
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium">
+                Description <span className="text-muted-foreground font-normal">(optional)</span>
               </span>
-            ))}
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={500}
+                placeholder="Juice drinks restocked weekly"
+                className="h-9 px-3 rounded-md bg-background border border-border outline-none focus:border-foreground/30"
+              />
+            </label>
           </div>
-        )}
 
-        <div className="flex flex-col min-h-0 flex-1 rounded-lg border border-border">
-          <div className="p-2 border-b border-border relative">
-            <Icon icon="lucide:search" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products to add…"
-              className="w-full h-9 pl-8 pr-3 text-sm rounded-md bg-muted/50 border border-transparent outline-none focus:border-foreground/20"
-            />
-          </div>
-          <div className="overflow-y-auto max-h-[38vh] p-1">
-            {isSearching && results.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">Searching…</p>}
-            {!isSearching && results.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No products found</p>}
-            {results.map((p) => {
-              const multi = p.has_variants && (p.variants || []).length > 1;
-              const productChecked = productIds.includes(p.id);
-              const variantsPicked = (p.variants || []).filter((v) => variantIds.includes(v.id)).length;
-              return (
-                <div key={p.id} className="rounded-md">
-                  <div className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox checked={productChecked} onCheckedChange={() => toggle(productIds, setProductIds, p.id)} />
-                    <button type="button" className="flex-1 min-w-0 text-left" onClick={() => toggle(productIds, setProductIds, p.id)}>
-                      <span className="block text-sm font-medium truncate">{p.name}</span>
-                      <span className="block text-[11px] text-muted-foreground truncate">
-                        {[p.brand, p.category, multi ? `${p.variants.length} variants` : null].filter(Boolean).join(' • ')}
-                        {variantsPicked > 0 && !productChecked && ` • ${variantsPicked} picked`}
-                      </span>
-                    </button>
-                    {multi && (
-                      <button
-                        type="button"
-                        aria-label="Pick individual variants"
-                        onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                      >
-                        <Icon icon={expanded[p.id] ? 'lucide:chevron-up' : 'lucide:chevron-down'} className="w-4 h-4" />
+          {selected.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+              {selected.map((s) => (
+                <span key={s.id} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-muted text-xs font-medium">
+                  <Icon icon={s.kind === 'product' ? 'lucide:package' : 'lucide:box'} className="w-3 h-3 text-muted-foreground" />
+                  <span className="max-w-[220px] truncate">{s.label}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${s.label}`}
+                    onClick={() => (s.kind === 'product' ? toggle(productIds, setProductIds, s.id) : toggle(variantIds, setVariantIds, s.id))}
+                    className="w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-foreground/10"
+                  >
+                    <Icon icon="lucide:x" className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col min-h-0 flex-1 rounded-lg border border-border">
+            <div className="p-2 border-b border-border relative">
+              <Icon icon="lucide:search" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search products to add…"
+                className="w-full h-9 pl-8 pr-3 text-sm rounded-md bg-muted/50 border border-transparent outline-none focus:border-foreground/20"
+              />
+            </div>
+            <div className="overflow-y-auto max-h-[38vh] p-1">
+              {isSearching && results.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">Searching…</p>}
+              {!isSearching && results.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No products found</p>}
+              {results.map((p) => {
+                const multi = p.has_variants && (p.variants || []).length > 1;
+                const productChecked = productIds.includes(p.id);
+                const variantsPicked = (p.variants || []).filter((v) => variantIds.includes(v.id)).length;
+                return (
+                  <div key={p.id} className="rounded-md">
+                    <div className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-muted/50 rounded-md">
+                      <Checkbox checked={productChecked} onCheckedChange={() => toggle(productIds, setProductIds, p.id)} />
+                      <button type="button" className="flex-1 min-w-0 text-left" onClick={() => toggle(productIds, setProductIds, p.id)}>
+                        <span className="block text-sm font-medium truncate">{p.name}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">
+                          {[p.brand, p.category, multi ? `${p.variants.length} variants` : null].filter(Boolean).join(' • ')}
+                          {variantsPicked > 0 && !productChecked && ` • ${variantsPicked} picked`}
+                        </span>
                       </button>
+                      {multi && (
+                        <button
+                          type="button"
+                          aria-label="Pick individual variants"
+                          onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                        >
+                          <Icon icon={expanded[p.id] ? 'lucide:chevron-up' : 'lucide:chevron-down'} className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {multi && expanded[p.id] && (
+                      <div className="pl-9 pb-1">
+                        {p.variants.map((v) => (
+                          <label key={v.id} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+                            <Checkbox
+                              disabled={productChecked}
+                              checked={productChecked || variantIds.includes(v.id)}
+                              onCheckedChange={() => toggle(variantIds, setVariantIds, v.id)}
+                            />
+                            <span className="truncate">{variantLabel(v)}</span>
+                            <span className="ml-auto font-mono text-[11px] text-muted-foreground">{v.sku}</span>
+                          </label>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {multi && expanded[p.id] && (
-                    <div className="pl-9 pb-1">
-                      {p.variants.map((v) => (
-                        <label key={v.id} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm cursor-pointer hover:bg-muted/50">
-                          <Checkbox
-                            disabled={productChecked}
-                            checked={productChecked || variantIds.includes(v.id)}
-                            onCheckedChange={() => toggle(variantIds, setVariantIds, v.id)}
-                          />
-                          <span className="truncate">{variantLabel(v)}</span>
-                          <span className="ml-auto font-mono text-[11px] text-muted-foreground">{v.sku}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-
-        <DialogFooter className="flex-row items-center sm:justify-between gap-2">
+      }
+      footer={
+        <div className="flex items-center justify-between gap-2 w-full pt-2">
           {group && onDelete ? (
             <Button
               variant="ghost"
+              size="sm"
               className="text-rose-600 hover:text-rose-700"
               onClick={async () => {
                 if (window.confirm(`Delete the group "${group.name}"? Products are not affected.`)) {
@@ -242,15 +250,20 @@ export default function ProductGroupDialog({ open, onOpenChange, group, initial,
             <span className="text-xs text-muted-foreground">{selected.length} selected</span>
           )}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="hidden md:flex">
               Cancel
             </Button>
-            <Button disabled={!canSave} onClick={handleSave}>
+            <Button
+              size="sm"
+              disabled={!canSave}
+              onClick={handleSave}
+              className="bg-primary text-xs md:text-sm text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
+            >
               {isSaving ? 'Saving…' : group ? 'Save changes' : 'Create group'}
             </Button>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    />
   );
 }

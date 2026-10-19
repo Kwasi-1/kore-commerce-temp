@@ -4,7 +4,7 @@ import { Icon } from '@iconify/react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CustomModal from '@/components/modals/modal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import type { ProductReportFilters, ReorderSuggestion } from '../types';
@@ -164,135 +164,142 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl bg-card text-card-foreground border-border max-h-[92vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Plan restock{scopeLabel ? ` — ${scopeLabel}` : ''}</DialogTitle>
-          <DialogDescription>
+    <CustomModal
+      isOpen={open}
+      onOpenChange={() => onOpenChange(false)}
+      size="5xl"
+      header={
+        <div className="pt-2 px-2 border-b border-border/60 pb-3">
+          <h2 className="text-lg font-bold !tracking-tight">Plan restock{scopeLabel ? ` — ${scopeLabel}` : ''}</h2>
+          <p className="text-xs md:text-[13px] text-muted-foreground">
             Quantities cover your sales rate ({formatRangeLabel(filters.range, filters.start, filters.end).toLowerCase()}) for the lead time plus
             the target days of stock, minus what's on hand and already on open purchase orders.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-            Supplier lead time (days)
-            <input type="number" min={0} max={90} value={leadDays} onChange={(e) => setLeadDays(e.target.value)} className={`${inputClass} w-28`} />
-          </label>
-          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-            Target stock (days of sales)
-            <input type="number" min={1} max={180} value={coverDays} onChange={(e) => setCoverDays(e.target.value)} className={`${inputClass} w-28`} />
-          </label>
-          <p className="text-xs text-muted-foreground pb-2">
-            {isLoading ? 'Calculating…' : `${lines.length} item${lines.length === 1 ? '' : 's'} need restocking`}
           </p>
         </div>
+      }
+      body={
+        <div className="space-y-4 py-2">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Supplier lead time (days)
+              <input type="number" min={0} max={90} value={leadDays} onChange={(e) => setLeadDays(e.target.value)} className={`${inputClass} w-28`} />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Target stock (days of sales)
+              <input type="number" min={1} max={180} value={coverDays} onChange={(e) => setCoverDays(e.target.value)} className={`${inputClass} w-28`} />
+            </label>
+            <p className="text-xs text-muted-foreground pb-2">
+              {isLoading ? 'Calculating…' : `${lines.length} item${lines.length === 1 ? '' : 's'} need restocking`}
+            </p>
+          </div>
 
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
-          {!isLoading && lines.length === 0 ? (
-            <div className="py-16 text-center">
-              <Icon icon="lucide:check-circle-2" className="w-8 h-8 mx-auto text-emerald-600 dark:text-emerald-400" />
-              <p className="mt-2 text-sm font-medium">Nothing needs restocking for this horizon</p>
-              <p className="text-xs text-muted-foreground">Try a longer target, or a date range with more sales.</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-muted/80 backdrop-blur text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="w-10 px-3 py-2" />
-                  <th className="px-3 py-2 text-left font-medium">Item</th>
-                  <th className="px-3 py-2 text-right font-medium">On hand · On order</th>
-                  <th className="px-3 py-2 text-right font-medium">Sales/day · Cover</th>
-                  <th className="px-3 py-2 text-left font-medium">Order</th>
-                  <th className="px-3 py-2 text-left font-medium">Cost / pack</th>
-                  <th className="px-3 py-2 text-left font-medium">Supplier</th>
-                  <th className="px-3 py-2 text-right font-medium">Line total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {isLoading && lines.length === 0
-                  ? Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i}>
-                        <td colSpan={8} className="px-3 py-3">
-                          <div className="h-5 rounded bg-muted/60 animate-pulse" />
-                        </td>
-                      </tr>
-                    ))
-                  : lines.map((l) => (
-                      <tr key={l.s.variant_id} className={l.include ? '' : 'opacity-50'}>
-                        <td className="px-3 py-2.5">
-                          <Checkbox checked={l.include} onCheckedChange={(v) => update(l.s.variant_id, { include: v === true })} />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="font-medium leading-tight">{rowDisplayName(l.s)}</div>
-                          <div className="text-[11px] text-muted-foreground font-mono">{l.s.sku}</div>
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
-                          {formatQty(l.s.stock_quantity)}
-                          <span className="text-muted-foreground"> · {formatQty(l.s.on_order_base_units)}</span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
-                          {formatQty(l.s.velocity_per_day)}
-                          <span className={l.s.days_of_cover < 7 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}>
-                            {' '}· {formatCover(l.s.days_of_cover)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-1.5">
+          <div className="max-h-[55vh] overflow-auto rounded-lg border border-border !font-sans">
+            {!isLoading && lines.length === 0 ? (
+              <div className="py-16 text-center">
+                <Icon icon="lucide:check-circle-2" className="w-8 h-8 mx-auto text-emerald-600 dark:text-emerald-400" />
+                <p className="mt-2 text-sm font-medium">Nothing needs restocking for this horizon</p>
+                <p className="text-xs text-muted-foreground">Try a longer target, or a date range with more sales.</p>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-muted/80 backdrop-blur text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="w-10 px-3 py-2" />
+                    <th className="px-3 py-2 text-left font-medium">Item</th>
+                    <th className="px-3 py-2 text-right font-medium">On hand · On order</th>
+                    <th className="px-3 py-2 text-right font-medium">Sales/day · Cover</th>
+                    <th className="px-3 py-2 text-left font-medium">Order</th>
+                    <th className="px-3 py-2 text-left font-medium">Cost / pack</th>
+                    <th className="px-3 py-2 text-left font-medium">Supplier</th>
+                    <th className="px-3 py-2 text-right font-medium">Line total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {isLoading && lines.length === 0
+                    ? Array.from({ length: 4 }).map((_, i) => (
+                        <tr key={i}>
+                          <td colSpan={8} className="px-3 py-3">
+                            <div className="h-5 rounded bg-muted/60 animate-pulse" />
+                          </td>
+                        </tr>
+                      ))
+                    : lines.map((l) => (
+                        <tr key={l.s.variant_id} className={l.include ? '' : 'opacity-50'}>
+                          <td className="px-3 py-2.5">
+                            <Checkbox checked={l.include} onCheckedChange={(v) => update(l.s.variant_id, { include: v === true })} />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="font-medium leading-tight">{rowDisplayName(l.s)}</div>
+                            <div className="text-[11px] text-muted-foreground font-mono">{l.s.sku}</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                            {formatQty(l.s.stock_quantity)}
+                            <span className="text-muted-foreground"> · {formatQty(l.s.on_order_base_units)}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                            {formatQty(l.s.velocity_per_day)}
+                            <span className={l.s.days_of_cover < 7 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}>
+                              {' '}· {formatCover(l.s.days_of_cover)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min={1}
+                                value={l.qty}
+                                onChange={(e) => update(l.s.variant_id, { qty: e.target.value })}
+                                className={`${inputClass} w-16`}
+                                aria-label="Quantity"
+                              />
+                              <select value={l.tierId} onChange={(e) => changeTier(l, e.target.value)} className={`${inputClass} max-w-[130px]`} aria-label="Pack size">
+                                {l.s.tiers.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.name}
+                                    {t.units_per_tier > 1 ? ` (${t.units_per_tier})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5">
                             <input
                               type="number"
-                              min={1}
-                              value={l.qty}
-                              onChange={(e) => update(l.s.variant_id, { qty: e.target.value })}
-                              className={`${inputClass} w-16`}
-                              aria-label="Quantity"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={l.costPerTier}
+                              onChange={(e) => update(l.s.variant_id, { costPerTier: e.target.value })}
+                              className={`${inputClass} w-24 ${l.include && !(parseFloat(l.costPerTier) > 0) ? 'border-rose-500/60' : ''}`}
+                              aria-label="Cost per pack"
                             />
-                            <select value={l.tierId} onChange={(e) => changeTier(l, e.target.value)} className={`${inputClass} max-w-[130px]`} aria-label="Pack size">
-                              {l.s.tiers.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.name}
-                                  {t.units_per_tier > 1 ? ` (${t.units_per_tier})` : ''}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <select
+                              value={l.supplierId}
+                              onChange={(e) => update(l.s.variant_id, { supplierId: e.target.value })}
+                              className={`${inputClass} w-40 ${l.include && !l.supplierId ? 'border-rose-500/60' : ''}`}
+                              aria-label="Supplier"
+                            >
+                              <option value="">Choose…</option>
+                              {suppliers.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name}
                                 </option>
                               ))}
                             </select>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            placeholder="0.00"
-                            value={l.costPerTier}
-                            onChange={(e) => update(l.s.variant_id, { costPerTier: e.target.value })}
-                            className={`${inputClass} w-24 ${l.include && !(parseFloat(l.costPerTier) > 0) ? 'border-rose-500/60' : ''}`}
-                            aria-label="Cost per pack"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <select
-                            value={l.supplierId}
-                            onChange={(e) => update(l.s.variant_id, { supplierId: e.target.value })}
-                            className={`${inputClass} w-40 ${l.include && !l.supplierId ? 'border-rose-500/60' : ''}`}
-                            aria-label="Supplier"
-                          >
-                            <option value="">Choose…</option>
-                            {suppliers.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">{formatMoney(lineTotal(l))}</td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          )}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">{formatMoney(lineTotal(l))}</td>
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-
-        <DialogFooter className="flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      }
+      footer={
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full pt-2">
           <div className="text-sm">
             <span className="font-semibold">{formatMoney(total)}</span>
             <span className="text-muted-foreground">
@@ -306,16 +313,21 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
               <p className="text-xs text-muted-foreground">No active suppliers yet — add one under Inventory › Suppliers.</p>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 sm:justify-end">
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="hidden md:flex">
               Cancel
             </Button>
-            <Button disabled={isCreating || isLoading || included.length === 0 || problems.length > 0} onClick={handleCreate}>
+            <Button
+              size="sm"
+              disabled={isCreating || isLoading || included.length === 0 || problems.length > 0}
+              onClick={handleCreate}
+              className="bg-primary text-xs md:text-sm text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
+            >
               {isCreating ? 'Creating…' : `Create draft PO${Object.keys(bySupplier).length > 1 ? 's' : ''}`}
             </Button>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    />
   );
 }

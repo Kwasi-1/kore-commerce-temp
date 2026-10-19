@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import type { BuiltReportPdf } from '../utils/exportProductReportPdf';
 
@@ -65,14 +65,20 @@ export default function EmailReportDialog({ open, onOpenChange, defaultTo, defau
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-card text-card-foreground border-border">
-        <DialogHeader>
-          <DialogTitle>Email this report</DialogTitle>
-          <DialogDescription>Sends the current view as a PDF attachment — same filters, charts and table.</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3">
+    <CustomModal
+      isOpen={open}
+      onOpenChange={() => onOpenChange(false)}
+      size="lg"
+      header={
+        <div className="pt-2 px-2 border-b border-border/60 pb-3">
+          <h2 className="text-lg font-bold !tracking-tight">Email this report</h2>
+          <p className="text-xs md:text-[13px] text-muted-foreground">
+            Sends the current view as a PDF attachment — same filters, charts and table.
+          </p>
+        </div>
+      }
+      body={
+        <div className="grid gap-3 py-2">
           <label className="grid gap-1.5 text-sm">
             <span className="font-medium">To</span>
             <input
@@ -103,16 +109,22 @@ export default function EmailReportDialog({ open, onOpenChange, defaultTo, defau
             />
           </label>
         </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2 w-full pt-2">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="hidden md:flex">
             Cancel
           </Button>
-          <Button disabled={!canSend} onClick={handleSend}>
+          <Button
+            size="sm"
+            disabled={!canSend}
+            onClick={handleSend}
+            className="bg-primary text-xs md:text-sm text-primary-foreground font-semibold flex items-center gap-1.5 px-5"
+          >
             {isSending ? 'Sending…' : 'Send report'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    />
   );
 }
