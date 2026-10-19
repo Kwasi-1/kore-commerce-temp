@@ -25,6 +25,7 @@ interface Props {
   trend: TrendData | null;
   isTrendLoading: boolean;
   highlights: Highlight[];
+  onPlanRestock?: () => void;
 }
 
 const SHARE_LIMIT = 12;
@@ -48,7 +49,7 @@ const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}
 
 /** Shown when the report is narrowed to a set of products (brand, category, group or selection). */
 const ProductCompareView = forwardRef<HTMLDivElement, Props>(function ProductCompareView(
-  { title, rows, summary, trend, isTrendLoading, highlights },
+  { title, rows, summary, trend, isTrendLoading, highlights, onPlanRestock },
   chartsRef,
 ) {
   const shareData = useMemo(
@@ -92,10 +93,22 @@ const ProductCompareView = forwardRef<HTMLDivElement, Props>(function ProductCom
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Comparing</p>
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {summary?.filtered_item_count ?? rows.length} items · {formatQty(summary?.total_units_sold || 0)} units sold
-          {unsold > 0 && ` · ${unsold} with no sales`}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground">
+            {summary?.filtered_item_count ?? rows.length} items · {formatQty(summary?.total_units_sold || 0)} units sold
+            {unsold > 0 && ` · ${unsold} with no sales`}
+          </p>
+          {onPlanRestock && (summary?.restock_count || 0) > 0 && (
+            <button
+              type="button"
+              onClick={onPlanRestock}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-foreground text-background text-xs font-semibold hover:opacity-90"
+            >
+              <Icon icon="lucide:package-plus" className="w-3.5 h-3.5" />
+              Restock {summary?.restock_count}
+            </button>
+          )}
+        </div>
       </header>
 
       {highlights.length > 0 && (

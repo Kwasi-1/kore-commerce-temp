@@ -14,6 +14,11 @@ import ProductReportKpis from './components/ProductReportKpis';
 import ProductReportTable from './components/ProductReportTable';
 import ProductCompareView from './components/ProductCompareView';
 import ProductGroupDialog from './components/ProductGroupDialog';
+import ReorderDialog from './components/ReorderDialog';
+import EmailReportDialog from './components/EmailReportDialog';
+import ProductDetailDrawer, { type DrillTarget } from './components/ProductDetailDrawer';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { formatRangeLabel } from './utils/dates';
 import { useProductReport } from './hooks/useProductReport';
 import { useProductGroups, type ProductGroupInput } from './hooks/useProductGroups';
 import { buildHighlights } from './utils/insights';
@@ -46,6 +51,7 @@ function selectionToIds(rows: ProductReportRow[], groupBy: string) {
 export default function ProductReport() {
   const { hasModule } = useFeaturesStore();
   const isMultiChannel = hasModule('pos') && hasModule('ecommerce');
+  const canReorder = hasModule('purchase_orders');
   const { tenant, staffUser } = useAuthStore();
   const storeSettings = useSettingsStore((s: any) => s.storeSettings);
 
@@ -70,6 +76,9 @@ export default function ProductReport() {
 
   const [groupDialog, setGroupDialog] = useState<GroupDialogState>({ open: false, group: null });
   const [isExporting, setIsExporting] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [drillTarget, setDrillTarget] = useState<DrillTarget | null>(null);
   const chartsRef = useRef<HTMLDivElement>(null);
 
   const activeGroup = groups.find((g) => g.id === filters.groupId) || null;
@@ -101,6 +110,21 @@ export default function ProductReport() {
     setSelectedKeys(new Set([]));
   }, [selectedRows, filters.groupBy, setFilters]);
 
+  // Row click → drill-down drawer (brand/category roll-ups have no single item to drill into)
+  const handleRowClick = useCallback(
+    (rowId: string) => {
+      if (filters.groupBy === 'brand' || filters.groupBy === 'category') return;
+      const row = rows.find((r) => r.id === rowId);
+      if (!row) return;
+      setDrillTarget({
+        variantId: filters.groupBy === 'variant' ? row.variant_id : null,
+        productId: row.product_id,
+        title: rowDisplayName(row),
+      });
+    },
+    [rows, filters.groupBy],
+  );
+
   const handleSaveSelectionAsGroup = useCallback(() => {
     const { variant_ids, product_ids, labels } = selectionToIds(selectedRows, filters.groupBy);
     setGroupDialog({ open: true, group: null, initial: { variant_ids, product_ids, labels } });
@@ -130,27 +154,33 @@ export default function ProductReport() {
     return ok;
   };
 
-  const handleExport = async () => {
-    if (!summary || isLoading) return;
-    if (rows.length === 0) {
+  const canExport = !!summary && !isLoading && rows.length > 0;
+
+  const buildPdf = useCallback(async () => {
+    const { buildProductReportPdf } = await import('./utils/exportProductReportPdf');
+    return buildProductReportPdf({
+      rows: rows,
+      summary: summary!,
+      filters,
+      highlights,
+      scopeLabel,
+      storeName: storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store',
+      generatedBy: staffUser?.name || 'Staff',
+      chartElement: focused ? chartsRef.current : null,
+    });
+  }, [rows, summary, filters, highlights, scopeLabel, storeSettings, tenant, staffUser, focused]);
+
+  const handleDownloadPdf = async () => {
+    if (!canExport) {
       toast.error('Nothing to export for this view');
       return;
     }
     setIsExporting(true);
     const toastId = toast.loading('Preparing PDF…');
     try {
-      const { exportProductReportPdf } = await import('./utils/exportProductReportPdf');
-      const filename = await exportProductReportPdf({
-        rows,
-        summary,
-        filters,
-        highlights,
-        scopeLabel,
-        storeName: storeSettings?.name || tenant?.name || tenant?.business_name || 'My Store',
-        generatedBy: staffUser?.name || 'Staff',
-        chartElement: focused ? chartsRef.current : null,
-      });
-      toast.success(`Downloaded ${filename}`, { id: toastId });
+      const pdf = await buildPdf();
+      pdf.save();
+      toast.success(`Downloaded ${pdf.filename}`, { id: toastId });
     } catch (err) {
       console.error('Product report PDF export failed:', err);
       toast.error('Failed to generate PDF', { id: toastId });
@@ -159,19 +189,54 @@ export default function ProductReport() {
     }
   };
 
+  const handleDownloadCsv = async () => {
+    if (!canExport) {
+      toast.error('Nothing to export for this view');
+      return;
+    }
+    const { exportProductReportCsv } = await import('./utils/exportProductReportCsv');
+    const filename = exportProductReportCsv(rows, summary!, filters, scopeLabel);
+    toast.success(`Downloaded ${filename}`);
+  };
+
+  const emailSubject = `Product performance${scopeLabel ? ` — ${scopeLabel}` : ''} (${formatRangeLabel(filters.range, filters.start, filters.end)})`;
+
   const dateValue: DateFilterValue = { active: filters.range, start_date: filters.start, end_date: filters.end };
   const onDateChange = (v: DateFilterValue) => setFilters({ range: v.active, start: v.start_date, end: v.end_date });
 
-  const exportButton = (
+  const exportMenu = (trigger: React.ReactNode) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild disabled={isExporting}>
+        {trigger}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem disabled={!canExport} onSelect={handleDownloadPdf}>
+          <Icon icon="lucide:file-text" className="w-4 h-4 mr-2" />
+          Download PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!canExport} onSelect={handleDownloadCsv}>
+          <Icon icon="lucide:sheet" className="w-4 h-4 mr-2" />
+          Download CSV (Excel)
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={!canExport} onSelect={() => setEmailOpen(true)}>
+          <Icon icon="lucide:mail" className="w-4 h-4 mr-2" />
+          Email PDF…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const exportButton = exportMenu(
     <button
       type="button"
-      onClick={handleExport}
       disabled={isExporting || isLoading || !summary}
       className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
     >
-      <Icon icon={isExporting ? 'lucide:loader-2' : 'lucide:file-down'} className={`w-4 h-4 ${isExporting ? 'animate-spin' : ''}`} />
-      Export PDF
-    </button>
+      <Icon icon={isExporting ? 'lucide:loader-2' : 'lucide:share'} className={`w-4 h-4 ${isExporting ? 'animate-spin' : ''}`} />
+      Export
+      <Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 opacity-60" />
+    </button>,
   );
 
   return (
@@ -179,6 +244,16 @@ export default function ProductReport() {
       title="Product Performance"
       actions={
         <div className="flex items-center gap-2">
+          {canReorder && (
+            <button
+              type="button"
+              onClick={() => setReorderOpen(true)}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+            >
+              <Icon icon="lucide:package-plus" className="w-4 h-4" />
+              Plan restock
+            </button>
+          )}
           {exportButton}
           <CustomOnlyDateFilterComponent value={dateValue} onChange={onDateChange} />
         </div>
@@ -191,11 +266,20 @@ export default function ProductReport() {
             searchConfig={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search products…' }}
             dateFilterConfig={{ value: dateValue, onChange: onDateChange }}
             actions={[
+              ...(canReorder
+                ? [{ label: 'Restock', icon: <Icon icon="lucide:package-plus" className="h-3.5 w-3.5" />, onClick: () => setReorderOpen(true) }]
+                : []),
               {
-                label: 'Export',
-                icon: <Icon icon="lucide:file-down" className="h-3.5 w-3.5" />,
-                onClick: handleExport,
-                disabled: isExporting || isLoading,
+                customRender: exportMenu(
+                  <button
+                    type="button"
+                    disabled={isExporting || isLoading}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+                  >
+                    <Icon icon="lucide:share" className="h-3.5 w-3.5" />
+                    Export
+                  </button>,
+                ),
               },
             ]}
           />
@@ -225,6 +309,7 @@ export default function ProductReport() {
             trend={trend}
             isTrendLoading={isTrendLoading}
             highlights={highlights}
+            onPlanRestock={canReorder ? () => setReorderOpen(true) : undefined}
           />
         )}
 
@@ -244,8 +329,23 @@ export default function ProductReport() {
           selectedKeys={selectedKeys}
           onSelectionChange={(keys) => setSelectedKeys(keys as Selection)}
           selectionActions={selectionActions}
+          onRowClick={handleRowClick}
         />
       </div>
+
+      {canReorder && (
+        <ReorderDialog open={reorderOpen} onOpenChange={setReorderOpen} filters={filters} isMultiChannel={isMultiChannel} scopeLabel={scopeLabel} />
+      )}
+
+      <ProductDetailDrawer target={drillTarget} onClose={() => setDrillTarget(null)} filters={filters} isMultiChannel={isMultiChannel} />
+
+      <EmailReportDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        defaultTo={storeSettings?.email || ''}
+        defaultSubject={emailSubject}
+        buildPdf={buildPdf}
+      />
 
       <ProductGroupDialog
         open={groupDialog.open}

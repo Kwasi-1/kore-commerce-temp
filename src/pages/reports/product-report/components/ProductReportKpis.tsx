@@ -1,7 +1,7 @@
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { CurrencyDisplay } from '@/hooks';
 import type { ProductReportSummary } from '../types';
-import { formatChange, formatQty } from '../utils/format';
+import { formatChange, formatMoney, formatQty } from '../utils/format';
 
 function Delta({ value }: { value: number | null | undefined }) {
   if (value === null || value === undefined) return null;
@@ -21,10 +21,20 @@ export default function ProductReportKpis({ summary, isLoading, focused }: { sum
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <DashboardCard
-        title="Product Revenue"
-        value={isLoading ? '...' : <CurrencyDisplay amount={s.total_revenue || 0} />}
-        valueTrailing={comparing && !isLoading ? <Delta value={s.revenue_change_pct} /> : undefined}
-        subvalue={(s.unique_products_sold || 0) > 0 ? `${s.unique_products_sold} unique items sold` : undefined}
+        title="Net Product Revenue"
+        value={isLoading ? '...' : <CurrencyDisplay amount={s.total_net_revenue ?? s.total_revenue ?? 0} />}
+        valueTrailing={comparing && !isLoading ? <Delta value={s.net_revenue_change_pct ?? s.revenue_change_pct} /> : undefined}
+        subvalue={
+          (s.total_discounts || 0) > 0 || (s.total_refunds || 0) > 0 ? (
+            <span>
+              {formatMoney(s.total_revenue || 0)} gross
+              {(s.total_discounts || 0) > 0 && <> · −{formatMoney(s.total_discounts || 0)} discounts</>}
+              {(s.total_refunds || 0) > 0 && <> · −{formatMoney(s.total_refunds || 0)} refunds</>}
+            </span>
+          ) : (s.unique_products_sold || 0) > 0 ? (
+            `${s.unique_products_sold} unique items sold`
+          ) : undefined
+        }
       />
 
       <DashboardCard

@@ -16,6 +16,7 @@ interface Props {
   selectedKeys: Selection;
   onSelectionChange: (keys: Selection | 'all') => void;
   selectionActions: TopContentAction[];
+  onRowClick?: (rowId: string) => void;
 }
 
 function ChangeBadge({ value }: { value: number | null | undefined }) {
@@ -55,6 +56,7 @@ export default function ProductReportTable({
   selectedKeys,
   onSelectionChange,
   selectionActions,
+  onRowClick,
 }: Props) {
   const comparing = !!summary?.comparison;
   const groupBy = summary?.group_by || 'variant';
@@ -62,7 +64,7 @@ export default function ProductReportTable({
   const columns = [
     { key: 'product', label: groupBy === 'brand' ? 'Brand' : groupBy === 'category' ? 'Category' : 'Product & SKU' },
     { key: 'units_sold', label: comparing ? 'Units Sold · vs prev' : 'Units Sold · Share' },
-    { key: 'revenue', label: 'Revenue' },
+    { key: 'revenue', label: 'Net Revenue' },
     { key: 'profit_margin', label: 'Gross Profit / Margin' },
     { key: 'stock', label: 'Stock · Cover' },
     { key: 'insight', label: 'Insight' },
@@ -114,7 +116,17 @@ export default function ProductReportTable({
           ),
           units_sold: (
             <div className="flex flex-col">
-              <span className="font-semibold text-foreground tabular-nums text-sm">{formatQty(p.units_sold || 0)}</span>
+              <span className="font-semibold text-foreground tabular-nums text-sm">
+                {formatQty(p.units_sold || 0)}
+                {(p.returned_units || 0) > 0 && (
+                  <span
+                    className={`ml-1.5 text-[11px] font-medium ${(p.return_rate_pct || 0) >= 10 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}
+                    title={`${formatQty(p.returned_units)} returned`}
+                  >
+                    ↩ {(p.return_rate_pct ?? 0).toFixed(1)}%
+                  </span>
+                )}
+              </span>
               {comparing ? (
                 <span className="flex items-center gap-1.5">
                   <ChangeBadge value={p.units_change_pct} />
@@ -133,8 +145,13 @@ export default function ProductReportTable({
           revenue: (
             <div className="flex flex-col">
               <span className="font-semibold text-foreground text-sm">
-                <CurrencyDisplay amount={p.revenue || 0} showStyling={false} />
+                <CurrencyDisplay amount={p.net_revenue ?? p.revenue ?? 0} showStyling={false} />
               </span>
+              {(p.discounts || 0) + (p.refunds || 0) > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  of <CurrencyDisplay amount={p.revenue || 0} showStyling={false} /> gross
+                </span>
+              )}
               {comparing ? (
                 <ChangeBadge value={p.revenue_change_pct} />
               ) : p.has_cost && p.cost_of_goods !== null ? (
@@ -207,6 +224,7 @@ export default function ProductReportTable({
       selectedKeys={selectedKeys}
       onSelectionChange={onSelectionChange}
       selectionActions={selectionActions}
+      onclick={onRowClick ? (key) => onRowClick(String(key)) : undefined}
       emptyStateTitle="No products match this view"
       emptyStateDescription="Try a different date range, or clear some filters."
     />

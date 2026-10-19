@@ -49,7 +49,14 @@ async function captureChart(el: HTMLElement): Promise<HTMLCanvasElement | null> 
   }
 }
 
-export async function exportProductReportPdf(opts: ExportProductReportOptions): Promise<string> {
+export interface BuiltReportPdf {
+  filename: string;
+  blob: Blob;
+  save: () => void;
+}
+
+/** Builds the report PDF without saving it, so it can be downloaded or emailed. */
+export async function buildProductReportPdf(opts: ExportProductReportOptions): Promise<BuiltReportPdf> {
   const { rows, summary, filters, highlights, storeName, generatedBy, scopeLabel, chartElement } = opts;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
@@ -114,9 +121,13 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
   /* ---------- KPI strip ---------- */
   const kpis: { label: string; value: string; sub: string }[] = [
     {
-      label: 'REVENUE',
-      value: formatMoney(summary.total_revenue),
-      sub: comparing ? `${formatChange(summary.revenue_change_pct)} vs ${formatMoney(summary.prev_total_revenue || 0)}` : `${summary.unique_products_sold} items sold`,
+      label: 'NET REVENUE',
+      value: formatMoney(summary.total_net_revenue ?? summary.total_revenue),
+      sub: comparing
+        ? `${formatChange(summary.net_revenue_change_pct ?? summary.revenue_change_pct)} vs ${formatMoney(summary.prev_total_net_revenue ?? summary.prev_total_revenue ?? 0)}`
+        : (summary.total_discounts || 0) + (summary.total_refunds || 0) > 0
+          ? `${formatMoney(summary.total_revenue)} gross − ${formatMoney((summary.total_discounts || 0) + (summary.total_refunds || 0))} disc./refunds`
+          : `${summary.unique_products_sold} items sold`,
     },
     {
       label: 'UNITS SOLD',
@@ -201,7 +212,8 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
     'SKU',
     'Units',
     comparing ? 'vs prev' : 'Share',
-    'Revenue',
+    'Net revenue',
+    'Returns',
     'Gross profit',
     'Margin',
     'Stock',
@@ -214,7 +226,8 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
     r.sku || '—',
     formatQty(r.units_sold),
     comparing ? formatChange(r.units_change_pct) : `${(r.units_share_pct || 0).toFixed(1)}%`,
-    formatMoney(r.revenue),
+    formatMoney(r.net_revenue ?? r.revenue),
+    r.returned_units > 0 ? formatPct(r.return_rate_pct) : '—',
     formatMoney(r.gross_profit),
     r.has_cost ? formatPct(r.gross_margin) : 'Uncosted',
     formatQty(r.stock_quantity),
@@ -232,8 +245,8 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
     alternateRowStyles: { fillColor: [252, 252, 251] },
     columnStyles: {
       0: { cellWidth: 8, halign: 'right', textColor: MUTED },
-      1: { cellWidth: 70 },
-      2: { cellWidth: 28, textColor: MUTED },
+      1: { cellWidth: 62 },
+      2: { cellWidth: 26, textColor: MUTED },
       3: { halign: 'right' },
       4: { halign: 'right' },
       5: { halign: 'right' },
@@ -241,12 +254,13 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
       7: { halign: 'right' },
       8: { halign: 'right' },
       9: { halign: 'right' },
+      10: { halign: 'right' },
     },
     didParseCell: (data) => {
       if (data.section !== 'body') return;
       const row = rows[data.row.index];
       if (!row) return;
-      if (data.column.index === 10) {
+      if (data.column.index === 11) {
         data.cell.styles.textColor = INSIGHT_META[row.insight]?.pdf || INK;
         data.cell.styles.fontStyle = 'bold';
       }
@@ -270,6 +284,11 @@ export async function exportProductReportPdf(opts: ExportProductReportOptions): 
 
   const rangePart = filters.range === 'all_time' || !filters.start ? 'all-time' : `${format(filters.start, 'yyyy-MM-dd')}_${format(filters.end || filters.start, 'yyyy-MM-dd')}`;
   const filename = ['product-report', scopeLabel ? slug(scopeLabel) : null, rangePart].filter(Boolean).join('_') + '.pdf';
-  doc.save(filename);
-  return filename;
+  return { filename, blob: doc.output('blob'), save: () => doc.save(filename) };
+}
+
+export async function exportProductReportPdf(opts: ExportProductReportOptions): Promise<string> {
+  const pdf = await buildProductReportPdf(opts);
+  pdf.save();
+  return pdf.filename;
 }

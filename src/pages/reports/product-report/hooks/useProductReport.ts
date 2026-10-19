@@ -66,7 +66,7 @@ function writeFilters(f: ProductReportFilters): URLSearchParams {
 }
 
 /** Query params shared by /reports/products and /reports/products/trend. */
-function buildApiParams(f: ProductReportFilters, includeChannel: boolean): URLSearchParams {
+export function buildApiParams(f: ProductReportFilters, includeChannel: boolean): URLSearchParams {
   const p = new URLSearchParams();
   if (f.start) p.set('start_date', f.start.toISOString());
   if (f.end) p.set('end_date', f.end.toISOString());

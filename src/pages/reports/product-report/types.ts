@@ -16,7 +16,14 @@ export interface ProductReportRow {
   brand: string | null;
   image: string | null;
   units_sold: number;
+  /** Gross sales (before order discounts and refunds). */
   revenue: number;
+  discounts: number;
+  refunds: number;
+  net_revenue: number;
+  discount_pct: number | null;
+  returned_units: number;
+  return_rate_pct: number | null;
   cost_of_goods: number | null;
   cost_price: number | null;
   gross_profit: number;
@@ -41,6 +48,11 @@ export interface ProductReportRow {
 
 export interface ProductReportSummary {
   total_revenue: number;
+  total_discounts: number;
+  total_refunds: number;
+  total_net_revenue: number;
+  total_returned_units: number;
+  return_rate_pct: number;
   total_units_sold: number;
   total_cogs: number;
   total_gross_profit: number;
@@ -56,6 +68,8 @@ export interface ProductReportSummary {
   filters_applied: Record<string, any>;
   comparison: { mode: CompareMode; start_date: string; end_date: string } | null;
   prev_total_revenue?: number;
+  prev_total_net_revenue?: number;
+  net_revenue_change_pct?: number | null;
   prev_total_units_sold?: number;
   revenue_change_pct?: number | null;
   units_change_pct?: number | null;
@@ -99,4 +113,31 @@ export interface ProductReportFilters {
   compare: CompareMode;
   sort: SortPreset;
   search: string;
+}
+
+export interface PackagingTierOption {
+  id: string;
+  name: string;
+  units_per_tier: number;
+}
+
+export interface ReorderSuggestion {
+  variant_id: string;
+  product_id: string | null;
+  name: string;
+  variant_label: string | null;
+  sku: string;
+  category: string;
+  brand: string | null;
+  stock_quantity: number;
+  on_order_base_units: number;
+  velocity_per_day: number;
+  days_of_cover: number;
+  needed_base_units: number;
+  tier: PackagingTierOption;
+  tiers: PackagingTierOption[];
+  suggested_tier_qty: number;
+  cost_per_tier: number | null;
+  estimated_cost: number | null;
+  last_supplier: { id: string; name: string } | null;
 }

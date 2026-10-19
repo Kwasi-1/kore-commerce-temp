@@ -65,6 +65,31 @@ export function buildHighlights(rows: ProductReportRow[], summary: ProductReport
     }
   }
 
+  const highReturns = rows
+    .filter((r) => (r.return_rate_pct ?? 0) >= 10 && r.returned_units >= 2)
+    .sort((a, b) => (b.return_rate_pct ?? 0) - (a.return_rate_pct ?? 0));
+  if (highReturns.length > 0) {
+    out.push({
+      tone: 'warning',
+      icon: 'lucide:undo-2',
+      text: `High return rate: ${highReturns
+        .slice(0, 3)
+        .map((r) => `${rowDisplayName(r)} (${(r.return_rate_pct ?? 0).toFixed(0)}%)`)
+        .join(', ')}. Check quality or the supplier.`,
+    });
+  }
+
+  if ((summary.total_discounts || 0) > 0 && summary.total_revenue > 0) {
+    const pct = (summary.total_discounts / summary.total_revenue) * 100;
+    if (pct >= 5) {
+      out.push({
+        tone: 'neutral',
+        icon: 'lucide:badge-percent',
+        text: `Discounts gave away ${pct.toFixed(1)}% of gross sales in this view.`,
+      });
+    }
+  }
+
   const overstocked = rows.filter((r) => r.insight === 'overstocked');
   if (overstocked.length > 0) {
     out.push({

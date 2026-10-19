@@ -5386,6 +5386,8 @@ export function setupMockApi() {
     { id: 'v-nido', product_id: 'p-nido', name: 'Nido Milk', variant_label: '400g', sku: 'NID-002', category: 'Grocery', brand: 'Nestlé', cost: 35, price: 48, stock: 12, threshold: 5, units: 0, prevUnits: 2 },
     { id: 'v-wallet', product_id: 'p-wallet', name: 'Premium Leather Wallet', variant_label: null, sku: 'ACC-WAL-05', category: 'Fashion', brand: null, cost: 40, price: 95, stock: 0, threshold: 3, units: 0, prevUnits: 1 },
   ];
+  const MOCK_RETURNS: Record<string, number> = { 'v-kal-cocktail': 2, 'v-tee-red-l': 6, 'v-bread': 1 };
+
   const reportScope = (url: URL) => {
     const csv = (k: string) => (url.searchParams.get(k) || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
     const categories = csv('category');
@@ -5438,6 +5440,112 @@ export function setupMockApi() {
     return [200, { success: { code: 200, data: { bucket: 'day', buckets, series } } }];
   });
 
+  mock.onGet(/\/tenant\/reports\/products\/detail/).reply((config) => {
+    const url = new URL(`http://localhost${config.url || ''}`);
+    const vid = url.searchParams.get('variant_id');
+    const pid = url.searchParams.get('product_id');
+    const items = REPORT_CATALOG.filter((c) => (vid ? c.id === vid : c.product_id === pid));
+    if (!items.length) return [404, { error: { status: 'NOT_FOUND', message: 'Product not found', code: 404 } }];
+    const first = items[0];
+    const units = items.reduce((s, c) => s + c.units, 0);
+    const revenue = items.reduce((s, c) => s + c.units * c.price, 0);
+    const orders = Math.max(1, Math.round(units / 1.6));
+    const trend = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      const u = Math.round((units / 30) * (1 + 0.5 * Math.sin(i / 3)) * 10) / 10;
+      return { date: d.toISOString().slice(0, 10), units: u, revenue: Math.round(u * first.price * 100) / 100 };
+    });
+    const heatmap: { dow: number; hour: number; units: number }[] = [];
+    for (let dow = 0; dow < 7; dow++) {
+      for (let hour = 8; hour <= 20; hour++) {
+        const peak = (hour >= 12 && hour <= 14 ? 3 : 1) * (dow === 5 || dow === 6 ? 2 : 1);
+        heatmap.push({ dow, hour, units: Math.round((units / 140) * peak * 10) / 10 });
+      }
+    }
+    const others = REPORT_CATALOG.filter((c) => c.product_id !== first.product_id && c.units > 0).slice(0, 4);
+    return [
+      200,
+      {
+        success: {
+          code: 200,
+          data: {
+            product: { name: first.name, variant_label: vid ? first.variant_label : null, brand: first.brand, category: first.category, image: null },
+            totals: {
+              units,
+              revenue: Math.round(revenue * 100) / 100,
+              orders,
+              avg_units_per_order: Math.round((units / orders) * 100) / 100,
+              avg_unit_price: units ? Math.round((revenue / units) * 100) / 100 : 0,
+              last_sold_at: units ? new Date().toISOString() : null,
+            },
+            bucket: 'day',
+            trend,
+            channels: [
+              { channel: 'pos', units: Math.round(units * 0.8 * 10) / 10, revenue: Math.round(revenue * 0.8 * 100) / 100, orders: Math.round(orders * 0.8) },
+              { channel: 'online', units: Math.round(units * 0.2 * 10) / 10, revenue: Math.round(revenue * 0.2 * 100) / 100, orders: Math.round(orders * 0.2) },
+            ],
+            cashiers: [
+              { id: 'u1', name: 'Kwame Mensah', units: Math.round(units * 0.5), revenue: Math.round(revenue * 0.5) },
+              { id: 'u2', name: 'Ama Owusu', units: Math.round(units * 0.3), revenue: Math.round(revenue * 0.3) },
+            ],
+            heatmap,
+            price_history: trend.filter((_, i) => i % 7 === 0).map((t) => ({ date: t.date, avg_unit_price: first.price, min_unit_price: first.price, max_unit_price: first.price })),
+            bought_with: others.map((c, i) => ({ variant_id: c.id, name: c.name, variant_label: c.variant_label, orders_together: Math.max(1, Math.round(orders * (0.4 - i * 0.08))), attach_rate_pct: Math.round((40 - i * 8) * 10) / 10, units: 0 })),
+            returns: (MOCK_RETURNS[first.id] || 0) > 0
+              ? [{ date: new Date().toISOString(), return_number: 'RET-0001', quantity: MOCK_RETURNS[first.id], refund: MOCK_RETURNS[first.id] * first.price, reason: 'defective', condition: 'damaged' }]
+              : [],
+          },
+        },
+      },
+    ];
+  });
+
+  mock.onGet(/\/tenant\/reports\/products\/reorder/).reply((config) => {
+    const url = new URL(`http://localhost${config.url || ''}`);
+    const lead = Number(url.searchParams.get('lead_time_days') || 3);
+    const cover = Number(url.searchParams.get('cover_days') || 14);
+    const periodDays = 30;
+    const supplier = (mockSuppliers as any[])[0] ? { id: (mockSuppliers as any[])[0].id, name: (mockSuppliers as any[])[0].name } : null;
+    const suggestions = reportScope(url)
+      .map((c) => {
+        const velocity = c.units / periodDays;
+        const needed = velocity * (lead + cover) - c.stock;
+        if (velocity <= 0 || needed <= 0) return null;
+        const isDrink = c.category === 'Beverages';
+        const tiers = [
+          { id: `${c.id}-unit`, name: 'Piece', units_per_tier: 1 },
+          ...(isDrink ? [{ id: `${c.id}-crate`, name: 'Crate', units_per_tier: 24 }] : []),
+        ];
+        const tier = tiers[tiers.length - 1];
+        const qty = Math.ceil(needed / tier.units_per_tier);
+        const costPerTier = c.cost !== null ? c.cost * tier.units_per_tier : null;
+        return {
+          variant_id: c.id,
+          product_id: c.product_id,
+          name: c.name,
+          variant_label: c.variant_label,
+          sku: c.sku,
+          category: c.category,
+          brand: c.brand,
+          stock_quantity: c.stock,
+          on_order_base_units: 0,
+          velocity_per_day: Math.round(velocity * 1000) / 1000,
+          days_of_cover: Math.round((c.stock / velocity) * 10) / 10,
+          needed_base_units: Math.round(needed * 1000) / 1000,
+          tier,
+          tiers,
+          suggested_tier_qty: qty,
+          cost_per_tier: costPerTier,
+          estimated_cost: costPerTier !== null ? Math.round(costPerTier * qty * 100) / 100 : null,
+          last_supplier: isDrink ? supplier : null,
+        };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.days_of_cover - b.days_of_cover);
+    return [200, { success: { code: 200, data: { lead_time_days: lead, cover_days: cover, period_days: periodDays, suggestions } } }];
+  });
+
   mock.onGet(/\/tenant\/reports\/products/).reply((config) => {
     const url = new URL(`http://localhost${config.url || ''}`);
     const sort = url.searchParams.get('sort') || 'top_selling';
@@ -5472,13 +5580,17 @@ export function setupMockApi() {
         category: c.category,
         brand: c.brand,
         image: null,
-        units_sold: 0, revenue: 0, cogs: 0, costedRevenue: 0, has_cost: false,
+        units_sold: 0, revenue: 0, discounts: 0, refunds: 0, returned_units: 0, cogs: 0, costedRevenue: 0, has_cost: false,
         stock_quantity: 0, low_stock_threshold: 0, prev_units: 0, prev_revenue: 0,
         children_count: 0, children_needing_restock: 0,
         cost_price: by === 'variant' ? c.cost : null,
       });
+      const returned = MOCK_RETURNS[c.id] || 0;
       g.units_sold += c.units;
       g.revenue += revenue;
+      g.discounts += c.category === 'Beverages' ? revenue * 0.03 : 0;
+      g.returned_units += returned;
+      g.refunds += returned * c.price;
       g.cogs += cogs;
       g.costedRevenue += c.cost !== null ? revenue : 0;
       g.has_cost = g.has_cost || c.cost !== null;
@@ -5495,11 +5607,17 @@ export function setupMockApi() {
     const totalRevenue = items.reduce((s, c) => s + c.units * c.price, 0);
     const products = Object.values(grouped).map((g: any) => {
       const { insight, cover, velocity } = insightOf(g.units_sold, g.stock_quantity, g.low_stock_threshold);
+      const net = g.revenue - g.discounts - g.refunds;
       const row: any = {
         ...g,
         revenue: Math.round(g.revenue * 100) / 100,
+        discounts: Math.round(g.discounts * 100) / 100,
+        refunds: Math.round(g.refunds * 100) / 100,
+        net_revenue: Math.round(net * 100) / 100,
+        discount_pct: g.revenue ? Math.round((g.discounts / g.revenue) * 1000) / 10 : null,
+        return_rate_pct: g.units_sold ? Math.round((g.returned_units / g.units_sold) * 1000) / 10 : null,
         cost_of_goods: g.has_cost ? Math.round(g.cogs * 100) / 100 : null,
-        gross_profit: Math.round((g.revenue - g.cogs) * 100) / 100,
+        gross_profit: Math.round((net - g.cogs) * 100) / 100,
         gross_margin: g.has_cost && g.costedRevenue > 0 ? Math.round(((g.costedRevenue - g.cogs) / g.costedRevenue) * 1000) / 10 : null,
         stock_status: g.stock_quantity <= 0 ? 'out_of_stock' : g.stock_quantity <= g.low_stock_threshold ? 'low_stock' : 'in_stock',
         units_share_pct: totalUnits ? Math.round((g.units_sold / totalUnits) * 1000) / 10 : 0,
@@ -5529,6 +5647,10 @@ export function setupMockApi() {
     else products.sort((a, b) => b.revenue - a.revenue);
 
     const totalCogs = items.reduce((s, c) => s + (c.cost !== null ? c.units * c.cost : 0), 0);
+    const totalDiscounts = items.reduce((s, c) => s + (c.category === 'Beverages' ? c.units * c.price * 0.03 : 0), 0);
+    const totalReturned = items.reduce((s, c) => s + (MOCK_RETURNS[c.id] || 0), 0);
+    const totalRefunds = items.reduce((s, c) => s + (MOCK_RETURNS[c.id] || 0) * c.price, 0);
+    const totalNet = totalRevenue - totalDiscounts - totalRefunds;
     const costedRevenue = items.reduce((s, c) => s + (c.cost !== null ? c.units * c.price : 0), 0);
     const prevUnits = items.reduce((s, c) => s + c.prevUnits, 0);
     const prevRevenue = items.reduce((s, c) => s + c.prevUnits * c.price, 0);
@@ -5537,8 +5659,13 @@ export function setupMockApi() {
       total_revenue: Math.round(totalRevenue * 100) / 100,
       total_units_sold: Math.round(totalUnits * 1000) / 1000,
       total_cogs: Math.round(totalCogs * 100) / 100,
-      total_gross_profit: Math.round((totalRevenue - totalCogs) * 100) / 100,
-      overall_gross_margin_pct: totalRevenue ? Math.round(((totalRevenue - totalCogs) / totalRevenue) * 1000) / 10 : 0,
+      total_discounts: Math.round(totalDiscounts * 100) / 100,
+      total_refunds: Math.round(totalRefunds * 100) / 100,
+      total_net_revenue: Math.round(totalNet * 100) / 100,
+      total_returned_units: totalReturned,
+      return_rate_pct: totalUnits ? Math.round((totalReturned / totalUnits) * 1000) / 10 : 0,
+      total_gross_profit: Math.round((totalNet - totalCogs) * 100) / 100,
+      overall_gross_margin_pct: totalNet ? Math.round(((totalNet - totalCogs) / totalNet) * 1000) / 10 : 0,
       cost_coverage_pct: totalRevenue ? Math.round((costedRevenue / totalRevenue) * 1000) / 10 : 100,
       unique_products_sold: items.filter((c) => c.units > 0).length,
       total_catalog_products: REPORT_CATALOG.length,
