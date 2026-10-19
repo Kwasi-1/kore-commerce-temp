@@ -100,6 +100,7 @@ export default function CashierSwitcher() {
           onChange={(e) => setPin(e.target.value)}
           placeholder="****"
           className="text-center text-2xl tracking-[0.5em] font-bold"
+          labelPlacement='outside'
           autoFocus
         />
         <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm">
