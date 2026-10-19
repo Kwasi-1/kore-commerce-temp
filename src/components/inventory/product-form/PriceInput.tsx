@@ -16,7 +16,7 @@ interface Props {
   ariaLabel?: string;
 }
 
-/** Money input with an inline margin hint; used for the retail price everywhere in the form. */
+/** Money input; warns inline only when the price is below cost (margin shown as a tooltip). */
 export default function PriceInput({
   id,
   value,
@@ -46,6 +46,7 @@ export default function PriceInput({
           aria-label={ariaLabel}
           aria-invalid={!!error}
           placeholder={placeholder}
+          title={margin && !margin.below ? `${margin.pct.toFixed(0)}% margin` : undefined}
           value={value}
           onWheel={blurOnWheel}
           onChange={(e) => onChange(e.target.value)}
@@ -60,12 +61,11 @@ export default function PriceInput({
           )}
         />
       </div>
+      {/* Only speak up when something is wrong; the healthy margin lives in the tooltip */}
       {error ? (
         <span className="mt-0.5 block text-[10px] font-semibold text-destructive leading-tight">{error}</span>
-      ) : margin ? (
-        <span className={cn('mt-0.5 block text-[10px] font-semibold leading-tight', margin.below ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
-          {margin.below ? 'Below cost' : `${margin.pct.toFixed(0)}% margin`}
-        </span>
+      ) : margin?.below ? (
+        <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-amber-600 dark:text-amber-400">Below cost</span>
       ) : null}
     </div>
   );

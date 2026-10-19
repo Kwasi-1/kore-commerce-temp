@@ -18,7 +18,6 @@ import CreatableCategorySelect from "./product-form/CategorySelect";
 import PriceInput from "./product-form/PriceInput";
 import TiersEditor from "./product-form/TiersEditor";
 import VariantsTable from "./product-form/VariantsTable";
-import SellModePicker from "./product-form/SellModePicker";
 import type { AttributeRow, FormErrors, GalleryImage, ImageRef, SellMode, TierRow, VariantRow } from "./product-form/types";
 import {
   blurOnWheel,
@@ -597,8 +596,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               <CustomSelectField
                 label="Status"
                 options={[
-                  { label: "Active — available for sale", value: "active" },
-                  { label: "Draft — hidden from POS & store", value: "draft" },
+                  { label: "Active", value: "active" },
+                  { label: "Draft", value: "draft" },
                 ]}
                 value={status}
                 inputProps={{
@@ -676,10 +675,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
 
             {/* Images */}
             <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
-                <span className="text-[11px] text-muted-foreground">First image is the main photo{hasVariants ? " · pick one per variant below" : ""}</span>
-              </div>
+              <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
               <FileUpload
                 value={uploadedFiles}
                 onChange={handleFilesChange}
@@ -692,14 +688,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
           {/* SECTION 2: VARIANTS TOGGLE */}
           <div ref={configRef} className="scroll-mt-24 border border-border bg-card p-4 md:p-6 rounded-xl space-y-4 shadow-sm">
             <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Variants</h3>
-            <div className="flex items-center justify-between gap-4 p-4 border border-border dark:border-gray-800 rounded-lg bg-muted/10">
+            <div
+              className="flex items-center justify-between gap-4 p-4 border border-border dark:border-gray-800 rounded-lg bg-muted/10"
+              title={isEditing ? "Can't be changed after the product is created" : undefined}
+            >
               <div className="space-y-0.5">
-                <label className="text-sm font-bold text-foreground">This product comes in different flavours, sizes or colours</label>
-                <p className="text-xs text-muted-foreground">
-                  {isEditing
-                    ? "This can't be changed after the product is created."
-                    : "Each variant gets its own SKU, price, stock and image."}
-                </p>
+                <label className="text-sm font-bold text-foreground">Multiple variants</label>
+                <p className="text-xs text-muted-foreground">Different flavours, sizes or colours</p>
               </div>
               <Switch
                 checked={hasVariants}
@@ -722,7 +717,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   value={simpleSku}
                   onChange={(e) => setSimpleSku(e.target.value)}
                   onKeyDown={enterToNextField}
-                  placeholder="Scan, type, or leave blank to auto-generate"
+                  placeholder="Scan or leave blank"
                   endContent={
                     <button
                       type="button"
@@ -736,7 +731,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   }
                 />
                 <CustomInputTextField
-                  label="Sold per (unit name)"
+                  label="Unit name"
                   name="baseUnit"
                   value={baseUnitName}
                   onChange={(e) => setBaseUnitName(e.target.value)}
@@ -746,8 +741,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground">
-                    Retail price {simpleSale && !simpleSale.is_base_unit ? `per ${simpleSale.name || "pack"}` : `per ${baseUnitName || "unit"}`} <span className="text-destructive">*</span>
+                  <label className="text-[11px] text-muted-foreground">
+                    Retail price{simpleSale && !simpleSale.is_base_unit ? ` per ${simpleSale.name || "pack"}` : ""} <span className="text-destructive">*</span>
                   </label>
                   <PriceInput
                     id="pf-simple-retail"
@@ -763,12 +758,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Cost per {baseUnitName || "unit"} (what you pay)</label>
+                  <label className="text-[11px] text-muted-foreground">Cost price</label>
                   <PriceInput
                     size="md"
                     value={simpleCostPrice}
                     onChange={setSimpleCostPrice}
-                    placeholder="Optional — needed for profit reports"
+                    placeholder="Optional"
                     showMargin={false}
                   />
                 </div>
@@ -796,25 +791,15 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
                 />
                 {isEditing && (
-                  <p className="col-span-2 text-[10px] text-muted-foreground">
-                    To change stock on hand, use <span className="font-semibold text-foreground">Stock Adjustments</span>, <span className="font-semibold text-foreground">Stock In</span> or <span className="font-semibold text-foreground">Reconcile</span>.
-                  </p>
+                  <p className="col-span-2 text-[11px] text-muted-foreground">Change stock levels in Stock Adjustments.</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase">How it's sold</label>
-                <SellModePicker value={simpleSellMode} onChange={setSimpleSellMode} />
-              </div>
-
               {trackExpiryEnabled && (
-                <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/10">
-                  <div className="space-y-0.5">
-                    <label className="text-xs font-bold text-foreground">Track expiry dates</label>
-                    <p className="text-[10px] text-muted-foreground">Prompts cashiers and tracks batches automatically.</p>
-                  </div>
+                <label className="flex items-center gap-2 text-xs font-medium" title="Batches and expiry alerts at the till">
                   <Switch checked={simpleTrackExpiry} onCheckedChange={setSimpleTrackExpiry} />
-                </div>
+                  Track expiry dates
+                </label>
               )}
 
               <div className="space-y-3">
@@ -822,20 +807,23 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   type="button"
                   onClick={() => setShowSimplePacks(s => !s)}
                   aria-expanded={showSimplePacks}
-                  className="w-full flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left hover:bg-muted/40"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
-                  <span>
-                    <span className="block text-xs font-bold uppercase text-muted-foreground">Packs & wholesale prices</span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {simpleTiers.length > 1
-                        ? `${simpleTiers.length - 1} pack size${simpleTiers.length > 2 ? "s" : ""} set up`
-                        : "Optional — sell by the pack/crate, or set a wholesale price"}
-                    </span>
-                  </span>
-                  <Icon icon={showSimplePacks ? "lucide:chevron-up" : "lucide:chevron-down"} className="text-muted-foreground" />
+                  <Icon icon="lucide:sliders-horizontal" className="text-[13px]" />
+                  Packs & wholesale{simpleTiers.length > 1 ? ` (${simpleTiers.length - 1})` : ""}
+                  <Icon icon={showSimplePacks ? "lucide:chevron-up" : "lucide:chevron-down"} className="text-[13px]" />
                 </button>
                 {showSimplePacks && (
-                  <TiersEditor tiers={simpleTiers} onChange={setSimpleTiers} unitName={baseUnitName} cost={simpleCostPrice} />
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <TiersEditor
+                      tiers={simpleTiers}
+                      onChange={setSimpleTiers}
+                      unitName={baseUnitName}
+                      cost={simpleCostPrice}
+                      sellMode={simpleSellMode}
+                      onSellModeChange={setSimpleSellMode}
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -843,11 +831,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
 
             /* SECTION 3b: VARIANTS */
             <div ref={pricingRef} className="scroll-mt-24 border border-border bg-card p-5 md:p-6 rounded-xl space-y-4 md:space-y-5 shadow-sm">
-              <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Variant Options, Pricing & Stock</h3>
+              <h3 className="text-[12px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Pricing & Stock</h3>
 
               <div className="space-y-3">
                 {attributes.map((attr, idx) => {
-                  const count = parseOptions(attr.values).length;
                   return (
                     <div key={attr.key} className="flex flex-col md:flex-row gap-3 md:items-end">
                       <div className="flex-1">
@@ -865,7 +852,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                           value={attr.values}
                           onChange={(e) => updateAttribute(attr.key, "values", e.target.value)}
                           placeholder="e.g. Mango, Pineapple, Apple"
-                          endContent={count > 0 ? <span className="text-[10px] text-muted-foreground whitespace-nowrap">{count} value{count === 1 ? "" : "s"}</span> : undefined}
                           labelPlacement={idx === 0 ? "inside" : "outside"}
                         />
                       </div>
@@ -892,11 +878,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     className="text-primary gap-1 pl-0 font-bold hover:bg-transparent self-start"
                     onClick={addAttribute}
                   >
-                    <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add another option
+                    <Icon icon="fluent:add-12-filled" className="text-[14px]" /> Add option
                   </Button>
                   <div className="md:ml-auto md:w-64">
                     <CustomInputTextField
-                      label="Sold per (unit name)"
+                      label="Unit name"
                       value={baseUnitName}
                       onChange={(e) => setBaseUnitName(e.target.value)}
                       placeholder="e.g. bottle"
@@ -912,20 +898,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   onClick={generateVariants}
                 >
                   <Icon icon={variants.length ? "lucide:refresh-cw" : "fluent:settings-20-filled"} className="mr-2 text-lg" />
-                  {variants.length ? "Update variants from options" : "Create variants"}
+                  {variants.length ? "Update variants" : "Generate variants"}
                 </Button>
-                <p className={cn("mt-1.5 text-[11px]", errors.general ? "text-destructive font-semibold" : "text-muted-foreground")}>
-                  {errors.general || (variants.length
-                    ? "Adds new combinations and keeps the prices, SKUs and images you've already entered."
-                    : "One variant is created for each combination of values.")}
-                </p>
+                {errors.general && <p className="mt-1.5 text-[11px] text-destructive font-semibold">{errors.general}</p>}
               </div>
 
               {variants.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wider">
-                    Variants ({variants.length})
-                  </label>
+                <div>
                   <VariantsTable
                     variants={variants}
                     onChange={(rows) => {
