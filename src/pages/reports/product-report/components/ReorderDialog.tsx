@@ -54,6 +54,8 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
   const [leadDays, setLeadDays] = useState('3');
   const [coverDays, setCoverDays] = useState('14');
   const [lines, setLines] = useState<Line[]>([]);
+  // Made in-house items are produced, not ordered from a supplier
+  const [toMake, setToMake] = useState<ReorderSuggestion[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -66,10 +68,13 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
       params.set('cover_days', coverDays || '14');
       const r = await apiClient.get(`/tenant/reports/products/reorder?${params.toString()}`);
       const data = r.data?.success?.data || {};
-      setLines((data.suggestions || []).map(toLine));
+      const all: ReorderSuggestion[] = data.suggestions || [];
+      setLines(all.filter((s) => !s.is_made_in_house).map(toLine));
+      setToMake(all.filter((s) => s.is_made_in_house));
     } catch (error: any) {
       toast.error(error?.response?.data?.error?.message || 'Failed to load restock suggestions');
       setLines([]);
+      setToMake([]);
     } finally {
       setIsLoading(false);
     }
@@ -193,11 +198,28 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
             </p>
           </div>
 
+          {toMake.length > 0 && (
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-xs font-semibold mb-2">Make in-house</p>
+              <ul className="space-y-1">
+                {toMake.map((s) => (
+                  <li key={s.variant_id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate">{rowDisplayName(s)}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      make about <b className="text-foreground">{formatQty(Math.ceil(s.needed_base_units))}</b> · {formatCover(s.days_of_cover)} left
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-muted-foreground">Record them with “Record Batch” on the Products page once made.</p>
+            </div>
+          )}
+
           <div className="max-h-[55vh] overflow-auto rounded-lg border border-border !font-sans">
             {!isLoading && lines.length === 0 ? (
               <div className="py-16 text-center">
                 <Icon icon="lucide:check-circle-2" className="w-8 h-8 mx-auto text-emerald-600 dark:text-emerald-400" />
-                <p className="mt-2 text-sm font-medium">Nothing needs restocking for this horizon</p>
+                <p className="mt-2 text-sm font-medium">{toMake.length ? 'Nothing to order from suppliers' : 'Nothing needs restocking for this horizon'}</p>
                 <p className="text-xs text-muted-foreground">Try a longer target, or a date range with more sales.</p>
               </div>
             ) : (

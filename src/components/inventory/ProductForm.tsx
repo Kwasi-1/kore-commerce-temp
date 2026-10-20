@@ -46,6 +46,8 @@ import {
 export interface ProductSaveResult {
   productId: string;
   created: boolean;
+  /** Made in-house: the page opens "Record batch" straight after creating it. */
+  madeInHouse?: boolean;
   /** Set when the product saved but a follow-up step (images) failed. */
   warning?: string;
 }
@@ -97,6 +99,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
+  const [isMadeInHouse, setIsMadeInHouse] = useState(false);
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
   const [status, setStatus] = useState("active");
   const [hasVariants, setHasVariants] = useState(false);
@@ -183,6 +186,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
     setDescription(p.description || "");
     setCategory(p.category || "");
     setBrand(p.brand || "");
+    setIsMadeInHouse(!!p.is_made_in_house);
     setStatus(p.status || "active");
     setHasVariants(!!p.has_variants);
     setTags(
@@ -223,6 +227,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         stock_quantity: v.stock_quantity?.toString() ?? "0",
         cost_price_per_base_unit: v.cost_price_per_base_unit?.toString() ?? "",
         low_stock_threshold: v.low_stock_threshold?.toString() ?? "5",
+        volume_ml: v.volume_ml?.toString() ?? "",
         sell_mode: v.sell_mode || "unit_only",
         track_expiry: !!v.track_expiry,
         packaging_tiers: tiersFromServer(v.packaging_tiers, v.base_unit_name || "unit"),
@@ -248,13 +253,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const snapshot = useMemo(
     () =>
       JSON.stringify({
-        name, description, category, brand, status, hasVariants, tags,
+        name, description, category, brand, isMadeInHouse, status, hasVariants, tags,
         images: images.map(i => i.url || i.key),
         baseUnitName, simpleSku, simpleSellMode, simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers,
         attributes: attributes.map(a => [a.name, a.values]),
         variants: variants.map(v => ({ ...v, isExpanded: undefined, key: undefined })), // UI-only fields don't count
       }),
-    [name, description, category, brand, status, hasVariants, tags, images, baseUnitName, simpleSku, simpleSellMode,
+    [name, description, category, brand, isMadeInHouse, status, hasVariants, tags, images, baseUnitName, simpleSku, simpleSellMode,
       simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers, attributes, variants]
   );
   const baselineRef = useRef<string | null>(null);
@@ -359,6 +364,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         stock_quantity: "",
         cost_price_per_base_unit: "",
         low_stock_threshold: "5",
+        volume_ml: "",
         sell_mode: "unit_only",
         track_expiry: false,
         packaging_tiers: [makeBaseTier(baseUnitName || "unit")],
@@ -490,6 +496,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       description: description?.trim() || "",
       category,
       brand: brand.trim() || null,
+      is_made_in_house: isMadeInHouse,
       status,
       tags: tags.map(t => t.trim()).filter(Boolean),
       has_variants: hasVariants,
@@ -499,7 +506,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       payload.variants = variants.map(v => {
         const vUnit = (v.base_unit_name || unit).trim() || "unit";
         return {
-          ...(v.id ? { id: v.id } : { stock_quantity: toNum(v.stock_quantity) ?? 0 }),
+          ...(v.id ? { id: v.id } : { stock_quantity: isMadeInHouse ? 0 : toNum(v.stock_quantity) ?? 0 }),
           sku: v.sku.trim(),
           variant_attributes: v.variant_attributes,
           base_unit_name: vUnit,
@@ -507,6 +514,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
           sell_mode: v.sell_mode,
           low_stock_threshold: toNum(v.low_stock_threshold) ?? 5,
           track_expiry: v.track_expiry,
+          volume_ml: toNum(v.volume_ml),
           image_url: v.image || null,
           ...(costNote ? { cost_note: costNote } : {}),
           packaging_tiers: tiersToPayload(v.packaging_tiers, vUnit),
@@ -517,7 +525,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         sku: simpleSku.trim(),
         base_unit_name: unit,
         cost_price_per_base_unit: toNum(simpleCostPrice),
-        ...(isEditing ? {} : { stock_quantity: toNum(simpleStock) ?? 0 }),
+        ...(isEditing ? {} : { stock_quantity: isMadeInHouse ? 0 : toNum(simpleStock) ?? 0 }),
         sell_mode: simpleSellMode,
         low_stock_threshold: toNum(simpleLowStock) ?? 5,
         track_expiry: simpleTrackExpiry,
@@ -554,7 +562,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
     baselineRef.current = snapshot; // nothing unsaved any more
     onDirtyChange?.(false);
     savedRef.current = true;
-    onSuccess({ productId, created: !isEditing });
+    onSuccess({ productId, created: !isEditing, madeInHouse: isMadeInHouse });
   };
 
   if (!ready) {
@@ -619,6 +627,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                 <option key={b} value={b} />
               ))}
             </datalist>
+
+            <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/10 px-4 py-3 cursor-pointer">
+              <span>
+                <span className="block text-sm font-bold text-foreground">Made in-house</span>
+                <span className="block text-xs text-muted-foreground">You make it yourself (e.g. sobolo). Stock and cost come from batches you record.</span>
+              </span>
+              <Switch checked={isMadeInHouse} onCheckedChange={setIsMadeInHouse} aria-label="Made in-house" />
+            </label>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <CreatableCategorySelect
@@ -807,7 +823,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     startContentPadding="pl-12"
                     inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
                   />
-                  <div className="mt-1">
+                  <div className={cn("mt-1", isMadeInHouse && "hidden")}>
                     <BulkCostHelper
                       unitName={baseUnitName}
                       packs={simpleTiers.filter(t => !t.is_base_unit && toNum(t.units_per_tier)).map(t => ({ name: t.name || "Pack", units: toNum(t.units_per_tier) as number }))}
@@ -818,6 +834,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4">
+                {isMadeInHouse && !isEditing ? (
+                  <p className="self-center text-xs text-muted-foreground">Stock is added when you record a batch.</p>
+                ) : (
                 <CustomInputTextField
                   label={isEditing ? "In stock (locked)" : "Opening stock"}
                   name="stock"
@@ -829,6 +848,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   inputProps={{ min: "0", step: "any", inputMode: "decimal", disabled: isEditing, onWheel: blurOnWheel }}
                   className={cn(isEditing && "opacity-75 bg-muted/40 cursor-not-allowed text-muted-foreground")}
                 />
+                )}
                 <CustomInputTextField
                   label="Low stock alert"
                   name="lowStock"
@@ -963,6 +983,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     isEditing={isEditing}
                     gallery={gallery}
                     trackExpiryEnabled={trackExpiryEnabled}
+                    madeInHouse={isMadeInHouse}
                   />
                 </div>
               )}

@@ -37,6 +37,7 @@ export interface VariantRow {
   stock_quantity: string;
   cost_price_per_base_unit: string;
   low_stock_threshold: string;
+  volume_ml: string; // size of one unit (ml), splits shared batch costs
   sell_mode: SellMode;
   track_expiry: boolean;
   packaging_tiers: TierRow[];

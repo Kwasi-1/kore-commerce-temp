@@ -66,7 +66,7 @@ export default function ProductFormPage() {
     else leave();
   };
 
-  const handleSuccess = ({ productId, created, warning }: ProductSaveResult) => {
+  const handleSuccess = ({ productId, created, warning, madeInHouse }: ProductSaveResult) => {
     dirtyRef.current = false;
     if (warning) {
       // Saved, but images didn't finish — reopen the saved product (no duplicate on retry)
@@ -75,7 +75,7 @@ export default function ProductFormPage() {
       return;
     }
     toast.success(created ? "Product created" : "Product updated");
-    navigate("/inventory/products");
+    navigate(created && madeInHouse ? `/inventory/products?recordBatch=${productId}` : "/inventory/products");
   };
 
   return (

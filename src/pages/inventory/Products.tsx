@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Selection } from "@nextui-org/react";
 import PageLayout from "@/components/layout/PageLayout";
 import CustomModal from "@/components/modals/modal";
@@ -29,6 +29,7 @@ import {
 import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
+import RecordBatchModal from "@/components/inventory/RecordBatchModal";
 import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
 import { ProductChannelModal } from "@/components/inventory/ProductChannelModal";
 import { StorefrontCatalogCuratorModal } from "@/components/inventory/StorefrontCatalogCuratorModal";
@@ -55,6 +56,17 @@ import {
 
 export default function Products() {
   const navigate = useNavigate();
+  // "Record batch" for products made in-house; ?recordBatch=<id> opens it (used right after creating one)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [batchProductId, setBatchProductId] = useState<string | null>(null);
+  useEffect(() => {
+    const id = searchParams.get("recordBatch");
+    if (id) {
+      setBatchProductId(id);
+      searchParams.delete("recordBatch");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1358,6 +1370,7 @@ export default function Products() {
         ]}
         rowActions={[
           { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
+          { key: "record_batch", label: "Record Batch (Made In-House)", icon: "fluent:beaker-20-filled" },
           ...(hasEcommerce
             ? [
                 {
@@ -1386,6 +1399,9 @@ export default function Products() {
           const variantData = rowData.__variant;
           if (actionKey === "edit") {
             handleEdit(originalProduct);
+          } else if (actionKey === "record_batch") {
+            if (originalProduct?.is_made_in_house) setBatchProductId(originalProduct.id);
+            else toast("Only for products you make yourself. Turn on \"Made in-house\" when editing the product.");
           } else if (actionKey === "toggle_channel") {
             if (effectiveViewMode === "list" && variantData) {
               const attrStr = Object.values(variantData.variant_attributes || {}).join(" / ");
@@ -1519,6 +1535,12 @@ export default function Products() {
       </div>
 
       {/* Product Detail Modal */}
+      <RecordBatchModal
+        productId={batchProductId}
+        onClose={() => setBatchProductId(null)}
+        onSuccess={() => fetchProducts(1, false)}
+      />
+
       <ProductDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => {

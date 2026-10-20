@@ -17,17 +17,23 @@ interface Props {
   isEditing: boolean;
   gallery: GalleryImage[];
   trackExpiryEnabled: boolean;
+  /** Made in-house: no opening stock (batches add it), no bulk-buy helper, size (ml) per variant. */
+  madeInHouse?: boolean;
 }
 
 const input =
   'w-full min-w-0 h-8 px-2 text-xs border rounded-md bg-background focus:outline-none focus:border-foreground/40 tabular-nums disabled:opacity-60 disabled:bg-muted/30 disabled:cursor-not-allowed';
 const small = 'block text-[11px] text-muted-foreground mb-1';
-// Variant · SKU · Stock · Cost · Price · actions
-const cols = 'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minmax(3.5rem,0.5fr)_minmax(4.5rem,0.6fr)_minmax(6.5rem,0.9fr)_4.25rem] gap-2 items-start [&>*]:min-w-0';
+// Variant · SKU · Stock · Cost · Price · actions  (no Stock column for a new in-house product)
+const colsNoStock =
+  'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minmax(4.5rem,0.6fr)_minmax(6.5rem,0.9fr)_4.25rem] gap-2 items-start [&>*]:min-w-0';
+const colsWithStock = 'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minmax(3.5rem,0.5fr)_minmax(4.5rem,0.6fr)_minmax(6.5rem,0.9fr)_4.25rem] gap-2 items-start [&>*]:min-w-0';
 
 const emptyBulk = { stock: '', cost: '', retail: '', wholesale: '', lowStock: '' };
 
-export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled }: Props) {
+export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled, madeInHouse = false }: Props) {
+  const showStock = !(madeInHouse && !isEditing);
+  const cols = showStock ? colsWithStock : colsNoStock;
   const isMobile = useIsMobile();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulk, setBulk] = useState(emptyBulk);
@@ -166,7 +172,23 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
             onChange={(e) => update(v.key, { base_unit_name: e.target.value })}
           />
         </label>
-        <div className="h-8 flex items-center">
+        {madeInHouse && (
+          <label className="w-24">
+            <span className={small} title="Used to split a shared batch cost between sizes">Size (ml)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              className={cn(input, 'border-border')}
+              value={v.volume_ml}
+              placeholder="e.g. 500"
+              onWheel={blurOnWheel}
+              onChange={(e) => update(v.key, { volume_ml: e.target.value })}
+            />
+          </label>
+        )}
+        <div className={cn('h-8 flex items-center', madeInHouse && 'hidden')}>
           <BulkCostHelper
             unitName={v.base_unit_name}
             packs={v.packaging_tiers.filter((pt) => !pt.is_base_unit && Number(pt.units_per_tier) > 0).map((pt) => ({ name: pt.name || 'Pack', units: Number(pt.units_per_tier) }))}
@@ -234,7 +256,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
       {bulkOpen && (
         <div className="rounded-lg border border-border bg-muted/20 p-3">
           <div className="flex flex-wrap items-end gap-2">
-            {!isEditing && (
+            {!isEditing && !madeInHouse && (
               <label className="w-24">
                 <span className={small}>Opening stock</span>
                 <input type="number" inputMode="decimal" min={0} step="any" className={cn(input, 'border-border')} value={bulk.stock} onWheel={blurOnWheel} onChange={(e) => setBulk({ ...bulk, stock: e.target.value })} />
@@ -273,7 +295,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
           <div className={cn(cols, 'px-3 py-2 border-b border-border bg-muted/40 text-[11px] text-muted-foreground rounded-t-lg')}>
             <span>Variant</span>
             <span>SKU</span>
-            <span>{isEditing ? 'In stock' : 'Stock'}</span>
+            {showStock && <span>{isEditing ? 'In stock' : 'Stock'}</span>}
             <span>Cost</span>
             <span>
               Price <span className="text-destructive">*</span>
@@ -286,7 +308,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
                 <div className={cols}>
                   {nameCell(v)}
                   <div>{skuCell(v)}</div>
-                  {stockCell(v)}
+                  {showStock && stockCell(v)}
                   {costCell(v)}
                   {priceCell(v)}
                   {actions(v)}
@@ -318,10 +340,12 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
                   <span className={small}>SKU</span>
                   {skuCell(v)}
                 </label>
-                <label>
-                  <span className={small}>{stockLocked(v) ? 'In stock' : 'Stock'}</span>
-                  {stockCell(v)}
-                </label>
+                {showStock && (
+                  <label>
+                    <span className={small}>{stockLocked(v) ? 'In stock' : 'Stock'}</span>
+                    {stockCell(v)}
+                  </label>
+                )}
                 <label>
                   <span className={small}>Cost</span>
                   {costCell(v)}

@@ -140,4 +140,5 @@ export interface ReorderSuggestion {
   cost_per_tier: number | null;
   estimated_cost: number | null;
   last_supplier: { id: string; name: string } | null;
+  is_made_in_house?: boolean;
 }
