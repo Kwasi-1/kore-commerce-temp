@@ -62,6 +62,7 @@ export function QuickStockIntakeModal({
   const [selectedTierId, setSelectedTierId] = useState<string>("base");
   const [reason, setReason] = useState("shipment");
   const [unitCost, setUnitCost] = useState("");
+  const [batchCost, setBatchCost] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +75,8 @@ export function QuickStockIntakeModal({
       setInputQuantity("");
       setSelectedTierId("base");
       setReason("shipment");
-      setUnitCost(product.cost_price ? String(product.cost_price) : "");
+      setUnitCost("");
+      setBatchCost("");
       setSelectedSupplierId("");
       setNotes("");
     }
@@ -155,8 +157,10 @@ export function QuickStockIntakeModal({
         supplier_id: selectedSupplierId || undefined,
       };
 
-      if (unitCost && !isNaN(parseFloat(unitCost))) {
-        payload.unit_cost = parseFloat(unitCost);
+      if (adjustmentMode === "add" && reason === "production") {
+        if (batchCost && !isNaN(parseFloat(batchCost))) payload.batch_cost = parseFloat(batchCost);
+      } else if (adjustmentMode === "add" && costApplies && unitCost && !isNaN(parseFloat(unitCost))) {
+        payload.unit_cost = parseFloat(unitCost); // per selected pack size
       }
 
       const response = await apiClient.post("/tenant/products/stock-intake", payload);
@@ -201,6 +205,7 @@ export function QuickStockIntakeModal({
       return [
         { label: "New Shipment / Supplier Delivery", value: "shipment" },
         { label: "Direct Store Purchase", value: "purchase" },
+        { label: "Made In-House (Production Batch)", value: "production" },
         { label: "Returned from Event / Warehouse", value: "returned" },
         { label: "Physical Count Correction (+)", value: "correction" },
         { label: "Initial Stock Balance", value: "initial_balance" },
@@ -216,6 +221,15 @@ export function QuickStockIntakeModal({
       { label: "Other Reason", value: "other" },
     ];
   }, [adjustmentMode]);
+
+  // Count corrections and returns put back stock we already costed: no new cost
+  const costApplies = !["correction", "returned"].includes(reason);
+  const selectedTier = (product?.packaging_tiers || []).find((t) => t.id === selectedTierId);
+  const costUnitLabel = selectedTier ? selectedTier.name : product?.base_unit_name || "unit";
+  const currentCostPerSelected =
+    product?.cost_price ? Number(product.cost_price) * (selectedTier ? Number(selectedTier.units_per_tier) || 1 : 1) : null;
+  const producedUnits = Math.abs(previewMath?.calculatedBaseUnits || 0);
+  const batchPerUnit = batchCost && producedUnits > 0 ? parseFloat(batchCost) / producedUnits : null;
 
   // Supplier Options
   const supplierOptions = useMemo(() => {
@@ -397,8 +411,27 @@ export function QuickStockIntakeModal({
             }}
           />
 
+          {/* Made in-house: total batch cost → cost per unit */}
+          {adjustmentMode === "add" && reason === "production" && (
+            <div className="space-y-1">
+              <CustomInputTextField
+                type="number"
+                label="Total Batch Cost (GHS)"
+                placeholder="Ingredients, packaging, gas…"
+                value={batchCost}
+                onChange={(e) => setBatchCost(e.target.value)}
+                step="0.01"
+              />
+              <p className="text-[11px] text-muted-foreground px-1">
+                {batchPerUnit !== null && isFinite(batchPerUnit)
+                  ? `= GHS ${batchPerUnit.toFixed(2)} per ${product.base_unit_name || "unit"}. Don't also record these ingredients as an expense.`
+                  : "What it cost to make this batch. Don't also record these ingredients as an expense."}
+              </p>
+            </div>
+          )}
+
           {/* Supplier & Unit Cost (Optional for additions) */}
-          {adjustmentMode === "add" && (
+          {adjustmentMode === "add" && reason !== "production" && costApplies && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <CustomSelectField
                 label="Supplier (Optional)"
@@ -412,8 +445,8 @@ export function QuickStockIntakeModal({
               />
               <CustomInputTextField
                 type="number"
-                label="Unit Cost (GHS)"
-                placeholder="e.g. 15.00"
+                label={`Cost per ${costUnitLabel} (GHS)`}
+                placeholder={currentCostPerSelected ? `Now ${currentCostPerSelected.toFixed(2)} — leave blank to keep` : "Optional"}
                 value={unitCost}
                 onChange={(e) => setUnitCost(e.target.value)}
                 step="0.01"

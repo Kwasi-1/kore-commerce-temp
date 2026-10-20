@@ -16,6 +16,7 @@ import CustomModal from "@/components/modals/modal";
 import CreatableCategorySelect from "./product-form/CategorySelect";
 import TiersEditor from "./product-form/TiersEditor";
 import ProductImagesField from "./product-form/ProductImagesField";
+import BulkCostHelper from "./product-form/BulkCostHelper";
 import VariantsTable from "./product-form/VariantsTable";
 import type { AttributeRow, FormErrors, GalleryImage, GalleryItem, SellMode, TierRow, VariantRow } from "./product-form/types";
 import {
@@ -149,6 +150,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const [errors, setErrors] = useState<FormErrors>(emptyErrors);
   const [pendingRegen, setPendingRegen] = useState<{ next: VariantRow[]; removed: VariantRow[]; added: number } | null>(null);
   const [belowCostItems, setBelowCostItems] = useState<string[] | null>(null);
+  // Edited cost prices: real price change, or fixing a mistake (then also fix past sales)?
+  const [costReview, setCostReview] = useState<{
+    changes: { variantId: string; label: string; old: number | null; next: number | null; big: boolean }[];
+    mistake: boolean;
+    since: string;
+  } | null>(null);
 
   // ── Load reference data ─────────────────────────────────────────────────
   useEffect(() => {
@@ -429,12 +436,54 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       setBelowCostItems(below);
       return;
     }
-    await save();
+    await reviewCostsOrSave();
   };
 
-  const save = async () => {
+  /** Cost prices changed on existing variants (edit mode only). */
+  const costChanges = () => {
+    if (!isEditing) return [];
+    const original = new Map<string, number | null>(
+      (initialData?.variants || []).map((v: any) => [v.id, v.cost_price_per_base_unit ?? null])
+    );
+    const rows: { id?: string; label: string; cost: string }[] = hasVariants
+      ? variants.map(v => ({ id: v.id, label: variantLabel(v), cost: v.cost_price_per_base_unit }))
+      : [{ id: (initialData?.variants || []).find((v: any) => v.is_active !== false)?.id, label: name || "This product", cost: simpleCostPrice }];
+    return rows
+      .filter(r => r.id && original.has(r.id))
+      .map(r => {
+        const old = original.get(r.id as string) ?? null;
+        const next = toNum(r.cost);
+        return { variantId: r.id as string, label: r.label, old, next, big: !!old && next !== null && Math.abs(next - old) / old > 0.3 };
+      })
+      .filter(c => (c.old ?? null) !== (c.next ?? null) && !(c.old !== null && c.next !== null && Math.abs(c.old - c.next) < 0.00005));
+  };
+
+  const reviewCostsOrSave = async () => {
     setBelowCostItems(null);
+    const changes = costChanges().filter(c => c.next !== null);
+    if (changes.length === 0) {
+      await save();
+      return;
+    }
+    // Default "fix sales since" = last time stock was received for these items (else 30 days ago)
+    let since = new Date(Date.now() - 30 * 86400000);
+    try {
+      const results = await Promise.all(
+        changes.map(c => apiClient.get(`/tenant/products/variants/${c.variantId}/cost-history`).then(r => r.data?.success?.data?.last_received_at).catch(() => null))
+      );
+      const dates = results.filter(Boolean).map((d: string) => new Date(d));
+      if (dates.length) since = new Date(Math.min(...dates.map(d => d.getTime())));
+    } catch {
+      /* keep default */
+    }
+    setCostReview({ changes, mistake: changes.some(c => c.big), since: since.toISOString().slice(0, 10) });
+  };
+
+  const save = async (costDecision?: { mistake: boolean; since: string; variantIds: string[] }) => {
+    setBelowCostItems(null);
+    setCostReview(null);
     setIsSaving(true);
+    const costNote = costDecision ? (costDecision.mistake ? "Corrected a mistake" : "Cost price changed") : undefined;
     const unit = (baseUnitName || "unit").trim() || "unit";
     const payload: Record<string, any> = {
       name: name.trim(),
@@ -459,6 +508,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
           low_stock_threshold: toNum(v.low_stock_threshold) ?? 5,
           track_expiry: v.track_expiry,
           image_url: v.image || null,
+          ...(costNote ? { cost_note: costNote } : {}),
           packaging_tiers: tiersToPayload(v.packaging_tiers, vUnit),
         };
       });
@@ -472,6 +522,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         low_stock_threshold: toNum(simpleLowStock) ?? 5,
         track_expiry: simpleTrackExpiry,
         packaging_tiers: tiersToPayload(simpleTiers, unit),
+        ...(costNote ? { cost_note: costNote } : {}),
       };
     }
 
@@ -485,6 +536,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       setIsSaving(false);
       toast.error(error?.response?.data?.error?.message || error?.message || "Failed to save product");
       return;
+    }
+
+    // Mistake corrected: also fix the cost recorded on recent sales so profit reports are right
+    if (costDecision?.mistake) {
+      const since = new Date(`${costDecision.since}T00:00:00`).toISOString();
+      const results = await Promise.all(
+        costDecision.variantIds.map(id =>
+          apiClient.post(`/tenant/products/variants/${id}/fix-sales-cost`, { since }).then(r => r.data?.success?.data?.updated || 0).catch(() => null)
+        )
+      );
+      if (results.some(r => r === null)) toast.error("Saved, but some past sales couldn't be corrected");
+      else toast.success(`Cost corrected on ${results.reduce((a, b) => a + (b || 0), 0)} past sale line(s)`);
     }
 
     setIsSaving(false);
@@ -654,7 +717,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
 
             {/* Images */}
             <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase !tracking-wide">Product Images</label>
               <ProductImagesField items={images} setItems={setImages} max={6} />
             </div>
           </div>
@@ -733,16 +796,25 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     <span className="mt-1 block text-xs font-semibold text-amber-600 dark:text-amber-400">Below cost</span>
                   )}
                 </div>
-                <CustomInputTextField
-                  label="Cost price"
-                  type="number"
-                  value={simpleCostPrice}
-                  onChange={(e) => setSimpleCostPrice(e.target.value)}
-                  placeholder="Optional"
-                  startContent={<span className="text-sm text-muted-foreground">GHS</span>}
-                  startContentPadding="pl-12"
-                  inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
-                />
+                <div>
+                  <CustomInputTextField
+                    label="Cost price"
+                    type="number"
+                    value={simpleCostPrice}
+                    onChange={(e) => setSimpleCostPrice(e.target.value)}
+                    placeholder="Optional"
+                    startContent={<span className="text-sm text-muted-foreground">GHS</span>}
+                    startContentPadding="pl-12"
+                    inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
+                  />
+                  <div className="mt-1">
+                    <BulkCostHelper
+                      unitName={baseUnitName}
+                      packs={simpleTiers.filter(t => !t.is_base_unit && toNum(t.units_per_tier)).map(t => ({ name: t.name || "Pack", units: toNum(t.units_per_tier) as number }))}
+                      onApply={setSimpleCostPrice}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -957,6 +1029,76 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         }
       />
 
+      {/* Edited cost prices: real change or a mistake? */}
+      <CustomModal
+        isOpen={!!costReview}
+        onOpenChange={() => setCostReview(null)}
+        size="md"
+        header={
+          <div className="pt-2 px-2 border-b border-border/60 pb-3">
+            <h2 className="text-lg font-bold !tracking-tight">Cost price changed</h2>
+            <p className="text-xs md:text-[13px] text-muted-foreground">Tell us why, so your profit reports stay accurate.</p>
+          </div>
+        }
+        body={
+          costReview && (
+            <div className="py-2 space-y-3">
+              <ul className="space-y-1 max-h-40 overflow-y-auto">
+                {costReview.changes.map(c => (
+                  <li key={c.variantId} className="flex items-center justify-between gap-2 text-sm rounded-md bg-muted/40 px-3 py-1.5">
+                    <span className="capitalize truncate">{c.label}</span>
+                    <span className="tabular-nums whitespace-nowrap">
+                      {c.old !== null ? c.old.toFixed(2) : "—"} → <b>{c.next !== null ? c.next.toFixed(2) : "—"}</b>
+                      {c.big && <span className="ml-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">big change</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <label className={cn("flex gap-2.5 rounded-lg border p-3 cursor-pointer", !costReview.mistake ? "border-primary bg-primary/5" : "border-border")}>
+                <input type="radio" className="mt-0.5 accent-primary" checked={!costReview.mistake} onChange={() => setCostReview({ ...costReview, mistake: false })} />
+                <span>
+                  <span className="block text-sm font-medium">The cost really changed</span>
+                  <span className="block text-xs text-muted-foreground">Applies to sales from now on. Past sales keep the cost they had.</span>
+                </span>
+              </label>
+              <label className={cn("flex gap-2.5 rounded-lg border p-3 cursor-pointer", costReview.mistake ? "border-primary bg-primary/5" : "border-border")}>
+                <input type="radio" className="mt-0.5 accent-primary" checked={costReview.mistake} onChange={() => setCostReview({ ...costReview, mistake: true })} />
+                <span className="flex-1">
+                  <span className="block text-sm font-medium">The old cost was a mistake</span>
+                  <span className="block text-xs text-muted-foreground">Also correct the cost on sales since:</span>
+                  <input
+                    type="date"
+                    value={costReview.since}
+                    max={new Date().toISOString().slice(0, 10)}
+                    disabled={!costReview.mistake}
+                    onChange={(e) => setCostReview({ ...costReview, since: e.target.value })}
+                    className="mt-1.5 h-8 px-2 text-xs border border-border rounded-md bg-background disabled:opacity-50"
+                  />
+                </span>
+              </label>
+            </div>
+          )
+        }
+        footer={
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
+            <Button variant="outline" size="sm" type="button" onClick={() => setCostReview(null)}>
+              Back
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              className="bg-primary text-primary-foreground font-semibold"
+              disabled={isSaving || (costReview?.mistake && !costReview.since)}
+              onClick={() =>
+                costReview && save({ mistake: costReview.mistake, since: costReview.since, variantIds: costReview.changes.map(c => c.variantId) })
+              }
+            >
+              Save
+            </Button>
+          </div>
+        }
+      />
+
       {/* Confirm saving with prices below cost */}
       <CustomModal
         isOpen={!!belowCostItems}
@@ -980,7 +1122,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
             <Button variant="outline" size="sm" type="button" onClick={() => setBelowCostItems(null)}>
               Fix prices
             </Button>
-            <Button size="sm" type="button" className="bg-primary text-primary-foreground font-semibold" onClick={save} disabled={isSaving}>
+            <Button size="sm" type="button" className="bg-primary text-primary-foreground font-semibold" onClick={() => reviewCostsOrSave()} disabled={isSaving}>
               Save anyway
             </Button>
           </div>

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import PriceInput from './PriceInput';
 import TiersEditor from './TiersEditor';
 import VariantImagePicker from './VariantImagePicker';
+import BulkCostHelper from './BulkCostHelper';
 import type { GalleryImage, RowErrors, VariantRow } from './types';
 import { blurOnWheel, enterToNextField, saleTierIndex, setSaleTierRetail, variantLabel } from './utils';
 
@@ -165,6 +166,13 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
             onChange={(e) => update(v.key, { base_unit_name: e.target.value })}
           />
         </label>
+        <div className="h-8 flex items-center">
+          <BulkCostHelper
+            unitName={v.base_unit_name}
+            packs={v.packaging_tiers.filter((pt) => !pt.is_base_unit && Number(pt.units_per_tier) > 0).map((pt) => ({ name: pt.name || 'Pack', units: Number(pt.units_per_tier) }))}
+            onApply={(c) => update(v.key, { cost_price_per_base_unit: c })}
+          />
+        </div>
         <label className="w-28">
           <span className={small}>Low stock alert</span>
           <input
