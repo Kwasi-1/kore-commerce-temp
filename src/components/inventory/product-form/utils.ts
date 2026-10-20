@@ -1,3 +1,4 @@
+import apiClient from '@/api/client';
 import type { ImageRef, TierRow, VariantRow, FormErrors, RowErrors } from './types';
 
 export const newKey = () => Math.random().toString(36).slice(2, 10);
@@ -224,11 +225,7 @@ export const hasErrors = (e: FormErrors) =>
 export const variantLabel = (v: Pick<VariantRow, 'variant_attributes' | 'sku'>) =>
   Object.values(v.variant_attributes).join(' / ') || v.sku;
 
-export const imageSrc = (ref: ImageRef, gallery: { ref: Exclude<ImageRef, null>; src: string }[]) => {
-  if (!ref) return null;
-  const hit = gallery.find((g) => (g.ref.kind === 'url' && ref.kind === 'url' ? g.ref.url === ref.url : g.ref.kind === 'file' && ref.kind === 'file' && g.ref.fileId === ref.fileId));
-  return hit?.src || null;
-};
+export const imageSrc = (ref: ImageRef, gallery: { url: string }[]) => (ref && gallery.some((g) => g.url === ref) ? ref : null);
 
 /**
  * Barcode scanners type the code then press Enter. In a form that would submit the whole
@@ -245,3 +242,6 @@ export const enterToNextField = (e: React.KeyboardEvent<HTMLInputElement>) => {
   const next = fields[fields.indexOf(e.currentTarget) + 1];
   next?.focus();
 };
+
+/** Deletes an upload that was never saved to a product (the nightly cleanup is the safety net). */
+export const discardUpload = (url: string) => apiClient.delete('/tenant/uploads/images', { data: { url } }).catch(() => {});

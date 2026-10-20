@@ -1598,6 +1598,13 @@ export function setupMockApi() {
     }];
   });
 
+  // Direct image uploads (product form uploads photos as soon as they're picked)
+  mock.onPost('/tenant/uploads/images').reply(() => [
+    201,
+    { success: { status: 'CREATED', code: 201, data: { upload: { url: `https://picsum.photos/seed/${Date.now()}${Math.floor(Math.random() * 1e4)}/600/600`, status: 'pending' } } } },
+  ]);
+  mock.onDelete('/tenant/uploads/images').reply(200, { success: { status: 'OK', code: 200, data: { deleted: true } } });
+
   // PATCH /tenant/products/:id/variant-images — link variants to gallery images
   mock.onPatch(/\/tenant\/products\/[^/]+\/variant-images$/).reply((config) => {
     const id = (config.url || '').split('/').slice(-2)[0];

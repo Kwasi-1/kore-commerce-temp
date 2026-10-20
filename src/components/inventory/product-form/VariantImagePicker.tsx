@@ -13,14 +13,11 @@ interface Props {
   size?: 'sm' | 'md';
 }
 
-const sameRef = (a: ImageRef, b: ImageRef) =>
-  !!a && !!b && (a.kind === 'url' && b.kind === 'url' ? a.url === b.url : a.kind === 'file' && b.kind === 'file' && a.fileId === b.fileId);
-
 /** Pick this variant's photo from the product gallery (no separate uploads per variant). */
 export default function VariantImagePicker({ value, gallery, onChange, label, size = 'sm' }: Props) {
   const [open, setOpen] = useState(false);
   const src = imageSrc(value, gallery);
-  const main = gallery[0]?.src || null;
+  const main = gallery[0]?.url || null;
   const box = size === 'md' ? 'h-14 w-14' : 'h-9 w-9';
 
   return (
@@ -61,16 +58,16 @@ export default function VariantImagePicker({ value, gallery, onChange, label, si
                 key={i}
                 type="button"
                 onClick={() => {
-                  onChange(g.ref);
+                  onChange(g.url);
                   setOpen(false);
                 }}
                 className={cn(
                   'aspect-square rounded-md overflow-hidden border-2 transition-colors',
-                  sameRef(value, g.ref) ? 'border-primary' : 'border-transparent hover:border-foreground/30',
+                  value === g.url ? 'border-primary' : 'border-transparent hover:border-foreground/30',
                 )}
                 aria-label={`Use image ${i + 1}`}
               >
-                <img src={g.src} alt="" className="h-full w-full object-cover" />
+                <img src={g.url} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>

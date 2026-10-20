@@ -4,7 +4,6 @@ import {
   CustomSelectField,
   CustomTextareaField
 } from "@/components/shared/text-field";
-import { FileUpload, UploadedFile } from "@/components/ui/file-upload";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Switch } from "@/components/ui/switch";
 import apiClient from "@/api/client";
@@ -17,10 +16,12 @@ import CustomModal from "@/components/modals/modal";
 import CreatableCategorySelect from "./product-form/CategorySelect";
 import PriceInput from "./product-form/PriceInput";
 import TiersEditor from "./product-form/TiersEditor";
+import ProductImagesField from "./product-form/ProductImagesField";
 import VariantsTable from "./product-form/VariantsTable";
-import type { AttributeRow, FormErrors, GalleryImage, ImageRef, SellMode, TierRow, VariantRow } from "./product-form/types";
+import type { AttributeRow, FormErrors, GalleryImage, GalleryItem, SellMode, TierRow, VariantRow } from "./product-form/types";
 import {
   blurOnWheel,
+  discardUpload,
   cartesian,
   comboKey,
   enterToNextField,
@@ -99,8 +100,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
   const [status, setStatus] = useState("active");
   const [hasVariants, setHasVariants] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
+  const [images, setImages] = useState<GalleryItem[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -186,7 +186,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
           ? p.tags.split(/[|,]/).map((t: string) => t.trim()).filter(Boolean)
           : []
     );
-    setUploadedFiles((p.images || []).map((url: string) => ({ id: url, file: new File([], "existing_image"), preview: url })));
+    setImages((p.images || []).map((url: string): GalleryItem => ({ key: newKey(), url, status: "done" })));
 
     // Only active variants are edited; removed (deactivated) ones stay hidden
     const active = (p.variants || []).filter((v: any) => v.is_active !== false);
@@ -220,7 +220,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         sell_mode: v.sell_mode || "unit_only",
         track_expiry: !!v.track_expiry,
         packaging_tiers: tiersFromServer(v.packaging_tiers, v.base_unit_name || "unit"),
-        image: v.image_url ? { kind: "url", url: v.image_url } : null,
+        image: v.image_url || null,
         isExpanded: false,
       })));
 
@@ -243,12 +243,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
     () =>
       JSON.stringify({
         name, description, category, brand, status, hasVariants, tags,
-        files: uploadedFiles.map(f => f.id),
+        images: images.map(i => i.url || i.key),
         baseUnitName, simpleSku, simpleSellMode, simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers,
         attributes: attributes.map(a => [a.name, a.values]),
         variants: variants.map(v => ({ ...v, isExpanded: undefined, key: undefined })), // UI-only fields don't count
       }),
-    [name, description, category, brand, status, hasVariants, tags, uploadedFiles, baseUnitName, simpleSku, simpleSellMode,
+    [name, description, category, brand, status, hasVariants, tags, images, baseUnitName, simpleSku, simpleSellMode,
       simpleStock, simpleCostPrice, simpleLowStock, simpleTrackExpiry, simpleTiers, attributes, variants]
   );
   const baselineRef = useRef<string | null>(null);
@@ -276,31 +276,29 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
     });
   }, [variantSkuPrefix, hasVariants]);
 
-  // ── Gallery (existing URLs + newly added files) ─────────────────────────
+  // ── Gallery: photos upload as soon as they're picked ───────────────────
   const gallery: GalleryImage[] = useMemo(
-    () =>
-      uploadedFiles.map(f => ({
-        ref: f.file.size > 0 ? { kind: "file" as const, fileId: f.id } : { kind: "url" as const, url: f.id },
-        src: f.preview || f.id,
-      })),
-    [uploadedFiles]
+    () => images.filter(i => i.status === "done" && i.url).map(i => ({ url: i.url as string })),
+    [images]
   );
 
-  const handleFilesChange = (newFiles: UploadedFile[]) => {
-    const newIds = new Set(newFiles.map(f => f.id));
-    const removed = uploadedFiles.filter(f => !newIds.has(f.id));
-    removed.forEach(f => {
-      if (f.file.size === 0 && (f.id.startsWith("http") || f.id.includes("/"))) {
-        setRemovedImageUrls(prev => [...prev, f.id]);
-      }
-    });
-    if (removed.length) {
-      const gone = new Set(removed.map(f => f.id));
-      const stillThere = (ref: ImageRef) => !ref || !gone.has(ref.kind === "url" ? ref.url : ref.fileId);
-      setVariants(prev => prev.map(v => (stillThere(v.image) ? v : { ...v, image: null })));
-    }
-    setUploadedFiles(newFiles);
-  };
+  // A variant can't keep a photo that was removed from the gallery
+  useEffect(() => {
+    const urls = new Set(gallery.map(g => g.url));
+    setVariants(prev => (prev.some(v => v.image && !urls.has(v.image)) ? prev.map(v => (v.image && !urls.has(v.image) ? { ...v, image: null } : v)) : prev));
+  }, [gallery]);
+
+  // Leaving without saving: throw away photos uploaded in this session (nightly cleanup is the backstop)
+  const savedRef = useRef(false);
+  const imagesRef_ = useRef(images);
+  imagesRef_.current = images;
+  useEffect(
+    () => () => {
+      if (savedRef.current) return;
+      imagesRef_.current.filter(i => i.isNew && i.url).forEach(i => discardUpload(i.url as string));
+    },
+    []
+  );
 
   // ── Attribute builder ───────────────────────────────────────────────────
   const updateAttribute = (key: string, field: "name" | "values", value: string) =>
@@ -410,6 +408,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (images.some(i => i.status === "uploading")) {
+      toast.error("Wait for the photos to finish uploading");
+      handleNavClick("images");
+      return;
+    }
+    if (images.some(i => i.status === "error")) {
+      toast.error("Some photos failed to upload — retry or remove them");
+      handleNavClick("images");
+      return;
+    }
     const result = validateForm({ name, category, hasVariants, simpleTiers, variants });
     setErrors(result.errors);
     if (hasErrors(result.errors)) {
@@ -437,6 +445,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       status,
       tags: tags.map(t => t.trim()).filter(Boolean),
       has_variants: hasVariants,
+      images: images.filter(i => i.status === "done" && i.url).map(i => i.url),
     };
     if (hasVariants) {
       payload.variants = variants.map(v => {
@@ -450,7 +459,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
           sell_mode: v.sell_mode,
           low_stock_threshold: toNum(v.low_stock_threshold) ?? 5,
           track_expiry: v.track_expiry,
-          image_url: v.image?.kind === "url" ? v.image.url : null,
+          image_url: v.image || null,
           packaging_tiers: tiersToPayload(v.packaging_tiers, vUnit),
         };
       });
@@ -479,41 +488,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       return;
     }
 
-    // The product is saved; images are follow-up steps. Failures here must not cause a duplicate on retry.
-    let warning: string | undefined;
-    try {
-      for (const url of isEditing ? removedImageUrls : []) {
-        await apiClient.delete(`/tenant/products/${productId}/images`, { data: { imageUrl: url } }).catch(() => {});
-      }
-
-      const newFiles = uploadedFiles.filter(f => f.file.size > 0);
-      const fileUrl = new Map<string, string>();
-      if (newFiles.length > 0) {
-        const form = new FormData();
-        newFiles.forEach(f => form.append("files", f.file));
-        const up = await apiClient.post(`/tenant/products/${productId}/images`, form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        const urls: string[] = up.data?.success?.data?.uploadedUrls || [];
-        newFiles.forEach((f, i) => urls[i] && fileUrl.set(f.id, urls[i]));
-      }
-
-      const links = hasVariants
-        ? variants
-          .filter(v => v.image?.kind === "file" && fileUrl.has(v.image.fileId))
-          .map(v => ({ sku: v.sku.trim(), image_url: fileUrl.get((v.image as { kind: "file"; fileId: string }).fileId) }))
-        : [];
-      if (links.length > 0) {
-        await apiClient.patch(`/tenant/products/${productId}/variant-images`, { images: links });
-      }
-    } catch (error: any) {
-      warning = `Product saved, but images didn't finish uploading: ${error?.response?.data?.error?.message || error?.message || "unknown error"}. Open it again to retry.`;
-    }
-
     setIsSaving(false);
     baselineRef.current = snapshot; // nothing unsaved any more
     onDirtyChange?.(false);
-    onSuccess({ productId, created: !isEditing, warning });
+    savedRef.current = true;
+    onSuccess({ productId, created: !isEditing });
   };
 
   if (!ready) {
@@ -676,12 +655,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
             {/* Images */}
             <div ref={imagesRef} className="scroll-mt-24 pt-4 border-t border-border/50 space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase">Product Images</label>
-              <FileUpload
-                value={uploadedFiles}
-                onChange={handleFilesChange}
-                accept="image/*"
-                maxFiles={6}
-              />
+              <ProductImagesField items={images} setItems={setImages} max={6} />
             </div>
           </div>
 
@@ -894,7 +868,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               <div id="pf-variants">
                 <Button
                   type="button"
-                  className="w-full bg-secondary-gray text-foreground border font-bold py-2 rounded-xl"
+                  className="w-full bg-secondary text-secondary-foreground hover:text-primary-foreground  border font-bold py-2 rounded-lg"
                   onClick={generateVariants}
                 >
                   <Icon icon={variants.length ? "lucide:refresh-cw" : "fluent:settings-20-filled"} className="mr-2 text-lg" />

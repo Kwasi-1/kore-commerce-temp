@@ -13,8 +13,19 @@ export interface TierRow {
   wholesale_price: string;
 }
 
-/** A variant's image: an already-uploaded gallery URL, or a gallery file that is uploaded on save. */
-export type ImageRef = { kind: 'url'; url: string } | { kind: 'file'; fileId: string } | null;
+/** A variant's image: the URL of one of the product's (already uploaded) gallery photos. */
+export type ImageRef = string | null;
+
+/** A product photo in the form. Photos upload as soon as they're picked. */
+export interface GalleryItem {
+  key: string;
+  url?: string; // set once uploaded (or for photos already on the product)
+  preview?: string; // local object URL while uploading
+  file?: File; // kept for retries
+  status: 'uploading' | 'done' | 'error';
+  error?: string;
+  isNew?: boolean; // uploaded in this session (not yet saved to the product)
+}
 
 export interface VariantRow {
   key: string;
@@ -40,8 +51,7 @@ export interface AttributeRow {
 }
 
 export interface GalleryImage {
-  ref: Exclude<ImageRef, null>;
-  src: string;
+  url: string;
 }
 
 export interface RowErrors {
