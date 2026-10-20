@@ -19,10 +19,10 @@ interface Props {
 }
 
 const input =
-  'w-full h-8 px-2 text-xs border rounded-md bg-card focus:outline-none focus:border-foreground/40 tabular-nums disabled:opacity-60 disabled:bg-muted/30 disabled:cursor-not-allowed';
+  'w-full min-w-0 h-8 px-2 text-xs border rounded-md bg-background focus:outline-none focus:border-foreground/40 tabular-nums disabled:opacity-60 disabled:bg-muted/30 disabled:cursor-not-allowed';
 const small = 'block text-[11px] text-muted-foreground mb-1';
 // Variant · SKU · Stock · Cost · Price · actions
-const cols = 'grid grid-cols-[minmax(9rem,1.4fr)_minmax(6.5rem,1fr)_4.5rem_5.5rem_7rem_4.25rem] gap-2 items-start';
+const cols = 'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minmax(3.5rem,0.5fr)_minmax(4.5rem,0.6fr)_minmax(6.5rem,0.9fr)_4.25rem] gap-2 items-start [&>*]:min-w-0';
 
 const emptyBulk = { stock: '', cost: '', retail: '', wholesale: '', lowStock: '' };
 

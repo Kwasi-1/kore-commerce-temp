@@ -56,7 +56,7 @@ export default function CreatableCategorySelect({
             id={id}
             type="button"
             className={cn(
-              "w-full text-left rounded-lg border border-input bg-card px-3.5 h-[3.5rem] relative flex items-center justify-between transition-all duration-200 outline-none focus:outline-none focus:ring-0",
+              "w-full text-left rounded-lg border border-input bg-background px-3.5 h-[3.5rem] relative flex items-center justify-between transition-all duration-200 outline-none focus:outline-none focus:ring-0",
               open && "border-foreground/30",
               error && "border-destructive"
             )}

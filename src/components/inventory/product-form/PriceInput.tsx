@@ -51,7 +51,7 @@ export default function PriceInput({
           onWheel={blurOnWheel}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            'w-full rounded-lg border bg-card text-foreground font-semibold tabular-nums focus:outline-none transition-colors',
+            'w-full min-w-0 rounded-lg border bg-background text-foreground font-semibold tabular-nums focus:outline-none transition-colors',
             size === 'md' ? 'h-[3.5rem] pl-12 pr-3 text-sm' : 'h-8 pl-10 pr-2 text-xs',
             error
               ? 'border-destructive bg-destructive/5 focus:border-destructive'

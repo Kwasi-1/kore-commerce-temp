@@ -14,8 +14,8 @@ interface Props {
   onSellModeChange: (m: SellMode) => void;
 }
 
-const field = 'w-full h-8 px-2 text-xs border border-border rounded-md bg-card focus:outline-none focus:border-foreground/40';
-const gridCols = 'grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_7rem_2rem] gap-2 items-center';
+const field = 'w-full min-w-0 h-8 px-2 text-xs border border-border rounded-md bg-background focus:outline-none focus:border-foreground/40';
+const gridCols = 'grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_7rem_2rem] gap-2 items-center [&>*]:min-w-0';
 
 const tierLabel = (t: TierRow, unitName: string) => {
   if (t.is_base_unit) return unitName || 'unit';

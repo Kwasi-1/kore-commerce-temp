@@ -14,7 +14,6 @@ import { cn } from "../../lib/utils";
 import { PillSidebar } from "../shared/pill-sidebar";
 import CustomModal from "@/components/modals/modal";
 import CreatableCategorySelect from "./product-form/CategorySelect";
-import PriceInput from "./product-form/PriceInput";
 import TiersEditor from "./product-form/TiersEditor";
 import ProductImagesField from "./product-form/ProductImagesField";
 import VariantsTable from "./product-form/VariantsTable";
@@ -506,6 +505,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   }
 
   const simpleSale = simpleTiers[saleTierIndex(simpleTiers)];
+  const simpleBelowCost = !!marginInfo(simpleSale?.retail_price, simpleCostPrice, simpleSale?.is_base_unit ? 1 : simpleSale?.units_per_tier)?.below;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="w-full bg-transparent md:py-4 spacing-sm font-header">
@@ -714,33 +714,35 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">
-                    Retail price{simpleSale && !simpleSale.is_base_unit ? ` per ${simpleSale.name || "pack"}` : ""} <span className="text-destructive">*</span>
-                  </label>
-                  <PriceInput
-                    id="pf-simple-retail"
-                    size="md"
+                <div>
+                  <CustomInputTextField
+                    label={`Retail price${simpleSale && !simpleSale.is_base_unit ? ` per ${simpleSale.name || "pack"}` : ""}`}
+                    required
+                    type="number"
                     value={simpleSale?.retail_price || ""}
-                    onChange={(v) => {
-                      setSimpleTiers(prev => setSaleTierRetail(prev, v));
+                    onChange={(e) => {
+                      setSimpleTiers(prev => setSaleTierRetail(prev, e.target.value));
                       if (errors.simple?.retail) setErrors(prev => ({ ...prev, simple: undefined }));
                     }}
-                    cost={simpleCostPrice}
-                    units={simpleSale?.is_base_unit ? 1 : simpleSale?.units_per_tier}
+                    startContent={<span className="text-sm text-muted-foreground">GHS</span>}
+                  startContentPadding="pl-12"
                     error={errors.simple?.retail}
+                    inputProps={{ id: "pf-simple-retail", min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
                   />
+                  {!errors.simple?.retail && simpleBelowCost && (
+                    <span className="mt-1 block text-xs font-semibold text-amber-600 dark:text-amber-400">Below cost</span>
+                  )}
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">Cost price</label>
-                  <PriceInput
-                    size="md"
-                    value={simpleCostPrice}
-                    onChange={setSimpleCostPrice}
-                    placeholder="Optional"
-                    showMargin={false}
-                  />
-                </div>
+                <CustomInputTextField
+                  label="Cost price"
+                  type="number"
+                  value={simpleCostPrice}
+                  onChange={(e) => setSimpleCostPrice(e.target.value)}
+                  placeholder="Optional"
+                  startContent={<span className="text-sm text-muted-foreground">GHS</span>}
+                  startContentPadding="pl-12"
+                  inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4">
