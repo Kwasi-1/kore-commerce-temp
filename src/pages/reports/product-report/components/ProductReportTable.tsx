@@ -198,6 +198,11 @@ export default function ProductReportTable({
                       ? 'Low stock'
                       : 'In stock'}
               </span>
+              {(p.wastage_cost || 0) > 0 && (
+                <span className="text-[11px] text-rose-600 dark:text-rose-400" title="Damaged, expired, lost or stolen, at cost">
+                  {formatQty(p.wasted_units || 0)} wasted · <CurrencyDisplay amount={p.wastage_cost || 0} showStyling={false} />
+                </span>
+              )}
             </div>
           ),
           insight: <InsightBadge row={p} />,

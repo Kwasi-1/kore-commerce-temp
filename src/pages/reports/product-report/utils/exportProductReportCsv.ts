@@ -21,6 +21,8 @@ export function exportProductReportCsv(rows: ProductReportRow[], summary: Produc
     'Refunds (GHS)': r.refunds ?? 0,
     'Net revenue (GHS)': r.net_revenue ?? r.revenue,
     'Units returned': r.returned_units ?? 0,
+    'Units wasted': r.wasted_units ?? 0,
+    'Wastage at cost (GHS)': r.wastage_cost ?? 0,
     'Return rate (%)': r.return_rate_pct ?? '',
     'Share of revenue (%)': r.revenue_share_pct,
     ...(comparing ? { 'Revenue (prev, GHS)': r.prev_revenue ?? 0, 'Revenue change (%)': r.revenue_change_pct ?? '' } : {}),

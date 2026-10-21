@@ -5,6 +5,7 @@ import { CurrencyDisplay } from "@/hooks";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Package } from "lucide-react";
 import apiClient from "@/api/client";
+import { BatchHistoryList, CostHistoryList } from "@/components/inventory/ProductHistoryPanels";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import { useFeaturesStore } from "@/store/featuresStore";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function ProductDetailModal({
 }: ProductDetailModalProps) {
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [detailTab, setDetailTab] = useState<"details" | "history">("details");
+  const [historyView, setHistoryView] = useState<"stock" | "cost" | "batches">("stock");
   const [productData, setProductData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -63,7 +65,7 @@ export function ProductDetailModal({
 
   // Load history when history tab is active
   useEffect(() => {
-    if (isOpen && detailTab === "history" && productData) {
+    if (isOpen && detailTab === "history" && historyView === "stock" && productData) {
       const variantId = selectedVariantId || productData.variants?.[0]?.id;
       if (variantId) {
         setIsLoadingHistory(true);
@@ -81,7 +83,7 @@ export function ProductDetailModal({
           });
       }
     }
-  }, [isOpen, detailTab, selectedVariantId, productData]);
+  }, [isOpen, detailTab, historyView, selectedVariantId, productData]);
 
   if (!product) return null;
 
@@ -493,7 +495,27 @@ export function ProductDetailModal({
           {/* TAB 2: AUDIT HISTORY */}
           {detailTab === "history" && (
             <div className="space-y-3">
-              {variants.length > 1 && (
+              {/* Stock movements · cost price changes · in-house batches */}
+              <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
+                {([
+                  ["stock", "Stock"],
+                  ["cost", "Cost"],
+                  ...(currentProduct.is_made_in_house ? [["batches", "Batches"]] : []),
+                ] as [typeof historyView, string][]).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setHistoryView(key)}
+                    className={`h-7 px-3 rounded-md text-xs font-medium transition-colors ${
+                      historyView === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {historyView !== "batches" && variants.length > 1 && (
                 <div className="flex items-center gap-2 p-2 bg-muted/20 rounded-md border border-border/50">
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     Variant Audit:
@@ -518,7 +540,12 @@ export function ProductDetailModal({
                 </div>
               )}
 
-              {isLoadingHistory ? (
+              {historyView === "cost" && (
+                <CostHistoryList variantId={activeVariant?.id || null} unitName={activeVariant?.base_unit_name || "unit"} />
+              )}
+              {historyView === "batches" && <BatchHistoryList productId={currentProduct.id} />}
+
+              {historyView !== "stock" ? null : isLoadingHistory ? (
                 <div className="py-12 text-center text-muted-foreground space-y-2">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
                   <p className="text-xs">Loading audit trail...</p>

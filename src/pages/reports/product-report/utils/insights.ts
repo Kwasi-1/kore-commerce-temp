@@ -90,6 +90,17 @@ export function buildHighlights(rows: ProductReportRow[], summary: ProductReport
     }
   }
 
+  if ((summary.total_wastage_cost || 0) > 0) {
+    const worst = [...rows].filter((r) => (r.wastage_cost || 0) > 0).sort((a, b) => (b.wastage_cost || 0) - (a.wastage_cost || 0));
+    out.push({
+      tone: 'warning',
+      icon: 'lucide:trash-2',
+      text: `GHS ${(summary.total_wastage_cost || 0).toFixed(2)} of stock was written off as damaged, expired or lost${
+        worst[0] ? `, most from ${rowDisplayName(worst[0])} (GHS ${(worst[0].wastage_cost || 0).toFixed(2)})` : ''
+      }.`,
+    });
+  }
+
   const overstocked = rows.filter((r) => r.insight === 'overstocked');
   if (overstocked.length > 0) {
     out.push({

@@ -23,6 +23,9 @@ export interface ProductReportRow {
   net_revenue: number;
   discount_pct: number | null;
   returned_units: number;
+  /** Written off as damaged / expired / lost / stolen, and what it cost. */
+  wasted_units?: number;
+  wastage_cost?: number;
   return_rate_pct: number | null;
   cost_of_goods: number | null;
   cost_price: number | null;
@@ -52,6 +55,8 @@ export interface ProductReportSummary {
   total_refunds: number;
   total_net_revenue: number;
   total_returned_units: number;
+  total_wasted_units?: number;
+  total_wastage_cost?: number;
   return_rate_pct: number;
   total_units_sold: number;
   total_cogs: number;

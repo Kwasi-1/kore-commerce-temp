@@ -53,7 +53,18 @@ export default function ProductReportKpis({ summary, isLoading, focused }: { sum
       <DashboardCard
         title="Tracked COGS"
         value={isLoading ? '...' : <CurrencyDisplay amount={s.total_cogs || 0} />}
-        subvalue={s.cost_coverage_pct !== undefined ? `${s.cost_coverage_pct}% cost coverage` : undefined}
+        subvalue={
+          s.cost_coverage_pct !== undefined ? (
+            <span>
+              {s.cost_coverage_pct}% cost coverage
+              {(s.total_wastage_cost || 0) > 0 && (
+                <span className="text-rose-600 dark:text-rose-400" title="Damaged, expired, lost or stolen stock, at cost">
+                  {' '}· −{formatMoney(s.total_wastage_cost || 0)} wasted
+                </span>
+              )}
+            </span>
+          ) : undefined
+        }
       />
 
       <DashboardCard
