@@ -19,7 +19,7 @@ export default function ProductReportKpis({ summary, isLoading, focused }: { sum
   const comparing = !!s.comparison;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <DashboardCard
         title="Net Product Revenue"
         value={isLoading ? '...' : <CurrencyDisplay amount={s.total_net_revenue ?? s.total_revenue ?? 0} />}

@@ -176,7 +176,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
       header={
         <div className="pt-2 px-2 border-b border-border/60 pb-3">
           <h2 className="text-lg font-bold !tracking-tight">Plan restock{scopeLabel ? ` — ${scopeLabel}` : ''}</h2>
-          <p className="text-xs md:text-[13px] text-muted-foreground">
+          <p className="text-xs md:text-[13px] text-muted-foreground !tracking-tight">
             Quantities cover your sales rate ({formatRangeLabel(filters.range, filters.start, filters.end).toLowerCase()}) for the lead time plus
             the target days of stock, minus what's on hand and already on open purchase orders.
           </p>

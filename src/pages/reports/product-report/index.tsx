@@ -234,8 +234,8 @@ export default function ProductReport() {
       className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
     >
       <Icon icon={isExporting ? 'lucide:loader-2' : 'lucide:share'} className={`w-4 h-4 ${isExporting ? 'animate-spin' : ''}`} />
-      Export
-      <Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 opacity-60" />
+      <span className="hidden sm:block md:hidden xl:block">Export</span>
+      <span className="hidden sm:block md:hidden xl:block"><Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 opacity-60" /></span>
     </button>,
   );
 
@@ -251,17 +251,17 @@ export default function ProductReport() {
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted transition-colors"
             >
               <Icon icon="lucide:package-plus" className="w-4 h-4" />
-              Plan restock
+              <span className="hidden sm:block md:hidden xl:block">Plan restock</span>
             </button>
           )}
           {exportButton}
-          <CustomOnlyDateFilterComponent value={dateValue} onChange={onDateChange} />
+          <CustomOnlyDateFilterComponent value={dateValue} onChange={onDateChange} showLabelOnMobile={true}/>
         </div>
       }
     >
       <div className="space-y-5">
         {/* Mobile: date, search and export live in the capsule bar */}
-        <div className="md:hidden">
+        <div className="hidden">
           <MobileActionCapsuleBar
             searchConfig={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search products…' }}
             dateFilterConfig={{ value: dateValue, onChange: onDateChange }}

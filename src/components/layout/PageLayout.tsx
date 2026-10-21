@@ -271,7 +271,7 @@ export default function PageLayout({
           )}
 
           {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop and omitted in action-bridge variant) */}
-          {/* {headerVariant !== "action-bridge" && (actions || filterSlot) && (
+          {headerVariant !== "action-bridge" && (actions || filterSlot) && (
             <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2 empty:hidden [&:not(:has(>*:not(.hidden)))]:hidden">
               {filterSlot && <div className="shrink-0">{filterSlot}</div>}
               {actions && (
@@ -280,7 +280,7 @@ export default function PageLayout({
                 </div>
               )}
             </div>
-          )} */}
+          )}
         </div>
       )}
 

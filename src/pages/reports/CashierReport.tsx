@@ -205,38 +205,38 @@ export default function CashierReport() {
       <div className="space-y-5">
         
         {/* Top Monochromatic Executive Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Total Revenue Handled */}
           <DashboardCard
             title="Total Handled Sales"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.total_revenue || 0} />}
-            subvalue={
-              summary.active_cashiers > 0
-                ? `Across ${summary.active_cashiers} active ${summary.active_cashiers === 1 ? 'cashier' : 'cashiers'}`
-                : undefined
-            }
+            // subvalue={
+            //   summary.active_cashiers > 0
+            //     ? `Across ${summary.active_cashiers} active ${summary.active_cashiers === 1 ? 'cashier' : 'cashiers'}`
+            //     : undefined
+            // }
           />
 
           {/* Card 2: Completed Transactions */}
           <DashboardCard
             title="Total Checkouts"
             value={isLoading ? '...' : (summary.total_transactions || 0).toLocaleString()}
-            subvalue="Completed POS sales"
+            // subvalue="Completed POS sales"
           />
 
           {/* Card 3: Overall Average Ticket Size */}
           <DashboardCard
             title="Avg Ticket Value (AOV)"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.overall_avg_ticket || 0} />}
-            subvalue="Per checkout session"
+            // subvalue="Per checkout session"
           />
 
           {/* Card 4: Top Performer */}
           <DashboardCard
             title="Top Performer"
             value={isLoading ? '...' : summary.top_performer || '—'}
-            subvalue="Highest revenue contributor"
+            // subvalue="Highest revenue contributor"
           />
         </div>
 

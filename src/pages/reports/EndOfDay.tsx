@@ -173,7 +173,7 @@ export default function EndOfDay() {
       )}
 
       {/* Main Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <DashboardCard
           title={isMultiDay ? "Period Gross Sales" : "Total Gross Sales"}
           value={<CurrencyDisplay amount={grossSales} />}
