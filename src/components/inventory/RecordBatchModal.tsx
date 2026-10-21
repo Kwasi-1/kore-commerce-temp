@@ -132,7 +132,7 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
       header={
         <div className="pt-2 px-2 border-b border-border/60 pb-3">
           <h2 className="text-lg font-bold !tracking-tight">Record batch{productName ? ` — ${productName}` : ''}</h2>
-          <p className="text-xs md:text-[13px] text-muted-foreground">Adds the stock you made and works out the cost of each one.</p>
+          <p className="text-xs md:text-[13px] text-muted-foreground !tracking-tight">Adds the stock you made and works out the cost of each one.</p>
         </div>
       }
       body={
