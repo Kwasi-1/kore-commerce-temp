@@ -35,6 +35,32 @@ import {
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
 
+const getRoleBadgeClasses = (role: string) => {
+  switch (role?.toLowerCase()) {
+    case 'owner':
+      return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20';
+    case 'admin':
+      return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20';
+    case 'manager':
+      return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
+    default:
+      return 'bg-muted text-muted-foreground border-border/50';
+  }
+};
+
+const getAvatarBg = (role: string) => {
+  switch (role?.toLowerCase()) {
+    case 'owner':
+      return 'bg-purple-600 text-white';
+    case 'admin':
+      return 'bg-indigo-600 text-white';
+    case 'manager':
+      return 'bg-blue-600 text-white';
+    default:
+      return 'bg-emerald-600 text-white';
+  }
+};
+
 export default function StaffManagement() {
   const isMobile = useIsMobile();
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -328,32 +354,6 @@ export default function StaffManagement() {
   };
 
   const handleRowActionClick = (actionKey: string, row: any) => handleAction(actionKey, row.__record);
-
-  const getRoleBadgeClasses = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'owner':
-        return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20';
-      case 'admin':
-        return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20';
-      case 'manager':
-        return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border/50';
-    }
-  };
-
-  const getAvatarBg = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'owner':
-        return 'bg-purple-600 text-white';
-      case 'admin':
-        return 'bg-indigo-600 text-white';
-      case 'manager':
-        return 'bg-blue-600 text-white';
-      default:
-        return 'bg-emerald-600 text-white';
-    }
-  };
 
   return (
     <PageLayout
