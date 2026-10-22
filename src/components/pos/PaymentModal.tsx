@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueueStore } from '@/store/offlineQueueStore';
+import { useCan } from '@/hooks/usePermissions';
 import { APP_CONFIG } from '@/config/app.config';
 import { getReceiptPrefix, generatePosOrderNumber } from '@/utils/receipt';
 
@@ -55,6 +56,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const staffUser = useAuthStore((state) => state.staffUser);
 
   const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
+  const can = useCan();
   const isPaystackEnabled = checkPaystack();
 
   // Network & offline queue
@@ -170,6 +172,17 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const change = Math.max(0, amountTendered - total);
 
   const saveOfflineSale = (toastId?: string) => {
+    // A manager's PIN approval is checked by the server, so it can't happen offline
+    const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'));
+    if (needsApproval) {
+      const message = isCreditSale && !can('pos.credit_sale')
+        ? "Credit sales need a manager's approval, which needs an internet connection."
+        : "This discount needs a manager's approval, which needs an internet connection.";
+      if (toastId) toast.error(message, { id: toastId });
+      else toast.error(message);
+      setIsProcessing(false);
+      return;
+    }
     const localId = crypto.randomUUID();
     const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || '';
     const prefix = getReceiptPrefix(effectiveStoreName, posSettings.receipt_prefix);

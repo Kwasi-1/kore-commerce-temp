@@ -48,6 +48,7 @@ export function useOfflineSync(): OfflineSyncStatus {
       useOfflineQueueStore.getState().markSyncing(transaction.localId);
       try {
         const response = await apiClient.post('/pos/transactions', transaction.payload, {
+          skipApproval: true, // background sync: never pop up a PIN prompt
           headers: {
             'X-Idempotency-Key': transaction.idempotencyKey,
           },

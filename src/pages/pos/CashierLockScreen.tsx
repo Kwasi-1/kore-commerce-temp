@@ -47,7 +47,7 @@ export default function CashierLockScreen() {
     const fetchStaff = async () => {
       setIsLoading(true);
       try {
-        const response = await apiClient.get('/tenant/staff');
+        const response = await apiClient.get('/pos/auth/staff');
         const rawStaff = response.data.success?.data?.staff || response.data.success?.data?.items || [];
         
         const formatted: CashierProfile[] = rawStaff.map((s: any, idx: number) => {

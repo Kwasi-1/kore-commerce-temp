@@ -96,6 +96,9 @@ interface FeaturesState {
   addons: any[];
   posSettings: POSSettings;
   platform_paystack_enabled: boolean;
+  /** Signed-in staff member's permissions (from /tenant/features) and whose they are */
+  permissions: string[] | null;
+  permissionsFor: string | null;
   isLoaded: boolean;
   lastFetchedAt: number | null;    // timestamp ms — for cache invalidation
   hasModule: (key: string) => boolean;
@@ -117,6 +120,8 @@ export const useFeaturesStore = create<FeaturesState>()(
       addons: [],
       posSettings: DEFAULT_POS_SETTINGS,
       platform_paystack_enabled: true,
+      permissions: null,
+      permissionsFor: null,
       isLoaded: false,
       lastFetchedAt: null,
 
@@ -169,6 +174,8 @@ export const useFeaturesStore = create<FeaturesState>()(
             addons,
             posSettings,
             platform_paystack_enabled,
+            permissions: Array.isArray(data.permissions) ? data.permissions : null,
+            permissionsFor: data.staff_id || null,
             isLoaded: true,
             lastFetchedAt: Date.now(),
           });
@@ -196,6 +203,8 @@ export const useFeaturesStore = create<FeaturesState>()(
           modules: PLAN_MODULES['starter'],
           addons: [],
           posSettings: DEFAULT_POS_SETTINGS,
+          permissions: null,
+          permissionsFor: null,
           isLoaded: false,
           lastFetchedAt: null,
         }),
@@ -207,6 +216,8 @@ export const useFeaturesStore = create<FeaturesState>()(
         modules: state.modules,
         addons: state.addons,
         posSettings: state.posSettings,
+        permissions: state.permissions,
+        permissionsFor: state.permissionsFor,
         lastFetchedAt: state.lastFetchedAt,
       }),
     }

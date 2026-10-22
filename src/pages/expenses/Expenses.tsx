@@ -9,7 +9,6 @@ import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/sha
 import { CurrencyDisplay } from '@/hooks';
 import { useIsMobile } from '@/hooks/useScreenSize';
 import apiClient from '@/api/client';
-import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { 
@@ -34,7 +33,7 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
-import { isManagement } from '@/utils/roles';
+import { useCan } from '@/hooks/usePermissions';
 
 const SOURCE_LABELS: Record<string, string> = {
   backoffice: 'Back office',
@@ -45,8 +44,8 @@ const sourceLabel = (source?: string) => SOURCE_LABELS[source || 'backoffice'] |
 
 export default function Expenses() {
   const isMobile = useIsMobile();
-  const { staffUser } = useAuthStore();
-  const isManagerOrOwner = isManagement(staffUser?.role);
+  const can = useCan();
+  const isManagerOrOwner = can('expenses.manage');
 
   // Active Tab: 'log' vs 'recurring'
   const [activeTab, setActiveTab] = useState<'log' | 'recurring'>('log');

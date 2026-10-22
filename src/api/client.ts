@@ -1,5 +1,13 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { useApprovalStore } from '../store/approvalStore';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Don't ask for a manager's PIN if the server says a permission is missing (background work). */
+    skipApproval?: boolean;
+  }
+}
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
@@ -44,7 +52,36 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+      _approvalPermissions?: string[];
+    };
+
+    // Missing permission on an action: ask someone who has it to approve with their PIN, then
+    // retry with {"approval": {...}} in the body. Wrong PINs come back as INVALID_PIN and ask again.
+    // Only for actions (not page loads), and never for background work that sets skipApproval.
+    const errBody: any = error.response?.data;
+    const errStatus = errBody?.error?.status;
+    const method = (originalRequest?.method || 'get').toLowerCase();
+    if (
+      error.response?.status === 403 &&
+      originalRequest &&
+      !originalRequest.skipApproval &&
+      ['post', 'put', 'patch'].includes(method) &&
+      (errStatus === 'PERMISSION_REQUIRED' || (errStatus === 'INVALID_PIN' && originalRequest._approvalPermissions))
+    ) {
+      const permissions: string[] = errStatus === 'PERMISSION_REQUIRED' ? errBody.error.permissions || [] : originalRequest._approvalPermissions!;
+      const approval = await useApprovalStore.getState().ask({
+        permissions,
+        message: errStatus === 'PERMISSION_REQUIRED' ? errBody.error.message : undefined,
+        error: errStatus === 'INVALID_PIN' ? errBody.error.message : undefined,
+      });
+      if (!approval) return Promise.reject(error);
+      const body = typeof originalRequest.data === 'string' ? JSON.parse(originalRequest.data || '{}') : originalRequest.data || {};
+      originalRequest.data = JSON.stringify({ ...body, approval });
+      originalRequest._approvalPermissions = permissions;
+      return apiClient(originalRequest);
+    }
 
     // If there's no response or status is not 401, reject immediately
     if (!error.response || error.response.status !== 401 || !originalRequest) {

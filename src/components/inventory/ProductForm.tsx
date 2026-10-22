@@ -42,6 +42,7 @@ import {
   validateForm,
   variantLabel,
 } from "./product-form/utils";
+import { useCan } from '@/hooks/usePermissions';
 
 export interface ProductSaveResult {
   productId: string;
@@ -68,6 +69,9 @@ const newAttribute = (name = ""): AttributeRow => ({ key: newKey(), name, values
 
 export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyChange }: ProductFormProps) {
   const isEditing = !!initialData;
+  // People without "Profit & costs" don't see costs (the server hides them too and ignores their cost edits)
+  const can = useCan();
+  const canSeeCosts = can("reports.profit");
   const [isSaving, setIsSaving] = useState(false);
 
   // ── Section navigation ──────────────────────────────────────────────────
@@ -815,15 +819,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                 <div>
                   <CustomInputTextField
                     label="Cost price"
-                    type="number"
-                    value={simpleCostPrice}
+                    type={canSeeCosts ? "number" : "text"}
+                    value={canSeeCosts ? simpleCostPrice : ""}
                     onChange={(e) => setSimpleCostPrice(e.target.value)}
-                    placeholder="Optional"
+                    placeholder={canSeeCosts ? "Optional" : "Hidden"}
+                    disabled={!canSeeCosts}
                     startContent={<span className="text-sm text-muted-foreground">GHS</span>}
                     startContentPadding="pl-12"
                     inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
                   />
-                  <div className={cn("mt-1", isMadeInHouse && "hidden")}>
+                  <div className={cn("mt-1", (isMadeInHouse || !canSeeCosts) && "hidden")}>
                     <BulkCostHelper
                       unitName={baseUnitName}
                       packs={simpleTiers.filter(t => !t.is_base_unit && toNum(t.units_per_tier)).map(t => ({ name: t.name || "Pack", units: toNum(t.units_per_tier) as number }))}
@@ -984,6 +989,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     gallery={gallery}
                     trackExpiryEnabled={trackExpiryEnabled}
                     madeInHouse={isMadeInHouse}
+                    canSeeCosts={canSeeCosts}
                   />
                 </div>
               )}

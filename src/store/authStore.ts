@@ -7,6 +7,8 @@ interface StaffUser {
   role: string;
   first_name?: string;
   last_name?: string;
+  /** Permissions at sign-in (role defaults + overrides); see hooks/usePermissions */
+  effective_permissions?: string[];
 }
 
 interface Tenant {

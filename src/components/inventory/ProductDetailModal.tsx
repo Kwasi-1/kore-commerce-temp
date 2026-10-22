@@ -9,6 +9,7 @@ import { BatchHistoryList, CostHistoryList } from "@/components/inventory/Produc
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import { useFeaturesStore } from "@/store/featuresStore";
 import { cn } from "@/lib/utils";
+import { useCan } from '@/hooks/usePermissions';
 
 interface ProductDetailModalProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ export function ProductDetailModal({
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [detailTab, setDetailTab] = useState<"details" | "history">("details");
   const [historyView, setHistoryView] = useState<"stock" | "cost" | "batches">("stock");
+  // Cost price and cost history need "Profit & costs"
+  const can = useCan();
+  const canSeeCosts = can("reports.profit");
   const [productData, setProductData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -321,7 +325,7 @@ export function ProductDetailModal({
                   </span>
                 </div>
 
-                <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                <div className={cn("space-y-1.5 col-span-2 sm:col-span-1", !canSeeCosts && "hidden")}>
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider block">
                     Cost Price
                   </span>
@@ -517,7 +521,7 @@ export function ProductDetailModal({
               <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
                 {([
                   ["stock", "Stock"],
-                  ["cost", "Cost"],
+                  ...(canSeeCosts ? [["cost", "Cost"]] : []),
                   ...(currentProduct.is_made_in_house ? [["batches", "Batches"]] : []),
                 ] as [typeof historyView, string][]).map(([key, label]) => (
                   <button

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
@@ -30,14 +29,14 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
-import { isManagement } from '@/utils/roles';
+import { useCan } from '@/hooks/usePermissions';
 
 export default function Suppliers() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const staffUser = useAuthStore((state) => state.staffUser);
-  const showCreditTab = isManagement(staffUser?.role);
+  const can = useCan();
+  const showCreditTab = can('purchasing.supplier_payments');
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

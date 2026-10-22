@@ -11,6 +11,7 @@ import {
 
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
+import { useCan } from '@/hooks/usePermissions';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useNavDrawerStore, NavDrawerGroup } from '@/store/navDrawerStore';
 import { getModules } from '@/utils/permissions';
@@ -64,9 +65,6 @@ export function isBottomNavRoute(pathname: string): boolean {
 export default function BottomNav() {
   const location = useLocation();
 
-  if (!isBottomNavRoute(location.pathname)) {
-    return null;
-  }
 
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
@@ -74,6 +72,8 @@ export default function BottomNav() {
   const inGracePeriod = Boolean(graceInfo && graceInfo.active);
   const hasModule = useFeaturesStore((s) => s.hasModule);
   const isCashier = staffUser?.role === 'cashier';
+  const can = useCan();
+  const allowed = (permission?: string | string[]) => !permission || can(permission);
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const navigate = useAppNavigate();
@@ -155,26 +155,30 @@ export default function BottomNav() {
           to: '/reports/sales',
           icon: 'solar:chart-2-linear',
           activeIcon: 'solar:chart-2-bold',
+          permission: 'reports.sales',
         },
         {
           name: 'Products',
           to: '/reports/products',
           icon: 'solar:box-minimalistic-linear',
           activeIcon: 'solar:box-minimalistic-bold',
+          permission: 'reports.profit',
         },
         {
           name: 'Cashiers',
           to: '/reports/cashiers',
           icon: 'solar:users-group-rounded-linear',
           activeIcon: 'solar:users-group-rounded-bold',
+          permission: 'reports.profit',
         },
         {
           name: 'End of Day',
           to: '/reports/end-of-day',
           icon: 'solar:calendar-date-linear',
           activeIcon: 'solar:calendar-date-bold',
+          permission: 'reports.sales',
         },
-      ]
+      ].filter((link) => allowed(link.permission))
     : isSettingsContext
     ? [
         {
@@ -188,20 +192,19 @@ export default function BottomNav() {
           to: '/settings/profile',
           icon: 'solar:shop-2-linear',
           activeIcon: 'solar:shop-2-bold',
+          permission: 'settings.store',
         },
         {
           name: 'POS',
           to: '/settings/pos',
           icon: 'solar:tuning-square-2-linear',
           activeIcon: 'solar:tuning-square-2-bold',
+          permission: 'settings.pos',
         },
-        {
-          name: 'Billing',
-          to: '/settings/plan',
-          icon: 'solar:card-2-linear',
-          activeIcon: 'solar:card-2-bold',
-        },
-      ]
+        ...(isCashier
+          ? []
+          : [{ name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-linear', activeIcon: 'solar:card-2-bold', permission: undefined }]),
+      ].filter((link) => allowed(link.permission))
     : isEcommerceContext
     ? [
         {
@@ -209,26 +212,30 @@ export default function BottomNav() {
           to: '/ecommerce/orders',
           icon: 'solar:bag-2-linear',
           activeIcon: 'solar:bag-2-bold',
+          permission: 'online.orders',
         },
         {
           name: 'Store',
           to: '/ecommerce/storefront',
           icon: 'solar:global-linear',
           activeIcon: 'solar:global-bold',
+          permission: 'online.storefront',
         },
         {
           name: 'Discounts',
           to: '/ecommerce/discounts',
           icon: 'solar:tag-price-linear',
           activeIcon: 'solar:tag-price-bold',
+          permission: 'online.storefront',
         },
         {
           name: 'Customers',
           to: '/ecommerce/customers',
           icon: 'solar:users-group-two-rounded-linear',
           activeIcon: 'solar:users-group-two-rounded-bold',
+          permission: 'online.orders',
         },
-      ]
+      ].filter((link) => allowed(link.permission))
     : [
         {
           name: 'Home',
@@ -249,7 +256,7 @@ export default function BottomNav() {
           to: '/inventory/products',
           icon: 'solar:box-minimalistic-linear',
           activeIcon: 'solar:box-minimalistic-bold',
-          show: modules.inventory,
+          show: modules.inventory && can('products.edit'),
         },
         {
           name: 'History',
@@ -266,62 +273,60 @@ export default function BottomNav() {
       title: 'Reports',
       icon: 'solar:chart-2-linear',
       items: [
-        { name: 'Sales', to: '/reports/sales', icon: 'solar:chart-2-linear' },
-        { name: 'Products', to: '/reports/products', icon: 'solar:box-minimalistic-linear' },
-        { name: 'Cashiers', to: '/reports/cashiers', icon: 'solar:users-group-rounded-linear' },
-        { name: 'End of Day', to: '/reports/end-of-day', icon: 'solar:calendar-date-linear' },
-      ],
+        { name: 'Sales', to: '/reports/sales', icon: 'solar:chart-2-linear', permission: 'reports.sales' },
+        { name: 'Products', to: '/reports/products', icon: 'solar:box-minimalistic-linear', permission: 'reports.profit' },
+        { name: 'Cashiers', to: '/reports/cashiers', icon: 'solar:users-group-rounded-linear', permission: 'reports.profit' },
+        { name: 'End of Day', to: '/reports/end-of-day', icon: 'solar:calendar-date-linear', permission: 'reports.sales' },
+      ].filter((item) => allowed(item.permission)),
     },
     settings: {
       title: 'Settings',
       icon: 'solar:settings-linear',
       items: [
         { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' },
-        { name: 'Business', to: '/settings/profile', icon: 'solar:shop-2-linear' },
-        { name: 'POS Config', to: '/settings/pos', icon: 'solar:tuning-square-2-linear' },
-        { name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-linear' },
-      ],
+        { name: 'Business', to: '/settings/profile', icon: 'solar:shop-2-linear', permission: 'settings.store' },
+        { name: 'POS Config', to: '/settings/pos', icon: 'solar:tuning-square-2-linear', permission: 'settings.pos' },
+        ...(isCashier ? [] : [{ name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-linear' }]),
+      ].filter((item: { permission?: string }) => allowed(item.permission)),
     },
     ecommerce: {
       title: 'E-Commerce',
       icon: 'solar:shop-2-linear',
       items: [
-        { name: 'Orders', to: '/ecommerce/orders', icon: 'solar:bag-2-linear' },
-        { name: 'Storefront', to: '/ecommerce/storefront', icon: 'solar:global-linear' },
-        { name: 'Discounts', to: '/ecommerce/discounts', icon: 'solar:tag-price-linear' },
-        { name: 'Customers', to: '/ecommerce/customers', icon: 'solar:users-group-two-rounded-linear' },
-      ],
+        { name: 'Orders', to: '/ecommerce/orders', icon: 'solar:bag-2-linear', permission: 'online.orders' },
+        { name: 'Storefront', to: '/ecommerce/storefront', icon: 'solar:global-linear', permission: 'online.storefront' },
+        { name: 'Discounts', to: '/ecommerce/discounts', icon: 'solar:tag-price-linear', permission: 'online.storefront' },
+        { name: 'Customers', to: '/ecommerce/customers', icon: 'solar:users-group-two-rounded-linear', permission: 'online.orders' },
+      ].filter((item) => allowed(item.permission)),
     },
   };
 
   // Flat standalone items for the root drawer grid (clean stroke/linear icons)
-  const flatItems = isCashier
-    ? [
-        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
-        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
-        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
-        { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' },
-      ].filter((item) => isModuleVisible(item.moduleKey))
-    : [
-        // Core navigation
-        { name: 'Home', to: '/dashboard', icon: 'solar:home-2-linear' },
-        { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
-        { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
-        { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
-        { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
-        // Inventory
-        { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-linear', moduleKey: 'inventory_basic' },
-        { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-linear', moduleKey: 'adjustments' },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-linear', moduleKey: 'inventory_basic' },
-        { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-linear', moduleKey: 'stock_reconciliation' },
-        { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-linear', moduleKey: 'suppliers' },
-        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-linear', moduleKey: 'purchase_orders' },
-        // Operations & Staff
-        { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-linear', moduleKey: 'expenses' },
-        { name: 'Staff', to: '/staff', icon: 'solar:user-id-linear', moduleKey: 'staff' },
-        { name: 'Payroll', to: '/staff/payroll', icon: 'solar:card-recive-linear', moduleKey: 'staff' },
-      ].filter((item) => isModuleVisible(item.moduleKey));
+  type DrawerItem = { name: string; to: string; icon: string; moduleKey?: string; permission?: string | string[] };
+  const tillItems: DrawerItem[] = [
+    { name: 'Register', to: '/pos/register', icon: 'solar:cart-large-2-linear', moduleKey: 'pos' },
+    { name: 'Transactions', to: '/pos/transactions', icon: 'solar:clock-circle-linear', moduleKey: 'pos' },
+    { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
+    { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
+  ];
+  const backOfficeItems: DrawerItem[] = [
+    // Inventory
+    { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-linear', moduleKey: 'inventory_basic', permission: 'products.edit' },
+    { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-linear', moduleKey: 'adjustments', permission: ['stock.adjust', 'stock.approve'] },
+    { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-linear', moduleKey: 'inventory_basic', permission: ['stock.adjust', 'products.edit'] },
+    { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-linear', moduleKey: 'stock_reconciliation', permission: 'stock.count' },
+    { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-linear', moduleKey: 'suppliers', permission: ['purchasing.manage', 'purchasing.supplier_payments'] },
+    { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-linear', moduleKey: 'purchase_orders', permission: 'purchasing.manage' },
+    // Operations & Staff
+    { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-linear', moduleKey: 'expenses', permission: 'expenses.manage' },
+    { name: 'Staff', to: '/staff', icon: 'solar:user-id-linear', moduleKey: 'staff', permission: ['staff.manage_cashiers', 'staff.manage_managers', 'staff.manage_admins'] },
+    { name: 'Payroll', to: '/staff/payroll', icon: 'solar:card-recive-linear', moduleKey: 'staff', permission: 'payroll.manage' },
+  ];
+  const flatItems = (
+    isCashier
+      ? [...tillItems, ...backOfficeItems, { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' }]
+      : [{ name: 'Home', to: '/dashboard', icon: 'solar:home-2-linear' }, ...tillItems, ...backOfficeItems]
+  ).filter((item: DrawerItem) => isModuleVisible(item.moduleKey) && allowed(item.permission));
 
   // Omit actions already visible on the current screen / primary nav.
   // When on /pos/register, register is omitted so the other actions appear in the drawer!
@@ -341,17 +346,19 @@ export default function BottomNav() {
     : null;
 
   // Visible group folder tiles in root grid (exclude the active group since all 4 of its items are in the bottom pill)
-  const allGroups: Array<{ key: NonNullable<NavDrawerGroup>; title: string; icon: string; count: number }> = isCashier
-    ? []
-    : [
-        ...(isModuleVisible('reports_basic')
-          ? [{ key: 'reports' as const, title: 'Reports', icon: 'solar:chart-2-linear', count: groupDefinitions.reports.items.length }]
-          : []),
-        { key: 'settings' as const, title: 'Settings', icon: 'solar:settings-linear', count: groupDefinitions.settings.items.length },
-        ...(isModuleVisible('ecommerce')
-          ? [{ key: 'ecommerce' as const, title: 'E-Commerce', icon: 'solar:shop-2-linear', count: groupDefinitions.ecommerce.items.length }]
-          : []),
-      ];
+  // Groups only appear when something in them is allowed. Cashiers already have Account in the
+  // flat list, so Settings only shows for them if they can edit store or POS settings.
+  const allGroups: Array<{ key: NonNullable<NavDrawerGroup>; title: string; icon: string; count: number }> = [
+    ...(isModuleVisible('reports_basic') && groupDefinitions.reports.items.length > 0
+      ? [{ key: 'reports' as const, title: 'Reports', icon: 'solar:chart-2-linear', count: groupDefinitions.reports.items.length }]
+      : []),
+    ...(!isCashier || groupDefinitions.settings.items.length > 1
+      ? [{ key: 'settings' as const, title: 'Settings', icon: 'solar:settings-linear', count: groupDefinitions.settings.items.length }]
+      : []),
+    ...(isModuleVisible('ecommerce') && groupDefinitions.ecommerce.items.length > 0
+      ? [{ key: 'ecommerce' as const, title: 'E-Commerce', icon: 'solar:shop-2-linear', count: groupDefinitions.ecommerce.items.length }]
+      : []),
+  ];
 
   const visibleGroups = allGroups.filter((group) => group.key !== currentContextGroup);
 
@@ -366,6 +373,11 @@ export default function BottomNav() {
   );
   // If not on register and not on any primary pill tab, then user is viewing a drawer page!
   const isDrawerPageActive = !isPrimaryTabActive && !isRegisterPage;
+
+  // After all hooks, so they run in the same order on every render
+  if (!isBottomNavRoute(location.pathname)) {
+    return null;
+  }
 
   return (
     <div className="md:hidden">
@@ -444,7 +456,7 @@ export default function BottomNav() {
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerContent className={`bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] ${!isCashier && "min-h-[250px]"} outline-none mx-2.5 max-w-[440px] min-[460px]:mx-auto mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden`}>
-          
+
           <div className="flex flex-col max-h-[calc(70vh-20px)] overflow-hidden mt-2">
             {/* Sub-view Header Navigation Bar (only rendered when drilling into a group) */}
             {activeGroup && (

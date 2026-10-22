@@ -19,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
 import { useCurrency } from "@/hooks/useCurrency";
-import { isManagement } from '@/utils/roles';
 
 interface ReturnModalProps {
   isOpen: boolean;
@@ -94,10 +93,12 @@ export default function ReturnModal({
   // Load manager staff for PIN authorization
   useEffect(() => {
     if (isOpen) {
-      apiClient.get("/tenant/staff")
+      // Till staff list works for cashiers too; offer only people who can approve returns
+      apiClient.get("/pos/auth/staff")
         .then(res => {
           const staffList = res.data.success?.data?.staff || [];
-          const managersList = staffList.filter((s: Staff) => isManagement(s.role));
+          const managersList = staffList.filter((s: Staff & { permissions?: string[] }) =>
+            (s.permissions || []).includes("pos.approve_returns"));
           setManagers(managersList);
           if (managersList.length > 0) {
             setSelectedManagerId(managersList[0].id);

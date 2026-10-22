@@ -31,7 +31,7 @@ export default function CashierSwitcher() {
   useEffect(() => {
     const fetchCashiers = async () => {
       try {
-        const response = await apiClient.get('/tenant/staff');
+        const response = await apiClient.get('/pos/auth/staff');
         const rawStaff = response.data.success?.data?.staff || [];
         const formatted = rawStaff.map((s: any) => ({
           ...s,

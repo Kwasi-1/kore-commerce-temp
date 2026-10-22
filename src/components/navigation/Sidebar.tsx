@@ -8,6 +8,8 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { getModules } from '@/utils/permissions';
 import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
 import apiClient from '@/api/client';
+import { useCan } from '@/hooks/usePermissions';
+import { isManagement } from '@/utils/roles';
 
 import koreLogo from '@/assets/images/kore.png';
 import {
@@ -64,6 +66,7 @@ interface NavItem {
   icon: any;
   badge?: number | string;
   moduleKey?: string;  // if set, shows a lock icon when hasModule(moduleKey) is false
+  permission?: string | string[];  // hidden unless the signed-in person has it (or any of them)
 }
 
 
@@ -86,6 +89,7 @@ export default function Sidebar() {
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const hasModule = useFeaturesStore((s) => s.hasModule);
+  const can = useCan();
   const posSettings = useFeaturesStore((s) => s.posSettings);
 
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
@@ -144,13 +148,15 @@ export default function Sidebar() {
     let isMounted = true;
     fetchUnreadCount();
 
-    apiClient.get('/tenant/orders?channel=online&status=pending&limit=1')
-      .then((res) => {
-        if (!isMounted) return;
-        const total = res.data?.success?.data?.pagination?.total ?? 0;
-        setPendingOrdersCount(total);
-      })
-      .catch(console.error);
+    if (can('online.orders')) {
+      apiClient.get('/tenant/orders?channel=online&status=pending&limit=1')
+        .then((res) => {
+          if (!isMounted) return;
+          const total = res.data?.success?.data?.pagination?.total ?? 0;
+          setPendingOrdersCount(total);
+        })
+        .catch(console.error);
+    }
 
     apiClient.get('/tenant/products?limit=20')
       .then((res) => {
@@ -193,13 +199,13 @@ export default function Sidebar() {
     return () => {
       isMounted = false;
     };
-  }, [tenant?.id, fetchUnreadCount, location.pathname]);
+  }, [tenant?.id, fetchUnreadCount, location.pathname, can]);
 
-  const navSections: NavSection[] = [
+  const rawNavSections: NavSection[] = [
     {
       title: 'Dashboard',
       icon: LayoutDashboard,
-      show: !isCashier,
+      show: isManagement(staffUser?.role),
       items: [{ name: 'Overview', to: '/dashboard', icon: LayoutDashboard }],
     },
     {
@@ -218,35 +224,35 @@ export default function Sidebar() {
     {
       title: 'Inventory',
       icon: Package,
-      show: !isCashier && (modules.inventory || hasModule('inventory_basic') || hasGraceModule('inventory_basic')),
+      show: (modules.inventory || hasModule('inventory_basic') || hasGraceModule('inventory_basic')),
       badge: lowStockCount > 0 ? lowStockCount : undefined,
       items: [
-        { name: 'Products', to: '/inventory/products', icon: Package },
-        { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments' },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined },
-        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation' },
-        { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers' },
-        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders' },
+        { name: 'Products', to: '/inventory/products', icon: Package, permission: 'products.edit' },
+        { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments', permission: ['stock.adjust', 'stock.approve'] },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined, permission: ['stock.adjust', 'products.edit'] },
+        { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation', permission: 'stock.count' },
+        { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers', permission: ['purchasing.manage', 'purchasing.supplier_payments'] },
+        { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders', permission: 'purchasing.manage' },
       ],
     },
 
     {
       title: 'Expenses',
       icon: Receipt,
-      show: !isCashier && (modules.expenses || hasModule('expenses') || hasGraceModule('expenses')),
-      items: [{ name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses' }],
+      show: (modules.expenses || hasModule('expenses') || hasGraceModule('expenses')),
+      items: [{ name: 'Expenses', to: '/expenses', icon: Receipt, moduleKey: 'expenses', permission: 'expenses.manage' }],
     },
     {
       title: 'Ecommerce',
       icon: ShoppingBag,
-      show: !isCashier && (modules.ecommerce || hasModule('ecommerce') || hasGraceModule('ecommerce')),
+      show: (modules.ecommerce || hasModule('ecommerce') || hasGraceModule('ecommerce')),
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
       hasDividerAfter: true,
       items: [
-        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined, moduleKey: 'ecommerce' },
-        { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce' },
-        { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce' },
-        { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce' },
+        { name: 'Online Orders', to: '/ecommerce/orders', icon: ShoppingBag, badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined, moduleKey: 'ecommerce', permission: 'online.orders' },
+        { name: 'Customers', to: '/ecommerce/customers', icon: Users, moduleKey: 'ecommerce', permission: 'online.orders' },
+        { name: 'Storefront', to: '/ecommerce/storefront', icon: Globe, moduleKey: 'ecommerce', permission: 'online.storefront' },
+        { name: 'Discounts', to: '/ecommerce/discounts', icon: Tag, moduleKey: 'ecommerce', permission: 'online.storefront' },
       ],
     },
     {
@@ -259,36 +265,41 @@ export default function Sidebar() {
     {
       title: 'Staff',
       icon: Users,
-      show: !isCashier && (modules.staff || hasModule('staff') || hasModule('payroll') || hasGraceModule('staff')),
+      show: (modules.staff || hasModule('staff') || hasModule('payroll') || hasGraceModule('staff')),
       items: [
-        { name: 'Staff Management', to: '/staff', icon: Users, moduleKey: 'staff' },
-        { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'payroll' }
+        { name: 'Staff Management', to: '/staff', icon: Users, moduleKey: 'staff', permission: ['staff.manage_cashiers', 'staff.manage_managers', 'staff.manage_admins'] },
+        { name: 'Payroll & Salaries', to: '/staff/payroll', icon: Banknote, moduleKey: 'payroll', permission: 'payroll.manage' }
       ],
     },
     {
       title: 'Reports',
       icon: TrendingUp,
-      show: !isCashier && (modules.reports || hasModule('reports_basic') || hasModule('reports_advanced') || hasGraceModule('reports_basic')),
+      show: (modules.reports || hasModule('reports_basic') || hasModule('reports_advanced') || hasGraceModule('reports_basic')),
       hasDividerAfter: true,
       items: [
-        { name: 'Sales', to: '/reports/sales', icon: TrendingUp },
-        { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced' },
-        { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced' },
-        { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced' },
+        { name: 'Sales', to: '/reports/sales', icon: TrendingUp, permission: 'reports.sales' },
+        { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced', permission: 'reports.profit' },
+        { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced', permission: 'reports.profit' },
+        { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced', permission: 'reports.sales' },
       ],
     },
     {
       title: 'Settings',
       icon: Settings,
-      show: !isCashier,
+      show: true,
       items: [
         { name: 'Account Settings', to: '/settings/account', icon: User },
-        { name: 'Business Profile', to: '/settings/profile', icon: Settings },
-        { name: 'POS Settings', to: '/settings/pos', icon: Sliders },
-        { name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard },
+        { name: 'Business Profile', to: '/settings/profile', icon: Settings, permission: 'settings.store' },
+        { name: 'POS Settings', to: '/settings/pos', icon: Sliders, permission: 'settings.pos' },
+        ...(isManagement(staffUser?.role) ? [{ name: 'Plan & Billing', to: '/settings/plan', icon: CreditCard }] : []),
       ],
     },
   ];
+
+  // Hide items the signed-in person has no permission for, and sections left empty
+  const navSections = rawNavSections
+    .map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || can(item.permission)) }))
+    .map((section) => ({ ...section, show: section.show && section.items.length > 0 }));
 
   const allNavPaths = useMemo(() => {
     return navSections.flatMap((s) => s.items.map((i) => i.to));

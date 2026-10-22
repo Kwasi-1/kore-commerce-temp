@@ -7,6 +7,7 @@ import StaffStatusModal from '@/components/staff/StaffStatusModal';
 import ChangeStaffRoleModal from '@/components/staff/ChangeStaffRoleModal';
 import ResetStaffPinModal from '@/components/staff/ResetStaffPinModal';
 import ResetStaffPasswordModal from '@/components/staff/ResetStaffPasswordModal';
+import StaffPermissionsModal from '@/components/staff/StaffPermissionsModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -75,6 +76,9 @@ export default function StaffManagement() {
   const [seats, setSeats] = useState<any>(null);
   // Roles the current user may add and manage (from the API). Never includes 'owner'.
   const [canManageRoles, setCanManageRoles] = useState<string[]>([]);
+
+  // Permissions editor
+  const [permissionsStaff, setPermissionsStaff] = useState<any>(null);
 
   // "Make owner" confirmation
   const [ownerTarget, setOwnerTarget] = useState<any>(null);
@@ -245,13 +249,8 @@ export default function StaffManagement() {
       actions.push({ key: 'reset_pin', label: 'Reset POS PIN', icon: 'mdi:dialpad' });
       actions.push({ key: 'reset_password', label: 'Reset Password', icon: 'mdi:lock-reset' });
     }
-    if (currentRole === 'owner' && s.role === 'admin') {
-      const allowed = !!s.permissions?.['staff.manage_admins'];
-      actions.push({
-        key: 'toggle_manage_admins',
-        label: allowed ? 'Stop Managing Admins' : 'Allow Managing Admins',
-        icon: 'mdi:account-supervisor-outline',
-      });
+    if (canManage) {
+      actions.push({ key: 'permissions', label: 'Permissions', icon: 'mdi:shield-key-outline' });
     }
     if (currentRole === 'owner' && !isSelf && isActive) {
       actions.push({ key: 'make_owner', label: 'Make Owner', icon: 'mdi:crown-outline' });
@@ -282,7 +281,7 @@ export default function StaffManagement() {
       role: (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(s.role)}`}>
           {ROLE_LABELS[s.role] || s.role}
-          {s.role === 'admin' && s.permissions?.['staff.manage_admins'] ? ' · manages admins' : ''}
+          {Object.keys(s.permissions || {}).length > 0 ? ' · custom' : ''}
         </span>
       ),
       status: (
@@ -298,17 +297,6 @@ export default function StaffManagement() {
       __record: s
     };
   });
-
-  const toggleManageAdmins = async (staff: any) => {
-    const allow = !staff.permissions?.['staff.manage_admins'];
-    try {
-      await apiClient.put(`/tenant/staff/${staff.id}/permissions`, { manage_admins: allow });
-      toast.success(allow ? `${staff.first_name} can now manage other admins` : `${staff.first_name} can no longer manage other admins`);
-      fetchStaff();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || 'Failed to update permissions');
-    }
-  };
 
   const confirmMakeOwner = async () => {
     if (!ownerTarget || !ownerPassword) return;
@@ -346,7 +334,7 @@ export default function StaffManagement() {
       setStatusModalStaff(staff);
       setIsStatusModalOpen(true);
     }
-    if (actionKey === 'toggle_manage_admins') toggleManageAdmins(staff);
+    if (actionKey === 'permissions') setPermissionsStaff(staff);
     if (actionKey === 'make_owner') {
       setOwnerTarget(staff);
       setOwnerPassword('');
@@ -608,6 +596,9 @@ export default function StaffManagement() {
         onConfirm={handleConfirmStatus}
         isLoading={isStatusLoading}
       />
+
+      {/* Permissions editor */}
+      <StaffPermissionsModal staff={permissionsStaff} onClose={() => setPermissionsStaff(null)} onSaved={() => fetchStaff()} />
 
       {/* Make Owner: hand over ownership (current owner becomes an admin) */}
       <CustomModal

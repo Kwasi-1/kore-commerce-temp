@@ -19,6 +19,8 @@ interface Props {
   trackExpiryEnabled: boolean;
   /** Made in-house: no opening stock (batches add it), no bulk-buy helper, size (ml) per variant. */
   madeInHouse?: boolean;
+  /** False for people without "Profit & costs": cost cells show "Hidden" and can't be edited. */
+  canSeeCosts?: boolean;
 }
 
 const input =
@@ -31,7 +33,7 @@ const colsWithStock = 'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minma
 
 const emptyBulk = { stock: '', cost: '', retail: '', wholesale: '', lowStock: '' };
 
-export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled, madeInHouse = false }: Props) {
+export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled, madeInHouse = false, canSeeCosts = true }: Props) {
   const showStock = !(madeInHouse && !isEditing);
   const cols = showStock ? colsWithStock : colsNoStock;
   const isMobile = useIsMobile();
@@ -113,7 +115,11 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
     />
   );
 
-  const costCell = (v: VariantRow) => (
+  const costCell = (v: VariantRow) => !canSeeCosts ? (
+    <span className={cn(input, 'border-border flex items-center text-muted-foreground bg-muted/40')} title="Needs the Profit & costs permission">
+      Hidden
+    </span>
+  ) : (
     <input
       type="number"
       inputMode="decimal"
@@ -264,7 +270,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
             )}
             <label className="w-24">
               <span className={small}>Cost</span>
-              <input type="number" inputMode="decimal" min={0} step="any" className={cn(input, 'border-border')} value={bulk.cost} onWheel={blurOnWheel} onChange={(e) => setBulk({ ...bulk, cost: e.target.value })} />
+              <input type="number" inputMode="decimal" min={0} step="any" className={cn(input, 'border-border')} value={bulk.cost} onWheel={blurOnWheel} onChange={(e) => setBulk({ ...bulk, cost: e.target.value })} disabled={!canSeeCosts} placeholder={canSeeCosts ? undefined : 'Hidden'} />
             </label>
             <label className="w-24">
               <span className={small}>Retail price</span>
