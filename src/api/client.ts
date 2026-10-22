@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { useApprovalStore } from '../store/approvalStore';
+import { useTillStore } from '../store/tillStore';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -40,6 +41,11 @@ apiClient.interceptors.request.use(
     const { token } = useAuthStore.getState();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Registered tills identify themselves (staff grid and PIN sign-in)
+    const { tillKey } = useTillStore.getState();
+    if (tillKey && config.headers) {
+      config.headers['X-Till-Key'] = tillKey;
     }
     return config;
   },
@@ -89,6 +95,10 @@ apiClient.interceptors.response.use(
     }
 
     const requestUrl = originalRequest.url || '';
+    // A wrong PIN is not an expired login: no refresh, no sign-out (that would clear the till)
+    if (requestUrl.includes('/pos/auth/')) {
+      return Promise.reject(error);
+    }
     const isAuthEndpoint = 
       requestUrl.includes('/api/v1/auth/staff/login') ||
       requestUrl.includes('/api/v1/auth/staff/pin-login') ||

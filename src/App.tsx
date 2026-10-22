@@ -34,7 +34,7 @@ const PlanBilling = lazyWithRetry(() => import('@/pages/settings/PlanBilling'));
 // POS
 const Transactions = lazyWithRetry(() => import('@/pages/pos/Transactions'));
 const CreditLedger = lazyWithRetry(() => import('@/pages/pos/CreditLedger'));
-const CashierLockScreen = lazyWithRetry(() => import('@/pages/pos/CashierLockScreen'));
+const LockTill = lazyWithRetry(() => import('@/pages/pos/LockTill'));
 const Returns = lazyWithRetry(() => import('@/pages/pos/Returns'));
 
 // Inventory
@@ -103,15 +103,8 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
         </Route>
 
-        {/* Standalone Cashier Lock Screen (Requires Auth) */}
-        <Route
-          path="/pos/locked"
-          element={
-            <ProtectedRoute>
-              <CashierLockScreen />
-            </ProtectedRoute>
-          }
-        />
+        {/* Lock the till: sign out to "Who's working?" (the login screen) */}
+        <Route path="/pos/locked" element={<LockTill />} />
 
         {/* POS Routes (Requires Auth + POS Module) */}
         <Route

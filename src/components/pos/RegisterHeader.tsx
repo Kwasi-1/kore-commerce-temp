@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from '@iconify/react';
-import CashierSwitcher from './CashierSwitcher';
+import CurrentUserChip from './CurrentUserChip';
 import NewCashierModal from './NewCashierModal';
 import SavedTransactionsHeader from './SavedTransactionsHeader';
 import EndShiftModal from './EndShiftModal';
@@ -49,16 +49,16 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   const hasSavedTransactions = savedTransactions.length > 0;
   const { isOnline, pendingCount, failedCount } = useNetworkStatus();
   const hidePreferencesOnMobile = hasSavedTransactions || !isOnline || failedCount > 0 || pendingCount > 0;
-  
-  const { 
-    showProductImages, 
-    showStockCount, 
-    gridDensity, 
-    defaultPriceType, 
-    soundEffectsEnabled, 
+
+  const {
+    showProductImages,
+    showStockCount,
+    gridDensity,
+    defaultPriceType,
+    soundEffectsEnabled,
     showSubPacks,
     quantityFormat,
-    setPreference 
+    setPreference
   } = useRegisterPreferencesStore();
 
   const handleLogout = () => {
@@ -72,7 +72,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   return (
     <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
       <h1 className="text-[26px] font-bold text-foreground tracking-tighter lg:tracking-normal font-header lg:font-sans">Create Transaction</h1>
-      
+
       <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
         <SavedTransactionsHeader />
 
@@ -122,11 +122,11 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
           )}
         </Button>
-        
+
         {/* Settings Button: Mobile opens Modal directly, Desktop uses DropdownMenu */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsPreferencesModalOpen(true)}
           className={`${hidePreferencesOnMobile ? 'hidden' : 'flex md:hidden'} rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8`}
           title="Register Preferences"
@@ -138,9 +138,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         <div className="hidden md:flex">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="rounded-full text-muted-foreground hover:text-foreground transition-colors h-10 w-10"
                 title="Settings & Layout Preferences"
               >
@@ -152,9 +152,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 <Settings className="h-4 w-4 text-primary" />
                 <span>Register Preferences</span>
               </DropdownMenuLabel>
-              
+
               <DropdownMenuSeparator className="my-2" />
-              
+
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
                 <div className="flex flex-col gap-0.5 max-w-[200px]">
                   <span className="font-semibold text-xs text-foreground">Show Product Images</span>
@@ -170,7 +170,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 </div>
                 <Switch checked={showStockCount} onCheckedChange={(val) => setPreference('showStockCount', val)} />
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
                 <div className="flex flex-col gap-0.5 max-w-[200px]">
                   <span className="font-semibold text-xs text-foreground">Chime Sound Effects</span>
@@ -186,9 +186,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 </div>
                 <Switch checked={showSubPacks} onCheckedChange={(val) => setPreference('showSubPacks', val)} />
               </DropdownMenuItem>
-              
+
               <DropdownMenuSeparator className="my-2" />
-              
+
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
                 <span className="font-semibold text-xs text-foreground">Grid Density</span>
                 <div className="flex w-full bg-secondary p-0.5 rounded-full border border-border/50">
@@ -203,7 +203,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                   ))}
                 </div>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2 py-2 px-1 hover:bg-transparent focus:bg-transparent cursor-default">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-semibold text-xs text-foreground">Default Price Tier</span>
@@ -237,8 +237,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                     key={item.key}
                     onClick={() => setPreference('quantityFormat', item.key)}
                     className={`flex-1 py-1 text-[10px] font-bold rounded-full transition-all ${
-                      quantityFormat === item.key 
-                        ? 'bg-background text-foreground shadow-sm' 
+                      quantityFormat === item.key
+                        ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -250,7 +250,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        
+
         {/* Cash In / Out (Drawer Movement) Button */}
         {(currentShift || !isShiftRequired) && (
           <Button
@@ -265,9 +265,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         )}
 
         {isShiftRequired && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => {
               if (currentShift) {
                 setIsEndShiftOpen(true);
@@ -276,8 +276,8 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               }
             }}
             className={`hidden md:flex rounded-full transition-colors ${
-              currentShift 
-                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive' 
+              currentShift
+                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
                 : 'text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700'
             }`}
             title={currentShift ? "End Shift & Recon" : "Start Shift"}
@@ -291,9 +291,9 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
         )}
 
         <div className='hidden md:flex'>
-          <CashierSwitcher />
+          <CurrentUserChip />
         </div>
-        
+
         {isAdminOrManager && <div className='hidden md:flex'> <NewCashierModal /></div>}
 
         <DropdownMenu>
@@ -310,10 +310,10 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
               <span className="font-bold text-foreground text-[14px] leading-tight">{staffUser?.name || 'Admin User'}</span>
               <span className="text-[12px] text-muted-foreground font-medium capitalize">{staffUser?.role || 'admin'}</span>
             </DropdownMenuLabel>
-            
+
             {/* Register Preferences: only rendered in Profile menu on mobile when the header gear button is hidden */}
             {hidePreferencesOnMobile && (
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="flex md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl"
                 onClick={() => setIsPreferencesModalOpen(true)}
               >

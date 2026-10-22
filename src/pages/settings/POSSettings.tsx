@@ -12,6 +12,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 import { isOwnerOrAdmin } from '@/utils/roles';
+import TillsSection from '@/components/settings/TillsSection';
 
 
 export default function POSSettings() {
@@ -621,6 +622,8 @@ export default function POSSettings() {
             </div>
           </form>
         </section>
+
+        <TillsSection />
 
       </div>
     </PageLayout>
