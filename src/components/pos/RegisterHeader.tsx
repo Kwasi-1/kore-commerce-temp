@@ -27,6 +27,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import OfflineQueueDrawer from './OfflineQueueDrawer';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useCartStore } from '@/store/cartStore';
+import { isManagement } from '@/utils/roles';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -65,7 +66,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     navigate('/login');
   };
 
-  const isAdminOrManager = staffUser?.role === 'admin' || staffUser?.role === 'manager';
+  const isAdminOrManager = isManagement(staffUser?.role);
 
   return (
     <header className="flex items-center justify-between pb-6 shrink-0 gap-4">

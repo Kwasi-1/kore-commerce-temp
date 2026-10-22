@@ -5,18 +5,24 @@ import { CustomSelectField } from '@/components/shared/text-field';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { ROLE_LABELS } from '@/utils/roles';
 
 interface ChangeStaffRoleModalProps {
   isOpen: boolean;
   onClose: () => void;
   staff: any | null;
+  /** Roles the current user may assign (from the staff API). Owner is never assignable. */
+  roleOptions?: string[];
   onSuccess: () => void;
 }
+
+const ROLE_ORDER = ['admin', 'manager', 'cashier'];
 
 export function ChangeStaffRoleModal({
   isOpen,
   onClose,
   staff,
+  roleOptions = ['cashier'],
   onSuccess,
 }: ChangeStaffRoleModalProps) {
   const [role, setRole] = useState('cashier');
@@ -73,11 +79,7 @@ export function ChangeStaffRoleModal({
         <form id="change-role-form" onSubmit={handleSubmit} className="py-2 space-y-4">
           <CustomSelectField
             label="Assign Role"
-            options={[
-              { label: 'Cashier', value: 'cashier' },
-              { label: 'Manager', value: 'manager' },
-              { label: 'Owner', value: 'owner' }
-            ]}
+            options={ROLE_ORDER.filter((r) => roleOptions.includes(r)).map((r) => ({ label: ROLE_LABELS[r], value: r }))}
             value={role}
             inputProps={{
               onSelectionChange: handleRoleSelect

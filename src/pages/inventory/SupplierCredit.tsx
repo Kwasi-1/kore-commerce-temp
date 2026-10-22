@@ -36,6 +36,7 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
+import { isManagement } from '@/utils/roles';
 
 export default function SupplierCredit() {
   const navigate = useNavigate();
@@ -43,11 +44,11 @@ export default function SupplierCredit() {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const staffUser = useAuthStore((state) => state.staffUser);
-  const showCreditTab = staffUser?.role === 'owner' || staffUser?.role === 'manager';
+  const showCreditTab = isManagement(staffUser?.role);
 
   // Redirect cashier if they land here
   useEffect(() => {
-    if (staffUser && staffUser.role !== 'owner' && staffUser.role !== 'manager') {
+    if (staffUser && !isManagement(staffUser.role)) {
       navigate('/inventory/suppliers');
       toast.error("Unauthorized access to credit ledger");
     }

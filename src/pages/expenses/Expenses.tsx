@@ -34,6 +34,7 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
+import { isManagement } from '@/utils/roles';
 
 const SOURCE_LABELS: Record<string, string> = {
   backoffice: 'Back office',
@@ -45,7 +46,7 @@ const sourceLabel = (source?: string) => SOURCE_LABELS[source || 'backoffice'] |
 export default function Expenses() {
   const isMobile = useIsMobile();
   const { staffUser } = useAuthStore();
-  const isManagerOrOwner = staffUser?.role === 'manager' || staffUser?.role === 'owner';
+  const isManagerOrOwner = isManagement(staffUser?.role);
 
   // Active Tab: 'log' vs 'recurring'
   const [activeTab, setActiveTab] = useState<'log' | 'recurring'>('log');

@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import ForcePasswordChangeModal from '@/components/modals/ForcePasswordChangeModal';
+import { roleAllowed } from '@/utils/roles';
 
 export const ProtectedRoute = ({
   children,
@@ -18,7 +19,7 @@ export const ProtectedRoute = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && staffUser && !allowedRoles.includes(staffUser.role)) {
+  if (allowedRoles && staffUser && !roleAllowed(staffUser.role, allowedRoles)) {
     if (staffUser.role === 'cashier') {
       return <Navigate to="/pos/register" replace />;
     }

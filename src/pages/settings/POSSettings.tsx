@@ -11,6 +11,7 @@ import { getReceiptPrefix } from '@/utils/receipt';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Lock } from 'lucide-react';
+import { isOwnerOrAdmin } from '@/utils/roles';
 
 
 export default function POSSettings() {
@@ -548,7 +549,7 @@ export default function POSSettings() {
               />
             </div>
 
-            {staffUser?.role === 'owner' && (
+            {isOwnerOrAdmin(staffUser?.role) && (
               <>
                 <div className="border-t border-border/50 my-6"></div>
                 {/* Expiry Tracking Toggle */}

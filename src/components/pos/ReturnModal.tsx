@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import apiClient from "@/api/client";
 import toast from "react-hot-toast";
 import { useCurrency } from "@/hooks/useCurrency";
+import { isManagement } from '@/utils/roles';
 
 interface ReturnModalProps {
   isOpen: boolean;
@@ -96,7 +97,7 @@ export default function ReturnModal({
       apiClient.get("/tenant/staff")
         .then(res => {
           const staffList = res.data.success?.data?.staff || [];
-          const managersList = staffList.filter((s: Staff) => s.role === "owner" || s.role === "manager");
+          const managersList = staffList.filter((s: Staff) => isManagement(s.role));
           setManagers(managersList);
           if (managersList.length > 0) {
             setSelectedManagerId(managersList[0].id);

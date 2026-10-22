@@ -30,13 +30,14 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
+import { isManagement } from '@/utils/roles';
 
 export default function Suppliers() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
   const staffUser = useAuthStore((state) => state.staffUser);
-  const showCreditTab = staffUser?.role === 'owner' || staffUser?.role === 'manager';
+  const showCreditTab = isManagement(staffUser?.role);
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -12,17 +12,12 @@ import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { useIsMobile } from '@/hooks/useScreenSize';
 import { useAuthStore } from '@/store/authStore';
-import { 
-  UserPlus, 
-  RefreshCw, 
-  Shield, 
-  KeyRound, 
-  Lock, 
-  Pencil, 
-  UserX, 
-  UserCheck, 
+import { ROLE_LABELS } from '@/utils/roles';
+import { Icon } from '@iconify/react';
+import {
+  UserPlus,
+  RefreshCw,
   MoreVertical,
-  Mail,
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,13 +44,21 @@ export default function StaffManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileTab, setMobileTab] = useState('all');
   const currentStaffId = useAuthStore((s) => s.staffUser?.id);
+  const currentRole = useAuthStore((s) => s.staffUser?.role);
   // Plan seat usage from the API: { limit, used, manager_limit, managers_used, extra }
   const [seats, setSeats] = useState<any>(null);
+  // Roles the current user may add and manage (from the API). Never includes 'owner'.
+  const [canManageRoles, setCanManageRoles] = useState<string[]>([]);
+
+  // "Make owner" confirmation
+  const [ownerTarget, setOwnerTarget] = useState<any>(null);
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
 
   // Slide-over Edit/Create Staff Modal
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
-  
+
   // Quick Change Role Modal
   const [roleModalStaff, setRoleModalStaff] = useState<any>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
@@ -88,6 +91,7 @@ export default function StaffManagement() {
       const data = response.data.success?.data?.staff || [];
       const pag = response.data.success?.data?.pagination || null;
       setSeats(response.data.success?.data?.seats || null);
+      setCanManageRoles(response.data.success?.data?.can_manage_roles || []);
 
       if (append) {
         setStaffList((prev) => [...prev, ...data]);
@@ -129,13 +133,13 @@ export default function StaffManagement() {
   const seatSummary = seats
     ? [
         seats.limit != null ? `${seats.used} of ${seats.limit} staff accounts used` : `${seats.used} active staff`,
-        seats.manager_limit != null && seats.manager_limit > 0 ? `${seats.managers_used} of ${seats.manager_limit} manager` : null,
+        seats.manager_limit != null && seats.manager_limit > 0 ? `${seats.managers_used} of ${seats.manager_limit} managers/admins` : null,
       ].filter(Boolean).join(' · ')
     : null;
 
   const openNewStaff = () => {
     if (seatsFull) {
-      toast.error(`All ${seats.limit} staff accounts on your plan are in use. Deactivate someone, add an extra seat, or upgrade.`);
+      toast.error(`All ${seats.limit} staff accounts on your plan are in use. Deactivate someone, or add a seat pack.`);
       return;
     }
     setEditingStaff(null);
@@ -166,6 +170,7 @@ export default function StaffManagement() {
       if (mobileTab === 'deactivated') return s.is_active === false;
       if (mobileTab === 'cashier') return s.role === 'cashier';
       if (mobileTab === 'manager') return s.role === 'manager';
+      if (mobileTab === 'admin') return s.role === 'admin';
       if (mobileTab === 'owner') return s.role === 'owner';
       return true;
     });
@@ -195,27 +200,49 @@ export default function StaffManagement() {
     { key: 'last_login', label: 'Last Login' }
   ];
 
-  const rows = staffList.map((s: any) => {
-    const isOwner = s.role === 'owner';
-    const isActive = s.is_active !== false;
-
+  // What the current user may do to this person. Mirrors the backend rules: the owner manages
+  // everyone, admins manage managers and cashiers (other admins only if the owner allows it),
+  // managers manage cashiers. Nobody changes their own role or status.
+  type StaffAction = { key: string; label: string; icon: string; className?: string };
+  const actionsFor = (s: any): StaffAction[] => {
     const isSelf = s.id === currentStaffId;
-
-    const rowActions = [
-      { key: 'edit_staff', label: 'Edit Staff', icon: 'mdi:pencil-outline' },
-      // Nobody changes their own role (stops an owner locking themselves out)
-      ...(isSelf ? [] : [{ key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' }]),
-      { key: 'reset_pin', label: 'Reset POS PIN', icon: 'mdi:dialpad' },
-      { key: 'reset_password', label: 'Reset Password', icon: 'mdi:lock-reset' },
-    ];
-    
-    if (!isOwner) {
-      rowActions.push({
-        key: 'toggle_status',
-        label: isActive ? 'Deactivate' : 'Activate',
-        icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline'
+    const isActive = s.is_active !== false;
+    const canManage = !isSelf && s.role !== 'owner' && canManageRoles.includes(s.role);
+    const actions: StaffAction[] = [];
+    if (isSelf || canManage) {
+      actions.push({ key: 'edit_staff', label: 'Edit Staff', icon: 'mdi:pencil-outline' });
+    }
+    if (canManage && canManageRoles.length > 1) {
+      actions.push({ key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' });
+    }
+    if (isSelf || canManage) {
+      actions.push({ key: 'reset_pin', label: 'Reset POS PIN', icon: 'mdi:dialpad' });
+      actions.push({ key: 'reset_password', label: 'Reset Password', icon: 'mdi:lock-reset' });
+    }
+    if (currentRole === 'owner' && s.role === 'admin') {
+      const allowed = !!s.permissions?.['staff.manage_admins'];
+      actions.push({
+        key: 'toggle_manage_admins',
+        label: allowed ? 'Stop Managing Admins' : 'Allow Managing Admins',
+        icon: 'mdi:account-supervisor-outline',
       });
     }
+    if (currentRole === 'owner' && !isSelf && isActive) {
+      actions.push({ key: 'make_owner', label: 'Make Owner', icon: 'mdi:crown-outline' });
+    }
+    if (canManage) {
+      actions.push({
+        key: 'toggle_status',
+        label: isActive ? 'Deactivate' : 'Activate',
+        icon: isActive ? 'mdi:account-off-outline' : 'mdi:account-check-outline',
+        className: isActive ? 'text-destructive' : 'text-emerald-600',
+      });
+    }
+    return actions;
+  };
+
+  const rows = staffList.map((s: any) => {
+    const rowActions = actionsFor(s);
 
     return {
       id: s.id,
@@ -227,17 +254,14 @@ export default function StaffManagement() {
       ),
       email: <span className="text-muted-foreground">{s.email}</span>,
       role: (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
-          s.role === 'owner' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' 
-          : s.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 '
-        }`}>
-          {s.role}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(s.role)}`}>
+          {ROLE_LABELS[s.role] || s.role}
+          {s.role === 'admin' && s.permissions?.['staff.manage_admins'] ? ' · manages admins' : ''}
         </span>
       ),
       status: (
         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-          s.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' 
+          s.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400'
           : 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400'
         }`}>
           {s.is_active ? 'Active' : 'Deactivated'}
@@ -249,30 +273,68 @@ export default function StaffManagement() {
     };
   });
 
-  const handleRowActionClick = (actionKey: string, row: any) => {
-    if (actionKey === 'edit_staff') handleEdit(row.__record);
+  const toggleManageAdmins = async (staff: any) => {
+    const allow = !staff.permissions?.['staff.manage_admins'];
+    try {
+      await apiClient.put(`/tenant/staff/${staff.id}/permissions`, { manage_admins: allow });
+      toast.success(allow ? `${staff.first_name} can now manage other admins` : `${staff.first_name} can no longer manage other admins`);
+      fetchStaff();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error?.message || 'Failed to update permissions');
+    }
+  };
+
+  const confirmMakeOwner = async () => {
+    if (!ownerTarget || !ownerPassword) return;
+    setIsTransferring(true);
+    try {
+      const res = await apiClient.post(`/tenant/staff/${ownerTarget.id}/make-owner`, { password: ownerPassword });
+      toast.success(res.data.success?.message || 'Ownership transferred');
+      // The server already treats us as an admin; update the local copy so owner-only UI hides
+      useAuthStore.setState((st) => ({ staffUser: st.staffUser ? { ...st.staffUser, role: 'admin' } : st.staffUser }));
+      setOwnerTarget(null);
+      setOwnerPassword('');
+      fetchStaff();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error?.message || 'Failed to transfer ownership');
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  const handleAction = (actionKey: string, staff: any) => {
+    if (actionKey === 'edit_staff') handleEdit(staff);
     if (actionKey === 'change_role') {
-      setRoleModalStaff(row.__record);
+      setRoleModalStaff(staff);
       setIsRoleModalOpen(true);
     }
     if (actionKey === 'reset_pin') {
-      setPinModalStaff(row.__record);
+      setPinModalStaff(staff);
       setIsPinModalOpen(true);
     }
     if (actionKey === 'reset_password') {
-      setPasswordModalStaff(row.__record);
+      setPasswordModalStaff(staff);
       setIsPasswordModalOpen(true);
     }
     if (actionKey === 'toggle_status') {
-      setStatusModalStaff(row.__record);
+      setStatusModalStaff(staff);
       setIsStatusModalOpen(true);
     }
+    if (actionKey === 'toggle_manage_admins') toggleManageAdmins(staff);
+    if (actionKey === 'make_owner') {
+      setOwnerTarget(staff);
+      setOwnerPassword('');
+    }
   };
+
+  const handleRowActionClick = (actionKey: string, row: any) => handleAction(actionKey, row.__record);
 
   const getRoleBadgeClasses = (role: string) => {
     switch (role?.toLowerCase()) {
       case 'owner':
         return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20';
+      case 'admin':
+        return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20';
       case 'manager':
         return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
       default:
@@ -284,6 +346,8 @@ export default function StaffManagement() {
     switch (role?.toLowerCase()) {
       case 'owner':
         return 'bg-purple-600 text-white';
+      case 'admin':
+        return 'bg-indigo-600 text-white';
       case 'manager':
         return 'bg-blue-600 text-white';
       default:
@@ -292,8 +356,8 @@ export default function StaffManagement() {
   };
 
   return (
-    <PageLayout 
-      title="Staff Management" 
+    <PageLayout
+      title="Staff Management"
       subtitle={
         seatSummary || (isMobile ? `${staffList.length} staff member${staffList.length !== 1 ? 's' : ''} listed` : undefined)
       }
@@ -333,6 +397,7 @@ export default function StaffManagement() {
           tabs={[
             { id: 'all', label: 'All' },
             { id: 'active', label: 'Active' },
+            { id: 'admin', label: 'Admins' },
             { id: 'cashier', label: 'Cashiers' },
             { id: 'manager', label: 'Managers' },
             { id: 'deactivated', label: 'Deactivated' },
@@ -353,8 +418,8 @@ export default function StaffManagement() {
             </div>
           ) : (
             filteredMobileStaff.map((staff) => {
-              const isOwner = staff.role === 'owner';
               const isActive = staff.is_active !== false;
+              const staffActions = actionsFor(staff);
               const fullName = `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.name || 'Staff Member';
               const initials = fullName
                 .split(' ')
@@ -363,8 +428,8 @@ export default function StaffManagement() {
                 .slice(0, 2)
                 .toUpperCase() || 'ST';
 
-              const lastActiveStr = staff.last_login 
-                ? formatDistanceToNow(new Date(staff.last_login), { addSuffix: true }) 
+              const lastActiveStr = staff.last_login
+                ? formatDistanceToNow(new Date(staff.last_login), { addSuffix: true })
                 : 'Never';
 
               return (
@@ -383,8 +448,8 @@ export default function StaffManagement() {
                         <p className="font-bold text-foreground truncate max-w-[150px]">
                           {fullName}
                         </p>
-                        <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold border capitalize ${getRoleBadgeClasses(staff.role)}`}>
-                          {staff.role}
+                        <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold border ${getRoleBadgeClasses(staff.role)}`}>
+                          {ROLE_LABELS[staff.role] || staff.role}
                         </span>
                       </div>
 
@@ -403,95 +468,40 @@ export default function StaffManagement() {
                   {/* Right: Status & Actions Menu */}
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isActive 
-                        ? 'text-emerald-600 bg-emerald-500/10' 
+                      isActive
+                        ? 'text-emerald-600 bg-emerald-500/10'
                         : 'text-destructive bg-destructive/10'
                     }`}>
                       {isActive ? 'Active' : 'Inactive'}
                     </span>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-border/60">
-                        <DropdownMenuItem
-                          onClick={() => handleEdit(staff)}
-                          className="gap-2 text-xs font-medium cursor-pointer"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          <span>Edit Details</span>
-                        </DropdownMenuItem>
-
-                        {staff.id !== currentStaffId && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setRoleModalStaff(staff);
-                              setIsRoleModalOpen(true);
-                            }}
-                            className="gap-2 text-xs font-medium cursor-pointer"
+                    {staffActions.length > 0 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full"
                           >
-                            <Shield className="h-3.5 w-3.5" />
-                            <span>Change Role</span>
-                          </DropdownMenuItem>
-                        )}
-
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setPinModalStaff(staff);
-                            setIsPinModalOpen(true);
-                          }}
-                          className="gap-2 text-xs font-medium cursor-pointer"
-                        >
-                          <KeyRound className="h-3.5 w-3.5" />
-                          <span>Reset POS PIN</span>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setPasswordModalStaff(staff);
-                            setIsPasswordModalOpen(true);
-                          }}
-                          className="gap-2 text-xs font-medium cursor-pointer"
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                          <span>Reset Password</span>
-                        </DropdownMenuItem>
-
-                        {!isOwner && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setStatusModalStaff(staff);
-                                setIsStatusModalOpen(true);
-                              }}
-                              className={`gap-2 text-xs font-medium cursor-pointer ${
-                                isActive ? 'text-destructive focus:text-destructive' : 'text-emerald-600 focus:text-emerald-600'
-                              }`}
-                            >
-                              {isActive ? (
-                                <>
-                                  <UserX className="h-3.5 w-3.5" />
-                                  <span>Deactivate Staff</span>
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-3.5 w-3.5" />
-                                  <span>Activate Staff</span>
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-lg border-border/60">
+                          {staffActions.map((action) => (
+                            <React.Fragment key={action.key}>
+                              {action.key === 'toggle_status' && <DropdownMenuSeparator />}
+                              <DropdownMenuItem
+                                onClick={() => handleAction(action.key, staff)}
+                                className={`gap-2 text-xs font-medium cursor-pointer ${action.className || ''}`}
+                              >
+                                <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                                <span>{action.label}</span>
+                              </DropdownMenuItem>
+                            </React.Fragment>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               );
@@ -511,19 +521,19 @@ export default function StaffManagement() {
           title="Team Directory"
           serverPagination={pagination}
           onPageChange={(page) => fetchStaff(page)}
-          
+
           showSearch={true}
           searchPlaceholder="Search staff by name, email, phone, or role..."
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           showFilter={false}
-          
+
           showAddButton={true}
           addButtonText="Add Staff"
           onAddButtonClick={openNewStaff}
           onRefresh={() => fetchStaff(1)}
           onRowActionClick={handleRowActionClick}
-          
+
           mobileFriendly={true}
         />
       </div>
@@ -542,10 +552,11 @@ export default function StaffManagement() {
           </div>
         }
         body={
-          <StaffForm 
-            initialData={editingStaff} 
+          <StaffForm
+            initialData={editingStaff}
+            roleOptions={canManageRoles}
             onSuccess={handleFormSuccess}
-            onCancel={() => setIsFormModalOpen(false)} 
+            onCancel={() => setIsFormModalOpen(false)}
           />
         }
       />
@@ -558,6 +569,7 @@ export default function StaffManagement() {
           setRoleModalStaff(null);
         }}
         staff={roleModalStaff}
+        roleOptions={canManageRoles}
         onSuccess={fetchStaff}
       />
 
@@ -595,6 +607,59 @@ export default function StaffManagement() {
         staff={statusModalStaff}
         onConfirm={handleConfirmStatus}
         isLoading={isStatusLoading}
+      />
+
+      {/* Make Owner: hand over ownership (current owner becomes an admin) */}
+      <CustomModal
+        isOpen={!!ownerTarget}
+        onOpenChange={() => !isTransferring && setOwnerTarget(null)}
+        size="md"
+        header={
+          <div className="pt-2 px-1 border-b border-border/50 pb-2.5">
+            <h2 className="text-lg font-bold text-foreground">Make {ownerTarget?.first_name} the owner?</h2>
+            <p className="text-[12px] text-muted-foreground mt-0.5">{ownerTarget?.email}</p>
+          </div>
+        }
+        body={
+          <form
+            id="make-owner-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              confirmMakeOwner();
+            }}
+            className="py-2 space-y-3"
+          >
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+              <li>They take over billing, payouts and managing admins.</li>
+              <li>You become an admin. Only the new owner can give ownership back.</li>
+            </ul>
+            <label className="block">
+              <span className="block text-xs text-muted-foreground mb-1">Enter your password to confirm</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={ownerPassword}
+                onChange={(e) => setOwnerPassword(e.target.value)}
+                className="w-full h-10 px-3 text-sm border border-border rounded-md bg-background focus:outline-none focus:border-foreground/40"
+              />
+            </label>
+          </form>
+        }
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full pt-1 pb-1">
+            <Button variant="outline" type="button" onClick={() => setOwnerTarget(null)} disabled={isTransferring} className="font-medium w-full">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="make-owner-form"
+              disabled={isTransferring || !ownerPassword}
+              className="bg-primary text-primary-foreground font-semibold w-full hover:bg-primary/90"
+            >
+              {isTransferring ? 'Transferring…' : 'Make owner'}
+            </Button>
+          </div>
+        }
       />
 
     </PageLayout>

@@ -5,21 +5,30 @@ import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuthStore } from '@/store/authStore';
+import { ROLE_LABELS } from '@/utils/roles';
 
 interface StaffFormProps {
   initialData?: any;
+  /** Roles the current user may assign (from the staff API). Owner is never assignable. */
+  roleOptions?: string[];
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 const DEFAULT_PASSWORD = 'Welcome@123';
+const ROLE_ORDER = ['admin', 'manager', 'cashier'];
 
-export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFormProps) {
+export default function StaffForm({ initialData, roleOptions = ['cashier'], onSuccess, onCancel }: StaffFormProps) {
   const isEditing = !!initialData;
   const isSelf = isEditing && initialData.id === useAuthStore.getState().staffUser?.id;
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+
+  const assignable = ROLE_ORDER.filter((r) => roleOptions.includes(r));
+  // Your own role, or one you can't assign (e.g. the owner's), is shown but locked
+  const roleLocked = isSelf || (isEditing && !assignable.includes(initialData.role));
+  const roleChoices = roleLocked ? [initialData.role] : assignable;
 
   const [formData, setFormData] = useState({
     first_name: initialData?.first_name || '',
@@ -27,7 +36,8 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
     email: initialData?.email || '',
     password: isEditing ? '' : DEFAULT_PASSWORD,
     pos_pin: '1234',
-    role: initialData?.role || 'cashier'
+    // Online-only stores can't add cashiers, so default to the first role allowed
+    role: initialData?.role || (assignable.includes('cashier') ? 'cashier' : assignable[0] || 'cashier')
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,20 +117,21 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
 
         <CustomSelectField
           label="Role"
-          options={[
-            { label: 'Cashier', value: 'cashier' },
-            { label: 'Manager', value: 'manager' },
-            { label: 'Owner', value: 'owner' }
-          ]}
+          options={roleChoices.map((r) => ({ label: ROLE_LABELS[r] || r, value: r }))}
           value={formData.role}
           inputProps={{
             onSelectionChange: handleRoleSelect
           }}
-          isDisabled={isSelf}
+          isDisabled={roleLocked}
           required
         />
         {isSelf && (
           <p className="-mt-2 text-[11px] text-muted-foreground">You can't change your own role.</p>
+        )}
+        {formData.role === 'admin' && !roleLocked && (
+          <p className="-mt-2 text-[11px] text-muted-foreground">
+            Admins can do everything except billing, payouts and managing other admins.
+          </p>
         )}
 
         {!isEditing && (
