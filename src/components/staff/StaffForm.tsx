@@ -4,6 +4,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useAuthStore } from '@/store/authStore';
 
 interface StaffFormProps {
   initialData?: any;
@@ -15,6 +16,7 @@ const DEFAULT_PASSWORD = 'Welcome@123';
 
 export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFormProps) {
   const isEditing = !!initialData;
+  const isSelf = isEditing && initialData.id === useAuthStore.getState().staffUser?.id;
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
@@ -114,8 +116,12 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
           inputProps={{
             onSelectionChange: handleRoleSelect
           }}
+          isDisabled={isSelf}
           required
         />
+        {isSelf && (
+          <p className="-mt-2 text-[11px] text-muted-foreground">You can't change your own role.</p>
+        )}
 
         {!isEditing && (
           <CustomInputTextField
@@ -142,6 +148,11 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
               </button>
             }
           />
+        )}
+        {!isEditing && (
+          <p className="-mt-2 text-[11px] text-muted-foreground">
+            They'll choose their own password the first time they log in. This one stops working after 72 hours.
+          </p>
         )}
 
         {!isEditing && (

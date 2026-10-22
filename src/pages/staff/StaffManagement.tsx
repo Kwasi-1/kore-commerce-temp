@@ -11,6 +11,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { useIsMobile } from '@/hooks/useScreenSize';
+import { useAuthStore } from '@/store/authStore';
 import { 
   UserPlus, 
   RefreshCw, 
@@ -47,7 +48,10 @@ export default function StaffManagement() {
   const [pagination, setPagination] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileTab, setMobileTab] = useState('all');
-  
+  const currentStaffId = useAuthStore((s) => s.staffUser?.id);
+  // Plan seat usage from the API: { limit, used, manager_limit, managers_used, extra }
+  const [seats, setSeats] = useState<any>(null);
+
   // Slide-over Edit/Create Staff Modal
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
@@ -83,6 +87,7 @@ export default function StaffManagement() {
       const response = await apiClient.get(url);
       const data = response.data.success?.data?.staff || [];
       const pag = response.data.success?.data?.pagination || null;
+      setSeats(response.data.success?.data?.seats || null);
 
       if (append) {
         setStaffList((prev) => [...prev, ...data]);
@@ -120,7 +125,19 @@ export default function StaffManagement() {
     setIsFormModalOpen(true);
   };
 
+  const seatsFull = seats?.limit != null && seats.used >= seats.limit;
+  const seatSummary = seats
+    ? [
+        seats.limit != null ? `${seats.used} of ${seats.limit} staff accounts used` : `${seats.used} active staff`,
+        seats.manager_limit != null && seats.manager_limit > 0 ? `${seats.managers_used} of ${seats.manager_limit} manager` : null,
+      ].filter(Boolean).join(' · ')
+    : null;
+
   const openNewStaff = () => {
+    if (seatsFull) {
+      toast.error(`All ${seats.limit} staff accounts on your plan are in use. Deactivate someone, add an extra seat, or upgrade.`);
+      return;
+    }
     setEditingStaff(null);
     setIsFormModalOpen(true);
   };
@@ -154,6 +171,22 @@ export default function StaffManagement() {
     });
   }, [staffList, mobileTab]);
 
+  // Staff still on a password an owner/manager set (e.g. Welcome@123)
+  const tempPasswordBadge = (s: any) => {
+    if (!s.must_change_password) return null;
+    const expired = s.temp_password_expires_at && new Date(s.temp_password_expires_at) < new Date();
+    return (
+      <span
+        title={expired ? 'Temporary password expired. Reset it so they can log in.' : 'Will choose their own password at next login'}
+        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+          expired ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-600'
+        }`}
+      >
+        {expired ? 'Temp password expired' : 'Temp password'}
+      </span>
+    );
+  };
+
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
@@ -166,9 +199,12 @@ export default function StaffManagement() {
     const isOwner = s.role === 'owner';
     const isActive = s.is_active !== false;
 
+    const isSelf = s.id === currentStaffId;
+
     const rowActions = [
       { key: 'edit_staff', label: 'Edit Staff', icon: 'mdi:pencil-outline' },
-      { key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' },
+      // Nobody changes their own role (stops an owner locking themselves out)
+      ...(isSelf ? [] : [{ key: 'change_role', label: 'Change Role', icon: 'mdi:shield-account-outline' }]),
       { key: 'reset_pin', label: 'Reset POS PIN', icon: 'mdi:dialpad' },
       { key: 'reset_password', label: 'Reset Password', icon: 'mdi:lock-reset' },
     ];
@@ -184,8 +220,9 @@ export default function StaffManagement() {
     return {
       id: s.id,
       name: (
-        <div className="flex flex-col">
+        <div className="flex items-center gap-2">
           <span className="font-semibold text-foreground">{s.first_name} {s.last_name}</span>
+          {tempPasswordBadge(s)}
         </div>
       ),
       email: <span className="text-muted-foreground">{s.email}</span>,
@@ -258,9 +295,7 @@ export default function StaffManagement() {
     <PageLayout 
       title="Staff Management" 
       subtitle={
-        isMobile ? (
-          `${staffList.length} staff member${staffList.length !== 1 ? 's' : ''} listed`
-        ) : undefined
+        seatSummary || (isMobile ? `${staffList.length} staff member${staffList.length !== 1 ? 's' : ''} listed` : undefined)
       }
       headerVariant="action-bridge"
       constrainHeight={true}
@@ -356,6 +391,7 @@ export default function StaffManagement() {
                       <p className="text-[11px] text-muted-foreground truncate max-w-[180px] mt-0.5">
                         {staff.email}
                       </p>
+                      {staff.must_change_password && <div className="mt-0.5">{tempPasswordBadge(staff)}</div>}
 
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground/80 mt-0.5">
                         <Clock className="h-2.5 w-2.5" />
@@ -393,16 +429,18 @@ export default function StaffManagement() {
                           <span>Edit Details</span>
                         </DropdownMenuItem>
 
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setRoleModalStaff(staff);
-                            setIsRoleModalOpen(true);
-                          }}
-                          className="gap-2 text-xs font-medium cursor-pointer"
-                        >
-                          <Shield className="h-3.5 w-3.5" />
-                          <span>Change Role</span>
-                        </DropdownMenuItem>
+                        {staff.id !== currentStaffId && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setRoleModalStaff(staff);
+                              setIsRoleModalOpen(true);
+                            }}
+                            className="gap-2 text-xs font-medium cursor-pointer"
+                          >
+                            <Shield className="h-3.5 w-3.5" />
+                            <span>Change Role</span>
+                          </DropdownMenuItem>
+                        )}
 
                         <DropdownMenuItem
                           onClick={() => {

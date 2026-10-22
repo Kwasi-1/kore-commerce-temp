@@ -75,7 +75,7 @@ export function ResetStaffPasswordModal({
       body={
         <form id="reset-password-form" onSubmit={handleSubmit} className="py-2 space-y-3">
           <p className="text-sm text-muted-foreground">
-            Set a new temporary password for this staff member's login.
+            Set a temporary password. They'll choose their own when they next log in, and this one stops working after 72 hours.
           </p>
 
           <CustomInputTextField
