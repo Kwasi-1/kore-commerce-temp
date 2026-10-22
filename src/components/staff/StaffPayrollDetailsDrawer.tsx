@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import apiClient from '@/api/client';
 import CustomModal from '@/components/modals/modal';
 import { CurrencyDisplay } from '@/hooks';
 import { Button } from '@/components/ui/button';
@@ -36,12 +37,27 @@ export default function StaffPayrollDetailsDrawer({
   onSingleDisburse,
   onDeleteProfile,
 }: StaffPayrollDetailsDrawerProps) {
+  // The page's list only covers the selected date range, so load this person's full history
+  const [fullHistory, setFullHistory] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!isOpen || !profile?.id) return;
+    let cancelled = false;
+    setFullHistory(null);
+    apiClient
+      .get(`/tenant/payroll?profile_id=${profile.id}`)
+      .then((r) => !cancelled && setFullHistory(r.data?.success?.data?.disbursals || []))
+      .catch(() => !cancelled && setFullHistory(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, profile?.id]);
+
   if (!profile) return null;
 
   const configured = isProfileConfigured(profile);
 
-  // Filter disbursal history specifically for this employee
-  const staffDisbursals = disbursalHistory.filter((item) => {
+  // Filter disbursal history specifically for this employee (fallback while the full history loads)
+  const staffDisbursals = fullHistory ?? disbursalHistory.filter((item) => {
     if (profile.id && item.profile_id === profile.id) return true;
     if (profile.staff_id && item.staff_id === profile.staff_id) return true;
     const nameMatch =
@@ -61,8 +77,9 @@ export default function StaffPayrollDetailsDrawer({
     id: item.id,
     period: <span className="font-semibold text-foreground">{item.pay_period || item.period || '—'}</span>,
     amount: (
-      <span className="font-bold text-foreground">
+      <span className={item.status === 'voided' ? 'font-bold line-through text-muted-foreground' : 'font-bold text-foreground'}>
         <CurrencyDisplay amount={item.amount} showStyling={false} />
+        {item.status === 'voided' && <span className="ml-1.5 no-underline text-[10px] text-rose-600">Reversed</span>}
       </span>
     ),
     method: (

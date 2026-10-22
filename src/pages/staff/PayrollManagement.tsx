@@ -125,7 +125,7 @@ export default function PayrollManagement() {
     setIsLoading(true);
     try {
       // 1. Fetch active Platform Staff
-      const staffRes = await apiClient.get('/tenant/staff');
+      const staffRes = await apiClient.get('/tenant/staff?per_page=100');
       const staffData = staffRes.data.success?.data?.staff || staffRes.data.data?.staff || [];
       setStaffMembers(staffData);
 
@@ -174,6 +174,7 @@ export default function PayrollManagement() {
       payment_method: 'Multiple Methods',
       disbursal_date: r.disbursal_date,
       status: r.status || 'logged',
+      search_names: runLines(r).map((d: any) => d.staff_name).filter(Boolean).join(' '),
       __record: r,
     }));
 
@@ -221,8 +222,8 @@ export default function PayrollManagement() {
         ]);
         if (matches.length === 0) return false;
       }
-      if (mobileLogTab === 'logged') return row.status === 'logged';
-      if (mobileLogTab === 'voided') return row.status === 'voided';
+      if (mobileLogTab === 'logged') return row.status === 'logged' || row.status === 'partial_voided';
+      if (mobileLogTab === 'voided') return row.status === 'voided' || row.status === 'partial_voided';
       return true;
     });
   }, [combinedLogRows, searchLogQuery, mobileLogTab]);
@@ -279,7 +280,13 @@ export default function PayrollManagement() {
     { key: 'status', label: 'Status' },
   ];
 
-  const rowsLog = combinedLogRows.map((row: any) => {
+  const matchesLogSearch = (row: any) => {
+    const q = searchLogQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [row.pay_period, row.recipient_name, row.search_names].some((v) => (v || '').toLowerCase().includes(q));
+  };
+
+  const rowsLog = combinedLogRows.filter(matchesLogSearch).map((row: any) => {
     const isEdited = Boolean(row.__record?.last_edited_by_name || row.__record?.last_edited_at || row.__record?.edit_reason);
     const rowActions = [
       { key: 'view_details', label: row.is_run ? 'View Run Breakdown' : 'View Pay Slip', icon: 'mdi:eye-outline' },
@@ -304,13 +311,17 @@ export default function PayrollManagement() {
       status: (
         <div className="flex items-center gap-1.5">
           {row.is_run ? (
-            row.status === 'logged' ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="h-3 w-3" /> Logged
+            row.status === 'voided' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-400/10 text-rose-600 dark:text-rose-400">
+                <XCircle className="h-3 w-3" /> Reversed
+              </span>
+            ) : row.status === 'partial_voided' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-3 w-3" /> Partly reversed
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400">
-                <AlertCircle className="h-3 w-3" /> {row.recipients_text} Logged
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-400/10 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-3 w-3" /> Logged
               </span>
             )
           ) : row.status === 'voided' ? (
@@ -339,7 +350,13 @@ export default function PayrollManagement() {
     { key: 'payment_info', label: 'Payment Account' },
   ];
 
-  const rowsProfiles = filteredProfiles.map((p: any) => {
+  const rowsProfiles = filteredProfiles
+    .filter((p: any) => {
+      const q = searchProfilesQuery.trim().toLowerCase();
+      if (!q) return true;
+      return [p.full_name, p.name, p.role_title].some((v) => (v || '').toLowerCase().includes(q));
+    })
+    .map((p: any) => {
     const configured = isProfileConfigured(p);
     const rowActions = configured
       ? [
@@ -416,9 +433,17 @@ export default function PayrollManagement() {
   const monthTotalDisbursed = disbursalLog.filter((d) => d.status !== 'voided').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   const platformDisbursed = disbursalLog.filter((d) => !d.is_off_platform && d.status !== 'voided').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   const externalDisbursed = disbursalLog.filter((d) => d.is_off_platform && d.status !== 'voided').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const totalMonthlyPayroll = salaryProfiles.reduce((acc, curr) => acc + (Number(curr.base_amount) || 0), 0);
-  const platformPayroll = salaryProfiles.filter((p) => !p.is_off_platform).reduce((acc, curr) => acc + (Number(curr.base_amount) || 0), 0);
-  const externalPayroll = salaryProfiles.filter((p) => p.is_off_platform).reduce((acc, curr) => acc + (Number(curr.base_amount) || 0), 0);
+  // Monthly obligation: weekly pay × 52 / 12; hourly pay depends on hours worked, so it's left out (and counted)
+  const monthlyEquivalent = (p: any) => {
+    const amt = Number(p.base_amount) || 0;
+    if (p.compensation_type === 'weekly_salary') return (amt * 52) / 12;
+    if (p.compensation_type === 'hourly_rate') return 0;
+    return amt;
+  };
+  const hourlyCount = salaryProfiles.filter((p) => p.compensation_type === 'hourly_rate' && isProfileConfigured(p)).length;
+  const totalMonthlyPayroll = salaryProfiles.reduce((acc, curr) => acc + monthlyEquivalent(curr), 0);
+  const platformPayroll = salaryProfiles.filter((p) => !p.is_off_platform).reduce((acc, curr) => acc + monthlyEquivalent(curr), 0);
+  const externalPayroll = salaryProfiles.filter((p) => p.is_off_platform).reduce((acc, curr) => acc + monthlyEquivalent(curr), 0);
   const readyCount = salaryProfiles.filter(isProfileConfigured).length;
   const unconfiguredCount = salaryProfiles.length - readyCount;
   const platformCount = salaryProfiles.filter((p) => !p.is_off_platform).length;
@@ -718,7 +743,11 @@ export default function PayrollManagement() {
             </>
           ) : (
             <>
-              <DashboardCard title="Total Monthly Payroll" value={isLoading ? '...' : <CurrencyDisplay amount={totalMonthlyPayroll} />} />
+              <DashboardCard
+                title="Total Monthly Payroll"
+                value={isLoading ? '...' : <CurrencyDisplay amount={totalMonthlyPayroll} />}
+                subvalue={hourlyCount > 0 ? `Excludes ${hourlyCount} hourly-paid staff` : undefined}
+              />
               <DashboardCard title="Platform Staff Salaries" value={isLoading ? '...' : <CurrencyDisplay amount={platformPayroll} />} />
               <DashboardCard title="External Staff Wages" value={isLoading ? '...' : <CurrencyDisplay amount={externalPayroll} />} />
               <DashboardCard title="Roster Status" value={isLoading ? '...' : unconfiguredCount > 0 ? `${readyCount} Ready · ${unconfiguredCount} Unconfigured` : `${readyCount} Ready`} valueStyle={!isLoading ? 'lg:text-lg xl:text-lg font-header tracking-tight' : ''} />
@@ -734,6 +763,8 @@ export default function PayrollManagement() {
             title=""
             showSearch={true}
             searchPlaceholder="Search disbursals by pay period or recipient..."
+            searchValue={searchLogQuery}
+            onSearchChange={setSearchLogQuery}
             showDateFilter={true}
             dateFilterValue={dateFilter}
             onDateFilterChange={(val) => setDateFilter(val)}
@@ -755,10 +786,16 @@ export default function PayrollManagement() {
             title=""
             showSearch={true}
             searchPlaceholder="Search staff roster by name or role..."
+            searchValue={searchProfilesQuery}
+            onSearchChange={setSearchProfilesQuery}
             showFilter={true}
             filterLabel={profileFilter === 'all' ? 'Roster: All' : profileFilter === 'platform' ? 'Roster: Platform' : 'Roster: External'}
             filterOptions={profileFilterOptions}
             filterValue={new Set([profileFilter])}
+            onFilterChange={(keys: any) => {
+              const v = Array.from(keys as Set<string>)[0];
+              setProfileFilter(v === 'platform' || v === 'external' ? v : 'all');
+            }}
             topActions={[
               { title: 'Import Platform Staff', icon: 'solar:user-plus-linear', variant: 'flat', onPress: () => setIsImportStaffModalOpen(true), className: 'rounded' },
               { title: 'Add External Staff', icon: 'solar:user-plus-bold', variant: 'bordered', onPress: () => setIsOffPlatformModalOpen(true), className: 'border-1 rounded' },
