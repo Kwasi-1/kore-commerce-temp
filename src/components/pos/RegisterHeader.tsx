@@ -13,8 +13,6 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from '@iconify/react';
-import CurrentUserChip from './CurrentUserChip';
-import NewCashierModal from './NewCashierModal';
 import SavedTransactionsHeader from './SavedTransactionsHeader';
 import EndShiftModal from './EndShiftModal';
 import CashMovementModal from './CashMovementModal';
@@ -27,7 +25,6 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import OfflineQueueDrawer from './OfflineQueueDrawer';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useCartStore } from '@/store/cartStore';
-import { useCan } from '@/hooks/usePermissions';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -66,8 +63,6 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     navigate('/login');
   };
 
-  const can = useCan();
-  const isAdminOrManager = can('staff.manage_cashiers');
 
   return (
     <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
@@ -289,12 +284,6 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             )}
           </Button>
         )}
-
-        <div className='hidden md:flex'>
-          <CurrentUserChip />
-        </div>
-
-        {isAdminOrManager && <div className='hidden md:flex'> <NewCashierModal /></div>}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
