@@ -151,7 +151,7 @@ export default function StaffForm({ initialData, onSuccess, onCancel }: StaffFor
         )}
         {!isEditing && (
           <p className="-mt-2 text-[11px] text-muted-foreground">
-            They'll choose their own password the first time they log in. This one stops working after 72 hours.
+            They'll set their own password the first time they log in.
           </p>
         )}
 

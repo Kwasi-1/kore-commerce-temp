@@ -177,7 +177,7 @@ export default function StaffManagement() {
     const expired = s.temp_password_expires_at && new Date(s.temp_password_expires_at) < new Date();
     return (
       <span
-        title={expired ? 'Temporary password expired. Reset it so they can log in.' : 'Will choose their own password at next login'}
+        title={expired ? 'Temporary password expired. Reset it so they can log in.' : 'Will set their own password at next login. The temporary one stops working 72 hours after it was set.'}
         className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
           expired ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-600'
         }`}
