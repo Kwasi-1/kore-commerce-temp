@@ -311,9 +311,9 @@ export default function BottomNav() {
         { name: 'Credit Ledger', to: '/pos/credit-ledger', icon: 'solar:book-2-linear', moduleKey: 'credit_ledger' },
         { name: 'Returns', to: '/pos/returns', icon: 'solar:restart-linear', moduleKey: 'returns' },
         // Inventory
-        { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-linear', moduleKey: 'inventory' },
+        { name: 'Products', to: '/inventory/products', icon: 'solar:box-minimalistic-linear', moduleKey: 'inventory_basic' },
         { name: 'Adjustments', to: '/inventory/adjustments', icon: 'solar:clipboard-list-linear', moduleKey: 'adjustments' },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-linear', moduleKey: 'inventory' },
+        { name: 'Stock Levels', to: '/inventory/stock', icon: 'solar:layers-linear', moduleKey: 'inventory_basic' },
         { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-linear', moduleKey: 'stock_reconciliation' },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-linear', moduleKey: 'suppliers' },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-linear', moduleKey: 'purchase_orders' },
