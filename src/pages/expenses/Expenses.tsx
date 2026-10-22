@@ -815,7 +815,7 @@ export default function Expenses() {
         header={
           <div className="pt-4 px-2">
             <h2 className="text-xl font-bold">{editingRecurring ? 'Edit Recurring Schedule' : 'Create Recurring Schedule'}</h2>
-            <p className="text-sm text-muted-foreground font-normal">Schedule automated or prompt-based recurring financial outlays.</p>
+            <p className="hidden md:block text-sm text-muted-foreground font-normal">Schedule automated or prompt-based recurring financial outlays.</p>
           </div>
         }
         body={

@@ -123,7 +123,7 @@ export default function RecurringExpenseForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card pb-4 p-2 space-y-5">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-card pb-4 py-2 px-1 space-y-5">
       <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide pr-1">
         <CustomInputTextField
           label="Expense Description"
