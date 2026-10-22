@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { CustomInputTextField, CustomSelectField } from '@/components/shared/text-field';
-import { Button, Switch } from '@nextui-org/react';
+import { Switch } from '@nextui-org/react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Repeat, Calendar, DollarSign, Info } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface RecurringExpenseFormProps {
   initialData?: any;
@@ -186,11 +187,17 @@ export default function RecurringExpenseForm({
             value={formData.startDate}
             onChange={handleChange}
             required
+            disabled={!!initialData?.lastPostedAt}
           />
+          {initialData?.lastPostedAt && (
+            <p className="-mt-2 text-[11px] text-muted-foreground">
+              Payments have already been logged on this schedule, so its start date can't change.
+            </p>
+          )}
         </div>
 
         {/* Auto-Post Mode Settings Card */}
-        <div className="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-3">
+        <div className="p-4 rounded-xl bg-muted/40 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
@@ -200,7 +207,7 @@ export default function RecurringExpenseForm({
               <p className="text-xs text-muted-foreground mt-0.5 max-w-[340px]">
                 {formData.auto_post
                   ? 'Automatically log this expense entry on its due date without manual action.'
-                  : 'Receive a prompt on the due date to confirm or adjust the variable bill amount.'}
+                  : 'Shows as "Due" on its due date so you can confirm or adjust the amount before it is logged.'}
               </p>
             </div>
             <Switch
@@ -215,9 +222,9 @@ export default function RecurringExpenseForm({
       <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/50">
         <Button
           type="button"
-          variant="flat"
+          variant="outline"
           onClick={onCancel}
-          isDisabled={isLoading}
+          disabled={isLoading}
           className="font-semibold"
         >
           Cancel
@@ -225,7 +232,7 @@ export default function RecurringExpenseForm({
         <Button
           type="submit"
           color="primary"
-          isLoading={isLoading}
+          disabled={isLoading}
           className="font-bold px-6"
         >
           {isEditing ? 'Update Schedule' : 'Create Schedule'}

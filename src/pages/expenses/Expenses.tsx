@@ -35,6 +35,13 @@ import {
   MobileActivitySheet,
 } from '@/components/mobile-dashboard';
 
+const SOURCE_LABELS: Record<string, string> = {
+  backoffice: 'Back office',
+  pos_till: 'POS Till',
+  payroll: 'Payroll',
+};
+const sourceLabel = (source?: string) => SOURCE_LABELS[source || 'backoffice'] || source;
+
 export default function Expenses() {
   const isMobile = useIsMobile();
   const { staffUser } = useAuthStore();
@@ -67,6 +74,10 @@ export default function Expenses() {
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [editingRecurring, setEditingRecurring] = useState<any>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // "Post now" confirmation: lets the owner adjust a variable bill before it's logged
+  const [postingRule, setPostingRule] = useState<any>(null);
+  const [postAmount, setPostAmount] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
 
   const fetchExpenses = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
     if (append) {
@@ -165,16 +176,36 @@ export default function Expenses() {
     }
   };
 
-  const handlePostNow = async (ruleId: string) => {
+  const handlePostNow = (ruleId: string) => {
+    const rule = recurringList.find((r) => r.id === ruleId);
+    if (!rule) return;
+    setPostingRule(rule);
+    setPostAmount(String(rule.amount ?? ''));
+  };
+
+  const confirmPostNow = async () => {
+    const amount = parseFloat(postAmount);
+    if (!postingRule || isNaN(amount) || amount <= 0) {
+      toast.error('Enter an amount greater than 0');
+      return;
+    }
+    setIsPosting(true);
     try {
-      await apiClient.post(`/tenant/expenses/recurring/${ruleId}/post-now`);
-      toast.success('Expense posted to log successfully');
+      const res = await apiClient.post(`/tenant/expenses/recurring/${postingRule.id}/post-now`, { amount });
+      const next = res.data.success?.data?.recurring_expense?.nextDueDate;
+      toast.success(next ? `Logged. Next due ${format(new Date(next), 'MMM dd, yyyy')}` : 'Expense logged');
+      setPostingRule(null);
       fetchRecurringExpenses();
+      fetchExpenses(1);
     } catch (error: any) {
       console.error('Post now error:', error);
       toast.error(error.response?.data?.error?.message || 'Failed to post expense');
+    } finally {
+      setIsPosting(false);
     }
   };
+
+  const dueCount = recurringList.filter((r) => r.isDue).length;
 
   const handleToggleRecurringStatus = async (ruleId: string) => {
     try {
@@ -237,8 +268,8 @@ export default function Expenses() {
         </span>
       ),
       source: (
-        <span className="capitalize px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/10 text-blue-600">
-          {item.source || 'Backoffice'}
+        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/10 text-blue-600">
+          {sourceLabel(item.source)}
         </span>
       ),
       recorded_by: item.recordedByName || item.logged_by_name || 'System',
@@ -255,7 +286,7 @@ export default function Expenses() {
         </span>
       ),
       rowActions: [
-        ...(!isVoided && isManagerOrOwner && !item.is_pos_movement
+        ...(!isVoided && isManagerOrOwner && !item.is_pos_movement && !item.is_payroll
           ? [
               {
                 key: 'void',
@@ -276,7 +307,7 @@ export default function Expenses() {
     { key: 'category', label: 'Category' },
     { key: 'amount', label: 'Amount' },
     { key: 'frequency', label: 'Frequency' },
-    { key: 'next_run', label: 'Next Run Date' },
+    { key: 'next_run', label: 'Next Due' },
     { key: 'status', label: 'Status' },
   ];
 
@@ -296,11 +327,19 @@ export default function Expenses() {
         </span>
       ),
       frequency: (
-        <span className="capitalize text-xs font-medium">
-          {rule.frequency}
+        <span className="text-xs font-medium">
+          <span className="capitalize">{rule.frequency?.replace(/_/g, '-')}</span>
+          <span className="text-muted-foreground"> · {rule.autoPost ? 'Auto' : 'Confirm each time'}</span>
         </span>
       ),
-      next_run: rule.nextDueDate || rule.next_run_date ? format(new Date(rule.nextDueDate || rule.next_run_date), 'MMM dd, yyyy') : '—',
+      next_run: (
+        <span className="inline-flex items-center gap-2">
+          {rule.nextDueDate ? format(new Date(rule.nextDueDate), 'MMM dd, yyyy') : '—'}
+          {rule.isDue && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600">Due</span>
+          )}
+        </span>
+      ),
       status: (
         <span
           className={clsx(
@@ -316,7 +355,7 @@ export default function Expenses() {
       rowActions: [
         {
           key: 'post_now',
-          label: 'Post to Log Now',
+          label: rule.isDue ? 'Log This Payment' : 'Pay Early & Log',
           icon: 'solar:play-circle-linear',
           className: 'text-primary',
         },
@@ -435,7 +474,7 @@ export default function Expenses() {
           <MobileMetricPill
             title="Recurring"
             value={recurringList.length}
-            subtitle="Schedules"
+            subtitle={dueCount > 0 ? `${dueCount} due` : 'Schedules'}
             icon={<Repeat className="h-3.5 w-3.5" />}
             iconColorClass="bg-purple-500/10 text-purple-500"
             isLoading={isLoadingRecurring}
@@ -543,8 +582,8 @@ export default function Expenses() {
                         <p className={clsx('text-xs font-bold', isVoided ? 'line-through text-muted-foreground' : 'text-foreground')}>
                           <CurrencyDisplay amount={item.amount} showStyling={false} />
                         </p>
-                        <span className="text-[10px] text-blue-600 capitalize">
-                          {item.source || 'Backoffice'}
+                        <span className="text-[10px] text-blue-600">
+                          {sourceLabel(item.source)}
                         </span>
                       </div>
                     </div>
@@ -558,7 +597,7 @@ export default function Expenses() {
                         }`}>
                           {isVoided ? 'Voided' : 'Valid'}
                         </span>
-                        {!isVoided && isManagerOrOwner && !item.is_pos_movement && (
+                        {!isVoided && isManagerOrOwner && !item.is_pos_movement && !item.is_payroll && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -596,8 +635,10 @@ export default function Expenses() {
                         <p className="font-bold text-foreground truncate max-w-[210px]">
                           {rule.description || rule.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">
-                          {rule.frequency}
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <span className="capitalize">{rule.frequency?.replace(/_/g, '-')}</span>
+                          {rule.nextDueDate && ` · next ${format(new Date(rule.nextDueDate), 'MMM dd')}`}
+                          {rule.isDue && <span className="ml-1 font-bold text-amber-600">Due</span>}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -621,7 +662,7 @@ export default function Expenses() {
                           onClick={() => handlePostNow(rule.id)}
                           className="h-6 px-2 text-[10px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
                         >
-                          Post Now
+                          {rule.isDue ? 'Log Now' : 'Pay Early'}
                         </Button>
                         <Button
                           size="sm"
@@ -786,6 +827,52 @@ export default function Expenses() {
               setEditingRecurring(null);
             }}
           />
+        }
+      />
+
+      {/* Modal 3: confirm a recurring payment (amount can be adjusted for variable bills) */}
+      <CustomModal
+        isOpen={!!postingRule}
+        onOpenChange={() => !isPosting && setPostingRule(null)}
+        size="md"
+        header={
+          <div className="pt-2 px-2">
+            <h2 className="text-lg font-bold">{postingRule?.isDue ? 'Log this payment' : 'Pay early & log'}</h2>
+            <p className="text-xs text-muted-foreground font-normal">
+              {postingRule?.description}
+              {postingRule?.nextDueDate && ` · due ${format(new Date(postingRule.nextDueDate), 'MMM dd, yyyy')}`}
+            </p>
+          </div>
+        }
+        body={
+          <div className="py-2 space-y-2">
+            <label className="block">
+              <span className="block text-xs text-muted-foreground mb-1">Amount paid</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={postAmount}
+                onChange={(e) => setPostAmount(e.target.value)}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                className="w-full h-10 px-3 text-sm border border-border rounded-md bg-background tabular-nums focus:outline-none focus:border-foreground/40"
+              />
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Change it if this bill was different this time. The schedule then moves to the next due date.
+            </p>
+          </div>
+        }
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full pt-1">
+            <Button variant="ghost" size="sm" onClick={() => setPostingRule(null)} disabled={isPosting} className="hidden md:flex">
+              Cancel
+            </Button>
+            <Button size="sm" onClick={confirmPostNow} disabled={isPosting} className="bg-primary text-primary-foreground font-semibold px-5">
+              {isPosting ? 'Logging…' : 'Log payment'}
+            </Button>
+          </div>
         }
       />
     </PageLayout>
