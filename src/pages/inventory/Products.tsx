@@ -1370,7 +1370,6 @@ export default function Products() {
         ]}
         rowActions={[
           { key: "edit", label: "Edit Product", icon: "fluent:edit-20-filled" },
-          { key: "record_batch", label: "Record Batch (Made In-House)", icon: "fluent:beaker-20-filled" },
           ...(hasEcommerce
             ? [
                 {
@@ -1399,9 +1398,6 @@ export default function Products() {
           const variantData = rowData.__variant;
           if (actionKey === "edit") {
             handleEdit(originalProduct);
-          } else if (actionKey === "record_batch") {
-            if (originalProduct?.is_made_in_house) setBatchProductId(originalProduct.id);
-            else toast("Only for products you make yourself. Turn on \"Made in-house\" when editing the product.");
           } else if (actionKey === "toggle_channel") {
             if (effectiveViewMode === "list" && variantData) {
               const attrStr = Object.values(variantData.variant_attributes || {}).join(" / ");
@@ -1542,6 +1538,7 @@ export default function Products() {
       />
 
       <ProductDetailModal
+        onRecordBatch={(id) => setBatchProductId(id)}
         isOpen={isDetailModalOpen}
         onClose={() => {
           setIsDetailModalOpen(false);

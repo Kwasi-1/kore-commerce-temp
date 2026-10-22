@@ -114,7 +114,7 @@ export function BatchHistoryList({ productId }: { productId: string }) {
   if (loading) return <Loading text="Loading batches..." />;
   if (batches.length === 0) return <Empty title="No batches recorded" text="Use “Record Batch” on the Products page after making a batch." />;
 
-  const basisLabel = (b: string) => (b === 'volume' ? 'split by size' : b === 'price' ? 'split by price' : 'split equally');
+  const basisLabel = (b: string) => (b === 'size' || b === 'volume' ? 'split by size' : b === 'price' ? 'split by price' : 'split equally');
 
   return (
     <div className="space-y-2">
@@ -137,7 +137,7 @@ export function BatchHistoryList({ productId }: { productId: string }) {
             ))}
           </ul>
           <p className="text-[10px] text-muted-foreground">
-            Shared cost {money(b.shared_cost)}
+            Materials {money(b.shared_cost)}
             {(b.lines || []).length > 1 ? `, ${basisLabel(b.allocation_basis)}` : ''}
             {b.notes ? ` · ${b.notes}` : ''}
           </p>

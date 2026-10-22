@@ -15,6 +15,8 @@ interface ProductDetailModalProps {
   onClose: () => void;
   product: any | null;
   onEdit?: (product: any) => void;
+  /** In-house products: open "Record batch" (also the mobile entry point). */
+  onRecordBatch?: (productId: string) => void;
   onToggleChannel?: (product: any) => void;
 }
 
@@ -23,6 +25,7 @@ export function ProductDetailModal({
   onClose,
   product,
   onEdit,
+  onRecordBatch,
   onToggleChannel,
 }: ProductDetailModalProps) {
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
@@ -88,6 +91,8 @@ export function ProductDetailModal({
   if (!product) return null;
 
   const currentProduct = productData || product;
+  // In-house products: "Record Batch" is the primary action; Edit moves to the header
+  const showBatch = !!onRecordBatch && !!currentProduct.is_made_in_house;
   const variants = currentProduct.variants || [];
   const activeVariant =
     variants.find((v: any) => v.id === selectedVariantId) || variants[0] || null;
@@ -159,7 +164,7 @@ export function ProductDetailModal({
       }}
       header={
         <div className="pt-2 px-1 border-b border-border/50 pb-3">
-          <div className="flex items-start justify-between gap-3 pr-6">
+          <div className="flex items-start justify-between gap-3 pr3">
             <div className="flex items-center gap-3 min-w-0">
               {productImageUrl ? (
                 <img
@@ -174,7 +179,7 @@ export function ProductDetailModal({
               )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold uppercase text-foreground truncate">
+                  <h2 className="text-base font-bold capitalize text-foreground truncate">
                     {currentProduct.name}
                   </h2>
                   <span
@@ -221,6 +226,19 @@ export function ProductDetailModal({
                 </p>
               </div>
             </div>
+            {showBatch && onEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                radius="lg"
+                onClick={() => onEdit(currentProduct)}
+                className="self-end h-9 w-9 text-xs font-semibold gap-1.5 border-border/70 shrink-0"
+              >
+                <Icon icon="andrsrxn:edit" className="h-3.5 w-3.5" />
+                {/* Edit */}
+              </Button>
+            )}
           </div>
         </div>
       }
@@ -647,7 +665,18 @@ export function ProductDetailModal({
               </>
             )}
           </Button>
-          {onEdit && (
+          {showBatch && (
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => onRecordBatch!(currentProduct.id)}
+              className="w-full text-xs font-semibold flex items-center justify-center gap-2 h-10"
+            >
+              <Icon icon="fluent:beaker-20-regular" className="h-4 w-4" />
+              <span>Record Batch</span>
+            </Button>
+          )}
+          {onEdit && !showBatch && (
             <Button
               size="sm"
               type="button"

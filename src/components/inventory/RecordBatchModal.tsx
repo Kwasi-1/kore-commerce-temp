@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/useScreenSize';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -17,11 +18,11 @@ interface Line {
   label: string;
   unit: string;
   qty: string;
-  extra: string;
-  volume: string;
-  price: number | null; // retail per base unit, for the price-based split
+  amount: string; // "amount in each" (g / ml / pcs…), only used when splitting by size
+  price: number | null; // retail per base unit, for the default price-based split
 }
 
+const UNITS = ['g', 'kg', 'ml', 'L', 'pcs'];
 const field =
   'w-full min-w-0 h-9 px-2.5 text-sm border border-border rounded-md bg-background tabular-nums focus:outline-none focus:border-foreground/40';
 const num = (v: string) => (v.trim() === '' || isNaN(Number(v)) ? null : Number(v));
@@ -35,14 +36,18 @@ const retailPerUnit = (v: any): number | null => {
 };
 
 /**
- * Record a batch made in-house (e.g. one pot of sobolo bottled in 3 sizes). The shared cost is split
- * between sizes by volume (or by selling price when sizes have no volume), plus each size's own
- * packaging cost. Matches helpers/custom/production.py on the backend.
+ * Record a batch made in-house. The batch cost is materials only (ingredients + packaging used);
+ * gas, electricity and labour belong in Expenses / Payroll. With several sizes the cost is split
+ * by selling price, or by "amount in each" when the owner switches that on.
+ * Mirrors helpers/custom/production.py on the backend.
  */
 export default function RecordBatchModal({ productId, onClose, onSuccess }: Props) {
+  const isMobile = useIsMobile();
   const [productName, setProductName] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
-  const [sharedCost, setSharedCost] = useState('');
+  const [cost, setCost] = useState('');
+  const [bySize, setBySize] = useState(false);
+  const [unit, setUnit] = useState('g');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,25 +55,26 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
   useEffect(() => {
     if (!productId) return;
     setLoading(true);
-    setSharedCost('');
+    setCost('');
     setNotes('');
     apiClient
       .get(`/tenant/products/${productId}`)
       .then((r) => {
         const p = r.data?.success?.data?.product;
+        const active = (p?.variants || []).filter((v: any) => v.is_active !== false);
         setProductName(p?.name || '');
+        setUnit(p?.content_unit || 'g');
+        // Sizes already set up → keep splitting by size
+        setBySize(active.length > 1 && active.every((v: any) => v.volume_ml));
         setLines(
-          (p?.variants || [])
-            .filter((v: any) => v.is_active !== false)
-            .map((v: any) => ({
-              variantId: v.id,
-              label: Object.values(v.variant_attributes || {}).join(' / ') || p.name,
-              unit: v.base_unit_name || 'unit',
-              qty: '',
-              extra: '',
-              volume: v.volume_ml ? String(v.volume_ml) : '',
-              price: retailPerUnit(v),
-            })),
+          active.map((v: any) => ({
+            variantId: v.id,
+            label: Object.values(v.variant_attributes || {}).join(' / ') || p.name,
+            unit: v.base_unit_name || 'unit',
+            qty: '',
+            amount: v.volume_ml ? String(v.volume_ml) : '',
+            price: retailPerUnit(v),
+          })),
         );
       })
       .catch(() => toast.error('Failed to load product'))
@@ -81,38 +87,34 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
   // Live preview of the backend's split
   const preview = useMemo(() => {
     const made = lines.filter((l) => (num(l.qty) ?? 0) > 0);
-    const shared = num(sharedCost) ?? 0;
-    const basis = made.length && made.every((l) => (num(l.volume) ?? 0) > 0) ? 'volume' : made.length && made.every((l) => l.price) ? 'price' : 'equal';
-    const share = (l: Line) => (basis === 'volume' ? (num(l.volume) as number) : basis === 'price' ? (l.price as number) : 1);
-    const total = made.reduce((s, l) => s + (num(l.qty) as number) * share(l), 0) || 1;
-    const perUnit = new Map<string, number>();
-    let totalCost = 0;
-    made.forEach((l) => {
-      const q = num(l.qty) as number;
-      const part = (shared * q * share(l)) / total;
-      perUnit.set(l.variantId, part / q + (num(l.extra) ?? 0));
-      totalCost += part + q * (num(l.extra) ?? 0);
-    });
-    return { basis, perUnit, totalCost, madeCount: made.reduce((s, l) => s + (num(l.qty) as number), 0) };
-  }, [lines, sharedCost]);
+    const total = num(cost) ?? 0;
+    const basis =
+      bySize && made.length && made.every((l) => (num(l.amount) ?? 0) > 0)
+        ? 'size'
+        : made.length && made.every((l) => l.price)
+          ? 'price'
+          : 'equal';
+    const share = (l: Line) => (basis === 'size' ? (num(l.amount) as number) : basis === 'price' ? (l.price as number) : 1);
+    const weight = made.reduce((s, l) => s + (num(l.qty) as number) * share(l), 0) || 1;
+    const each = new Map<string, number>();
+    made.forEach((l) => each.set(l.variantId, (total * share(l)) / weight));
+    return { basis, each, count: made.reduce((s, l) => s + (num(l.qty) as number), 0), madeLines: made.length };
+  }, [lines, cost, bySize]);
 
-  const canSave = preview.madeCount > 0 && (num(sharedCost) ?? 0) >= 0 && !saving;
+  const missingAmounts = bySize && lines.some((l) => (num(l.qty) ?? 0) > 0 && !(num(l.amount) ?? 0));
+  const canSave = preview.count > 0 && (num(cost) ?? 0) >= 0 && !missingAmounts && !saving;
 
   const save = async () => {
     setSaving(true);
     try {
       const r = await apiClient.post(`/tenant/products/${productId}/production-batches`, {
-        shared_cost: num(sharedCost) ?? 0,
-        basis: 'volume',
+        shared_cost: num(cost) ?? 0,
+        basis: bySize ? 'size' : 'price',
+        ...(bySize ? { content_unit: unit } : {}),
         notes: notes.trim() || undefined,
         lines: lines
           .filter((l) => (num(l.qty) ?? 0) > 0)
-          .map((l) => ({
-            variant_id: l.variantId,
-            quantity: num(l.qty),
-            extra_cost_per_unit: num(l.extra) ?? 0,
-            ...(multi && num(l.volume) ? { volume_ml: num(l.volume) } : {}),
-          })),
+          .map((l) => ({ variant_id: l.variantId, quantity: num(l.qty), ...(bySize && num(l.amount) ? { amount: num(l.amount) } : {}) })),
       });
       toast.success(r.data?.success?.message || 'Batch recorded');
       onSuccess?.();
@@ -124,6 +126,27 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
     }
   };
 
+  const costEach = (l: Line) => {
+    const v = preview.each.get(l.variantId);
+    return v !== undefined ? `GHS ${v.toFixed(2)}` : '—';
+  };
+
+  const qtyInput = (l: Line) => (
+    <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="0" value={l.qty} onWheel={blur} onChange={(e) => update(l.variantId, { qty: e.target.value })} aria-label={`${l.label} — how many made`} />
+  );
+  const amountInput = (l: Line) => (
+    <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder={unit === 'pcs' ? 'e.g. 10' : 'e.g. 500'} value={l.amount} onWheel={blur} onChange={(e) => update(l.variantId, { amount: e.target.value })} aria-label={`${l.label} — amount in each (${unit})`} />
+  );
+  const cols = bySize ? 'grid-cols-[minmax(0,1.4fr)_6rem_7rem_6rem]' : 'grid-cols-[minmax(0,1.4fr)_7rem_6rem]';
+
+  const splitNote = !multi || preview.madeLines < 2
+    ? null
+    : preview.basis === 'size'
+      ? `Split by amount in each (${unit})`
+      : preview.basis === 'price'
+        ? 'Split by selling price'
+        : 'Split equally (no selling prices set)';
+
   return (
     <CustomModal
       isOpen={!!productId}
@@ -132,7 +155,7 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
       header={
         <div className="pt-2 px-2 border-b border-border/60 pb-3">
           <h2 className="text-lg font-bold !tracking-tight">Record batch{productName ? ` — ${productName}` : ''}</h2>
-          <p className="text-xs md:text-[13px] text-muted-foreground !tracking-tight">Adds the stock you made and works out the cost of each one.</p>
+          <p className="text-xs md:text-[13px] text-muted-foreground !tracking-tight">Adds what you made to stock and works out the cost of each.</p>
         </div>
       }
       body={
@@ -143,67 +166,90 @@ export default function RecordBatchModal({ productId, onClose, onSuccess }: Prop
         ) : (
           <div className="py-2 space-y-4">
             <label className="block">
-              <span className="block text-xs text-muted-foreground mb-1">
-                {multi ? 'Shared cost — ingredients, gas, labour (GHS)' : 'Batch cost — ingredients, packaging, gas (GHS)'}
+              <span className="block text-xs text-muted-foreground mb-1">Ingredients & packaging used (GHS)</span>
+              <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="e.g. 180" value={cost} onWheel={blur} onChange={(e) => setCost(e.target.value)} />
+              <span className="block mt-1 text-[11px] text-muted-foreground">
+                What you used for this batch. Gas, electricity and labour go in Expenses / Payroll.
               </span>
-              <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="e.g. 150" value={sharedCost} onWheel={blur} onChange={(e) => setSharedCost(e.target.value)} />
             </label>
 
-            <div className="rounded-lg border border-border">
-              <div
-                className={cn(
-                  'grid gap-2 px-3 py-2 border-b border-border bg-muted/40 text-[11px] text-muted-foreground',
-                  multi ? 'grid-cols-[minmax(0,1.3fr)_5rem_6rem_5.5rem_5.5rem]' : 'grid-cols-[minmax(0,1.3fr)_5rem_6rem_5.5rem]',
-                )}
-              >
-                <span>{multi ? 'Size' : 'Item'}</span>
-                <span>Made</span>
-                <span title="Bottle, label, cap — per item">Packaging each</span>
-                {multi && <span title="Used to split the shared cost">Size (ml)</span>}
-                <span className="text-right">Cost each</span>
-              </div>
-              <div className="divide-y divide-border">
-                {lines.map((l) => {
-                  const each = preview.perUnit.get(l.variantId);
-                  return (
-                    <div
-                      key={l.variantId}
-                      className={cn(
-                        'grid gap-2 px-3 py-2 items-center [&>*]:min-w-0',
-                        multi ? 'grid-cols-[minmax(0,1.3fr)_5rem_6rem_5.5rem_5.5rem]' : 'grid-cols-[minmax(0,1.3fr)_5rem_6rem_5.5rem]',
-                      )}
-                    >
+            {!isMobile ? (
+              <div className="rounded-lg border border-border">
+                <div className={cn('grid gap-2 px-3 py-2 border-b border-border bg-muted/40 text-[11px] text-muted-foreground', cols)}>
+                  <span>{multi ? 'Size' : 'Item'}</span>
+                  <span>How many made</span>
+                  {bySize && (
+                    <span className="flex items-center gap-1">
+                      Amount in each
+                      <select value={unit} onChange={(e) => setUnit(e.target.value)} className="h-5 rounded border border-border bg-background text-[11px]" aria-label="Unit">
+                        {UNITS.map((u) => (
+                          <option key={u}>{u}</option>
+                        ))}
+                      </select>
+                    </span>
+                  )}
+                  <span className="text-right">Cost each</span>
+                </div>
+                <div className="divide-y divide-border">
+                  {lines.map((l) => (
+                    <div key={l.variantId} className={cn('grid gap-2 px-3 py-2 items-center [&>*]:min-w-0', cols)}>
                       <span className="text-sm font-medium capitalize truncate">{l.label}</span>
-                      <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="0" value={l.qty} onWheel={blur} onChange={(e) => update(l.variantId, { qty: e.target.value })} aria-label={`${l.label} made`} />
-                      <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="0.00" value={l.extra} onWheel={blur} onChange={(e) => update(l.variantId, { extra: e.target.value })} aria-label={`${l.label} packaging cost`} />
-                      {multi && (
-                        <input type="number" inputMode="decimal" min={0} step="any" className={field} placeholder="e.g. 500" value={l.volume} onWheel={blur} onChange={(e) => update(l.variantId, { volume: e.target.value })} aria-label={`${l.label} size in ml`} />
-                      )}
-                      <span className="text-right text-sm tabular-nums">{each !== undefined ? `GHS ${each.toFixed(2)}` : '—'}</span>
+                      {qtyInput(l)}
+                      {bySize && amountInput(l)}
+                      <span className="text-right text-sm tabular-nums">{costEach(l)}</span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                {bySize && (
+                  <label className="flex items-center justify-between text-xs text-muted-foreground">
+                    Amount measured in
+                    <select value={unit} onChange={(e) => setUnit(e.target.value)} className="h-8 px-2 rounded-md border border-border bg-background text-sm">
+                      {UNITS.map((u) => (
+                        <option key={u}>{u}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {lines.map((l) => (
+                  <div key={l.variantId} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium capitalize truncate">{l.label}</span>
+                      <span className="text-sm tabular-nums text-muted-foreground">{costEach(l)}</span>
+                    </div>
+                    <div className={cn('grid gap-2', bySize ? 'grid-cols-2' : 'grid-cols-1')}>
+                      <label>
+                        <span className="block text-[11px] text-muted-foreground mb-1">How many made</span>
+                        {qtyInput(l)}
+                      </label>
+                      {bySize && (
+                        <label>
+                          <span className="block text-[11px] text-muted-foreground mb-1">Amount in each ({unit})</span>
+                          {amountInput(l)}
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>
-                {multi &&
-                  (preview.basis === 'volume'
-                    ? 'Shared cost split by size (ml).'
-                    : preview.basis === 'price'
-                      ? 'No sizes entered — shared cost split by selling price.'
-                      : 'Shared cost split equally.')}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">
+                {splitNote}
+                {multi && (
+                  <button type="button" onClick={() => setBySize((v) => !v)} className="ml-2 font-semibold text-foreground hover:underline">
+                    {bySize ? 'Split by selling price instead' : 'Split by size instead ›'}
+                  </button>
+                )}
               </span>
-              {preview.madeCount > 0 && (
-                <span className="font-medium text-foreground">
-                  {preview.madeCount} made · total GHS {preview.totalCost.toFixed(2)}
-                </span>
-              )}
+              {preview.count > 0 && <span className="font-medium">{preview.count} made</span>}
             </div>
+            {missingAmounts && <p className="text-[11px] text-destructive">Enter the amount in each for every size you made.</p>}
 
             <input className={field} placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
-            <p className="text-[11px] text-muted-foreground">Don't also record these ingredients as an expense.</p>
           </div>
         )
       }

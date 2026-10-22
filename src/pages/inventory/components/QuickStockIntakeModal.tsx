@@ -1,3 +1,4 @@
+import { Icon } from "@iconify/react";
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Package, 
@@ -37,6 +38,8 @@ export interface ProductStockItem {
   imageUrl?: string;
   packaging_tiers?: PackagingTier[];
   cost_price?: number;
+  /** Made in-house: stock comes from recorded batches, so there's no supplier/cost here. */
+  isMadeInHouse?: boolean;
 }
 
 interface SupplierOption {
@@ -49,6 +52,8 @@ interface QuickStockIntakeModalProps {
   onClose: () => void;
   product: ProductStockItem | null;
   onSuccess?: () => void;
+  /** Opens the multi-size "Record batch" form for this product (in-house products). */
+  onRecordBatch?: (productId: string) => void;
 }
 
 export function QuickStockIntakeModal({
@@ -56,6 +61,7 @@ export function QuickStockIntakeModal({
   onClose,
   product,
   onSuccess,
+  onRecordBatch,
 }: QuickStockIntakeModalProps) {
   const [adjustmentMode, setAdjustmentMode] = useState<"add" | "reduce">("add");
   const [inputQuantity, setInputQuantity] = useState("");
@@ -74,7 +80,7 @@ export function QuickStockIntakeModal({
       setAdjustmentMode("add");
       setInputQuantity("");
       setSelectedTierId("base");
-      setReason("shipment");
+      setReason(product.isMadeInHouse ? "correction" : "shipment");
       setUnitCost("");
       setBatchCost("");
       setSelectedSupplierId("");
@@ -201,6 +207,15 @@ export function QuickStockIntakeModal({
 
   // Reason Options
   const reasonOptions = useMemo(() => {
+    if (adjustmentMode === "add" && product?.isMadeInHouse) {
+      // New stock of in-house items comes from "Record batch"; here only fix the count
+      return [
+        { label: "Physical Count Correction (+)", value: "correction" },
+        { label: "Returned from Event / Warehouse", value: "returned" },
+        { label: "Initial Stock Balance", value: "initial_balance" },
+        { label: "Other Reason", value: "other" },
+      ];
+    }
     if (adjustmentMode === "add") {
       return [
         { label: "New Shipment / Supplier Delivery", value: "shipment" },
@@ -220,7 +235,7 @@ export function QuickStockIntakeModal({
       { label: "Loss / Shrinkage", value: "theft" },
       { label: "Other Reason", value: "other" },
     ];
-  }, [adjustmentMode]);
+  }, [adjustmentMode, product?.isMadeInHouse]);
 
   // Count corrections and returns put back stock we already costed: no new cost
   const costApplies = !["correction", "returned"].includes(reason);
@@ -399,6 +414,24 @@ export function QuickStockIntakeModal({
             </div>
           )}
 
+          {/* In-house products: new stock is recorded as a batch (all sizes, cost worked out) */}
+          {adjustmentMode === "add" && product.isMadeInHouse && onRecordBatch && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onRecordBatch(product.productId);
+              }}
+              className="w-full flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2.5 text-left hover:bg-primary/10"
+            >
+              <span>
+                <span className="block text-sm font-semibold">Made a new batch?</span>
+                <span className="block text-xs text-muted-foreground">Record it for all sizes and the cost is worked out for you.</span>
+              </span>
+              <Icon icon="lucide:chevron-right" className="text-lg shrink-0" />
+            </button>
+          )}
+
           {/* Reason for Adjustment */}
           <CustomSelectField
             label="Reason for Adjustment *"
@@ -431,7 +464,7 @@ export function QuickStockIntakeModal({
           )}
 
           {/* Supplier & Unit Cost (Optional for additions) */}
-          {adjustmentMode === "add" && reason !== "production" && costApplies && (
+          {adjustmentMode === "add" && reason !== "production" && costApplies && !product.isMadeInHouse && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <CustomSelectField
                 label="Supplier (Optional)"

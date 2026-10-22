@@ -174,7 +174,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         </label>
         {madeInHouse && (
           <label className="w-24">
-            <span className={small} title="Used to split a shared batch cost between sizes">Size (ml)</span>
+            <span className={small} title="Optional: e.g. 500 (g or ml). Lets a batch's cost be split by size instead of selling price">Amount in each</span>
             <input
               type="number"
               inputMode="decimal"

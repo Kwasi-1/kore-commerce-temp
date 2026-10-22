@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { BulkStockUploadModal } from './components/BulkStockUploadModal';
 import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
+import RecordBatchModal from '@/components/inventory/RecordBatchModal';
 import { StockHistoryModal } from './components/StockHistoryModal';
 import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
 import {
@@ -30,6 +31,8 @@ export default function StockManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
   const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set(['all']));
+  const [sourceFilter, setSourceFilter] = useState<Selection>(new Set(['all']));
+  const [batchProductId, setBatchProductId] = useState<string | null>(null);
 
   // Modals state
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
@@ -58,6 +61,7 @@ export default function StockManagement() {
           imageUrl: p.images?.[0] || p.imageUrl,
           packaging_tiers: p.packaging_tiers || [],
           cost_price: p.cost_price_per_base_unit || 0,
+          isMadeInHouse: !!p.is_made_in_house,
         });
       } else {
         variants.forEach((v: any) => {
@@ -77,6 +81,7 @@ export default function StockManagement() {
             imageUrl: p.images?.[0] || p.imageUrl,
             packaging_tiers: v.packaging_tiers || p.packaging_tiers || [],
             cost_price: v.cost_price_per_base_unit || 0,
+            isMadeInHouse: !!p.is_made_in_house,
           });
         });
       }
@@ -98,6 +103,9 @@ export default function StockManagement() {
 
       const catVal = categoryFilter instanceof Set ? Array.from(categoryFilter)[0] : categoryFilter;
       if (catVal && catVal !== 'all') url += `&category=${encodeURIComponent(String(catVal))}`;
+
+      const srcVal = sourceFilter instanceof Set ? Array.from(sourceFilter)[0] : sourceFilter;
+      if (srcVal === 'made_in_house') url += '&made_in_house=true';
 
       const stockVal = stockStatusFilter instanceof Set
         ? Array.from(stockStatusFilter)[0]
@@ -124,7 +132,7 @@ export default function StockManagement() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [searchQuery, categoryFilter, stockStatusFilter]);
+  }, [searchQuery, categoryFilter, stockStatusFilter, sourceFilter]);
 
   const handleLoadMore = () => {
     if (isLoading || isLoadingMore || !pagination?.hasNext) return;
@@ -400,12 +408,26 @@ export default function StockManagement() {
                 ...categories.map((c) => ({ uid: c, name: c })),
               ],
             },
+            {
+              label: 'Source',
+              value: sourceFilter,
+              onChange: (keys: any) => setSourceFilter(keys),
+              options: [
+                { uid: 'all', name: 'All Products' },
+                { uid: 'made_in_house', name: 'Made In-House' },
+              ],
+            },
           ]}
           rowActions={[
             {
               key: 'adjust',
               label: 'Adjust Stock Level',
               icon: 'fluent:arrow-swap-20-filled',
+            },
+            {
+              key: 'record_batch',
+              label: 'Record Batch (Made In-House)',
+              icon: 'fluent:beaker-20-filled',
             },
             {
               key: 'history',
@@ -419,6 +441,9 @@ export default function StockManagement() {
               handleOpenRestock(originalProduct);
             } else if (actionKey === 'history') {
               handleOpenHistory(originalProduct);
+            } else if (actionKey === 'record_batch') {
+              if (originalProduct?.isMadeInHouse) setBatchProductId(originalProduct.productId);
+              else toast('Only for products you make yourself. Turn on "Made in-house" when editing the product.');
             }
           }}
           showAddButton={true}
@@ -441,6 +466,13 @@ export default function StockManagement() {
           setSelectedProduct(null);
         }}
         product={selectedProduct}
+        onSuccess={() => fetchProducts(pagination?.page || 1)}
+        onRecordBatch={(id) => setBatchProductId(id)}
+      />
+
+      <RecordBatchModal
+        productId={batchProductId}
+        onClose={() => setBatchProductId(null)}
         onSuccess={() => fetchProducts(pagination?.page || 1)}
       />
 

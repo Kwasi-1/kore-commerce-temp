@@ -11,6 +11,7 @@ import type { ProductReportFilters, ReorderSuggestion } from '../types';
 import { buildApiParams } from '../hooks/useProductReport';
 import { formatRangeLabel } from '../utils/dates';
 import { formatCover, formatMoney, formatQty, rowDisplayName } from '../utils/format';
+import RecordBatchModal from '@/components/inventory/RecordBatchModal';
 
 interface Props {
   open: boolean;
@@ -56,6 +57,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
   const [lines, setLines] = useState<Line[]>([]);
   // Made in-house items are produced, not ordered from a supplier
   const [toMake, setToMake] = useState<ReorderSuggestion[]>([]);
+  const [batchProductId, setBatchProductId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -169,6 +171,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
   };
 
   return (
+    <>
     <CustomModal
       isOpen={open}
       onOpenChange={() => onOpenChange(false)}
@@ -205,13 +208,21 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
                 {toMake.map((s) => (
                   <li key={s.variant_id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{rowDisplayName(s)}</span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                    <span className="shrink-0 flex items-center gap-2 tabular-nums text-muted-foreground">
                       make about <b className="text-foreground">{formatQty(Math.ceil(s.needed_base_units))}</b> · {formatCover(s.days_of_cover)} left
+                      {s.product_id && (
+                        <button
+                          type="button"
+                          onClick={() => setBatchProductId(s.product_id)}
+                          className="h-7 px-2.5 rounded-md border border-border text-xs font-semibold text-foreground hover:bg-muted"
+                        >
+                          Record batch
+                        </button>
+                      )}
                     </span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[11px] text-muted-foreground">Record them with “Record Batch” on the Products page once made.</p>
             </div>
           )}
 
@@ -351,5 +362,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
         </div>
       }
     />
+    <RecordBatchModal productId={batchProductId} onClose={() => setBatchProductId(null)} onSuccess={load} />
+    </>
   );
 }
