@@ -270,9 +270,11 @@ export default function PageLayout({
             </p>
           )}
 
-          {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop and omitted in action-bridge variant) */}
+          {/* Row 2: filterSlot + actions (Mobile only, hidden on desktop and omitted in action-bridge variant).
+              Collapses when everything inside is desktop-only ("hidden md:flex"): the check looks at the
+              content one level below the wrapper divs, otherwise the empty wrappers leave a blank gap. */}
           {headerVariant !== "action-bridge" && (actions || filterSlot) && (
-            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2 empty:hidden [&:not(:has(>*:not(.hidden)))]:hidden">
+            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2 empty:hidden [&:not(:has(>*>*:not(.hidden)))]:hidden">
               {filterSlot && <div className="shrink-0">{filterSlot}</div>}
               {actions && (
                 <div className="flex items-center gap-3 w-full sm:w-auto">
