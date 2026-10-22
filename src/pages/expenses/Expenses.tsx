@@ -156,7 +156,7 @@ export default function Expenses() {
     }
 
     try {
-      await apiClient.post(`/tenant/expenses/${expenseId}/void`);
+      await apiClient.put(`/tenant/expenses/${expenseId}/void`);
       toast.success('Expense voided successfully');
       fetchExpenses();
     } catch (error: any) {
@@ -255,7 +255,7 @@ export default function Expenses() {
         </span>
       ),
       rowActions: [
-        ...(!isVoided && isManagerOrOwner
+        ...(!isVoided && isManagerOrOwner && !item.is_pos_movement
           ? [
               {
                 key: 'void',
@@ -558,7 +558,7 @@ export default function Expenses() {
                         }`}>
                           {isVoided ? 'Voided' : 'Valid'}
                         </span>
-                        {!isVoided && isManagerOrOwner && (
+                        {!isVoided && isManagerOrOwner && !item.is_pos_movement && (
                           <Button
                             size="sm"
                             variant="ghost"

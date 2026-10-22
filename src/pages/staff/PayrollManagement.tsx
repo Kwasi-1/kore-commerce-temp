@@ -158,17 +158,18 @@ export default function PayrollManagement() {
 
   // Combined Log Rows: Merging Batch Runs + Standalone Single Payouts
   const combinedLogRows = useMemo(() => {
-    const runIds = new Set(
-      payrollRuns.flatMap((r) => r.disbursals?.map((d: any) => d.id) || [])
-    );
+    // A run's lines come back as `items`; lines that belong to a run are shown inside it, not again on their own
+    const runLines = (r: any) => r.items || r.disbursals || [];
+    const runIds = new Set(payrollRuns.flatMap((r) => runLines(r).map((d: any) => d.id)));
+    const isRunLine = (d: any) => runIds.has(d.id) || !!d.run_id;
 
     const runRows = payrollRuns.map((r) => ({
       id: r.id,
       is_run: true,
       pay_period: r.name || r.pay_period || 'Payroll Run',
-      recipients_text: `${r.recipient_count || r.disbursals?.length || 0} Recipients`,
-      platform_count: r.disbursals?.filter((d: any) => !d.is_off_platform).length || 0,
-      external_count: r.disbursals?.filter((d: any) => d.is_off_platform).length || 0,
+      recipients_text: `${r.recipients_count ?? runLines(r).filter((d: any) => d.status !== 'voided').length} Recipients`,
+      platform_count: r.platform_count ?? runLines(r).filter((d: any) => !d.is_off_platform && d.status !== 'voided').length,
+      external_count: r.external_count ?? runLines(r).filter((d: any) => d.is_off_platform && d.status !== 'voided').length,
       amount: r.total_amount || 0,
       payment_method: 'Multiple Methods',
       disbursal_date: r.disbursal_date,
@@ -176,7 +177,7 @@ export default function PayrollManagement() {
       __record: r,
     }));
 
-    const singleDisbursals = disbursalLog.filter((d) => !runIds.has(d.id));
+    const singleDisbursals = disbursalLog.filter((d) => !isRunLine(d));
     const singleRows = singleDisbursals.map((d) => ({
       id: d.id,
       is_run: false,
