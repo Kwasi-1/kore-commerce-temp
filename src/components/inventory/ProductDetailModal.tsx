@@ -101,10 +101,10 @@ export function ProductDetailModal({
     ? currentProduct.status.toLowerCase() === "active"
     : currentProduct.is_active !== false;
 
+  // The selected variant's own photo, else the product's main photo
   const productImageUrl =
-    currentProduct.images && currentProduct.images[0]
-      ? currentProduct.images[0]
-      : currentProduct.imageUrl;
+    activeVariant?.image_url ||
+    (currentProduct.images && currentProduct.images[0] ? currentProduct.images[0] : currentProduct.imageUrl);
 
   // Extract primary retail price for active variant
   const defaultTier =

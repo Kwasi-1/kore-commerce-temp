@@ -241,7 +241,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           name: combinedName,
           sku: variant.sku,
           price: defaultPrice,
-          imageUrl: item.imageUrl || item.images?.[0] || undefined,
+          imageUrl: variant.imageUrl || item.thumbnail || item.images?.[0] || undefined,
           category: item.category || 'General',
           description: item.description,
           stock_quantity: variant.stock_quantity ?? 0,

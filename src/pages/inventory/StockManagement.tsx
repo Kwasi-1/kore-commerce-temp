@@ -78,7 +78,7 @@ export default function StockManagement() {
             sku: v.sku || p.sku || '—',
             quantity: Number(v.stock_quantity ?? 0),
             base_unit_name: v.base_unit_name || p.base_unit_name || 'units',
-            imageUrl: p.images?.[0] || p.imageUrl,
+            imageUrl: v.image_url || p.images?.[0] || p.imageUrl,
             packaging_tiers: v.packaging_tiers || p.packaging_tiers || [],
             cost_price: v.cost_price_per_base_unit || 0,
             isMadeInHouse: !!p.is_made_in_house,

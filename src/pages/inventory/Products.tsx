@@ -664,9 +664,9 @@ export default function Products() {
           __record: p,
           __variant: v,
           rowClassName,
-          image: p.images && p.images[0] ? (
+          image: (v.image_url || p.images?.[0]) ? (
             <img
-              src={p.images[0]}
+              src={v.image_url || p.images[0]}
               alt={fullName}
               className="h-10 w-10 rounded-lg object-cover bg-muted border"
             />
@@ -913,7 +913,7 @@ export default function Products() {
           name: fullName,
           category: p.category || "General",
           sku: v.sku || "—",
-          image: p.images?.[0] || null,
+          image: v.image_url || p.images?.[0] || null,
           price: retailPrice,
           stockQty: numStock,
           unit,
