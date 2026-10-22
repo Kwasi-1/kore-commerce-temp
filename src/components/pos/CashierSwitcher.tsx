@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/popover";
 import { Button } from '@/components/ui/button';
 import CustomModal from '@/components/modals/modal';
-import { CustomInputTextField } from '@/components/shared/text-field';
 import toast from 'react-hot-toast';
+import PinInput from './PinInput';
+import SetPinModal from './SetPinModal';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 export default function CashierSwitcher() {
   const { login, tenant } = useAuthStore();
@@ -18,6 +20,9 @@ export default function CashierSwitcher() {
   const [pin, setPin] = useState('');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [isSetPinOpen, setIsSetPinOpen] = useState(false);
 
   const getStaffName = (cashier: any) => {
     if (!cashier) return 'Staff Member';
@@ -49,28 +54,48 @@ export default function CashierSwitcher() {
     setSelectedCashier(cashier);
     setIsPopoverOpen(false);
     setPin('');
+    setPinError(null);
     setIsPinModalOpen(true);
   };
 
-  const handlePinSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cashierName = getStaffName(selectedCashier);
-    if (pin.length >= 4) {
-      toast.success(`Logged in as ${cashierName}`);
-      const currentToken = useAuthStore.getState().token;
-      const currentRefresh = useAuthStore.getState().refreshToken;
-      const currentGraceInfo = useAuthStore.getState().graceInfo;
-      login(
-        currentToken || '',
-        currentRefresh || '',
-        { ...selectedCashier, name: cashierName },
-        tenant || { id: 't1', name: 'Default Tenant', plan: 'starter' },
-        false,
-        currentGraceInfo
-      );
-      setIsPinModalOpen(false);
-    } else {
-      toast.error('Invalid PIN');
+  // Switch the whole session to the chosen person: the server checks their PIN and returns their
+  // own login, so sales, permissions and approvals are theirs (not whoever signed in earlier).
+  const switchTo = (data: any) => {
+    const cashierName = getStaffName(data?.staff || selectedCashier);
+    login(
+      data.access_token,
+      data.refresh_token,
+      data.staff,
+      data.tenant || tenant,
+      false,
+      data.grace_info ?? null
+    );
+    useFeaturesStore.getState().loadFeatures();
+    toast.success(`Signed in as ${cashierName}`);
+    setIsPinModalOpen(false);
+    setPin('');
+  };
+
+  const handlePinSubmit = async (value: string = pin) => {
+    if (value.length !== 4 || !selectedCashier || isVerifying) return;
+    setIsVerifying(true);
+    setPinError(null);
+    try {
+      const response = await apiClient.post('/pos/auth/verify-pin', { staff_id: selectedCashier.id, pin: value });
+      const data = response.data.success?.data || {};
+      if (!data.access_token) throw new Error('No login returned');
+      if (data.is_default_pin) {
+        // Still on the default 1234: they choose their own PIN first (SetPinModal signs them in)
+        setIsPinModalOpen(false);
+        setIsSetPinOpen(true);
+        return;
+      }
+      switchTo(data);
+    } catch (error: any) {
+      setPinError(error?.response?.data?.error?.message || 'Incorrect PIN. Try again.');
+      setPin('');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -90,21 +115,33 @@ export default function CashierSwitcher() {
         </div>
       )}
       
-      <form onSubmit={handlePinSubmit} className="w-full space-y-6">
-        <CustomInputTextField
-          type="password"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={4}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handlePinSubmit();
+        }}
+        className="w-full space-y-4"
+        autoComplete="off"
+      >
+        <PinInput
           value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          placeholder="****"
-          className="text-center text-2xl tracking-[0.5em] font-bold"
-          labelPlacement='outside'
+          onChange={(v) => {
+            setPin(v);
+            if (pinError) setPinError(null);
+          }}
+          onComplete={handlePinSubmit}
+          error={!!pinError}
+          disabled={isVerifying}
           autoFocus
         />
-        <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm">
-          Unlock Register
+        {pinError && <p className="text-center text-[13px] font-medium text-destructive">{pinError}</p>}
+        <Button
+          type="submit"
+          variant="secondary"
+          disabled={pin.length !== 4 || isVerifying}
+          className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm"
+        >
+          {isVerifying ? 'Checking…' : 'Unlock Register'}
         </Button>
       </form>
     </div>
@@ -173,6 +210,16 @@ export default function CashierSwitcher() {
           </div>
         }
         body={pinModalBody}
+      />
+
+      <SetPinModal
+        isOpen={isSetPinOpen}
+        staff={selectedCashier ? { id: selectedCashier.id, name: getStaffName(selectedCashier), role: selectedCashier.role } : null}
+        onSuccess={(resData: any) => {
+          setIsSetPinOpen(false);
+          if (resData?.access_token) switchTo(resData);
+        }}
+        onCancel={() => setIsSetPinOpen(false)}
       />
     </>
   );

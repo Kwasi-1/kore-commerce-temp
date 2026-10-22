@@ -161,6 +161,9 @@ export default function SetPinModal({ isOpen, staff, onSuccess, onCancel }: SetP
                 type="password"
                 inputMode="numeric"
                 maxLength={1}
+                autoComplete="one-time-code"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={digit}
                 onChange={(e) => handleDigitInput(i, e.target.value, currentPinArr, setArrFn)}
                 onKeyDown={(e) => handleKeyDown(i, e, currentPinArr)}

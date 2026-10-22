@@ -344,6 +344,9 @@ export default function CashierLockScreen() {
                       type="password"
                       inputMode="numeric"
                       maxLength={1}
+                      autoComplete="one-time-code"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
                       value={digit}
                       onChange={(e) => handleChange(i, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(i, e)}
