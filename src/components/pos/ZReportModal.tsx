@@ -40,7 +40,9 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             const totalCashSales = pb.cash || 0;
             const totalPaidIn = eod?.paid_in?.total || 0;
             const totalPaidOut = eod?.expenses?.total || 0;
-            const expectedCash = totalCashSales + totalPaidIn - totalPaidOut;
+            // Cash handed back to customers that day comes out of the drawer too
+            const totalCashRefunds = eod?.cash_refunds?.total || 0;
+            const expectedCash = totalCashSales + totalPaidIn - totalPaidOut - totalCashRefunds;
 
             setReportData({
               shift: {
@@ -65,6 +67,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 cash_sales: totalCashSales,
                 paid_in: totalPaidIn,
                 paid_out: totalPaidOut,
+                cash_refunds: totalCashRefunds,
                 expected_cash: expectedCash,
                 closing_count: expectedCash,
                 variance: 0,
