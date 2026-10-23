@@ -11,17 +11,18 @@ interface DebtSettlementModalProps {
   onSettle: (amount: number, method: string) => Promise<void>;
 }
 
-export default function DebtSettlementModal({ 
-  isOpen, 
-  onClose, 
-  debtor, 
-  onSettle 
+export default function DebtSettlementModal({
+  isOpen,
+  onClose,
+  debtor,
+  onSettle
 }: DebtSettlementModalProps) {
   const [amountStr, setAmountStr] = useState('');
   const [method, setMethod] = useState('cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const maxDebt = debtor?.outstanding_debt || 0;
+  // Balances are summed from several purchases (10.10 + 20.20 = 30.299999...): round to pesewas
+  const maxDebt = Math.round((Number(debtor?.outstanding_debt) || 0) * 100) / 100;
 
   useEffect(() => {
     if (isOpen && debtor) {
@@ -32,8 +33,8 @@ export default function DebtSettlementModal({
 
   const handleSettle = async () => {
     const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0 || amount > maxDebt) return;
-    
+    if (isNaN(amount) || amount <= 0 || amount > maxDebt + 0.001) return;
+
     setIsSubmitting(true);
     try {
       await onSettle(amount, method);
@@ -54,13 +55,13 @@ export default function DebtSettlementModal({
   const isValid = !isNaN(amount) && amount > 0 && amount <= maxDebt + 0.001;
 
   return (
-    <CustomModal 
-      isOpen={isOpen} 
-      onOpenChange={onClose} 
+    <CustomModal
+      isOpen={isOpen}
+      onOpenChange={onClose}
       placement="center"
       size="md"
       classNames={{
-        base: 'max-w-[28rem] mx-2.5',        
+        base: 'max-w-[28rem] mx-2.5',
       }}
       header={
         <div className="border-b border-border/50 pb-2 text-left">

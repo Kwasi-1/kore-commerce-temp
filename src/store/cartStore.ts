@@ -39,7 +39,7 @@ interface CartState {
   savedTransactions: SavedTransaction[];
   panelState: 'collapsed' | 'default' | 'expanded';
   tenantId: string | null;
-  
+
   // Actions
   syncTenant: (tenantId: string | null) => void;
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
@@ -49,20 +49,24 @@ interface CartState {
   updateItemPriceType: (productId: string, priceType: 'retail' | 'wholesale', newPrice: number) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
-  
+
   // Saved Transactions Actions
   saveTransaction: (customerName: string) => void;
   resumeTransaction: (transactionId: string) => void;
   deleteSavedTransaction: (transactionId: string) => void;
   clearAllSavedTransactions: () => void;
-  
+
   // UI State Actions
   setPanelState: (state: 'collapsed' | 'default' | 'expanded') => void;
 }
 
+// Money is rounded to pesewas the same way the server does (each line, then the sum). Without it
+// 1.10 x 3 = 3.3000000000000003 and an exact GHS 3.30 cash payment is refused as "less than total".
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
 const calculateTotals = (items: CartItem[], discount: number) => {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total = Math.max(0, subtotal - discount);
+  const subtotal = round2(items.reduce((sum, item) => sum + round2(item.price * item.quantity), 0));
+  const total = round2(Math.max(0, subtotal - (discount || 0)));
   return { subtotal, total };
 };
 
@@ -109,7 +113,7 @@ export const useCartStore = create<CartState>()(
         set((state) => {
           const existingItem = state.items.find((i) => i.productId === newItem.productId);
           let newItems;
-          
+
           if (existingItem) {
             newItems = state.items.map((i) =>
               i.productId === newItem.productId
@@ -138,7 +142,7 @@ export const useCartStore = create<CartState>()(
             const totals = calculateTotals(newItems, state.discount);
             return { items: newItems, ...totals };
           }
-          
+
           const newItems = state.items.map((item) =>
             item.productId === productId ? { ...item, quantity } : item
           );
@@ -206,7 +210,7 @@ export const useCartStore = create<CartState>()(
           const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const cartNumber = state.savedTransactions.length + 1;
           const finalCustomerName = customerName || `Cart ${cartNumber}`;
-          
+
           const getInitials = (name: string) => {
             if (name.startsWith('Cart ')) {
               return `C${name.split(' ')[1]}`;
@@ -229,7 +233,7 @@ export const useCartStore = create<CartState>()(
             discount: state.discount,
             savedAt: now.toISOString(),
           };
-          
+
           const updatedSaved = filterExpiredTransactions([...state.savedTransactions, newTransaction]);
 
           return {
@@ -254,7 +258,7 @@ export const useCartStore = create<CartState>()(
             const now = new Date();
             const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const cartNumber = updatedSavedTransactions.length + 1;
-            
+
             const autoSaveName = `Cart ${cartNumber}`;
             const autoSaveTransaction: SavedTransaction = {
               id: `T${Date.now()}_auto`,
@@ -266,12 +270,12 @@ export const useCartStore = create<CartState>()(
               discount: state.discount,
               savedAt: now.toISOString(),
             };
-            
+
             updatedSavedTransactions = [...updatedSavedTransactions, autoSaveTransaction];
           }
 
           const totals = calculateTotals(transactionToResume.items, transactionToResume.discount);
-          
+
           return {
             savedTransactions: updatedSavedTransactions,
             items: transactionToResume.items,

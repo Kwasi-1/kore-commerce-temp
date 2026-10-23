@@ -171,9 +171,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
 
-  const saveOfflineSale = (toastId?: string) => {
-    // A manager's PIN approval is checked by the server, so it can't happen offline
-    const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'));
+  // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
+  const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'));
+
+  /**
+   * Save the sale on the till and sync it in the background. Used for every sale that doesn't need
+   * Paystack or a manager's approval (offline-first: instant receipt, no waiting on the network), and
+   * as the fallback when an online attempt loses its connection. `key` reuses the online attempt's
+   * idempotency key so a sale the server did receive isn't recorded twice.
+   */
+  const saveOfflineSale = (toastId?: string, opts: { online?: boolean; key?: string } = {}) => {
     if (needsApproval) {
       const message = isCreditSale && !can('pos.credit_sale')
         ? "Credit sales need a manager's approval, which needs an internet connection."
@@ -184,6 +191,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
     const localId = crypto.randomUUID();
+    const idempotencyKey = opts.key || `offline-${localId}`;
     const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || '';
     const prefix = getReceiptPrefix(effectiveStoreName, posSettings.receipt_prefix);
     const offlineReceiptNum = generatePosOrderNumber(prefix);
@@ -213,6 +221,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
       customerName: isCreditSale ? customerName : undefined,
       customerPhone: isCreditSale ? customerPhone : undefined,
+      // Recorded under the person who made the sale, at the time it was made (someone else may be
+      // signed in on a shared till by the time it syncs)
+      cashierId: staffUser?.id,
       offlineCreatedAt: new Date().toISOString(),
     };
     if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
@@ -220,15 +231,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
     enqueue({
       localId,
-      idempotencyKey: `offline-${localId}`,
+      idempotencyKey,
       payload: offlinePayload,
       createdAt: new Date().toISOString(),
     });
+    if (opts.online) window.dispatchEvent(new CustomEvent('pos:sync-now'));
 
     setReceiptData({ receiptNumber: offlineReceiptNum, dateCreated: new Date().toISOString() });
     setFrozenCart({ items, subtotal, discount, tax, total });
     clearCart();
-    setIsOfflineSale(true);
+    setIsOfflineSale(!opts.online);
     setIsSuccess(true);
     setIsProcessing(false);
 
@@ -236,7 +248,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setTimeout(() => window.print(), 100);
     }
 
-    if (toastId) {
+    if (opts.online) {
+      if (toastId) toast.success('Payment successful!', { id: toastId });
+    } else if (toastId) {
       toast.success('Connection dropped — sale saved offline and will sync automatically', { id: toastId, duration: 5000 });
     } else {
       toast.success('Sale saved — will sync when back online');
@@ -273,7 +287,18 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    // ─── ONLINE BRANCH ─────────────────────────────────────────────────────────
+    // ─── OFFLINE-FIRST: anything that doesn't need Paystack or a manager's PIN ──
+    // Cash, manual MoMo and credit are saved on the till and synced straight away in the background.
+    const needsGateway = !isCreditSale && (activeTab === 'card' || (activeTab === 'mobile_money' && isPaystackEnabled));
+    if (!needsGateway && !needsApproval) {
+      saveOfflineSale(undefined, { online: true });
+      return;
+    }
+
+    // ─── ONLINE BRANCH (gateway payments, or a manager's approval needed) ─────
+    // The same key goes with the offline fallback, so a sale the server received before the
+    // connection dropped isn't recorded twice
+    const attemptKey = `pos-${crypto.randomUUID()}`;
     const toastId = toast.loading('Processing payment...');
     try {
       const payload: any = {
@@ -305,7 +330,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         }
       }
 
-      const response = await apiClient.post('/pos/transactions', payload);
+      const response = await apiClient.post('/pos/transactions', payload, { headers: { 'X-Idempotency-Key': attemptKey } });
 
       toast.success('Payment successful!', { id: toastId });
       setReceiptData(response.data.success?.data?.receipt || { receiptNumber: 'RCP-' + Date.now().toString().slice(-4), dateCreated: new Date().toISOString() });
@@ -333,7 +358,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
       // If online call failed due to network disconnect/timeout, fallback to offline queue (Cash / MoMo / Credit)
       if (isNetworkError && activeTab !== 'card') {
-        saveOfflineSale(toastId);
+        saveOfflineSale(toastId, { key: attemptKey });
         return;
       }
 

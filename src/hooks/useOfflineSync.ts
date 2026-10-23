@@ -6,9 +6,19 @@
  * - 2.5s stabilization delay after 'online' hardware event to allow DNS/Render connection to establish.
  * - Transient error isolation: 'Network Error' / timeouts keep the transaction in 'pending' (auto-retries)
  *   instead of permanently marking it as 'failed'.
- * - Business logic rejections (400, 409) are marked as 'failed' with detailed reasons for cashier review.
- * - Periodic background sync check (every 25 seconds) to drain any remaining pending sales.
+ * - Business logic rejections (400, 403, 404, 409, 422) are marked as 'failed' with detailed reasons for
+ *   cashier review. Server errors (5xx), timeouts (408), rate limits (429) and expired logins (401) are
+ *   transient: the sale stays pending and retries.
+ * - Sales are saved on the till first (offline-first), so a 'pos:sync-now' event drains the queue
+ *   straight away; a periodic check (every 25 seconds) catches anything left.
  */
+
+// Worth retrying later rather than asking the cashier to review
+const isTransient = (err: any): boolean => {
+  const status: number | undefined = err?.response?.status;
+  if (!status) return true; // no response: network down, DNS, cold start
+  return status >= 500 || status === 408 || status === 429 || status === 401;
+};
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
@@ -64,20 +74,19 @@ export function useOfflineSync(): OfflineSyncStatus {
           console.info(`[useOfflineSync] Transaction ${transaction.localId} was already processed idempotently.`);
         }
       } catch (err: any) {
-        const hasServerResponse = Boolean(err?.response);
         const reason =
           err?.response?.data?.error?.message ||
           err?.message ||
           'Network Error';
 
-        if (hasServerResponse) {
+        if (!isTransient(err)) {
           // Explicit server business rejection (e.g. 400 Bad Data, 409 Insufficient Stock)
           useOfflineQueueStore.getState().markFailed(transaction.localId, reason);
           businessFailedCount++;
           console.warn(`[useOfflineSync] Business validation error on ${transaction.localId}:`, reason);
         } else {
-          // Transient network error (DNS not ready, server cold start, connection dropped)
-          // Keep it in 'pending' state so it retries on the next sync cycle
+          // Transient (connection dropped, server restarting, login expired): keep it pending
+          // so it retries on the next sync cycle
           useOfflineQueueStore.getState().retryTransaction(transaction.localId);
           networkInterrupted = true;
           console.warn(`[useOfflineSync] Transient network error syncing ${transaction.localId}. Retrying shortly:`, reason);
@@ -115,6 +124,11 @@ export function useOfflineSync(): OfflineSyncStatus {
     if (networkInterrupted && syncedCount === 0 && businessFailedCount === 0) {
       toast.dismiss(toastId);
     }
+
+    // Sales saved while this run was going: send them too
+    if (!networkInterrupted && useOfflineQueueStore.getState().queue.some((t) => t.syncStatus === 'pending')) {
+      scheduleDrain(300);
+    }
   };
 
   const scheduleDrain = (delayMs = 2500) => {
@@ -139,6 +153,12 @@ export function useOfflineSync(): OfflineSyncStatus {
 
     window.addEventListener('online', handleOnline);
 
+    // A sale was just saved on the till: send it now
+    const handleSyncNow = () => {
+      if (navigator.onLine) scheduleDrain(0);
+    };
+    window.addEventListener('pos:sync-now', handleSyncNow);
+
     // Periodic sync poll every 25s while online to catch any pending items
     const interval = setInterval(() => {
       if (navigator.onLine) {
@@ -148,6 +168,7 @@ export function useOfflineSync(): OfflineSyncStatus {
 
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('pos:sync-now', handleSyncNow);
       clearInterval(interval);
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);

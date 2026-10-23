@@ -124,6 +124,14 @@ export const useOfflineQueueStore = create<OfflineQueueState>()(
         pendingCount: state.pendingCount,
         failedCount: state.failedCount,
       }),
+      // A sale left "syncing" (app closed mid-sync) would never be retried: send it again.
+      // The server recognises it by its idempotency key if it did get through.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.queue = state.queue.map((t) => (t.syncStatus === 'syncing' ? { ...t, syncStatus: 'pending' as const } : t));
+        state.pendingCount = countPending(state.queue);
+        state.failedCount = countFailed(state.queue);
+      },
     }
   )
 );
