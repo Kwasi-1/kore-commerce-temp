@@ -138,17 +138,21 @@ export default function PurchaseOrders() {
     setPoToReceive(po);
   };
 
+  // Fractional quantities are allowed (e.g. 2.5 cartons). Keep what's typed ("1." while typing)
+  // and only cap it at what's still outstanding.
   const handleReceiveQtyChange = (index: number, valStr: string) => {
-    const rawVal = parseInt(valStr, 10);
     setReceiveRows((prev) =>
       prev.map((row, i) => {
         if (i !== index) return row;
-        const maxAllowed = Math.max(0, row.quantity_ordered - row.quantity_already_received);
-        if (!isNaN(rawVal) && rawVal > maxAllowed) {
+        if (valStr === '') return { ...row, quantity_to_receive: '' };
+        if (!/^\d*\.?\d{0,3}$/.test(valStr)) return row;
+        const maxAllowed = Math.max(0, Math.round((row.quantity_ordered - row.quantity_already_received) * 1000) / 1000);
+        const val = parseFloat(valStr);
+        if (!isNaN(val) && val > maxAllowed) {
           toast.error(`Quantity cannot exceed remaining (${maxAllowed})`, { id: 'po-max-qty' });
+          return { ...row, quantity_to_receive: maxAllowed };
         }
-        const clampedVal = isNaN(rawVal) ? 0 : Math.min(maxAllowed, Math.max(0, rawVal));
-        return { ...row, quantity_to_receive: clampedVal };
+        return { ...row, quantity_to_receive: valStr };
       })
     );
   };
@@ -166,7 +170,7 @@ export default function PurchaseOrders() {
     setReceiveRows((prev) =>
       prev.map((row) => ({
         ...row,
-        quantity_to_receive: Math.max(0, row.quantity_ordered - row.quantity_already_received),
+        quantity_to_receive: Math.max(0, Math.round((row.quantity_ordered - row.quantity_already_received) * 1000) / 1000),
       }))
     );
   };

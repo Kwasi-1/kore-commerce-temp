@@ -142,6 +142,7 @@ export default function PurchaseOrderReceiveModal({
                         <Input
                           type="number"
                           min="0"
+                          step="any"
                           max={row.quantity_remaining}
                           value={row.quantity_to_receive.toString()}
                           onChange={(e) => onReceiveQtyChange(idx, e.target.value)}
@@ -204,6 +205,7 @@ export default function PurchaseOrderReceiveModal({
                         <Input
                           type="number"
                           min="0"
+                          step="any"
                           max={row.quantity_remaining}
                           value={row.quantity_to_receive.toString()}
                           onChange={(e) => onReceiveQtyChange(idx, e.target.value)}

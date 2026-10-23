@@ -520,7 +520,8 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
                                 <td className="p-2 text-center">
                                   <input
                                     type="number"
-                                    min="1"
+                                    min="0"
+                                    step="any"
                                     value={item.quantity}
                                     onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
                                     className="w-full h-8 px-2 text-center border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
@@ -634,7 +635,8 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
                                 </label>
                                 <input
                                   type="number"
-                                  min="1"
+                                  min="0"
+                                  step="any"
                                   value={item.quantity}
                                   onChange={(e) => handleUpdateItemQty(idx, e.target.value)}
                                   className="w-full h-8 px-1 text-center border border-input rounded-md bg-background text-xs text-foreground font-semibold focus:outline-none focus:border-foreground/15"
