@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Globe,
   Store,
+  Download,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
@@ -146,6 +147,50 @@ export default function Products() {
     Record<string, boolean>
   >({});
 
+  // Current filters as query params ("&search=..&status=.."), shared by the list and the export
+  const filterParams = () => {
+    const first = (v: any) => (v instanceof Set ? Array.from(v)[0] : v);
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    const statusVal = first(statusFilter);
+    if (statusVal && statusVal !== "all") params.set("status", String(statusVal));
+    const categoryVal = first(categoryFilter);
+    if (categoryVal && categoryVal !== "all") params.set("category", String(categoryVal));
+    const brandVal = first(brandFilter);
+    if (brandVal && brandVal !== "all") params.set("brand", String(brandVal));
+    if (hasEcommerce && channelFilter !== "all") params.set("channel", String(channelFilter));
+    const query = params.toString();
+    return query ? `&${query}` : "";
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+  // Same columns as the bulk import template, built on the server so it includes every product
+  // matching the filters (not just this page). Cost prices only for people with "Profit & costs".
+  const handleExport = async () => {
+    setIsExporting(true);
+    const toastId = toast.loading("Preparing export...");
+    try {
+      const res = await apiClient.get(`/tenant/products/export?${filterParams().slice(1)}`, { responseType: "blob" });
+      const rowsHeader = res.headers["x-export-rows"];
+      const name = /filename="?([^"]+)"?/.exec(res.headers["content-disposition"] || "")?.[1] || "products.csv";
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+      const rows = Number(rowsHeader);
+      toast.success(
+        rowsHeader === undefined ? "Export downloaded" : rows ? `Exported ${rows} item${rows === 1 ? "" : "s"}` : "Nothing matched the filters",
+        { id: toastId }
+      );
+    } catch {
+      toast.error("Could not export products", { id: toastId });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const fetchProducts = async (pageNumber: number = 1, append: boolean = false) => {
     if (append) {
       setIsLoadingMore(true);
@@ -153,26 +198,7 @@ export default function Products() {
       setIsLoading(true);
     }
     try {
-      let url = `/tenant/products?page=${pageNumber}&limit=20`;
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      const statusVal =
-        statusFilter instanceof Set
-          ? Array.from(statusFilter)[0]
-          : statusFilter;
-      if (statusVal && statusVal !== "all") url += `&status=${statusVal}`;
-      const categoryVal =
-        categoryFilter instanceof Set
-          ? Array.from(categoryFilter)[0]
-          : categoryFilter;
-      if (categoryVal && categoryVal !== "all")
-        url += `&category=${categoryVal}`;
-      const brandVal =
-        brandFilter instanceof Set ? Array.from(brandFilter)[0] : brandFilter;
-      if (brandVal && brandVal !== "all")
-        url += `&brand=${encodeURIComponent(String(brandVal))}`;
-      if (hasEcommerce && channelFilter !== "all") {
-        url += `&channel=${channelFilter}`;
-      }
+      const url = `/tenant/products?page=${pageNumber}&limit=20${filterParams()}`;
 
       const response = await apiClient.get(url);
       const data = response.data.success?.data?.products || [];
@@ -1513,6 +1539,13 @@ export default function Products() {
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleExport}
+                disabled={isExporting}
+                className="cursor-pointer text-[13px]"
+              >
+                <Download className="h-4 w-4 mr-2" /> Export Products (CSV)
+              </DropdownMenuItem>
               {hasEcommerce && (
                 <DropdownMenuItem
                   onClick={() => setIsCuratorModalOpen(true)}
@@ -1651,6 +1684,31 @@ export default function Products() {
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   Upload multiple products and inventory quantities in bulk
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={() => {
+                setIsAddChoiceModalOpen(false);
+                handleExport();
+              }}
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all text-left cursor-pointer group active:scale-[0.99] disabled:opacity-60"
+            >
+              <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center shrink-0 border border-border/40 text-foreground">
+                <Icon icon="solar:download-minimalistic-linear" className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Export Products (CSV)
+                  </h4>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Download the products matching your filters (same columns as the import)
                 </p>
               </div>
             </button>
