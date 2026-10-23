@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Upload, AlertCircle, Package, Download, CheckCircle2, Layers, Sparkles, Wand2 } from "lucide-react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ interface ParsedProduct {
   tags: string;
   _error?: string;
   _skuConflict?: boolean;
+  /** Set by the server check: this product or SKU is already in the store (import creates only) */
+  _exists?: string;
 }
 
 interface UploadResultSummary {
@@ -65,7 +67,10 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
     let error: string | undefined = undefined;
     let isSkuConflict = false;
 
-    if (!item.name) {
+    if (item._exists) {
+      // Already in the store: Bulk Import only creates new products
+      error = item._exists;
+    } else if (!item.name) {
       error = "Missing product name";
     } else if (isNaN(Number(item.retail_price)) || Number(item.retail_price) < 0) {
       error = "Invalid retail price";
@@ -80,7 +85,7 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
       }
     }
 
-    if (!error && item.name?.trim()) {
+    if (!error && !item._exists && item.name?.trim()) {
       const vKey = `${item.name.trim().toLowerCase()}:::${(item.variant_name || "").trim().toLowerCase()}`;
       if ((productVariantKeyCount.get(vKey) || 0) > 1) {
         error = item.variant_name?.trim()
@@ -92,10 +97,26 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
 
     return {
       ...item,
-      _error: error || (item._error?.startsWith("SKU '") || item._error?.startsWith("Variant '") ? item._error : undefined),
+      _error: error || (item._error?.startsWith("SKU '") || item._error?.startsWith("Variant '") || item._error?.startsWith("Product '") ? item._error : undefined),
       _skuConflict: isSkuConflict || Boolean(item._skuConflict),
     };
   });
+};
+
+// Ask the server which rows already exist (by SKU, or by product name), so they're excluded and the
+// user is pointed to updating them instead. Network errors leave rows unflagged; the server still
+// refuses existing products on import.
+const markExisting = async (rows: ParsedProduct[]): Promise<ParsedProduct[]> => {
+  try {
+    const res = await apiClient.post("/tenant/products/import-check", {
+      rows: rows.map((r) => ({ name: r.name, sku: r.sku })),
+    });
+    const existing: { index: number; message: string }[] = res.data?.success?.data?.existing || [];
+    const byIndex = new Map(existing.map((e) => [e.index, e.message]));
+    return rows.map((r, i) => ({ ...r, _exists: byIndex.get(i) }));
+  } catch {
+    return rows;
+  }
 };
 
 export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProductUploadModalProps) {
@@ -107,6 +128,10 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [totalImportedCount, setTotalImportedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (recheckTimer.current) clearTimeout(recheckTimer.current);
+  }, []);
 
   const handleFinishAndShowSummary = () => {
     const remainingErrors = parsedData.map((p) => ({
@@ -172,6 +197,11 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
         setParsedData(validateRows(processed));
         setStep("review");
+        markExisting(processed).then((checked) => {
+          setParsedData(validateRows(checked));
+          const n = checked.filter((r) => r._exists).length;
+          if (n > 0) toast(`${n} row${n === 1 ? " is" : "s are"} already in your store and won't be imported`, { icon: "ℹ️" });
+        });
       },
     });
   };
@@ -192,13 +222,20 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
 
   const handleCellChange = (index: number, field: keyof ParsedProduct, value: string) => {
     const newData = [...parsedData];
-    newData[index] = { 
-      ...newData[index], 
+    newData[index] = {
+      ...newData[index],
       [field]: value,
       // If user edits SKU, variant_name, or name, clear previous conflict flag so it can re-validate
       ...(field === "sku" || field === "variant_name" || field === "name" ? { _skuConflict: false, _error: undefined } : {})
     };
     setParsedData(validateRows(newData));
+    // Name or SKU changed: re-check against the store once typing pauses
+    if (field === "sku" || field === "name") {
+      if (recheckTimer.current) clearTimeout(recheckTimer.current);
+      recheckTimer.current = setTimeout(() => {
+        markExisting(newData).then((checked) => setParsedData((current) => validateRows(current.map((r, i) => ({ ...r, _exists: checked[i]?._exists })))));
+      }, 500);
+    }
   };
 
   // In-App Remediation: Filter table to only conflicting items and switch to review mode
