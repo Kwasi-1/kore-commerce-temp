@@ -12,6 +12,7 @@ import { buildApiParams } from '../hooks/useProductReport';
 import { formatRangeLabel } from '../utils/dates';
 import { formatCover, formatMoney, formatQty, rowDisplayName } from '../utils/format';
 import RecordBatchModal from '@/components/inventory/RecordBatchModal';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 interface Props {
   open: boolean;
@@ -58,6 +59,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
   // Made in-house items are produced, not ordered from a supplier
   const [toMake, setToMake] = useState<ReorderSuggestion[]>([]);
   const [batchProductId, setBatchProductId] = useState<string | null>(null);
+  const madeInHouseEnabled = useFeaturesStore((st) => !!st.posSettings?.made_in_house_enabled);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -71,8 +73,10 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
       const r = await apiClient.get(`/tenant/reports/products/reorder?${params.toString()}`);
       const data = r.data?.success?.data || {};
       const all: ReorderSuggestion[] = data.suggestions || [];
-      setLines(all.filter((s) => !s.is_made_in_house).map(toLine));
-      setToMake(all.filter((s) => s.is_made_in_house));
+      // Made in-house items are "to make" while that setting is on; otherwise they're ordered like the rest
+      const isMade = (s: ReorderSuggestion) => madeInHouseEnabled && !!s.is_made_in_house;
+      setLines(all.filter((s) => !isMade(s)).map(toLine));
+      setToMake(all.filter(isMade));
     } catch (error: any) {
       toast.error(error?.response?.data?.error?.message || 'Failed to load restock suggestions');
       setLines([]);
@@ -80,7 +84,7 @@ export default function ReorderDialog({ open, onOpenChange, filters, isMultiChan
     } finally {
       setIsLoading(false);
     }
-  }, [filters, isMultiChannel, leadDays, coverDays]);
+  }, [filters, isMultiChannel, leadDays, coverDays, madeInHouseEnabled]);
 
   // Reload when opened and (debounced) when the planning horizon changes
   useEffect(() => {

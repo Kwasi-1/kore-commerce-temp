@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFeaturesStore } from "@/store/featuresStore";
 import {
   CustomInputTextField,
   CustomSelectField,
@@ -104,6 +105,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
   const [isMadeInHouse, setIsMadeInHouse] = useState(false);
+  const madeInHouseEnabled = useFeaturesStore((st) => !!st.posSettings?.made_in_house_enabled);
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
   const [status, setStatus] = useState("active");
   const [hasVariants, setHasVariants] = useState(false);
@@ -646,6 +648,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               ))}
             </datalist>
 
+            {/* Hidden unless Settings › POS › Made In-House Products is on (kept for products already marked) */}
+            {(madeInHouseEnabled || isMadeInHouse) && (
             <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/10 px-4 py-3 cursor-pointer">
               <span>
                 <span className="block text-sm font-bold text-foreground">Made in-house</span>
@@ -653,6 +657,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
               </span>
               <Switch checked={isMadeInHouse} onCheckedChange={setIsMadeInHouse} aria-label="Made in-house" />
             </label>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <CreatableCategorySelect

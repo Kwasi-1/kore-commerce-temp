@@ -32,6 +32,8 @@ export interface POSSettings {
   pos_price_override_enabled: boolean;
   pos_barcode_scan_enabled: boolean;
   pos_shift_management_enabled: boolean;
+  /** Products the business makes itself (production batches) */
+  made_in_house_enabled: boolean;
 }
 
 const DEFAULT_POS_SETTINGS: POSSettings = {
@@ -53,6 +55,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_price_override_enabled: false,
   pos_barcode_scan_enabled: true,
   pos_shift_management_enabled: false,
+  made_in_house_enabled: false,
 };
 
 // Fallback modules for each plan (mirrors backend PLAN_MODULES)

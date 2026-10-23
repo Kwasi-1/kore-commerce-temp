@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { BulkStockUploadModal } from './components/BulkStockUploadModal';
 import { QuickStockIntakeModal, ProductStockItem } from './components/QuickStockIntakeModal';
 import RecordBatchModal from '@/components/inventory/RecordBatchModal';
+import { useFeaturesStore } from '@/store/featuresStore';
 import { StockHistoryModal } from './components/StockHistoryModal';
 import { PackagingStockDisplay } from '@/components/inventory/PackagingStockDisplay';
 import {
@@ -33,6 +34,8 @@ export default function StockManagement() {
   const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set(['all']));
   const [sourceFilter, setSourceFilter] = useState<Selection>(new Set(['all']));
   const [batchProductId, setBatchProductId] = useState<string | null>(null);
+  // Made-in-house rules (stock from batches) only apply while the setting is on
+  const madeInHouseEnabled = useFeaturesStore((st) => !!st.posSettings?.made_in_house_enabled);
 
   // Modals state
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
@@ -417,18 +420,20 @@ export default function StockManagement() {
                 { uid: 'made_in_house', name: 'Made In-House' },
               ],
             },
-          ]}
+          ].filter((f) => madeInHouseEnabled || f.label !== 'Source')}
           rowActions={[
             {
               key: 'adjust',
               label: 'Adjust Stock Level',
               icon: 'fluent:arrow-swap-20-filled',
             },
-            {
-              key: 'record_batch',
-              label: 'Record Batch (Made In-House)',
-              icon: 'fluent:beaker-20-filled',
-            },
+            ...(madeInHouseEnabled
+              ? [{
+                  key: 'record_batch',
+                  label: 'Record Batch (Made In-House)',
+                  icon: 'fluent:beaker-20-filled',
+                }]
+              : []),
             {
               key: 'history',
               label: 'View Audit Trail',
@@ -465,7 +470,7 @@ export default function StockManagement() {
           setIsRestockModalOpen(false);
           setSelectedProduct(null);
         }}
-        product={selectedProduct}
+        product={selectedProduct && { ...selectedProduct, isMadeInHouse: selectedProduct.isMadeInHouse && madeInHouseEnabled }}
         onSuccess={() => fetchProducts(pagination?.page || 1)}
         onRecordBatch={(id) => setBatchProductId(id)}
       />

@@ -171,6 +171,28 @@ export default function POSSettings() {
 
             <div className="border-t border-border/50" />
 
+            {/* Made in-house products (production batches) */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Made In-House Products</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  For things you make yourself (e.g. sobolo, bread). Shows the &ldquo;Made in-house&rdquo; option on products and lets you record batches, which add stock and work out cost. Turn off if you only resell.
+                </p>
+                {featureSettings.made_in_house_enabled && !localFeatures.made_in_house_enabled && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1.5 max-w-[400px]">
+                    Products already marked made-in-house keep selling. Their batch screens are hidden until you turn this back on.
+                  </p>
+                )}
+              </div>
+              <Switch
+                isSelected={Boolean(localFeatures.made_in_house_enabled)}
+                onValueChange={(val) => setLocalFeatures(p => ({ ...p, made_in_house_enabled: val }))}
+                color="primary"
+              />
+            </div>
+
+            <div className="border-t border-border/50" />
+
             {/* Payment Methods */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -503,14 +525,14 @@ export default function POSSettings() {
         <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
           <h2 className="text-xl font-bold font-header tracking-tighter mb-1 text-foreground">Checkout & Printing</h2>
           <p className="text-sm text-muted-foreground mb-6 pb-4 border-b">Manage how receipts are printed and credit sales are handled during checkout.</p>
-          
+
           <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
-            
+
             {/* Auto Print Setting */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-foreground">Auto-Print Receipts</label>
               <p className="text-xs text-muted-foreground mb-3">Determine what happens after a successful transaction.</p>
-              
+
               <div className="flex bg-secondary/50 p-1 rounded-xl border border-border/50 max-w-md">
                 {[
                   { value: 'always', label: 'Always Print' },
@@ -543,9 +565,9 @@ export default function POSSettings() {
                   When enabled, cashiers must enter a customer name and phone number to complete a credit sale.
                 </p>
               </div>
-              <Switch 
-                isSelected={localSettings.require_customer_for_credit} 
-                onValueChange={(val) => setLocalSettings(p => ({ ...p, require_customer_for_credit: val }))} 
+              <Switch
+                isSelected={localSettings.require_customer_for_credit}
+                onValueChange={(val) => setLocalSettings(p => ({ ...p, require_customer_for_credit: val }))}
                 color="primary"
               />
             </div>
@@ -561,9 +583,9 @@ export default function POSSettings() {
                       When enabled, you will need to enter expiry dates when receiving stock for products with expiry tracking turned on.
                     </p>
                   </div>
-                  <Switch 
-                    isSelected={expiryEnabled} 
-                    onValueChange={handleToggleExpiry} 
+                  <Switch
+                    isSelected={expiryEnabled}
+                    onValueChange={handleToggleExpiry}
                     color="primary"
                   />
                 </div>
@@ -611,8 +633,8 @@ export default function POSSettings() {
             </div>
 
             <div className="pt-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 isLoading={isSaving}
                 isDisabled={!isSettingsDirty || isSaving}
                 className="bg-foreground text-background font-bold px-8 h-12 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"

@@ -30,6 +30,7 @@ export function ProductDetailModal({
   onToggleChannel,
 }: ProductDetailModalProps) {
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
+  const madeInHouseEnabled = useFeaturesStore((s) => !!s.posSettings?.made_in_house_enabled);
   const [detailTab, setDetailTab] = useState<"details" | "history">("details");
   const [historyView, setHistoryView] = useState<"stock" | "cost" | "batches" | "changes">("stock");
   // Cost price and cost history need "Profit & costs"
@@ -96,7 +97,7 @@ export function ProductDetailModal({
 
   const currentProduct = productData || product;
   // In-house products: "Record Batch" is the primary action; Edit moves to the header
-  const showBatch = !!onRecordBatch && !!currentProduct.is_made_in_house;
+  const showBatch = !!onRecordBatch && !!currentProduct.is_made_in_house && madeInHouseEnabled;
   const variants = currentProduct.variants || [];
   const activeVariant =
     variants.find((v: any) => v.id === selectedVariantId) || variants[0] || null;
@@ -522,7 +523,7 @@ export function ProductDetailModal({
                 {([
                   ["stock", "Stock"],
                   ...(canSeeCosts ? [["cost", "Cost"]] : []),
-                  ...(currentProduct.is_made_in_house ? [["batches", "Batches"]] : []),
+                  ...(currentProduct.is_made_in_house && madeInHouseEnabled ? [["batches", "Batches"]] : []),
                   ["changes", "Changes"],
                 ] as [typeof historyView, string][]).map(([key, label]) => (
                   <button

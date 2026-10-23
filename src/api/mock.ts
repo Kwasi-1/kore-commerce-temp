@@ -1044,6 +1044,7 @@ export function setupMockApi() {
     pos_price_override_enabled: false,
     pos_barcode_scan_enabled: true,
     pos_shift_management_enabled: true,
+    made_in_house_enabled: true,
   };
 
   // -----------------------------------------------------
