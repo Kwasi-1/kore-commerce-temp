@@ -3,24 +3,37 @@ import { PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomModal from '@/components/modals/modal';
 import { CustomInputTextField } from '@/components/shared/text-field';
+import { useFeaturesStore } from '@/store/featuresStore';
+import CashCountInput from './CashCountInput';
+import { CashCount, cashCountIsEmpty, cashCountPayload, cashCountTotal } from '@/utils/cashCount';
 
 interface ShiftModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenShift: (float: number) => Promise<boolean>;
+  onOpenShift: (float: number, breakdown?: Record<string, number>) => Promise<boolean>;
   isOpening: boolean;
 }
 
 export default function ShiftModal({ isOpen, onOpenChange, onOpenShift, isOpening }: ShiftModalProps) {
   const [openingFloatStr, setOpeningFloatStr] = useState('');
+  const byDenomination = useFeaturesStore((st) => !!st.posSettings?.pos_cash_count_by_denomination);
+  const [count, setCount] = useState<CashCount>({});
 
   // Reset form when opened
   useEffect(() => {
-    if (isOpen) setOpeningFloatStr('');
+    if (isOpen) {
+      setOpeningFloatStr('');
+      setCount({});
+    }
   }, [isOpen]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (byDenomination) {
+      // An empty count is a float of 0
+      await onOpenShift(cashCountTotal(count), cashCountPayload(count));
+      return;
+    }
     const floatVal = parseFloat(openingFloatStr);
     if (!isNaN(floatVal) && floatVal >= 0) {
       await onOpenShift(floatVal);
@@ -32,7 +45,10 @@ export default function ShiftModal({ isOpen, onOpenChange, onOpenShift, isOpenin
       <div className="text-sm text-muted-foreground mb-4">
         You must open a shift to begin processing transactions. Enter the starting cash in the drawer.
       </div>
-      
+
+      {byDenomination ? (
+        <CashCountInput value={count} onChange={setCount} />
+      ) : (
       <CustomInputTextField
         label="Opening Float (GHS)"
         type="number"
@@ -45,13 +61,14 @@ export default function ShiftModal({ isOpen, onOpenChange, onOpenShift, isOpenin
         autoFocus
         required
       />
+      )}
 
-      <Button 
-        type="submit" 
-        disabled={isOpening || !openingFloatStr}
+      <Button
+        type="submit"
+        disabled={isOpening || (!byDenomination && !openingFloatStr)}
         className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm bg-[#b6f250] text-black hover:bg-[#a6e240] transition-colors"
       >
-        {isOpening ? 'Starting Shift...' : 'Start Shift'}
+        {isOpening ? 'Starting Shift...' : byDenomination && cashCountIsEmpty(count) ? 'Start Shift with no float' : 'Start Shift'}
       </Button>
     </form>
   );

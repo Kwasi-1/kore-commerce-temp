@@ -29,7 +29,7 @@ export default function Register() {
   const { currentShift, openShift, isLoading } = useShift();
   const { staffUser } = useAuthStore();
   const openDrawer = useNavDrawerStore((state) => state.openDrawer);
-  
+
   // Mount offline sync — drains queued transactions when internet returns
   useOfflineSync();
 
@@ -142,9 +142,9 @@ export default function Register() {
     }
   }, [isShiftRequired, staffUser, isLoading, currentShift]);
 
-  const handleOpenShift = async (float: number) => {
+  const handleOpenShift = async (float: number, breakdown?: Record<string, number>) => {
     setIsOpeningShift(true);
-    const success = await openShift(float);
+    const success = await openShift(float, breakdown);
     setIsOpeningShift(false);
     if (success) {
       setIsShiftModalOpen(false);
@@ -154,13 +154,13 @@ export default function Register() {
 
   return (
     <div className="flex flex-col h-full bg-background p-3 pt-5 md:p-6 overflow-hidden relative">
-      
+
       {/* Extracted Header Component */}
       <RegisterHeader onOpenShiftModal={() => setIsShiftModalOpen(true)} />
 
       {/* Main Content: Split View */}
       <div className="flex flex-1 gap-6 min-h-0 relative">
-        
+
         {/* Left Panel: Products */}
         <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden relative pb-16 lg:pb-0">
           <ProductSearchBar isCartCollapsed={panelState === 'collapsed'} />
@@ -168,7 +168,7 @@ export default function Register() {
 
         {/* Backdrop Overlay for Expanded State */}
         {panelState === 'expanded' && (
-          <div 
+          <div
             onClick={() => setPanelState('default')}
             className="absolute inset-0 bg-background/40 backdrop-blur-[2px] z-20 cursor-pointer animate-in fade-in duration-200"
           />
@@ -178,20 +178,20 @@ export default function Register() {
         <div className={`hidden lg:flex flex-col transition-all ease-out rounded-3xl ${
           panelState === 'expanded' ? 'duration-250' : 'duration-300'
         } ${
-          panelState === 'collapsed' 
-            ? 'w-0 opacity-0 translate-x-full shrink-0 pointer-events-none' 
+          panelState === 'collapsed'
+            ? 'w-0 opacity-0 translate-x-full shrink-0 pointer-events-none'
             : panelState === 'expanded'
               ? 'absolute top-0 right-0 h-full w-full lg:w-[min(930px,100%)] xl:w-[max(932px,80%)] 2xl:w-[max(940px,72%)] min-w-[min(880px,100%)] max-w-[1150px] z-30 shadow-[0_0_50px_rgba(0,0,0,0.15)] rounded-l-[24px] border-l border-border bg-background'
               : 'relative w-[420px] shrink-0'
         }`}>
-          <CartPanel 
-            panelState={panelState} 
-            onStateChange={setPanelState} 
+          <CartPanel
+            panelState={panelState}
+            onStateChange={setPanelState}
             onHandleClick={handleDragHandleClick}
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenSaveModal={handleOpenSaveModal}
           />
-          
+
           {/* Cart Block Overlay — only shown if shift is required and shift is closed */}
           { !isLoading && !currentShift && isShiftRequired && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-[24px] border border-border/50">
@@ -203,7 +203,7 @@ export default function Register() {
                 <p className="text-sm text-muted-foreground mb-6">
                   You must open a new shift before processing any transactions.
                 </p>
-                <Button 
+                <Button
                   onClick={() => setIsShiftModalOpen(true)}
                   className="w-full font-bold"
                 >
@@ -286,21 +286,21 @@ export default function Register() {
       </div>
 
       {/* Mobile Cart Drawer */}
-      <Drawer 
-        open={isMobileCartOpen} 
+      <Drawer
+        open={isMobileCartOpen}
         onOpenChange={setIsMobileCartOpen}
         snapPoints={[0.85, 1]}
         activeSnapPoint={snapPoint}
         setActiveSnapPoint={setSnapPoint}
         fadeFromIndex={0}
       >
-        <DrawerContent 
+        <DrawerContent
           className="bg-secondary h-full max-h-[100vh] outline-none"
           dragHandleClassName="bg-muted-foreground/60"
         >
           <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
-            <CartPanel 
-              isMobileView={true} 
+            <CartPanel
+              isMobileView={true}
               onOpenPaymentModal={handleOpenPaymentModal}
               onOpenSaveModal={handleOpenSaveModal}
             />
@@ -316,7 +316,7 @@ export default function Register() {
                   <p className="text-sm text-muted-foreground mb-6">
                     You must open a new shift before processing any transactions.
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setIsMobileCartOpen(false);
                       setIsShiftModalOpen(true);
@@ -332,9 +332,9 @@ export default function Register() {
         </DrawerContent>
       </Drawer>
 
-      <ShiftModal 
-        isOpen={isShiftModalOpen} 
-        onOpenChange={setIsShiftModalOpen} 
+      <ShiftModal
+        isOpen={isShiftModalOpen}
+        onOpenChange={setIsShiftModalOpen}
         onOpenShift={handleOpenShift}
         isOpening={isOpeningShift}
       />

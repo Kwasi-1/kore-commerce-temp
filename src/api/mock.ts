@@ -1045,6 +1045,7 @@ export function setupMockApi() {
     pos_barcode_scan_enabled: true,
     pos_shift_management_enabled: true,
     made_in_house_enabled: true,
+    pos_cash_count_by_denomination: false,
   };
 
   // -----------------------------------------------------

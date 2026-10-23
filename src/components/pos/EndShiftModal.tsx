@@ -12,6 +12,9 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../ui/spinner';
 import ZReportModal from './ZReportModal';
+import { useFeaturesStore } from '@/store/featuresStore';
+import CashCountInput from './CashCountInput';
+import { CashCount, cashCountIsEmpty, cashCountPayload, cashCountTotal } from '@/utils/cashCount';
 
 interface EndShiftModalProps {
   isOpen: boolean;
@@ -22,11 +25,13 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
   const { staffUser } = useAuthStore();
   const { currentShift, closeShift, refreshShift } = useShift();
   const navigate = useNavigate();
-  
+
   const [shiftSummary, setShiftSummary] = useState<any>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
   const [actualCashStr, setActualCashStr] = useState('');
+  const byDenomination = useFeaturesStore((st) => !!st.posSettings?.pos_cash_count_by_denomination);
+  const [count, setCount] = useState<CashCount>({});
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [debouncedCashStr, setDebouncedCashStr] = useState('');
@@ -35,6 +40,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
   useEffect(() => {
     if (isOpen) {
       setActualCashStr('');
+      setCount({});
       setNotes('');
       const loadSummary = async () => {
         setIsLoadingSummary(true);
@@ -65,22 +71,24 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
   const cardAmount = activeShift?.payment_breakdown?.card?.total ?? 0;
   const momoAmount = activeShift?.payment_breakdown?.mobile_money?.total ?? 0;
 
-  const actualCash = parseFloat(debouncedCashStr) || 0;
+  const actualCash = byDenomination ? cashCountTotal(count) : parseFloat(debouncedCashStr) || 0;
   const discrepancy = actualCash - expectedCash;
-  const hasDiscrepancy = discrepancy !== 0 && debouncedCashStr !== '';
+  const hasDiscrepancy = discrepancy !== 0 && (byDenomination ? !cashCountIsEmpty(count) : debouncedCashStr !== '');
 
   const [closedShiftId, setClosedShiftId] = useState<string | null>(null);
   const [isZReportOpen, setIsZReportOpen] = useState(false);
 
   const handleEndShift = async () => {
-    if (actualCashStr === '') {
+    if (!byDenomination && actualCashStr === '') {
       toast.error('Please enter the actual cash amount in drawer.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const closed = await closeShift(actualCash, notes.trim());
+      const closed = byDenomination
+        ? await closeShift(actualCash, notes.trim(), cashCountPayload(count))
+        : await closeShift(actualCash, notes.trim());
       if (closed) {
         toast.success('Shift ended successfully.');
         setClosedShiftId(closed.id || activeShift?.id);
@@ -119,13 +127,13 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
         }
         body={
           <div className="grid md:grid-cols-2 gap-6 pt-4">
-            
+
             {/* Left Column: Shift Summary */}
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                 <Activity className="h-4 w-4" /> Shift Summary
               </h4>
-              
+
               <div className="p-4 rounded-md flex flex-col gap-3 border">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Shift Time</span>
@@ -148,7 +156,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                    <span className="text-sm font-bold"><CurrencyDisplay amount={momoAmount} /></span>
                  </div>
               </div>
-              
+
               <div className="bg-muted/40 border border-border/60 p-4 rounded-xl mt-1 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
                    <Banknote className="h-4 w-4 text-primary" />
@@ -167,6 +175,12 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
               </h4>
 
               <div className="flex flex-col gap-1 mt-1">
+                {byDenomination ? (
+                  <>
+                    <span className="text-sm font-medium text-foreground">Cash in Drawer, by notes &amp; coins *</span>
+                    <CashCountInput value={count} onChange={setCount} />
+                  </>
+                ) : (
                 <CustomInputTextField
                   type="number"
                   label="Actual Cash in Drawer *"
@@ -177,8 +191,11 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                   className="h-14 text-lg font-bold"
                   autoFocus
                 />
+                )}
                 <p className="text-xs text-muted-foreground font-medium pl-1">
-                  Count physical cash in till and enter total. Expected cash is hidden for blind audit.
+                  {byDenomination
+                    ? 'Count each note and coin in the till. Expected cash is hidden for blind audit.'
+                    : 'Count physical cash in till and enter total. Expected cash is hidden for blind audit.'}
                 </p>
               </div>
 
@@ -195,7 +212,7 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                 />
               </div>
             </div>
-            
+
           </div>
         }
         footer={
@@ -203,9 +220,9 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
             <Button variant="ghost" onClick={onClose} className="rounded-full font-bold px-6">
               Cancel
             </Button>
-            <Button 
-              onClick={handleEndShift} 
-              disabled={isSubmitting || actualCashStr === ''}
+            <Button
+              onClick={handleEndShift}
+              disabled={isSubmitting || (!byDenomination && actualCashStr === '')}
               className="rounded-full font-bold px-8 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20"
             >
               {isSubmitting ? 'Ending Shift...' : 'Confirm & End Shift'}

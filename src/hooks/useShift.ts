@@ -46,10 +46,12 @@ export function useShift() {
     fetchCurrentShift();
   }, [fetchCurrentShift]);
 
-  const openShift = async (openingFloat: number) => {
+  // breakdown: the count by notes and coins, when that setting is on (the server totals it)
+  const openShift = async (openingFloat: number, breakdown?: Record<string, number>) => {
     try {
       const response = await apiClient.post('/pos/shifts/open', {
         opening_float: openingFloat,
+        ...(breakdown ? { opening_breakdown: breakdown } : {}),
       });
       setCurrentShift(response.data.success.data.shift);
       toast.success('Shift opened successfully');
@@ -61,15 +63,16 @@ export function useShift() {
     }
   };
 
-  const closeShift = async (closingCount: number, notes?: string) => {
+  const closeShift = async (closingCount: number, notes?: string, breakdown?: Record<string, number>) => {
     try {
       const response = await apiClient.post('/pos/shifts/close', {
         closing_count: closingCount,
         notes: notes,
+        ...(breakdown ? { closing_breakdown: breakdown } : {}),
       });
       const closedShift = response.data.success.data.shift;
       setCurrentShift(null);
-      
+
       // We could return the closed shift so the caller can show the variance
       return closedShift;
     } catch (error: any) {

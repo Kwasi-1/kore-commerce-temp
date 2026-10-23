@@ -34,6 +34,8 @@ export interface POSSettings {
   pos_shift_management_enabled: boolean;
   /** Products the business makes itself (production batches) */
   made_in_house_enabled: boolean;
+  /** Count the drawer by notes and coins at shift open/close */
+  pos_cash_count_by_denomination: boolean;
 }
 
 const DEFAULT_POS_SETTINGS: POSSettings = {
@@ -56,6 +58,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_barcode_scan_enabled: true,
   pos_shift_management_enabled: false,
   made_in_house_enabled: false,
+  pos_cash_count_by_denomination: false,
 };
 
 // Fallback modules for each plan (mirrors backend PLAN_MODULES)

@@ -169,6 +169,23 @@ export default function POSSettings() {
               />
             </div>
 
+            {/* Count the drawer by notes and coins */}
+            {Boolean(localFeatures.pos_shift_management_enabled) && (
+              <div className="flex items-start justify-between gap-4 pl-4 border-l-2 border-border/60">
+                <div>
+                  <h4 className="font-bold text-foreground text-[15px]">Count Cash by Notes &amp; Coins</h4>
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                    At shift start and end, cashiers enter how many of each note and coin (e.g. 3 &times; &#8373;50, 2 &times; &#8373;10) and the app adds them up, instead of typing one total.
+                  </p>
+                </div>
+                <Switch
+                  isSelected={Boolean(localFeatures.pos_cash_count_by_denomination)}
+                  onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_cash_count_by_denomination: val }))}
+                  color="primary"
+                />
+              </div>
+            )}
+
             <div className="border-t border-border/50" />
 
             {/* Made in-house products (production batches) */}

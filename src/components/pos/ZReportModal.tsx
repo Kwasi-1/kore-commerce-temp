@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { DENOMINATIONS } from '@/utils/cashCount';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { CurrencyDisplay } from '@/hooks';
@@ -42,7 +43,9 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             const totalPaidOut = eod?.expenses?.total || 0;
             // Cash handed back to customers that day comes out of the drawer too
             const totalCashRefunds = eod?.cash_refunds?.total || 0;
-            const expectedCash = totalCashSales + totalPaidIn - totalPaidOut - totalCashRefunds;
+            // Debt repayments taken in cash that day went into the drawer
+            const totalCashRepayments = eod?.cash_repayments?.total || 0;
+            const expectedCash = totalCashSales + totalPaidIn - totalPaidOut - totalCashRefunds + totalCashRepayments;
 
             setReportData({
               shift: {
@@ -68,6 +71,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 paid_in: totalPaidIn,
                 paid_out: totalPaidOut,
                 cash_refunds: totalCashRefunds,
+                cash_repayments: totalCashRepayments,
                 expected_cash: expectedCash,
                 closing_count: expectedCash,
                 variance: 0,
@@ -150,10 +154,10 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             </div>
           ) : (
             <div className="space-y-6 printable-z-report">
-              
+
               {/* Thermal Receipt Preview Container */}
               <div className="bg-card border border-border p-6 rounded-2xl shadow-sm max-w-xl mx-auto space-y-6 text-foreground">
-                
+
                 {/* Receipt Header */}
                 <div className="text-center border-b border-dashed border-border pb-4 space-y-1">
                   <div className="flex justify-center items-center gap-1 text-primary font-black text-lg uppercase tracking-wider">
@@ -247,6 +251,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                       <span className="text-muted-foreground font-semibold">(-) Paid Out (Expenses)</span>
                       <span className="font-bold text-destructive"><CurrencyDisplay showStyling={false} amount={recon?.paid_out || 0} /></span>
                     </div>
+                    {(recon?.cash_repayments || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-semibold">(+) Debt Repayments (Cash)</span>
+                        <span className="font-bold text-emerald-600"><CurrencyDisplay showStyling={false} amount={recon.cash_repayments} /></span>
+                      </div>
+                    )}
                     {(recon?.cash_refunds || 0) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground font-semibold">(-) Cash Refunds</span>
@@ -270,6 +280,24 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                       )}
                     </span>
                   </div>
+
+                  {/* Counted by notes and coins */}
+                  {reportData?.shift?.closing_breakdown && Object.keys(reportData.shift.closing_breakdown).length > 0 && (
+                    <div className="rounded-lg border border-border/60 px-2.5 py-2 text-[11px] space-y-0.5">
+                      {DENOMINATIONS.filter((d) => reportData.shift.closing_breakdown[d.key]).map((d) => (
+                        <div key={d.key} className="flex justify-between tabular-nums">
+                          <span className="text-muted-foreground">{reportData.shift.closing_breakdown[d.key]} &times; {d.value >= 1 ? `₵${d.label}` : d.label}</span>
+                          <span className="font-semibold">{(reportData.shift.closing_breakdown[d.key] * d.value).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {reportData.shift.closing_breakdown.other ? (
+                        <div className="flex justify-between tabular-nums">
+                          <span className="text-muted-foreground">Other</span>
+                          <span className="font-semibold">{Number(reportData.shift.closing_breakdown.other).toFixed(2)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
 
                   {/* Discrepancy Banner */}
                   <div className={`p-3 rounded-lg flex items-center justify-between border ${
