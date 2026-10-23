@@ -138,7 +138,7 @@ export default function RecurringExpenseForm({
           <CustomSelectField
             label="Category"
             options={EXPENSE_CATEGORIES}
-            selectedKey={formData.category}
+            value={formData.category}
             inputProps={{
               name: 'category',
               onChange: (e) => setFormData((prev) => ({ ...prev, category: e.target.value })),
@@ -161,7 +161,7 @@ export default function RecurringExpenseForm({
           <CustomSelectField
             label="Frequency"
             options={FREQUENCIES}
-            selectedKey={formData.frequency}
+            value={formData.frequency}
             inputProps={{
               name: 'frequency',
               onChange: (e) => setFormData((prev) => ({ ...prev, frequency: e.target.value })),
@@ -171,7 +171,7 @@ export default function RecurringExpenseForm({
           <CustomSelectField
             label="Default Payment Method"
             options={PAYMENT_METHODS}
-            selectedKey={formData.payment_method}
+            value={formData.payment_method}
             inputProps={{
               name: 'payment_method',
               onChange: (e) => setFormData((prev) => ({ ...prev, payment_method: e.target.value })),
