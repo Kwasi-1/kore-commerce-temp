@@ -644,11 +644,11 @@ export default function Sidebar() {
               className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1 group"
               title="View Account Settings"
             >
-              <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0 group-hover:border-primary/50 transition-colors">
+              <div className="h-9 w-9 rounded-lg bg-zinc-800 text-white font-bold text-xs flex items-center justify-center border border-white/10 shrink-0 transition-colors">
                 {getUserInitials(userName)}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-white truncate max-w-[110px] group-hover:text-primary transition-colors">
+                <span className="text-xs font-bold text-white truncate max-w-[110px] transition-colors">
                   {userName}
                 </span>
                 <span className="text-[10px] font-medium text-zinc-400 capitalize truncate">
