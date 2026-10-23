@@ -1076,7 +1076,17 @@ export default function Products() {
         <MobileHeroCard
           title={displayTotalLabel}
           badge={
-            hasEcommerce ? (
+            <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsHistoryOpen(true)}
+              aria-label="Product history"
+              title="Product history"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted border border-border/80 text-foreground cursor-pointer transition-all active:scale-95"
+            >
+              <Icon icon="solar:history-linear" className="h-3.5 w-3.5" />
+            </button>
+            {hasEcommerce ? (
               <button
                 type="button"
                 onClick={() => setIsChannelFilterModalOpen(true)}
@@ -1102,8 +1112,11 @@ export default function Products() {
                 <Icon icon="solar:alt-arrow-down-linear" className="h-2.5 w-2.5 opacity-60 ml-0.5" />
               </button>
             ) : (
-              `${activeProductsCount} Active`
-            )
+              <span className="text-[11px] font-bold bg-primary/20 text-primary-foreground px-2.5 py-0.5 rounded-full capitalize">
+                {activeProductsCount} Active
+              </span>
+            )}
+            </div>
           }
           value={`${isLoading ? '...' : displayTotalCount} ${displayTotalCount > 1 ? "Items" : "Item"}`}
           isLoading={isLoading}
@@ -1177,11 +1190,6 @@ export default function Products() {
                   },
                 ]
               : []),
-            {
-              label: 'History',
-              icon: <Icon icon="solar:history-linear" className="h-3.5 w-3.5" />,
-              onClick: () => setIsHistoryOpen(true),
-            },
             {
               // label: 'Refresh',
               icon: <Icon icon="solar:restart-linear" className="h-3.5 w-3.5 -mx-1" />,
@@ -1530,12 +1538,13 @@ export default function Products() {
           <Button
             variant="outline"
             radius="default"
-            className="gap-1.5 text-[12px] text-foreground/70 hover:text-foreground/90 lg:h-[34px] px-2.5 lg:px-3 shadow-sm"
+            size="icon"
+            className="gap-1.5 text-[12px] text-foreground/70 hover:text-foreground/90 lg:h-[34px] w-[34px] shadow-sm"
             onClick={() => setIsHistoryOpen(true)}
             title="Product history"
           >
             <Icon icon="solar:history-linear" className="h-4 w-4" />
-            <span className="hidden lg:inline">History</span>
+            {/* <span className="hidden lg:inline">History</span> */}
           </Button>
           <DropdownMenu>
             <div className="flex rounded-md overflow-hidden border shadow-sm lg:h-[34px] bg-muted">
@@ -1779,6 +1788,30 @@ export default function Products() {
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   Download the products matching your filters (same columns as the import)
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddChoiceModalOpen(false);
+                setIsHistoryOpen(true);
+              }}
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all text-left cursor-pointer group active:scale-[0.99]"
+            >
+              <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center shrink-0 border border-border/40 text-foreground">
+                <Icon icon="solar:history-linear" className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Product History
+                  </h4>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Who added or changed products, and what changed
                 </p>
               </div>
             </button>
