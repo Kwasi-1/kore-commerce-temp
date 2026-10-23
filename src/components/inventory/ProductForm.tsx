@@ -319,6 +319,20 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
   const updateAttribute = (key: string, field: "name" | "values", value: string) =>
     setAttributes(prev => prev.map(a => (a.key === key ? { ...a, [field]: value } : a)));
 
+  // A variant was renamed in the table: rebuild each option's values from the variants, so
+  // "Update variants" sees the new name instead of adding the old one back.
+  const syncOptionsFromVariants = (rows: VariantRow[]) =>
+    setAttributes(prev =>
+      prev.map(a => {
+        const values: string[] = [];
+        rows.forEach(v => {
+          const val = String(v.variant_attributes[a.name.trim()] ?? "").trim();
+          if (val && !values.some(x => x.toLowerCase() === val.toLowerCase())) values.push(val);
+        });
+        return values.length ? { ...a, values: values.join(", ") } : a;
+      })
+    );
+
   const addAttribute = () => {
     if (attributes.length >= 3) {
       toast.error("Up to 3 options (e.g. Flavour, Size, Colour)");
@@ -990,6 +1004,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                     trackExpiryEnabled={trackExpiryEnabled}
                     madeInHouse={isMadeInHouse}
                     canSeeCosts={canSeeCosts}
+                    onRenamed={syncOptionsFromVariants}
                   />
                 </div>
               )}

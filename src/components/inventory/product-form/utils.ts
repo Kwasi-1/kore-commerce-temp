@@ -193,10 +193,23 @@ export function validateForm(args: {
       const k = v.sku.trim().toUpperCase();
       if (k) skuCounts.set(k, (skuCounts.get(k) || 0) + 1);
     });
+    const nameCounts = new Map<string, number>();
+    args.variants.forEach((v) => {
+      const k = comboKey(Object.values(v.variant_attributes));
+      nameCounts.set(k, (nameCounts.get(k) || 0) + 1);
+    });
     let missingPrice = 0;
     let skuProblems = 0;
+    let nameProblems = 0;
     args.variants.forEach((v) => {
       const row: RowErrors = {};
+      const values = Object.values(v.variant_attributes);
+      if (values.some((x) => !String(x).trim())) row.name = 'Name required';
+      else if ((nameCounts.get(comboKey(values)) || 0) > 1) row.name = 'Same name as another variant';
+      if (row.name) {
+        nameProblems += 1;
+        mark(`pf-variant-${v.key}-name-0`);
+      }
       const r = retailError(v.packaging_tiers);
       if (r) {
         row.retail = r;
@@ -210,9 +223,10 @@ export function validateForm(args: {
         skuProblems += 1;
         mark(`pf-variant-${v.key}-sku`);
       }
-      if (row.retail || row.sku) errors.variants[v.key] = row;
+      if (row.retail || row.sku || row.name) errors.variants[v.key] = row;
     });
     if (missingPrice) summary.push(`${missingPrice} variant${missingPrice === 1 ? ' is' : 's are'} missing a retail price`);
+    if (nameProblems) summary.push(`${nameProblems} variant${nameProblems === 1 ? ' has' : 's have'} a missing or repeated name`);
     if (skuProblems) summary.push(`${skuProblems} variant${skuProblems === 1 ? ' has' : 's have'} a missing or duplicate SKU`);
   }
 

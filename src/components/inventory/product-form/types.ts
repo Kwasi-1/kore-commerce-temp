@@ -58,6 +58,7 @@ export interface GalleryImage {
 export interface RowErrors {
   sku?: string;
   retail?: string;
+  name?: string;
 }
 
 export interface FormErrors {

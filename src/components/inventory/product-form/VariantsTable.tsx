@@ -21,6 +21,8 @@ interface Props {
   madeInHouse?: boolean;
   /** False for people without "Profit & costs": cost cells show "Hidden" and can't be edited. */
   canSeeCosts?: boolean;
+  /** A variant was renamed (on blur): keep the option values above in step */
+  onRenamed?: (rows: VariantRow[]) => void;
 }
 
 const input =
@@ -33,7 +35,7 @@ const colsWithStock = 'grid grid-cols-[minmax(8rem,1.5fr)_minmax(6rem,1fr)_minma
 
 const emptyBulk = { stock: '', cost: '', retail: '', wholesale: '', lowStock: '' };
 
-export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled, madeInHouse = false, canSeeCosts = true }: Props) {
+export default function VariantsTable({ variants, onChange, errors, isEditing, gallery, trackExpiryEnabled, madeInHouse = false, canSeeCosts = true, onRenamed }: Props) {
   const showStock = !(madeInHouse && !isEditing);
   const cols = showStock ? colsWithStock : colsNoStock;
   const isMobile = useIsMobile();
@@ -66,7 +68,8 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
 
   const packCount = (v: VariantRow) => v.packaging_tiers.filter((t) => !t.is_base_unit).length;
   const stockLocked = (v: VariantRow) => isEditing && !!v.id;
-  const name = (v: VariantRow) => Object.values(v.variant_attributes).join(' / ');
+  const rename = (v: VariantRow, attr: string, value: string) =>
+    update(v.key, { variant_attributes: { ...v.variant_attributes, [attr]: value } });
 
   // ── cells ────────────────────────────────────────────────────────────────
   const priceCell = (v: VariantRow) => {
@@ -235,11 +238,30 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
   const nameCell = (v: VariantRow) => (
     <div className="flex items-center gap-2.5 min-w-0">
       <VariantImagePicker value={v.image} gallery={gallery} label={variantLabel(v)} onChange={(img) => update(v.key, { image: img })} />
-      <div className="min-w-0">
-        <div className="text-sm font-medium capitalize truncate" title={name(v)}>
-          {name(v)}
+      <div className="min-w-0 flex-1">
+        {/* Editable name: one box per option (Size / Colour). Renaming keeps the variant, its stock and history. */}
+        <div className="flex items-center gap-1 min-w-0">
+          {Object.keys(v.variant_attributes).length === 0 && <span className="text-sm font-medium truncate px-2">{variantLabel(v)}</span>}
+          {Object.entries(v.variant_attributes).map(([attr, value], i) => (
+            <input
+              key={attr}
+              id={`pf-variant-${v.key}-name-${i}`}
+              className={cn(input, 'font-medium text-sm', errors[v.key]?.name ? 'border-destructive' : 'border-transparent hover:border-border focus:border-foreground/40 bg-transparent')}
+              value={value}
+              placeholder={attr}
+              title={`${attr} (click to rename)`}
+              onKeyDown={enterToNextField}
+              onChange={(e) => rename(v, attr, e.target.value)}
+              onBlur={() => onRenamed?.(variants)}
+              aria-label={`${attr} for ${variantLabel(v)}`}
+            />
+          ))}
         </div>
-        {!v.id && isEditing && <div className="text-[10px] text-muted-foreground">New</div>}
+        {errors[v.key]?.name ? (
+          <span className="block text-[10px] font-semibold text-destructive mt-0.5 px-2">{errors[v.key].name}</span>
+        ) : (
+          !v.id && isEditing && <div className="text-[10px] text-muted-foreground px-2">New</div>
+        )}
       </div>
     </div>
   );
@@ -310,7 +332,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
           </div>
           <div className="divide-y divide-border">
             {variants.map((v) => (
-              <div key={v.key} className={cn('px-3 py-2', (errors[v.key]?.retail || errors[v.key]?.sku) && 'bg-destructive/[0.03]')}>
+              <div key={v.key} className={cn('px-3 py-2', (errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name) && 'bg-destructive/[0.03]')}>
                 <div className={cols}>
                   {nameCell(v)}
                   <div>{skuCell(v)}</div>
@@ -329,7 +351,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
           {variants.map((v) => (
             <div
               key={v.key}
-              className={cn('rounded-lg border bg-card p-3 space-y-2', errors[v.key]?.retail || errors[v.key]?.sku ? 'border-destructive/50' : 'border-border')}
+              className={cn('rounded-lg border bg-card p-3 space-y-2', errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name ? 'border-destructive/50' : 'border-border')}
             >
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">{nameCell(v)}</div>
