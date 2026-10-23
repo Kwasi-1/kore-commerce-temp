@@ -30,6 +30,7 @@ import {
 import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
+import { ProductHistoryDrawer } from "@/components/inventory/ProductHistoryDrawer";
 import RecordBatchModal from "@/components/inventory/RecordBatchModal";
 import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
 import { ProductChannelModal } from "@/components/inventory/ProductChannelModal";
@@ -74,6 +75,7 @@ export default function Products() {
   const [categories, setCategories] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<Selection>(new Set(["all"]));
@@ -1159,6 +1161,11 @@ export default function Products() {
                 ]
               : []),
             {
+              label: 'History',
+              icon: <Icon icon="solar:history-linear" className="h-3.5 w-3.5" />,
+              onClick: () => setIsHistoryOpen(true),
+            },
+            {
               // label: 'Refresh',
               icon: <Icon icon="solar:restart-linear" className="h-3.5 w-3.5 -mx-1" />,
               onClick: fetchProducts,
@@ -1502,6 +1509,16 @@ export default function Products() {
         // Actions
         showAddButton={false}
         customAddButton={
+          <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-1.5 text-[12px] text-foreground/70 hover:text-foreground/90 lg:h-[34px] px-2.5 lg:px-3 shadow-sm"
+            onClick={() => setIsHistoryOpen(true)}
+            title="Product history"
+          >
+            <Icon icon="solar:history-linear" className="h-4 w-4" />
+            <span className="hidden lg:inline">History</span>
+          </Button>
           <DropdownMenu>
             <div className="flex rounded-md overflow-hidden border shadow-sm lg:h-[34px] bg-muted">
               <Button
@@ -1556,6 +1573,7 @@ export default function Products() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         }
         onRefresh={fetchProducts}
         mobileFriendly={false}
@@ -1885,6 +1903,7 @@ export default function Products() {
         onClose={() => setIsBulkModalOpen(false)}
         onSuccess={handleBulkSuccess}
       />
+      <ProductHistoryDrawer isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
     </PageLayout>
   );
 }

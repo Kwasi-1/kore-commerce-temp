@@ -5,7 +5,7 @@ import { CurrencyDisplay } from "@/hooks";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Package } from "lucide-react";
 import apiClient from "@/api/client";
-import { BatchHistoryList, CostHistoryList } from "@/components/inventory/ProductHistoryPanels";
+import { BatchHistoryList, CostHistoryList, ProductChangesList } from "@/components/inventory/ProductHistoryPanels";
 import { PackagingStockDisplay } from "@/components/inventory/PackagingStockDisplay";
 import { useFeaturesStore } from "@/store/featuresStore";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ export function ProductDetailModal({
 }: ProductDetailModalProps) {
   const hasEcommerce = useFeaturesStore((s) => s.hasModule("ecommerce"));
   const [detailTab, setDetailTab] = useState<"details" | "history">("details");
-  const [historyView, setHistoryView] = useState<"stock" | "cost" | "batches">("stock");
+  const [historyView, setHistoryView] = useState<"stock" | "cost" | "batches" | "changes">("stock");
   // Cost price and cost history need "Profit & costs"
   const can = useCan();
   const canSeeCosts = can("reports.profit");
@@ -523,6 +523,7 @@ export function ProductDetailModal({
                   ["stock", "Stock"],
                   ...(canSeeCosts ? [["cost", "Cost"]] : []),
                   ...(currentProduct.is_made_in_house ? [["batches", "Batches"]] : []),
+                  ["changes", "Changes"],
                 ] as [typeof historyView, string][]).map(([key, label]) => (
                   <button
                     key={key}
@@ -537,7 +538,7 @@ export function ProductDetailModal({
                 ))}
               </div>
 
-              {historyView !== "batches" && variants.length > 1 && (
+              {(historyView === "stock" || historyView === "cost") && variants.length > 1 && (
                 <div className="flex items-center gap-2 p-2 bg-muted/20 rounded-md border border-border/50">
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     Variant Audit:
@@ -566,6 +567,7 @@ export function ProductDetailModal({
                 <CostHistoryList variantId={activeVariant?.id || null} unitName={activeVariant?.base_unit_name || "unit"} />
               )}
               {historyView === "batches" && <BatchHistoryList productId={currentProduct.id} />}
+              {historyView === "changes" && <ProductChangesList productId={currentProduct.id} />}
 
               {historyView !== "stock" ? null : isLoadingHistory ? (
                 <div className="py-12 text-center text-muted-foreground space-y-2">
@@ -641,7 +643,7 @@ export function ProductDetailModal({
         </div>
       }
       footer={
-        <div className="flex flex-col gap-2 w-full">     
+        <div className="flex flex-col gap-2 w-full">
           <Button
             type="button"
             variant="outline"

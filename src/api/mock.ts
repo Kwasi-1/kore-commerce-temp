@@ -1323,6 +1323,22 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  mock.onGet(/\/tenant\/products\/history/).reply(() => [200, {
+    success: { status: "OK", code: 200, data: {
+      page: 1, per_page: 30, total: 2, has_more: false,
+      items: [
+        { id: "pch-2", product_id: null, product_name: "Coca-Cola 500ml", staff_id: null, staff_name: "Demo Owner", action: "updated", source: "form",
+          summary: "Updated “Coca-Cola 500ml”: Retail (Bottle), Pack size “Crate”", date: new Date().toISOString(),
+          changes: [
+            { field: "retail", label: "Retail (Bottle)", before: "5", after: "6", cost: false },
+            { field: "tier", label: "Pack size “Crate”", before: "—", after: "Added (24 each at 130)", cost: false },
+          ] },
+        { id: "pch-1", product_id: null, product_name: "Coca-Cola 500ml", staff_id: null, staff_name: "Demo Owner", action: "created", source: "bulk_import",
+          summary: "Created “Coca-Cola 500ml” (1 variant)", date: new Date(Date.now() - 86400000).toISOString(), changes: [] },
+      ],
+    } },
+  }]);
+
   mock.onGet(/\/tenant\/products\/brands$/).reply(200, {
     success: { status: 'OK', code: 200, data: { brands: ['Coca-Cola', 'Kalypo', 'Logitech', 'Nestlé', 'Voltic'] } },
   });

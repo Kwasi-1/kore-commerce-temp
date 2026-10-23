@@ -146,3 +146,138 @@ export function BatchHistoryList({ productId }: { productId: string }) {
     </div>
   );
 }
+
+const ACTION_STYLE: Record<string, { icon: string; className: string }> = {
+  created: { icon: 'solar:add-circle-linear', className: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+  updated: { icon: 'solar:pen-2-linear', className: 'text-sky-600 dark:text-sky-400 bg-sky-500/10' },
+  archived: { icon: 'solar:archive-linear', className: 'text-amber-600 dark:text-amber-400 bg-amber-500/10' },
+  restored: { icon: 'solar:restart-linear', className: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+  deleted: { icon: 'solar:trash-bin-minimalistic-linear', className: 'text-rose-600 dark:text-rose-400 bg-rose-500/10' },
+};
+
+const CHANGE_SOURCE_LABEL: Record<string, string> = {
+  form: 'Product form',
+  bulk_import: 'Bulk import',
+  bulk_update: 'Update products',
+  bulk_action: 'Bulk action',
+  channel: 'Sales channel',
+  images: 'Images',
+  status: 'Status',
+};
+
+const dateTime = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    : '—';
+
+type ChangesListProps = { productId?: string; search?: string; showProduct?: boolean };
+
+/** Who created or changed products and what changed (before → after). Stock isn't included. */
+export function ProductChangesList(props: ChangesListProps) {
+  // A new filter remounts the list, so paging starts again from page 1
+  return <ChangesListInner key={`${props.productId || ''}|${props.search || ''}`} {...props} />;
+}
+
+function ChangesListInner({ productId, search, showProduct }: ChangesListProps) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiClient
+      .get('/tenant/products/history', { params: { product_id: productId, search: search || undefined, page, per_page: 30 } })
+      .then((r) => {
+        if (cancelled) return;
+        const data = r.data?.success?.data || {};
+        setRows((prev) => (page === 1 ? data.items || [] : [...prev, ...(data.items || [])]));
+        setHasMore(!!data.has_more);
+      })
+      .catch(() => {
+        if (!cancelled && page === 1) setRows([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, search, page]);
+
+  if (loading && page === 1) return <Loading text="Loading changes..." />;
+  if (rows.length === 0)
+    return (
+      <Empty
+        title={search ? 'No matching changes' : 'No changes recorded yet'}
+        text="New products and edits to names, prices, pack sizes and settings will appear here. Stock changes are in Stock history."
+      />
+    );
+
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => {
+        const style = ACTION_STYLE[r.action] || ACTION_STYLE.updated;
+        const changes: any[] = r.changes || [];
+        const expanded = open[r.id] ?? changes.length <= 3;
+        const shown = expanded ? changes : changes.slice(0, 3);
+        return (
+          <div key={r.id} className="border border-border/70 rounded-lg p-2.5 space-y-1.5 bg-card/60">
+            <div className="flex items-start gap-2">
+              <span className={cn('h-6 w-6 rounded-md flex items-center justify-center shrink-0', style.className)}>
+                <Icon icon={style.icon} className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold leading-snug break-words">
+                  {showProduct || r.action !== 'updated' ? r.summary : r.summary.replace(/^Updated “.*?”: /, 'Changed ')}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {r.staff_name} · {dateTime(r.date)} · {CHANGE_SOURCE_LABEL[r.source] || r.source}
+                </p>
+              </div>
+            </div>
+            {changes.length > 0 && r.action !== 'created' && (
+              <ul className="space-y-0.5 pl-8">
+                {shown.map((c, i) => (
+                  <li key={`${c.field}-${i}`} className="text-[11px] flex flex-wrap gap-x-1.5">
+                    <span className="text-muted-foreground">{c.label}:</span>
+                    {c.detail ? (
+                      <span>{c.detail}</span>
+                    ) : (
+                      <span className="tabular-nums break-all">
+                        <span className="line-through text-muted-foreground/80">{c.before}</span> → <b>{c.after}</b>
+                      </span>
+                    )}
+                  </li>
+                ))}
+                {changes.length > 3 && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => setOpen((o) => ({ ...o, [r.id]: !expanded }))}
+                      className="text-[11px] font-semibold text-primary hover:underline"
+                    >
+                      {expanded ? 'Show less' : `Show ${changes.length - 3} more`}
+                    </button>
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+      {hasMore && (
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => setPage((p) => p + 1)}
+          className="w-full h-9 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+        >
+          {loading ? 'Loading...' : 'Load more'}
+        </button>
+      )}
+    </div>
+  );
+}
