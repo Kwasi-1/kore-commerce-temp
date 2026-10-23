@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { smartSearch } from "@/lib/searchUtils";
-import { 
-  Package, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Plus, 
-  Search, 
-  FileText, 
-  ChevronRight, 
-  UserCheck, 
-  SlidersHorizontal, 
+import {
+  Package,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Search,
+  FileText,
+  ChevronRight,
+  UserCheck,
+  SlidersHorizontal,
   Trash2,
   Calendar,
   XCircle,
@@ -41,6 +40,8 @@ import {
   MobileActionCapsuleBar,
   MobileActivitySheet,
 } from "@/components/mobile-dashboard";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ChevronDown, Check } from 'lucide-react';
 
 interface Adjustment {
   id: string;
@@ -74,6 +75,12 @@ interface SearchVariant {
   variant_attributes?: Record<string, string>;
 }
 
+const TYPE_OPTIONS = [
+  { uid: 'all', name: 'All Types' },
+  { uid: 'addition', name: 'Added (+)' },
+  { uid: 'reduction', name: 'Reduced (-)' },
+];
+
 export default function StockAdjustments() {
   // Page lists states
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
@@ -81,7 +88,7 @@ export default function StockAdjustments() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("logs");
-  
+
   // Table search & filters
   const [tableSearchQuery, setTableSearchQuery] = useState("");
   const [statusFilterSelection, setStatusFilterSelection] = useState<Selection>(new Set(["all"]));
@@ -136,11 +143,11 @@ export default function StockAdjustments() {
     }
     try {
       let url = `/tenant/adjustments?page=${pageNumber}&per_page=20`;
-      
-      const statusVal = statusFilterSelection instanceof Set 
-        ? Array.from(statusFilterSelection)[0] 
+
+      const statusVal = statusFilterSelection instanceof Set
+        ? Array.from(statusFilterSelection)[0]
         : statusFilterSelection;
-        
+
       if (statusVal && statusVal !== "all") {
         url += `&status=${statusVal}`;
       }
@@ -335,6 +342,9 @@ export default function StockAdjustments() {
   const pendingItems = useMemo(() => adjustments.filter(a => a.status === "pending"), [adjustments]);
 
   // Filtered rows for EnhancedTableComponent
+  const activeType =
+    typeFilter instanceof Set ? (Array.from(typeFilter)[0] as string) || 'all' : (typeFilter as any)?.currentKey || 'all';
+
   const filteredAdjustments = useMemo(() => {
     let result = adjustments;
 
@@ -410,17 +420,17 @@ export default function StockAdjustments() {
       ),
       actions: (
         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button 
+          <Button
             size="sm"
             onClick={() => handleOpenPinModal(item, "approve")}
             className="h-8 rounded-md font-semibold text-xs px-3 shadow-none"
           >
             Approve
           </Button>
-          <Button 
+          <Button
             size="sm"
             onClick={() => handleOpenPinModal(item, "reject")}
-            variant="ghost" 
+            variant="ghost"
             className="h-8 rounded-md border border-destructive/20 text-destructive hover:bg-destructive/10 font-semibold text-xs px-3"
           >
             Reject
@@ -500,8 +510,8 @@ export default function StockAdjustments() {
   }, [filteredAdjustments]);
 
   return (
-    <PageLayout 
-      title="Stock Adjustments" 
+    <PageLayout
+      title="Stock Adjustments"
       subtitle={
         <span className="md:hidden">
           {pendingItems.length > 0 ? `${pendingItems.length} pending approval` : `${adjustments.length} total logged`}
@@ -528,9 +538,33 @@ export default function StockAdjustments() {
           }}
           actions={[
             {
-              label: 'New Request',
-              icon: <Plus className="h-3.5 w-3.5" />,
-              onClick: () => setIsDrawerOpen(true),
+              // Type filter (adjustments themselves are made from Stock Levels > quick intake)
+              customRender: (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      // Same look as the date pill: the bar is always dark, so white text on a light tint
+                      className="h-10 px-3.5 rounded-full flex items-center gap-1.5 shrink-0 bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all"
+                    >
+                      {TYPE_OPTIONS.find((o) => o.uid === activeType)?.name || 'All Types'}
+                      <ChevronDown className="h-3.5 w-3.5 text-white/70" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                    {TYPE_OPTIONS.map((o) => (
+                      <DropdownMenuItem
+                        key={o.uid}
+                        onClick={() => setTypeFilter(new Set([o.uid]))}
+                        className="flex items-center justify-between text-sm cursor-pointer"
+                      >
+                        {o.name}
+                        {activeType === o.uid && <Check className="h-4 w-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
             },
             {
               icon: <RefreshCw className="h-3.5 w-3.5 -mx-1" />,
@@ -705,21 +739,21 @@ export default function StockAdjustments() {
 
         {/* Dynamic Content: Tabs if there are pending approvals, or direct table if none */}
         {pendingItems.length > 0 ? (
-          <Tabs 
-            value={activeTab} 
-            onValueChange={setActiveTab} 
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
             className="w-full flex-1 flex flex-col min-h-0"
           >
             <TabsList variant="top" className="w-full mb-5">
-              <TabsTrigger 
-                value="awaiting" 
+              <TabsTrigger
+                value="awaiting"
                 badge={pendingItems.length}
                 className="gap-2 font-semibold"
               >
                 Awaiting Approval
               </TabsTrigger>
-              <TabsTrigger 
-                value="logs" 
+              <TabsTrigger
+                value="logs"
                 className="font-semibold"
               >
                 Adjustment Logs
@@ -929,17 +963,17 @@ export default function StockAdjustments() {
 
               {selectedDetailAdj.status === "pending" && (
                 <div className="flex gap-2 justify-end pt-2">
-                  <Button 
+                  <Button
                     onClick={() => {
                       setIsDetailModalOpen(false);
                       handleOpenPinModal(selectedDetailAdj, "reject");
                     }}
-                    variant="ghost" 
+                    variant="ghost"
                     className="border border-destructive/20 text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
                     Reject Request
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setIsDetailModalOpen(false);
                       handleOpenPinModal(selectedDetailAdj, "approve");
@@ -971,7 +1005,7 @@ export default function StockAdjustments() {
               {pinActionType === "approve" ? "Manager Authorization" : "Reject Adjustment"}
             </h2>
             <p className="text-xs text-muted-foreground font-normal mt-0.5">
-              {pinActionType === "approve" 
+              {pinActionType === "approve"
                 ? "Enter your 4-digit POS / Manager PIN to authorize this stock change."
                 : "Provide explanatory notes for rejecting this adjustment request."
               }
@@ -1015,7 +1049,7 @@ export default function StockAdjustments() {
             )}
 
             {pinActionType === "reject" ? (
-              <form 
+              <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleActionConfirm();
@@ -1039,10 +1073,10 @@ export default function StockAdjustments() {
                   <Button type="button" variant="outline" size="sm" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     size="sm"
-                    disabled={isProcessingAction || !rejectionNote.trim()} 
+                    disabled={isProcessingAction || !rejectionNote.trim()}
                     className="bg-destructive text-white hover:bg-destructive/90 font-semibold"
                   >
                     {isProcessingAction ? "Rejecting..." : "Confirm Reject"}
@@ -1050,7 +1084,7 @@ export default function StockAdjustments() {
                 </div>
               </form>
             ) : (
-              <form 
+              <form
                 autoComplete="off"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1110,10 +1144,10 @@ export default function StockAdjustments() {
                   <Button type="button" variant="outline" size="sm" onClick={() => setIsPinModalOpen(false)} disabled={isProcessingAction}>
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     size="sm"
-                    disabled={isProcessingAction || pinCode.length !== 4} 
+                    disabled={isProcessingAction || pinCode.length !== 4}
                     className="min-w-[110px] font-semibold"
                   >
                     {isProcessingAction ? (
