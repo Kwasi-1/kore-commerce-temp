@@ -10,6 +10,8 @@ interface BulkProductUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** Hand rows for products that already exist over to Update Products */
+  onUpdateExisting?: (rows: Record<string, string>[]) => void;
 }
 
 interface ParsedProduct {
@@ -36,6 +38,8 @@ interface ParsedProduct {
   _skuConflict?: boolean;
   /** Set by the server check: this product or SKU is already in the store (import creates only) */
   _exists?: string;
+  /** The row's cells as written in the file (no import defaults), for handing over to Update Products */
+  _raw?: Record<string, string>;
 }
 
 interface UploadResultSummary {
@@ -119,7 +123,7 @@ const markExisting = async (rows: ParsedProduct[]): Promise<ParsedProduct[]> => 
   }
 };
 
-export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProductUploadModalProps) {
+export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExisting }: BulkProductUploadModalProps) {
   const [step, setStep] = useState<"upload" | "review" | "summary">("upload");
   const [parsedData, setParsedData] = useState<ParsedProduct[]>([]);
   const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null);
@@ -193,6 +197,17 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
           tier_3_retail_price: (row.tier_3_retail_price || "").toString().trim(),
           tier_3_wholesale_price: (row.tier_3_wholesale_price || "").toString().trim(),
           tags: (row.tags || "").trim(),
+          _raw: Object.fromEntries(
+            Object.entries({
+              name: row.name ?? row.product_name, category: row.category, description: row.description,
+              sku: row.sku ?? row.variant_sku, base_unit_name: row.base_unit_name ?? row.unit_name,
+              cost_price: row.cost_price, retail_price: row.retail_price ?? row.price, wholesale_price: row.wholesale_price,
+              tier_2_name: row.tier_2_name, tier_2_units: row.tier_2_units ?? row.tier_2_count,
+              tier_2_retail_price: row.tier_2_retail_price, tier_2_wholesale_price: row.tier_2_wholesale_price,
+              tier_3_name: row.tier_3_name, tier_3_units: row.tier_3_units ?? row.tier_3_count,
+              tier_3_retail_price: row.tier_3_retail_price, tier_3_wholesale_price: row.tier_3_wholesale_price, tags: row.tags,
+            }).map(([k, v]) => [k, String(v ?? "").trim()])
+          ),
         }));
 
         setParsedData(validateRows(processed));
@@ -225,6 +240,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
     newData[index] = {
       ...newData[index],
       [field]: value,
+      _raw: { ...(newData[index]._raw || {}), [field]: value },
       // If user edits SKU, variant_name, or name, clear previous conflict flag so it can re-validate
       ...(field === "sku" || field === "variant_name" || field === "name" ? { _skuConflict: false, _error: undefined } : {})
     };
@@ -502,6 +518,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
   };
 
   const errorCount = parsedData.filter((p) => p._error).length;
+  const existingRows = parsedData.filter((p) => p._exists);
   const validProductsCount = parsedData.length - errorCount;
 
   const footer = (
@@ -731,6 +748,27 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess }: BulkProdu
                   </Button>
                 </div>
               </div>
+
+              {existingRows.length > 0 && onUpdateExisting && (
+                <div className="p-3 border border-sky-500/25 bg-sky-500/5 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
+                    <span>
+                      <b>{existingRows.length} row{existingRows.length === 1 ? " is" : "s are"} already in your store.</b>{" "}
+                      <span className="text-muted-foreground">Bulk Import only adds new products. Update them instead (stock won't change).</span>
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs font-bold shrink-0 border-sky-500/40"
+                    disabled={isPending}
+                    onClick={() => onUpdateExisting(existingRows.map((r) => r._raw || { sku: r.sku, name: r.name }))}
+                  >
+                    Update these {existingRows.length} instead
+                  </Button>
+                </div>
+              )}
 
               <div className="text-[11px] text-muted-foreground flex items-center justify-between px-1 md:hidden">
                 <span>Swipe table horizontally to review stock & pricing →</span>

@@ -1323,6 +1323,19 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  mock.onPost(/\/tenant\/products\/bulk-edit$/).reply((config) => {
+    const body = JSON.parse(config.data || "{}");
+    const rows: any[] = body.rows || [];
+    const changed = rows.filter((r) => r.sku && r.retail_price);
+    return [200, { success: { status: "OK", code: 200, data: {
+      applied: !!body.apply, unchanged: rows.length - changed.length, errors: [], not_found: [],
+      ignored_columns: ["quantity", "variant_name"],
+      products: changed.map((r, i) => ({
+        product_id: `mock-${i}`, name: r.name || r.sku, rows: [i], summary: `Updated “${r.name || r.sku}”: Retail`,
+        changes: [{ field: "retail", label: "Retail", before: "—", after: String(r.retail_price), cost: false }],
+      })),
+    } } }];
+  });
   mock.onGet(/\/tenant\/products\/history/).reply(() => [200, {
     success: { status: "OK", code: 200, data: {
       page: 1, per_page: 30, total: 2, has_more: false,

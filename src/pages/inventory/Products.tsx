@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
+import { UpdateProductsModal } from "./components/UpdateProductsModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
 import { ProductHistoryDrawer } from "@/components/inventory/ProductHistoryDrawer";
 import RecordBatchModal from "@/components/inventory/RecordBatchModal";
@@ -76,6 +77,9 @@ export default function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  // Rows handed over from Bulk Import (products that already exist)
+  const [updateRows, setUpdateRows] = useState<Record<string, string>[] | null>(null);
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<Selection>(new Set(["all"]));
@@ -1140,7 +1144,7 @@ export default function Products() {
             {
               label: 'Add Product',
               icon: <Icon icon="solar:add-circle-linear" className="h-3.5 w-3.5" />,
-              onClick: hasEcommerce ? () => setIsAddChoiceModalOpen(true) : openNewProduct,
+              onClick: () => setIsAddChoiceModalOpen(true),
             },
             ...(hasEcommerce
               ? [
@@ -1512,6 +1516,7 @@ export default function Products() {
           <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            radius="default"
             className="gap-1.5 text-[12px] text-foreground/70 hover:text-foreground/90 lg:h-[34px] px-2.5 lg:px-3 shadow-sm"
             onClick={() => setIsHistoryOpen(true)}
             title="Product history"
@@ -1555,6 +1560,15 @@ export default function Products() {
                 className="cursor-pointer text-[13px]"
               >
                 <Upload className="h-4 w-4 mr-2" /> Bulk Import Products (CSV)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setUpdateRows(null);
+                  setIsUpdateOpen(true);
+                }}
+                className="cursor-pointer text-[13px]"
+              >
+                <Icon icon="solar:pen-new-square-linear" className="h-4 w-4 mr-2" /> Update Products (CSV)
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleExport}
@@ -1702,6 +1716,31 @@ export default function Products() {
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   Upload multiple products and inventory quantities in bulk
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddChoiceModalOpen(false);
+                setUpdateRows(null);
+                setIsUpdateOpen(true);
+              }}
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 transition-all text-left cursor-pointer group active:scale-[0.99]"
+            >
+              <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center shrink-0 border border-border/40 text-foreground">
+                <Icon icon="solar:pen-new-square-linear" className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Update Products (CSV)
+                  </h4>
+                  <Icon icon="solar:alt-arrow-right-linear" className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Change prices and pack sizes of existing products (stock isn't changed)
                 </p>
               </div>
             </button>
@@ -1902,6 +1941,21 @@ export default function Products() {
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         onSuccess={handleBulkSuccess}
+        onUpdateExisting={(rows) => {
+          setUpdateRows(rows);
+          setIsUpdateOpen(true);
+        }}
+      />
+      <UpdateProductsModal
+        isOpen={isUpdateOpen}
+        onClose={() => {
+          setIsUpdateOpen(false);
+          setUpdateRows(null);
+        }}
+        onSuccess={handleBulkSuccess}
+        onDownload={handleExport}
+        isDownloading={isExporting}
+        initialRows={updateRows}
       />
       <ProductHistoryDrawer isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
     </PageLayout>
