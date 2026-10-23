@@ -18,7 +18,7 @@ interface Change {
 }
 
 interface Preview {
-  products: { product_id: string; name: string; rows: number[]; changes: Change[]; summary: string }[];
+  products: { product_id: string; name: string; rows: number[]; new_variants?: number; changes: Change[]; summary: string }[];
   errors: { index: number | null; sku: string | null; name?: string; message: string }[];
   not_found: { index: number; sku: string; name?: string }[];
   unchanged: number;
@@ -38,12 +38,11 @@ interface UpdateProductsModalProps {
 }
 
 const IGNORED_LABEL: Record<string, string> = {
-  quantity: "quantity (stock)",
-  variant_name: "variant name",
-  cost_price: "cost price",
+  cost_price: "cost price (needs Profit & costs)",
 };
 
-/** Change existing products from a spreadsheet: matched by SKU, previewed first, never touches stock. */
+/** Change existing products from a spreadsheet: matched by SKU, previewed first. Existing stock is
+ *  never changed; a new variant's quantity becomes its opening stock. */
 export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, isDownloading, initialRows }: UpdateProductsModalProps) {
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
   const [rows, setRows] = useState<Row[]>([]);
@@ -137,6 +136,11 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
               <Icon icon="solar:pen-2-linear" className="h-3.5 w-3.5" />
             </span>
             <p className="text-xs font-semibold break-words min-w-0">{p.name}</p>
+            {!!p.new_variants && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shrink-0">
+                +{p.new_variants} new variant{p.new_variants === 1 ? "" : "s"}
+              </span>
+            )}
             <span className="ml-auto text-[10px] text-muted-foreground shrink-0">
               {p.changes.length} change{p.changes.length === 1 ? "" : "s"}
             </span>
@@ -178,7 +182,7 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
           <div key={`n-${n.index}`} className="px-2.5 py-1.5 text-[11px] flex flex-wrap gap-x-2">
             <span className="text-muted-foreground tabular-nums">{rowLabel(n.index)}</span>
             <span className="font-semibold">{n.sku}</span>
-            <span className="text-destructive">No product with this SKU. Use Bulk Import to add new products.</span>
+            <span className="text-destructive">No product with this SKU or name. Use Bulk Import to add new products.</span>
           </div>
         ))}
       </div>
@@ -202,7 +206,7 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
           <p className="text-[12px] text-muted-foreground font-normal mt-0.5 leading-normal">
             {step === "done"
               ? "Changes saved. They're in Product History."
-              : "Change prices, pack sizes and details of products you already have. Stock is never changed here."}
+              : "Change prices, pack sizes, variant names and details of products you already have, or add variants. Existing stock is never changed here."}
           </p>
         </div>
       }
@@ -213,11 +217,11 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
               <ol className="space-y-2.5">
                 {[
                   ["1", "Download your products", "A CSV of your products with their SKUs, prices and pack sizes. Filters on the Products page apply."],
-                  ["2", "Edit it in Excel or Google Sheets", "Change only what you need. Leave a cell empty to keep it as it is. Don't change the SKU column; it's how each row is matched."],
+                  ["2", "Edit it in Excel or Google Sheets", "Change only what you need; an empty cell keeps the current value. Don't change SKUs: they're how rows are matched. To add a variant, add a row with the product's exact name, a new variant name and a retail price (SKU can be left empty). Its quantity becomes opening stock."],
                   ["3", "Upload it and check the changes", "You'll see every change (before → after) before anything is saved."],
                 ].map(([n, title, text]) => (
                   <li key={n} className="flex gap-3">
-                    <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{n}</span>
+                    <span className="h-6 w-6 rounded-full bg-muted/60 text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">{n}</span>
                     <div>
                       <p className="text-sm font-semibold">{title}</p>
                       <p className="text-[12px] text-muted-foreground leading-relaxed">{text}</p>
@@ -249,11 +253,11 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
                 }`}
               >
                 <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFile} />
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary">
+                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3 text-muted-foreground">
                   <Upload className="h-6 w-6" />
                 </div>
                 <p className="text-sm font-medium text-center">Click or drag your edited CSV here</p>
-                <p className="text-[11px] text-muted-foreground mt-1 text-center">Rows are matched by SKU. New SKUs are not added.</p>
+                <p className="text-[11px] text-muted-foreground mt-1 text-center">Rows are matched by SKU. New products are added with Bulk Import.</p>
               </div>
             </>
           )}
@@ -284,8 +288,9 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
                 <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
                   <Icon icon="solar:info-circle-linear" className="h-3.5 w-3.5 mt-px shrink-0" />
                   <span>
-                    Not used from the file: {preview.ignored_columns.map((c) => IGNORED_LABEL[c] || c).join(", ")}. Use a stock
-                    count or Stock In to change stock.
+                    Quantity is only used as opening stock for new variants; to change existing stock use a stock count or Stock In.
+                    {preview.ignored_columns.length > 0 &&
+                      ` Not used from the file: ${preview.ignored_columns.map((c) => IGNORED_LABEL[c] || c).join(", ")}.`}
                   </span>
                 </p>
                 {problemsList}

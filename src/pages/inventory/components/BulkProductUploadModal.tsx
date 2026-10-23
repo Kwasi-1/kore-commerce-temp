@@ -755,7 +755,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
                     <span>
                       <b>{existingRows.length} row{existingRows.length === 1 ? " is" : "s are"} already in your store.</b>{" "}
-                      <span className="text-muted-foreground">Bulk Import only adds new products. Update them instead (stock won't change).</span>
+                      <span className="text-muted-foreground">Bulk Import only adds new products. Update them instead: existing stock won't change, and new variants of existing products get their quantity as opening stock.</span>
                     </span>
                   </div>
                   <Button

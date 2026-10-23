@@ -197,7 +197,16 @@ export default function Products() {
     }
   };
 
+  // Only the latest request may update the list: an older, slower response (e.g. the unfiltered
+  // list from before the search was typed) would otherwise overwrite the search results.
+  const listRequest = useRef<{ id: number; controller: AbortController | null }>({ id: 0, controller: null });
+
   const fetchProducts = async (pageNumber: number = 1, append: boolean = false) => {
+    if (!append) listRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const requestId = ++listRequest.current.id;
+    listRequest.current.controller = controller;
+    const isStale = () => requestId !== listRequest.current.id;
     if (append) {
       setIsLoadingMore(true);
     } else {
@@ -206,7 +215,8 @@ export default function Products() {
     try {
       const url = `/tenant/products?page=${pageNumber}&limit=20${filterParams()}`;
 
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(url, { signal: controller.signal });
+      if (isStale()) return;
       const data = response.data.success?.data?.products || [];
       const pag = response.data.success?.data?.pagination || null;
       const summaryData = response.data.success?.data?.summary || null;
@@ -219,12 +229,15 @@ export default function Products() {
         setProducts(data);
       }
 
-    } catch (error) {
+    } catch (error: any) {
+      if (isStale() || error?.name === "CanceledError") return;
       console.error("Failed to fetch products:", error);
       toast.error("Failed to load products");
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      if (!isStale()) {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   };
 
