@@ -25,6 +25,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import OfflineQueueDrawer from './OfflineQueueDrawer';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useCartStore } from '@/store/cartStore';
+import TillRecentUsers from './TillRecentUsers';
 
 interface RegisterHeaderProps {
   onOpenShiftModal?: () => void;
@@ -284,6 +285,11 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
             )}
           </Button>
         )}
+
+        {/* Registered tills: who else signed in here today, for quick switching */}
+        <div className="hidden md:flex">
+          <TillRecentUsers />
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

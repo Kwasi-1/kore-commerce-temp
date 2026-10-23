@@ -10,6 +10,8 @@ interface StaffUser {
   last_name?: string;
   /** Permissions at sign-in (role defaults + overrides); see hooks/usePermissions */
   effective_permissions?: string[];
+  /** On a temporary password set by a manager (must change it) */
+  must_change_password?: boolean;
 }
 
 interface Tenant {
@@ -65,6 +67,15 @@ export const useAuthStore = create<AuthState>()(
           name: tenant.name || tenant.business_name || 'My Business',
         };
         set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin, graceInfo });
+        // On a till, remember who has signed in today for quick switching at the register
+        if (useTillStore.getState().tillKey && staff?.id) {
+          useTillStore.getState().recordSignIn({
+            id: staff.id,
+            first_name: staff.first_name || enrichedUser.name.split(' ')[0],
+            last_name: staff.last_name || '',
+            role: staff.role,
+          });
+        }
 
         // Sync active tenant with cart and product cache stores
         import('@/store/cartStore').then(({ useCartStore }) => {

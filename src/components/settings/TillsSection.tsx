@@ -140,7 +140,7 @@ export default function TillsSection() {
             <Button variant="outline" onClick={() => setRemoving(null)} disabled={busy} className="w-full">
               Cancel
             </Button>
-            <Button onClick={() => removing && remove(removing)} disabled={busy} className="w-full bg-destructive text-white font-semibold">
+            <Button onClick={() => removing && remove(removing)} disabled={busy} className="w-full !bg-destructive text-white hover:opacity-80 font-semibold">
               Remove till
             </Button>
           </div>

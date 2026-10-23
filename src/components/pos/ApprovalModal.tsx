@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import apiClient from '@/api/client';
 import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { useApprovalStore } from '@/store/approvalStore';
 import { useAuthStore } from '@/store/authStore';
 import { ROLE_LABELS } from '@/utils/roles';
 import { cn } from '@/lib/utils';
+import PinInput from './PinInput';
 
 interface TillStaff {
   id: string;
@@ -25,7 +26,6 @@ export default function ApprovalModal() {
   const [staff, setStaff] = useState<TillStaff[] | null>(null);
   const [approverId, setApproverId] = useState<string | null>(null);
   const [pin, setPin] = useState('');
-  const pinRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!request) return;
@@ -40,10 +40,6 @@ export default function ApprovalModal() {
       })
       .catch(() => setStaff([]));
   }, [request, myId]);
-
-  useEffect(() => {
-    if (request && approverId) pinRef.current?.focus();
-  }, [request, approverId]);
 
   if (!request) return null;
 
@@ -75,6 +71,7 @@ export default function ApprovalModal() {
         ) : (
           <form
             id="approval-form"
+            autoComplete="off"
             className="py-2 space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
@@ -97,19 +94,10 @@ export default function ApprovalModal() {
                 </button>
               ))}
             </div>
-            <label className="block">
-              <span className="block text-xs text-muted-foreground mb-1">Their 4-digit PIN</span>
-              <input
-                ref={pinRef}
-                type="password"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                className="w-full h-11 px-3 text-lg tracking-[0.5em] text-center border border-border rounded-md bg-background focus:outline-none focus:border-foreground/40"
-              />
-            </label>
+            <div>
+              <span className="block text-xs text-muted-foreground mb-1.5">Their 4-digit PIN</span>
+              <PinInput key={approverId || 'none'} value={pin} onChange={setPin} error={!!request.error} autoFocus />
+            </div>
             {request.error && <p className="text-[12px] text-destructive">{request.error}</p>}
           </form>
         )

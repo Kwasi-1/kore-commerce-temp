@@ -2,25 +2,20 @@ import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
-import { CustomInputTextField } from '@/components/shared/text-field';
 import CustomModal from '@/components/modals/modal';
+import ChangePasswordModal from '@/components/account/ChangePasswordModal';
+import ChangePinModal from '@/components/account/ChangePinModal';
 
 export default function AccountSettings() {
   const { staffUser, tenant, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
 
-  // Password state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPass, setShowCurrentPass] = useState(false);
-  const [showNewPass, setShowNewPass] = useState(false);
-  const [showConfirmPass, setShowConfirmPass] = useState(false);
-  const [isChangingPass, setIsChangingPass] = useState(false);
+  // Sign-in & security modals
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   // Update & Cache state
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
@@ -29,48 +24,6 @@ export default function AccountSettings() {
 
   // Sign out modal state
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-
-  // Handle password change
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Please fill in all password fields');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters long');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-
-    setIsChangingPass(true);
-    try {
-      await apiClient.post('/auth/staff/change-password', {
-        current_password: currentPassword,
-        new_password: newPassword,
-      });
-
-      toast.success('Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error: any) {
-      console.error('Password change error:', error);
-      const msg =
-        error.response?.data?.error?.message ||
-        error.response?.data?.message ||
-        'Failed to change password';
-      toast.error(msg);
-    } finally {
-      setIsChangingPass(false);
-    }
-  };
 
   // Manual check for PWA / worker updates
   const handleCheckForUpdates = async () => {
@@ -285,123 +238,30 @@ export default function AccountSettings() {
         {/* 3. SECURITY & PASSWORD SECTION                                            */}
         {/* ========================================================================= */}
         <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
-          <h2 className="text-xl font-bold mb-1 text-foreground">Security & Password</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Update your login password to keep your account secure.
-          </p>
-
-          <form
-            onSubmit={handleChangePassword}
-            autoComplete="off"
-            className="space-y-4 max-w-xl"
-          >
-            {/* Hidden dummy inputs to prevent aggressive Chrome/Safari password autofill */}
-            <input
-              type="text"
-              name="fakeusernameremembered"
-              style={{ display: 'none' }}
-              tabIndex={-1}
-              autoComplete="off"
-            />
-            <input
-              type="password"
-              name="fakepasswordremembered"
-              style={{ display: 'none' }}
-              tabIndex={-1}
-              autoComplete="off"
-            />
-
-            <CustomInputTextField
-              label="Current Password"
-              name="current-password-field"
-              type={showCurrentPass ? 'text' : 'password'}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-              placeholder="Enter your current password"
-              inputProps={{
-                autoComplete: 'new-password',
-                autoCorrect: 'off',
-                spellCheck: false,
-              }}
-              endContent={
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPass(!showCurrentPass)}
-                  className="text-muted-foreground hover:text-foreground focus:outline-none"
-                >
-                  <Icon
-                    icon={showCurrentPass ? 'solar:eye-closed-linear' : 'solar:eye-linear'}
-                    className="text-base"
-                  />
-                </button>
-              }
-            />
-
-            <CustomInputTextField
-              label="New Password"
-              name="new-password-field"
-              type={showNewPass ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              placeholder="At least 8 characters"
-              inputProps={{
-                autoComplete: 'new-password',
-                autoCorrect: 'off',
-                spellCheck: false,
-              }}
-              endContent={
-                <button
-                  type="button"
-                  onClick={() => setShowNewPass(!showNewPass)}
-                  className="text-muted-foreground hover:text-foreground focus:outline-none"
-                >
-                  <Icon
-                    icon={showNewPass ? 'solar:eye-closed-linear' : 'solar:eye-linear'}
-                    className="text-base"
-                  />
-                </button>
-              }
-            />
-
-            <CustomInputTextField
-              label="Confirm New Password"
-              name="confirm-password-field"
-              type={showConfirmPass ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              placeholder="Re-enter your new password"
-              inputProps={{
-                autoComplete: 'new-password',
-                autoCorrect: 'off',
-                spellCheck: false,
-              }}
-              endContent={
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPass(!showConfirmPass)}
-                  className="text-muted-foreground hover:text-foreground focus:outline-none"
-                >
-                  <Icon
-                    icon={showConfirmPass ? 'solar:eye-closed-linear' : 'solar:eye-linear'}
-                    className="text-base"
-                  />
-                </button>
-              }
-            />
-
-            <div className="pt-2">
-              <Button
-                type="submit"
-                disabled={isChangingPass || !currentPassword || !newPassword || !confirmPassword}
-              >
-                <Icon icon="solar:lock-password-linear" className="text-base mr-1.5" />
-                {isChangingPass ? 'Updating...' : 'Update Password'}
+          <h2 className="text-xl font-bold mb-1 text-foreground">Sign-in &amp; security</h2>
+          <p className="text-sm text-muted-foreground mb-4">How you sign in to the app and the till.</p>
+          <div className="divide-y divide-border border-t border-border">
+            <div className="flex items-center justify-between gap-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Password</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{staffUser?.must_change_password ? "You\u2019re on a temporary password. Change it now." : "Used to sign in on phones and laptops"}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setIsPasswordModalOpen(true)} className="shrink-0">
+                {staffUser?.must_change_password ? "Change now" : "Change"}
               </Button>
             </div>
-          </form>
+            <div className="flex items-center justify-between gap-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Till PIN</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Used on the “Who’s working?” screen at the till</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setIsPinModalOpen(true)} className="shrink-0">
+                Change
+              </Button>
+            </div>
+          </div>
+          <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
+          <ChangePinModal isOpen={isPinModalOpen} onClose={() => setIsPinModalOpen(false)} />
         </section>
 
         {/* ========================================================================= */}
