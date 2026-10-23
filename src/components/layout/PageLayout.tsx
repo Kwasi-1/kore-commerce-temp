@@ -82,7 +82,7 @@ export default function PageLayout({
         constrainHeight
           ? "md:h-full md:overflow-hidden"
           : showBottomNav
-            ? "pb-20 md:pb-0"
+            ? "pb-20 md:pb-4"
             : "pb-4 md:pb-0",
         className
       )}

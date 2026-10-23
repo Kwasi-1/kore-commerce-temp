@@ -6,7 +6,8 @@ import { useTillStore, TillStaff } from '@/store/tillStore';
 import SetPinModal from '@/components/pos/SetPinModal';
 import apiClient from '@/api/client';
 import { APP_CONFIG } from '@/config/app.config';
-import NumPad from '@/components/pos/NumPad';
+import PinPad from '@/components/pos/PinPad';
+import { ROLE_LABELS } from '@/utils/roles';
 import { toast } from 'sonner';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +18,13 @@ import koreLogo from '@/assets/images/kore.png';
 
 type LoginView = 'staff_grid' | 'pin_entry' | 'manual_login';
 
+// Same avatar colours as the register header
+const AVATAR_COLORS = ['bg-sky-500', 'bg-amber-500', 'bg-violet-500', 'bg-emerald-500', 'bg-rose-500', 'bg-teal-500'];
+const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
+const initialsOf = (p: TillStaff) => `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase() || '?';
+// "Jane C." so two people with the same first name don't clash
+const shortName = (p: TillStaff) => `${p.first_name}${p.last_name ? ` ${p.last_name[0].toUpperCase()}.` : ''}`;
+
 export default function Login() {
   // "Who's working?" only appears on a registered till (POS Settings > Tills); other devices sign
   // in with email and password. The grid comes from the till's own key, cached for offline use.
@@ -26,7 +34,7 @@ export default function Login() {
 
   const [currentView, setCurrentView] = useState<LoginView>(tillKey ? 'staff_grid' : 'manual_login');
   const [selectedStaff, setSelectedStaff] = useState<TillStaff | null>(null);
-  const [pinKey, setPinKey] = useState(0); // remounts the keypad to clear it after a wrong PIN
+  const [pinError, setPinError] = useState<string | null>(null);
   const [defaultPinSession, setDefaultPinSession] = useState(false);
 
   // Manual login / Password entry states
@@ -77,13 +85,12 @@ export default function Login() {
   const handlePinSubmit = async (pin: string) => {
     if (!selectedStaff || isAuthenticating) return;
     setIsAuthenticating(true);
-    const toastId = toast.loading('Checking PIN...');
+    setPinError(null);
 
     try {
       // The till's key goes with the request (api/client.ts)
       const response = await apiClient.post('/pos/auth/verify-pin', { staff_id: selectedStaff.id, pin });
       const data = response.data.success?.data || {};
-      toast.dismiss(toastId);
       if (data.is_default_pin) {
         // Still on 1234: choose a personal PIN first (that step signs them in)
         setDefaultPinSession(true);
@@ -92,9 +99,7 @@ export default function Login() {
       toast.success(`Welcome, ${selectedStaff.first_name}`);
       handleSuccessfulAuth(data.access_token, data.refresh_token, data.staff, data.tenant, false, data.grace_info);
     } catch (error: any) {
-      toast.dismiss(toastId);
-      toast.error(error.response?.data?.error?.message || 'Incorrect PIN');
-      setPinKey((k) => k + 1);
+      setPinError(error.response?.data?.error?.message || 'Incorrect PIN');
     } finally {
       setIsAuthenticating(false);
     }
@@ -128,6 +133,7 @@ export default function Login() {
   // On a till everyone signs in with their PIN; owner-only actions still ask for a password
   const selectUser = (user: TillStaff) => {
     setSelectedStaff(user);
+    setPinError(null);
     setCurrentView('pin_entry');
   };
 
@@ -145,45 +151,42 @@ export default function Login() {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <div className="text-center mb-8">
+      <div className="text-center">
         <h1 className="text-2xl font-bold text-foreground">Who's working?</h1>
-        <p className="text-muted-foreground mt-1">
-          {businessName ? `${businessName}${tillName ? ` · ${tillName}` : ''}` : 'Select your profile to continue'}
+        <p className="text-sm text-muted-foreground mt-1">
+          {tillName ? `${tillName}${businessName ? ` · ${businessName}` : ''}` : businessName || 'Tap your name to sign in'}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto px-2 pb-4 scrollbar-hide">
-        {isLoadingStaff ? (
-          <div className="col-span-2 py-8 text-center text-muted-foreground">Loading staff...</div>
-        ) : (
-          staffList.map((staff) => (
+      {isLoadingStaff ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">Loading staff...</div>
+      ) : (
+        // Fits 9 people (6 on phones); longer lists scroll as whole rows
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[min(60vh,420px)] overflow-y-auto p-1 scrollbar-hide">
+          {staffList.map((staff) => (
             <button
               key={staff.id}
               onClick={() => selectUser(staff)}
-              className="flex flex-col items-center p-6 bg-muted hover:bg-primary/10 dark:hover:bg-primary/20 border border-border rounded-2xl transition-all hover:scale-105 hover:border-primary/30 hover:shadow-sm group"
+              className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl border border-border bg-card hover:bg-muted hover:border-foreground/20 active:scale-[0.98] transition-all"
             >
-              <div className="h-16 w-16 rounded-full bg-card text-card-foreground flex items-center justify-center text-primary shadow-sm mb-3 group-hover:bg-primary group-hover:text-white transition-colors">
-                <span className="text-xl font-bold uppercase">
-                  {staff.first_name?.[0] || '?'}
-                </span>
-              </div>
-              <span className="font-semibold text-foreground mb-1">
-                {staff.first_name}
+              <span className={`h-11 w-11 rounded-full text-white text-sm font-bold flex items-center justify-center ${avatarColor(staff.id)}`}>
+                {initialsOf(staff)}
               </span>
-              <span className="text-xs text-muted-foreground capitalize tracking-wide">
-                {staff.role}
+              <span className="text-center leading-tight min-w-0 w-full">
+                <span className="block text-sm font-semibold text-foreground truncate">{shortName(staff)}</span>
+                <span className="block text-[11px] text-muted-foreground">{ROLE_LABELS[staff.role] || staff.role}</span>
               </span>
             </button>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="pt-4 border-t border-border text-center">
         <button
           onClick={() => setCurrentView('manual_login')}
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          Login Manually
+          Sign in with email
         </button>
       </div>
     </motion.div>
@@ -198,22 +201,24 @@ export default function Login() {
     >
       <button
         onClick={goBack}
-        className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground dark:hover:text-white mb-6 transition-colors"
+        className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-6 transition-colors"
       >
-        <ChevronLeft className="h-4 w-4 mr-1" /> Back to users
+        <ChevronLeft className="h-4 w-4 mr-1" /> Back
       </button>
 
-      <div className="text-center mb-8">
-        <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
-          <span className="text-2xl font-bold uppercase">
-            {selectedStaff?.first_name?.[0] || '?'}
+      {selectedStaff && (
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <span className={`h-12 w-12 rounded-full text-white text-sm font-bold flex items-center justify-center ${avatarColor(selectedStaff.id)}`}>
+            {initialsOf(selectedStaff)}
           </span>
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-foreground">Hi, {selectedStaff.first_name}</h2>
+            <p className="text-sm text-muted-foreground">Enter your PIN</p>
+          </div>
         </div>
-        <h2 className="text-xl font-bold text-foreground">Hi, {selectedStaff?.first_name}</h2>
-        <p className="text-muted-foreground mt-1">Enter your PIN</p>
-      </div>
+      )}
 
-      <NumPad key={pinKey} onComplete={handlePinSubmit} maxLength={4} mask={true} />
+      <PinPad onComplete={handlePinSubmit} error={pinError} disabled={isAuthenticating} />
     </motion.div>
   );
 
@@ -289,7 +294,7 @@ export default function Login() {
             }}
             className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
           >
-            Show Staff Quick Login
+            Back to "Who's working?"
           </button>
         </div>
       )}
@@ -314,10 +319,7 @@ export default function Login() {
               handleSuccessfulAuth(resData.access_token, resData.refresh_token, resData.staff, resData.tenant, false, resData.grace_info);
             }
           }}
-          onCancel={() => {
-            setDefaultPinSession(false);
-            setPinKey((k) => k + 1);
-          }}
+          onCancel={() => setDefaultPinSession(false)}
         />
       </div>
 
