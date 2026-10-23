@@ -1169,7 +1169,8 @@ export const SearchableSelectField: FC<SearchableSelectFieldProps> = ({
               "hover:border-input focus-within:!border-foreground/40 focus-within:!ring-0 border-1",
               "data-[hover=true]:border-input data-[hover=true]:bg-background",
               "data-[focus=true]:border-foreground/40 data-[focus=true]:bg-background",
-              "h-11 px-3",
+              // Inside label: same height as CustomInputTextField (3.5rem) so the two line up
+              labelPlacement === "inside" ? "!h-[3.5rem] min-h-[3.5rem] px-3" : "h-11 px-3",
               error && "!border-red-400 focus-within:!border-red-400",
             ),
             input: "text-sm text-foreground placeholder:text-muted-foreground",

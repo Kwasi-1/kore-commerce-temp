@@ -26,6 +26,7 @@ export default function ChangePinModal({ isOpen, onClose }: Props) {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const reset = (to: Step = 'current', message: string | null = null) => {
     setStep(to);
@@ -58,8 +59,22 @@ export default function ChangePinModal({ isOpen, onClose }: Props) {
   const value = step === 'current' ? current : step === 'new' ? next : confirm;
   const setValue = step === 'current' ? setCurrent : step === 'new' ? setNext : setConfirm;
 
+  // Check the current PIN straight away, so a wrong one is caught before choosing a new one
+  const checkCurrent = async (pin: string) => {
+    setChecking(true);
+    try {
+      await apiClient.post('/auth/staff/check-pin', { pin });
+      setStep('new');
+    } catch (e: any) {
+      setCurrent('');
+      setError(e?.response?.data?.error?.message || 'Incorrect PIN');
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const onComplete = (pin: string) => {
-    if (step === 'current') setStep('new');
+    if (step === 'current') checkCurrent(pin);
     else if (step === 'new') {
       if (pin === '1234') reset('new', 'Choose a PIN other than 1234.');
       else setStep('confirm');
@@ -91,8 +106,10 @@ export default function ChangePinModal({ isOpen, onClose }: Props) {
             }}
             onComplete={onComplete}
             error={!!error}
+            disabled={checking}
             autoFocus
           />
+          {checking && <p className="text-[12px] text-center text-muted-foreground">Checking…</p>}
           {error && <p className="text-[12px] text-center text-destructive">{error}</p>}
           {step === 'current' && (
             <p className="text-[11px] text-center text-muted-foreground">Forgot it? A manager can reset it on the Staff page.</p>
