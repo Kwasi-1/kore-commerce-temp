@@ -5,13 +5,10 @@ import { CustomInputTextField } from '@/components/shared/text-field';
 import { CurrencyDisplay } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { 
-  Check, 
-  RotateCcw, 
-  Package, 
-  Plus, 
+import {
+  Check,
+  Plus,
   Minus,
-  Percent,
   SlidersHorizontal
 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
@@ -40,11 +37,11 @@ const REASON_OPTIONS = [
 
 const PERCENTAGE_PRESETS = [100, 75, 50, 25];
 
-export default function TransactionRefundModal({ 
-  isOpen, 
-  onClose, 
-  receiptData, 
-  onSuccess 
+export default function TransactionRefundModal({
+  isOpen,
+  onClose,
+  receiptData,
+  onSuccess
 }: TransactionRefundModalProps) {
   const [refundTab, setRefundTab] = useState<'full' | 'partial'>('full');
   const [enableCustomAdjustment, setEnableCustomAdjustment] = useState<boolean>(false);
@@ -54,6 +51,8 @@ export default function TransactionRefundModal({
   const [notes, setNotes] = useState<string>('');
   const [isRefunding, setIsRefunding] = useState(false);
   const [itemStates, setItemStates] = useState<Record<number, ItemConditionState>>({});
+  // Typed quantity text while editing (so "0.5" can be typed through "0" and "0.")
+  const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
 
   const getVal = (val: any): number => {
     if (val === null || val === undefined) return 0;
@@ -71,21 +70,26 @@ export default function TransactionRefundModal({
   );
 
   const rawItems: any[] = receiptData?.items || receiptData?.cartItems || [];
+  // Earlier refunds/returns already took some back: only what's left can be refunded
+  const refundable = receiptData?.refundableAmount !== undefined ? getVal(receiptData.refundableAmount) : totalAmount;
+  const alreadyRefunded = Math.max(Number((totalAmount - refundable).toFixed(2)), 0);
+  const lineMax = (item: any): number => {
+    const left = item?.returnableQuantity !== undefined ? getVal(item.returnableQuantity) : getVal(item?.quantity) || 1;
+    return Math.max(Number(left.toFixed(3)), 0);
+  };
+  const freshStates = (keepConditions?: Record<number, ItemConditionState>) => {
+    const out: Record<number, ItemConditionState> = {};
+    rawItems.forEach((item, idx) => {
+      const max = lineMax(item);
+      out[idx] = { selected: max > 0, returnQuantity: max, maxQuantity: max, condition: keepConditions?.[idx]?.condition || 'sellable' };
+    });
+    return out;
+  };
 
   // Reset or initialize item states when modal opens or receiptData changes
   useEffect(() => {
     if (rawItems.length > 0) {
-      const initial: Record<number, ItemConditionState> = {};
-      rawItems.forEach((item, idx) => {
-        const originalQty = item.quantity || 1;
-        initial[idx] = {
-          selected: true,
-          returnQuantity: originalQty,
-          maxQuantity: originalQty,
-          condition: 'sellable',
-        };
-      });
-      setItemStates(initial);
+      setItemStates(freshStates());
       setRefundTab('full');
       setEnableCustomAdjustment(false);
       setCustomAmountInput('');
@@ -108,7 +112,7 @@ export default function TransactionRefundModal({
   const toggleItemSelection = (idx: number) => {
     setItemStates(prev => {
       const curr = prev[idx];
-      if (!curr) return prev;
+      if (!curr || curr.maxQuantity <= 0) return prev;
       return {
         ...prev,
         [idx]: {
@@ -119,11 +123,23 @@ export default function TransactionRefundModal({
     });
   };
 
+  // Quantities can be part of a unit (sub-pack sales): steps of 1, never above what's left
+  const clampQty = (qty: number, max: number) => Number(Math.max(Math.min(qty, max), Math.min(1, max)).toFixed(3));
+  const typeItemQty = (idx: number, text: string) => {
+    setQtyDrafts(d => ({ ...d, [idx]: text }));
+    const qty = parseFloat(text);
+    if (isNaN(qty) || qty <= 0) return;
+    setItemStates(prev => {
+      const curr = prev[idx];
+      if (!curr) return prev;
+      return { ...prev, [idx]: { ...curr, returnQuantity: Number(Math.min(qty, curr.maxQuantity).toFixed(3)), selected: true } };
+    });
+  };
   const updateItemQty = (idx: number, delta: number) => {
     setItemStates(prev => {
       const curr = prev[idx];
       if (!curr) return prev;
-      const nextQty = Math.max(1, Math.min(curr.maxQuantity, curr.returnQuantity + delta));
+      const nextQty = clampQty(curr.returnQuantity + delta, curr.maxQuantity);
       return {
         ...prev,
         [idx]: {
@@ -145,8 +161,7 @@ export default function TransactionRefundModal({
     rawItems.forEach((item, idx) => {
       const state = itemStates[idx];
       const unitPrice = getVal(item.unitPrice || item.price || (item.subtotal && item.quantity ? item.subtotal / item.quantity : 0));
-      const originalQty = item.quantity || 1;
-      totalPurchased += originalQty;
+      totalPurchased += lineMax(item);
 
       if (state?.selected) {
         selectedItems += 1;
@@ -155,7 +170,7 @@ export default function TransactionRefundModal({
       }
     });
 
-    const isFull = selectedItems === rawItems.length && totalReturning === totalPurchased && sum >= (totalAmount - 0.05);
+    const isFull = Math.abs(totalReturning - totalPurchased) < 0.0005 && sum >= (refundable - 0.05);
 
     return {
       selectedItemsValue: Number(sum.toFixed(2)),
@@ -163,7 +178,7 @@ export default function TransactionRefundModal({
       selectedCount: selectedItems,
       totalItemCount: rawItems.length
     };
-  }, [rawItems, itemStates, totalAmount]);
+  }, [rawItems, itemStates, refundable]);
 
   // Handle Percentage Preset Click
   const handlePercentageClick = (pct: number) => {
@@ -175,7 +190,7 @@ export default function TransactionRefundModal({
   // Compute final effective refund amount
   const effectiveRefundAmount = useMemo(() => {
     if (refundTab === 'full') {
-      return totalAmount;
+      return refundable;
     }
     // Partial Refund mode:
     if (enableCustomAdjustment) {
@@ -183,11 +198,11 @@ export default function TransactionRefundModal({
       return isNaN(custom) ? 0 : custom;
     }
     return selectedItemsValue;
-  }, [refundTab, enableCustomAdjustment, customAmountInput, selectedItemsValue, totalAmount]);
+  }, [refundTab, enableCustomAdjustment, customAmountInput, selectedItemsValue, refundable]);
 
   const handleIssueRefund = async () => {
     if (!receiptData) return;
-    
+
     if (effectiveRefundAmount <= 0) {
       toast.error("Refund amount must be greater than 0");
       return;
@@ -198,8 +213,8 @@ export default function TransactionRefundModal({
       return;
     }
 
-    if (effectiveRefundAmount > totalAmount + 0.01) {
-      toast.error(`Refund amount cannot exceed original total of GHS ${totalAmount.toFixed(2)}`);
+    if (effectiveRefundAmount > refundable + 0.01) {
+      toast.error(`Only GHS ${refundable.toFixed(2)} is left to refund on this sale`);
       return;
     }
 
@@ -207,12 +222,13 @@ export default function TransactionRefundModal({
     try {
       // Build structured return items payload
       const refundItems = rawItems
-        .filter((_, idx) => (refundTab === 'full' ? true : itemStates[idx]?.selected !== false))
-        .map((item, idx) => {
-          const state = itemStates[idx] || { returnQuantity: item.quantity || 1, condition: 'sellable' };
-          const qty = refundTab === 'full' ? (item.quantity || 1) : (state.returnQuantity || item.quantity || 1);
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item, idx }) => lineMax(item) > 0 && (refundTab === 'full' || itemStates[idx]?.selected !== false))
+        .map(({ item, idx }) => {
+          const state = itemStates[idx] || { returnQuantity: lineMax(item), condition: 'sellable' };
+          const qty = refundTab === 'full' ? lineMax(item) : (state.returnQuantity || lineMax(item));
           const unitPrice = getVal(item.unitPrice || item.price || (item.subtotal && item.quantity ? item.subtotal / item.quantity : 0));
-          
+
           return {
             variant_id: item.variantId || item.variant_id || item.id || `var-${idx}`,
             packaging_tier_id: item.packagingTierId || item.packaging_tier_id || null,
@@ -234,20 +250,20 @@ export default function TransactionRefundModal({
         notes: notes.trim() || undefined,
         items: refundItems
       });
-      
+
       toast.success("Refund processed successfully");
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Refund failed:", error);
-      toast.error("Failed to process refund");
+      toast.error(error?.response?.data?.error?.message || "Failed to process refund");
     } finally {
       setIsRefunding(false);
     }
   };
 
   return (
-    <CustomModal 
-      isOpen={isOpen} 
+    <CustomModal
+      isOpen={isOpen}
       onOpenChange={onClose}
       placement="center"
       size="xl"
@@ -257,7 +273,7 @@ export default function TransactionRefundModal({
         }
       }
       header={
-        <div className="pb-2 border-b border-border/50">        
+        <div className="pb-2 border-b border-border/50">
           <h3 className="text-lg font-bold text-foreground !tracking-tight">Process Refund</h3>
           <p className="text-xs text-muted-foreground font-normal leading-[2]">
             Receipt #{receiptData?.orderNumber || receiptData?.receiptNumber || receiptData?.id?.slice(0, 8)?.toUpperCase()}
@@ -266,40 +282,30 @@ export default function TransactionRefundModal({
       }
       body={
         <div className="flex flex-col gap-4 max-h-[calc(100vh-185px)] sm:max-h-[calc(90vh-200px)] overflow-y-auto scrollbar-hide px-0.5">
-          
+
           {/* Streamlined 2-Tab Navigation */}
           <div className="flex bg-secondary/80 p-[3px] rounded-full border border-border/10">
-            <button 
+            <button
               type="button"
               className={`flex-1 text-xs md:text-[12px] font-semibold py-2.5 rounded-full transition-all ${
-                refundTab === 'full' 
-                  ? 'bg-background shadow-sm text-foreground font-bold' 
+                refundTab === 'full'
+                  ? 'bg-background shadow-sm text-foreground font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               onClick={() => {
                 setRefundTab('full');
                 setEnableCustomAdjustment(false);
-                // Select all items with max quantity
-                const reset: Record<number, ItemConditionState> = {};
-                rawItems.forEach((item, idx) => {
-                  const originalQty = item.quantity || 1;
-                  reset[idx] = {
-                    selected: true,
-                    returnQuantity: originalQty,
-                    maxQuantity: originalQty,
-                    condition: itemStates[idx]?.condition || 'sellable',
-                  };
-                });
-                setItemStates(reset);
+                // Select everything still returnable
+                setItemStates(freshStates(itemStates));
               }}
             >
               Full Refund
             </button>
-            <button 
+            <button
               type="button"
               className={`flex-1 text-xs md:text-[12px] font-semibold py-2.5 rounded-full transition-all ${
-                refundTab === 'partial' 
-                  ? 'bg-background shadow-sm text-foreground font-bold' 
+                refundTab === 'partial'
+                  ? 'bg-background shadow-sm text-foreground font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               onClick={() => {
@@ -335,10 +341,15 @@ export default function TransactionRefundModal({
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[11px] text-muted-foreground block">Original Total:</span>
+              <span className="text-[11px] text-muted-foreground block">{alreadyRefunded > 0 ? 'Left to refund:' : 'Original Total:'}</span>
               <span className="text-xs font-semibold text-foreground">
-                <CurrencyDisplay amount={totalAmount} showStyling={false}/>
+                <CurrencyDisplay amount={refundable} showStyling={false}/>
               </span>
+              {alreadyRefunded > 0 && (
+                <span className="text-[10px] text-muted-foreground block">
+                  of <CurrencyDisplay amount={totalAmount} showStyling={false}/> · <CurrencyDisplay amount={alreadyRefunded} showStyling={false}/> already refunded
+                </span>
+              )}
             </div>
           </div>
 
@@ -435,15 +446,17 @@ export default function TransactionRefundModal({
               <div className="border border-border/60 rounded-lg overflow-hidden text-xs bg-card">
                 <div className="divide-y divide-border/50">
                   {rawItems.map((item, idx) => {
-                    const state = itemStates[idx] || { selected: true, returnQuantity: item.quantity || 1, maxQuantity: item.quantity || 1, condition: 'sellable' };
+                    const state = itemStates[idx] || { selected: lineMax(item) > 0, returnQuantity: lineMax(item), maxQuantity: lineMax(item), condition: 'sellable' };
                     const name = item.productName || item.product_name || item.name || 'Item';
                     const unitPrice = getVal(item.unitPrice || item.price || (item.subtotal && item.quantity ? item.subtotal / item.quantity : 0));
-                    const maxQty = item.quantity || 1;
+                    const maxQty = lineMax(item);
+                    const purchased = getVal(item.quantity) || 1;
+                    const fullyReturned = maxQty <= 0;
                     const lineRefundSum = unitPrice * state.returnQuantity;
-                    
+
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`p-3 flex flex-col gap-2.5 transition-colors ${
                           state.selected ? 'bg-background/80' : 'bg-muted/20 opacity-60'
                         }`}
@@ -451,13 +464,13 @@ export default function TransactionRefundModal({
                         <div className="flex items-start justify-between gap-3">
                           {/* Checkbox & Product Info */}
                           <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                            {refundTab === 'partial' && (
+                            {refundTab === 'partial' && !fullyReturned && (
                               <Checkbox
                                 checked={state.selected}
                                 onCheckedChange={() => toggleItemSelection(idx)}
                               />
                             )}
-                            
+
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground text-xs truncate">{name}</p>
                               {(item.variantName || item.variant_name) && (
@@ -466,7 +479,15 @@ export default function TransactionRefundModal({
                                 </p>
                               )}
                               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                <span>Purchased: {maxQty}</span>
+                                <span>Purchased: {purchased}</span>
+                                {purchased - maxQty > 0.0005 && (
+                                  <>
+                                    <span>•</span>
+                                    <span className={fullyReturned ? 'font-semibold text-foreground' : ''}>
+                                      {fullyReturned ? 'Already returned' : `${Number((purchased - maxQty).toFixed(3))} already returned`}
+                                    </span>
+                                  </>
+                                )}
                                 <span>•</span>
                                 <span>@ <CurrencyDisplay amount={unitPrice} showStyling={false}/></span>
                               </div>
@@ -482,24 +503,33 @@ export default function TransactionRefundModal({
                         </div>
 
                         {/* Quantity Stepper & Condition Selector (Active when item is selected) */}
-                        {state.selected && (
+                        {state.selected && !fullyReturned && (
                           <div className={`flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 ${refundTab === 'partial' ? 'pl-6.5' : ''}`}>
                             {/* Quantity Stepper (if purchased more than 1) */}
-                            {maxQty > 1 && refundTab === 'partial' ? (
+                            {maxQty > 0 && maxQty !== 1 && refundTab === 'partial' ? (
                               <div className="flex items-center gap-2">
                                 <span className="text-[11px] text-muted-foreground font-medium">Return Qty:</span>
                                 <div className="inline-flex items-center rounded-lg border border-border/80 bg-muted/40 p-0.5">
                                   <button
                                     type="button"
-                                    disabled={state.returnQuantity <= 1}
+                                    disabled={state.returnQuantity <= Math.min(1, maxQty)}
                                     onClick={() => updateItemQty(idx, -1)}
                                     className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-background disabled:opacity-30 transition-all"
                                   >
                                     <Minus className="w-3 h-3" />
                                   </button>
-                                  <span className="w-8 text-center font-bold text-xs tabular-nums text-foreground">
-                                    {state.returnQuantity}
-                                  </span>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min={0}
+                                    step="any"
+                                    value={qtyDrafts[idx] ?? state.returnQuantity}
+                                    onChange={(e) => typeItemQty(idx, e.target.value)}
+                                    onBlur={() => setQtyDrafts(d => { const next = { ...d }; delete next[idx]; return next; })}
+                                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                                    aria-label={`Quantity of ${name} to return`}
+                                    className="w-12 text-center font-bold text-xs tabular-nums text-foreground bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
                                   <button
                                     type="button"
                                     disabled={state.returnQuantity >= maxQty}
@@ -591,20 +621,20 @@ export default function TransactionRefundModal({
       }
       footer={
         <div className="flex gap-2.5 w-full justify-end pt-2 border-t border-border/40">
-          <Button 
-            variant="outline" 
-            className="rounded-full px-5 text-xs font-semibold hidden sm:flex" 
-            onClick={onClose} 
+          <Button
+            variant="outline"
+            className="rounded-full px-5 text-xs font-semibold hidden sm:flex"
+            onClick={onClose}
             disabled={isRefunding}
           >
             Cancel
           </Button>
-          <Button 
-            className="rounded-full px-6 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm w-full sm:w-fit" 
-            onClick={handleIssueRefund} 
-            disabled={isRefunding || effectiveRefundAmount <= 0}
+          <Button
+            className="rounded-full px-6 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm w-full sm:w-fit"
+            onClick={handleIssueRefund}
+            disabled={isRefunding || effectiveRefundAmount <= 0 || refundable <= 0}
           >
-            {isRefunding ? 'Processing...' : `Confirm & Issue Refund (${effectiveRefundAmount > 0 ? `GHS ${effectiveRefundAmount.toFixed(2)}` : ''})`}
+            {refundable <= 0 ? 'Already fully refunded' : isRefunding ? 'Processing...' : `Confirm & Issue Refund (${effectiveRefundAmount > 0 ? `GHS ${effectiveRefundAmount.toFixed(2)}` : ''})`}
           </Button>
         </div>
       }

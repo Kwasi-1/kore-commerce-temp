@@ -244,6 +244,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                       <span className="text-muted-foreground font-semibold">(-) Paid Out (Expenses)</span>
                       <span className="font-bold text-destructive"><CurrencyDisplay showStyling={false} amount={recon?.paid_out || 0} /></span>
                     </div>
+                    {(recon?.cash_refunds || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-semibold">(-) Cash Refunds</span>
+                        <span className="font-bold text-destructive"><CurrencyDisplay showStyling={false} amount={recon.cash_refunds} /></span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-2 border-t border-border flex justify-between items-center text-sm font-bold bg-muted/40 p-2.5 rounded-lg">
