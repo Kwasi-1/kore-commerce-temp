@@ -76,6 +76,8 @@ const CustomModal: FC<CustomModalProps> = ({
       placement={placement}
       radius={radius}
       classNames={{
+        ...(classNames.backdrop ? { backdrop: classNames.backdrop } : {}),
+        ...(classNames.wrapper ? { wrapper: classNames.wrapper } : {}),
         body: cn("py-0 dark:text-[#F5F5F5]", classNames.body),
         base: cn(
           "border-[#161616] dark:bg-sidebar dark:text-[#a8b0d3] font-header spacing-sm",

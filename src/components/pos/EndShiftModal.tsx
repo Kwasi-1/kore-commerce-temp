@@ -124,6 +124,18 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
 
   const canSubmit = byDenomination || actualCashStr !== '';
 
+  const notesField = (
+    <Textarea
+      label="Notes (optional)"
+      labelPlacement="outside"
+      value={notes}
+      onChange={(e) => setNotes(e.target.value)}
+      placeholder="Anything the manager should know about this shift"
+      textareaClassName="bg-background focus:ring-primary/50"
+      rows={2}
+    />
+  );
+
   return (
     <>
       <CustomModal
@@ -182,6 +194,9 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
               <p className="text-[11px] text-muted-foreground px-1">
                 Blind count: the cash you should have is shown on the Z report after you close.
               </p>
+
+              {/* With the note-and-coin count the right side is full, so notes sit here (desktop) */}
+              {byDenomination && <div className="hidden md:block">{notesField}</div>}
             </div>
 
             {/* Cash count */}
@@ -209,15 +224,8 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
                 </p>
               </div>
 
-              <Textarea
-                label="Notes (optional)"
-                labelPlacement="outside"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anything the manager should know about this shift"
-                textareaClassName="bg-background focus:ring-primary/50"
-                rows={2}
-              />
+              {/* On a phone the columns stack: notes come after the count */}
+              <div className={byDenomination ? 'md:hidden' : ''}>{notesField}</div>
             </div>
           </div>
         }
