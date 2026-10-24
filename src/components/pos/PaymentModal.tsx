@@ -7,9 +7,11 @@ import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/api/client';
 import { CurrencyDisplay, useReceiptHeader, useQuantityFormatter, formatPhoneNumber, isValidGhanaPhone } from '@/hooks';
-import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import { CheckCircle2, Printer, CreditCard, Loader2, ChevronDown, Lock, WifiOff, Clock, AlertTriangle, UserCheck, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
+import { Icon } from '@iconify/react';
+import PaymentMethodVisual from './PaymentMethodVisual';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
@@ -25,10 +27,23 @@ interface PaymentModalProps {
   defaultMethod?: 'cash' | 'mobile_money' | 'card';
 }
 
+type SplitMethod = 'cash' | 'mobile_money' | 'card' | 'credit';
+interface SplitLine { id: string; method: SplitMethod; amount: string; momo?: string }
+const SPLIT_LABEL: Record<SplitMethod, string> = { cash: 'Cash', mobile_money: 'MoMo', card: 'Card', credit: 'Credit' };
+const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+// Money as typed: digits, one point, two decimals
+const cleanMoney = (raw: string) => {
+  const t = raw.replace(/[^\d.]/g, '');
+  const dot = t.indexOf('.');
+  return dot === -1 ? t.slice(0, 7) : t.slice(0, dot).slice(0, 7) + '.' + t.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+};
+
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
   const { items, subtotal, discount, discountApproval, clearCart } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
+  const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card' | 'split'>(defaultMethod);
+  // Split payment: paid several ways (e.g. part cash, part MoMo, rest on credit)
+  const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
   const [showOffline, setShowOffline] = useState(false);
@@ -78,11 +93,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
   // Active payment tabs: filter by enabled methods in POS settings
   // If offline, online-only tabs (like Card) are filtered out of active tabs
-  const paymentTabs = ALL_TABS.filter((t) => {
+  const methodTabs = ALL_TABS.filter((t) => {
     if (!enabledMethods.includes(t.id)) return false;
     if (!isOnline && t.requiresOnline) return false;
     return true;
   });
+  const splitEnabled = !!featureSettings.pos_split_payment_enabled;
+  const paymentTabs: { id: 'cash' | 'mobile_money' | 'card' | 'split'; label: string }[] = [
+    ...methodTabs,
+    ...(splitEnabled ? [{ id: 'split' as const, label: 'Split' }] : []),
+  ];
 
   // Gateway-only tabs shown as locked when offline
   const lockedGatewayTabs = !isOnline
@@ -100,6 +120,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   useEffect(() => {
     if (isOpen) {
       setActiveTab(resolveDefault(defaultMethod));
+      setSplitLines([]);
       setAmountTenderedStr('');
       setMomoNumber('');
       setIsCreditSale(false);
@@ -169,13 +190,48 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const amountTendered = parseFloat(amountTenderedStr) || 0;
   const change = Math.max(0, amountTendered - total);
 
+  // Split payment totals (the server checks the same: only cash can be more than what's left)
+  const isSplit = !isCreditSale && activeTab === 'split';
+  const splitPaid = r2(splitLines.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0));
+  const splitCash = r2(splitLines.filter((l) => l.method === 'cash').reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0));
+  const splitRemaining = r2(total - splitPaid);
+  const splitChange = r2(Math.max(0, splitPaid - total));
+  const splitHasCredit = isSplit && splitLines.some((l) => l.method === 'credit');
+  const splitProblem = !isSplit
+    ? null
+    : splitLines.length === 0
+    ? 'Add how the customer is paying'
+    : splitLines.some((l) => !(parseFloat(l.amount) > 0))
+    ? 'Each payment needs an amount'
+    : splitRemaining > 0.001
+    ? `GHS ${splitRemaining.toFixed(2)} is still to pay`
+    : splitChange > splitCash + 0.001
+    ? 'Only cash can be more than what\'s left (for change)'
+    : null;
+  const splitAddable: SplitMethod[] = [
+    ...methodTabs.map((t) => t.id as SplitMethod).filter((m) => !splitLines.some((l) => l.method === m)),
+    ...(featureSettings.pos_credit_enabled && !splitLines.some((l) => l.method === 'credit') ? ['credit' as SplitMethod] : []),
+  ];
+  const addSplit = (method: SplitMethod) =>
+    setSplitLines((lines) => [...lines, { id: crypto.randomUUID(), method, amount: splitRemaining > 0 ? splitRemaining.toFixed(2) : '' }]);
+  const updateSplit = (id: string, patch: Partial<SplitLine>) =>
+    setSplitLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  const removeSplit = (id: string) => setSplitLines((lines) => lines.filter((l) => l.id !== id));
+  const splitPayload = () =>
+    splitLines.map((l) => ({
+      method: l.method === 'mobile_money' ? 'mobile_money_manual' : l.method,
+      amount: parseFloat(l.amount) || 0,
+      ...(l.momo ? { momoNumber: l.momo } : {}),
+    }));
+  const owesCredit = isCreditSale || splitHasCredit;
+
   // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
   // Raised prices and discounts are approved when they're made (the sale carries those tickets)
   const approvalTickets = [
     ...items.filter((i) => i.price_overridden && i.approval_ticket).map((i) => i.approval_ticket as string),
     ...(discount > 0 && discountApproval ? [discountApproval.ticket] : []),
   ];
-  const needsApproval = (discount > 0 && !can('pos.discount') && !discountApproval) || (isCreditSale && !can('pos.credit_sale'))
+  const needsApproval = (discount > 0 && !can('pos.discount') && !discountApproval) || (owesCredit && !can('pos.credit_sale'))
     || (items.some((i) => i.price_overridden && !i.approval_ticket) && !can('pos.price_override'));
 
   /**
@@ -186,7 +242,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
    */
   const saveOfflineSale = (toastId?: string, opts: { online?: boolean; key?: string } = {}) => {
     if (needsApproval) {
-      const message = isCreditSale && !can('pos.credit_sale')
+      const message = owesCredit && !can('pos.credit_sale')
         ? "Credit sales need a manager's approval, which needs an internet connection."
         : discount > 0 && !can('pos.discount')
         ? "This discount needs a manager's approval, which needs an internet connection."
@@ -225,9 +281,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       // MoMo is confirmed by the cashier (there's no Paystack prompt at the till yet)
       paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
       isCreditSale,
-      customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
-      customerName: isCreditSale ? customerName : undefined,
-      customerPhone: isCreditSale ? customerPhone : undefined,
+      customerDetails: owesCredit ? { name: customerName, phone: customerPhone } : undefined,
+      customerName: owesCredit ? customerName : undefined,
+      customerPhone: owesCredit ? customerPhone : undefined,
+      ...(isSplit ? { payments: splitPayload() } : {}),
       // Recorded under the person who made the sale, at the time it was made (someone else may be
       // signed in on a shared till by the time it syncs)
       cashierId: staffUser?.id,
@@ -266,6 +323,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   };
 
   const handleTransaction = async () => {
+    if (splitProblem) {
+      toast.error(splitProblem);
+      return;
+    }
     if (activeTab === 'cash' && !isCreditSale && amountTendered < total) {
       toast.error('Tendered amount is less than total due');
       return;
@@ -282,7 +343,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       }
     }
 
-    if (isCreditSale && posSettings.require_customer_for_credit && (!customerName || !customerPhone)) {
+    if (owesCredit && posSettings.require_customer_for_credit && (!customerName || !customerPhone)) {
       toast.error('Customer Name and Phone are required for Credit Sales');
       return;
     }
@@ -321,7 +382,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         discount: discount || 0,
         paymentMethod: isCreditSale ? 'credit' : activeTab,
         isCreditSale,
-        customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
+        customerDetails: owesCredit ? { name: customerName, phone: customerPhone } : undefined,
+        ...(isSplit ? { payments: splitPayload() } : {}),
         ...(approvalTickets.length ? { approval: { tickets: approvalTickets } } : {}),
       };
 
@@ -413,11 +475,25 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
             <span className="uppercase font-semibold text-zinc-900">
               {isCreditSale
                 ? 'CREDIT'
-                : activeTab === 'mobile_money'
-                  ? 'MOBILE MONEY'
-                  : activeTab.replace('_', ' ')}
+                : activeTab === 'split'
+                  ? 'SPLIT'
+                  : activeTab === 'mobile_money'
+                    ? 'MOBILE MONEY'
+                    : activeTab.replace('_', ' ')}
             </span>
           </div>
+          {isSplit && splitLines.map((l) => (
+            <div key={l.id} className="flex justify-between pl-2 text-zinc-500">
+              <span>{l.method === 'credit' ? 'On credit' : SPLIT_LABEL[l.method]}</span>
+              <span>{(parseFloat(l.amount) || 0).toFixed(2)}</span>
+            </div>
+          ))}
+          {isSplit && splitChange > 0 && (
+            <div className="flex justify-between pl-2 text-zinc-500">
+              <span>Change</span>
+              <span>{splitChange.toFixed(2)}</span>
+            </div>
+          )}
           {/* {momoNumber && activeTab === 'mobile_money' && (
             <div className="flex justify-between">
               <span className="font-semibold">MoMo Phone:</span>
@@ -561,83 +637,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     );
   };
 
-  const renderPaymentFlow = () => (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Desktop Fixed Header: Pinned at top above scroll container on desktop */}
-      <div className="hidden md:flex mb-6 justify-between items-end border-b border-border/50 pb-4 shrink-0">
-        <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
-        {!isOnline && (
-          <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
-            <WifiOff className="h-3.5 w-3.5" />
-            <span>Offline Mode</span>
-          </div>
-        )}
-      </div>
-
-      {/* Desktop Offline Banner (Fixed) */}
-      {!isOnline && showOffline && (
-        <div className="hidden md:flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
-          <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-bold mb-0.5">No Internet Connection</p>
-            <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto min-h-fit md:pr-1 md:py-1 scrollbar-hide overflow-x-hidden flex flex-col gap-y-5 pb-6">
-        {/* Mobile-only receipt summary: sits at top and scrolls with content */}
-        <div className="md:hidden">
-          {renderMobileReceiptSummary()}
-        </div>
-
-        {/* Inset wrapper for payment details header and controls on mobile */}
-        <div className="px-2 py-1 md:px-0 md:py-0 flex flex-col gap-y-5">
-          {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
-          <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
-            <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
-            {!isOnline && (
-              <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
-                <WifiOff className="h-3.5 w-3.5" />
-                <span>Offline Mode</span>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile-only Offline Banner (Scrolls with content) */}
-          {!isOnline && showOffline && (
-            <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
-              <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-bold mb-0.5">No Internet Connection</p>
-                <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Credit Toggle Section — only shown when pos_credit_enabled */}
-          {featureSettings.pos_credit_enabled && (
-          <div>
-            <div
-              className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
-              onClick={() => setIsCreditSale(!isCreditSale)}
-            >
-              <div>
-                <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
-                <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
-              </div>
-              <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
-                <Switch
-                   isSelected={isCreditSale}
-                   onValueChange={setIsCreditSale}
-                   color="default"
-                   size="sm"
-                   classNames={{ wrapper: "mr-0" }}
-                />
-              </div>
-            </div>
-
-            {isCreditSale && (
+  // Who owes the money: a credit sale, or the credit part of a split payment
+  const renderCustomerFields = () => (
               <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
                 <SearchableSelectField
                   label="Customer Name"
@@ -720,7 +721,85 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   </div>
                 )}
               </div>
+  );
+
+  const renderPaymentFlow = () => (
+    <div className="flex flex-col h-full min-h-0">
+      {/* Desktop Fixed Header: Pinned at top above scroll container on desktop */}
+      <div className="hidden md:flex mb-6 justify-between items-end border-b border-border/50 pb-4 shrink-0">
+        <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
+        {!isOnline && (
+          <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
+            <WifiOff className="h-3.5 w-3.5" />
+            <span>Offline Mode</span>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Offline Banner (Fixed) */}
+      {!isOnline && showOffline && (
+        <div className="hidden md:flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
+          <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-bold mb-0.5">No Internet Connection</p>
+            <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto min-h-fit md:pr-1 md:py-1 scrollbar-hide overflow-x-hidden flex flex-col gap-y-5 pb-6">
+        {/* Mobile-only receipt summary: sits at top and scrolls with content */}
+        <div className="md:hidden">
+          {renderMobileReceiptSummary()}
+        </div>
+
+        {/* Inset wrapper for payment details header and controls on mobile */}
+        <div className="px-2 py-1 md:px-0 md:py-0 flex flex-col gap-y-5">
+          {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
+          <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
+            <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
+            {!isOnline && (
+              <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
+                <WifiOff className="h-3.5 w-3.5" />
+                <span>Offline Mode</span>
+              </div>
             )}
+          </div>
+
+          {/* Mobile-only Offline Banner (Scrolls with content) */}
+          {!isOnline && showOffline && (
+            <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+              <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold mb-0.5">No Internet Connection</p>
+                <p className="text-amber-600/80 dark:text-amber-400/80">Gateway payments are unavailable. Use Cash or Manual MoMo. Sales will sync automatically when back online.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Credit Toggle Section — only shown when pos_credit_enabled */}
+          {featureSettings.pos_credit_enabled && (
+          <div>
+            <div
+              className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
+              onClick={() => setIsCreditSale(!isCreditSale)}
+            >
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5">Customer will pay at a later date</p>
+              </div>
+              <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <Switch
+                   isSelected={isCreditSale}
+                   onValueChange={setIsCreditSale}
+                   color="default"
+                   size="sm"
+                   classNames={{ wrapper: "mr-0" }}
+                />
+              </div>
+            </div>
+
+            {isCreditSale && renderCustomerFields()}
           </div>
           )}
 
@@ -813,6 +892,82 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     </p>
                   </div>
                 )}
+
+                {activeTab === 'split' && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {splitLines.length === 0 && (
+                      <p className="text-xs text-muted-foreground font-medium">Add how the customer is paying, e.g. part cash and part MoMo.</p>
+                    )}
+                    {splitLines.map((l) => (
+                      <div key={l.id} className="rounded-xl border border-border/70 p-2.5 space-y-2">
+                        <div className="flex items-center gap-2.5">
+                          {l.method === 'credit' ? (
+                            <span className="h-6 w-6 flex items-center justify-center rounded-md bg-muted text-muted-foreground shrink-0">
+                              <Icon icon="solar:notebook-linear" className="h-3.5 w-3.5" />
+                            </span>
+                          ) : (
+                            <PaymentMethodVisual method={l.method} size="md" />
+                          )}
+                          <span className="text-sm font-semibold flex-1">{l.method === 'credit' ? 'On credit' : SPLIT_LABEL[l.method]}</span>
+                          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 h-10 w-36 cursor-text">
+                            <span className="text-[11px] text-muted-foreground font-semibold">GHS</span>
+                            <input
+                              value={l.amount}
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              onChange={(e) => updateSplit(l.id, { amount: cleanMoney(e.target.value) })}
+                              aria-label={`${SPLIT_LABEL[l.method]} amount`}
+                              className="w-full min-w-0 bg-transparent text-right text-sm font-bold tabular-nums focus:outline-none"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeSplit(l.id)}
+                            aria-label={`Remove ${SPLIT_LABEL[l.method]}`}
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {l.method === 'mobile_money' && (
+                          <input
+                            value={l.momo || ''}
+                            inputMode="tel"
+                            placeholder="Customer MoMo number (optional)"
+                            onChange={(e) => updateSplit(l.id, { momo: e.target.value.replace(/[^\d+]/g, '').slice(0, 13) })}
+                            className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-sm focus:outline-none"
+                          />
+                        )}
+                      </div>
+                    ))}
+                    {splitAddable.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {splitAddable.map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => addSplit(m)}
+                            className="h-8 px-3 rounded-full border border-border text-xs font-semibold hover:bg-muted inline-flex items-center gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {m === 'credit' ? 'Rest on credit' : SPLIT_LABEL[m]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {splitLines.length > 0 && (
+                      <div className="bg-secondary/80 rounded-lg px-4 py-3 flex items-center justify-between">
+                        <span className="text-foreground font-bold uppercase tracking-wider text-xs">
+                          {splitChange > 0 ? 'Change due' : splitRemaining > 0.001 ? 'Left to pay' : 'Fully paid'}
+                        </span>
+                        <span className="text-xl font-black text-foreground">
+                          <CurrencyDisplay amount={splitChange > 0 ? splitChange : Math.max(splitRemaining, 0)} />
+                        </span>
+                      </div>
+                    )}
+                    {splitHasCredit && renderCustomerFields()}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -827,7 +982,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
         <Button
           onClick={handleTransaction}
-          disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total)}
+          disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem}
           className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
         >
           {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
@@ -859,7 +1014,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <div className="flex items-center justify-between py-1 border-b border-border/40 text-xs">
             <span className="text-muted-foreground font-medium">Payment Method</span>
             <span className="font-bold text-foreground uppercase">
-              {isCreditSale ? 'Store Credit' : activeTab === 'cash' ? 'Cash' : activeTab === 'mobile_money' ? 'Mobile Money' : 'Card'}
+              {isCreditSale ? 'Store Credit' : activeTab === 'split' ? 'Split' : activeTab === 'cash' ? 'Cash' : activeTab === 'mobile_money' ? 'Mobile Money' : 'Card'}
             </span>
           </div>
 
@@ -887,7 +1042,20 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
             </>
           )}
 
-          {isCreditSale && customerName && (
+          {isSplit && splitLines.map((l) => (
+            <div key={l.id} className="flex items-center justify-between py-1 border-b border-border/40 text-xs">
+              <span className="text-muted-foreground font-medium">{l.method === 'credit' ? 'On credit' : SPLIT_LABEL[l.method]}</span>
+              <span className="font-medium text-foreground"><CurrencyDisplay amount={parseFloat(l.amount) || 0} /></span>
+            </div>
+          ))}
+          {isSplit && splitChange > 0 && (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-muted-foreground font-medium">Change Due</span>
+              <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm"><CurrencyDisplay amount={splitChange} /></span>
+            </div>
+          )}
+
+          {owesCredit && customerName && (
             <div className="flex items-center justify-between pt-1 text-xs">
               <span className="text-muted-foreground font-medium">Customer</span>
               <span className="font-bold text-foreground truncate max-w-[160px]">
@@ -905,7 +1073,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
             </div>
           )}
 
-          {isCreditSale && customerPhone && (
+          {owesCredit && customerPhone && (
             <div className="flex items-center justify-between pt-1 text-xs">
               <span className="text-muted-foreground font-medium">Phone</span>
               <span className="font-sans font-medium text-foreground">

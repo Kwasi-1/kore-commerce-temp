@@ -118,6 +118,13 @@ export default function TransactionSidePanel({
             <span className="font-semibold">Payment:</span>
             <span className="uppercase font-semibold text-zinc-900">{displayPaymentMethod}</span>
           </div>
+          {/* Split payment: each way it was paid */}
+          {(receiptData?.payments || []).map((p: any, i: number) => (
+            <div key={i} className="flex justify-between pl-2 text-zinc-500">
+              <span>{p.method === 'credit' ? 'On credit' : p.method === 'mobile_money_manual' || p.method === 'mobile_money' ? 'MoMo' : p.method === 'card' ? 'Card' : 'Cash'}</span>
+              <span>{formatAmount(p.method === 'cash' && p.tendered != null ? p.tendered : p.amount)}</span>
+            </div>
+          ))}
           {momoPhone && (
             <div className="flex justify-between">
               <span className="font-semibold">MoMo Phone:</span>
