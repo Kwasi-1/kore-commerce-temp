@@ -66,7 +66,7 @@ export default function ShiftModal({ isOpen, onOpenChange, onOpenShift, isOpenin
       <Button
         type="submit"
         disabled={isOpening || (!byDenomination && !openingFloatStr)}
-        className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm bg-[#b6f250] text-black hover:bg-[#a6e240] transition-colors"
+        className="w-full h-12 rounded-xl font-bold text-[15px] shadow-sm bg-primary text-black transition-colors"
       >
         {isOpening ? 'Starting Shift...' : byDenomination && cashCountIsEmpty(count) ? 'Start Shift with no float' : 'Start Shift'}
       </Button>

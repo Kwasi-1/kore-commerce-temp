@@ -4,17 +4,18 @@ import { CustomInputTextField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyDisplay } from '@/hooks';
-import { useAuthStore } from '@/store/authStore';
 import { useShift } from '@/hooks/useShift';
 import apiClient from '@/api/client';
-import { Clock, Activity, CreditCard, Smartphone, Banknote, ShieldAlert, EyeOff } from 'lucide-react';
+import { EyeOff } from 'lucide-react';
+import { Icon } from '@iconify/react';
+import PaymentMethodVisual, { PaymentMethodType } from './PaymentMethodVisual';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../ui/spinner';
 import ZReportModal from './ZReportModal';
 import { useFeaturesStore } from '@/store/featuresStore';
 import CashCountInput from './CashCountInput';
-import { CashCount, cashCountIsEmpty, cashCountPayload, cashCountTotal } from '@/utils/cashCount';
+import { CashCount, cashCountPayload, cashCountTotal } from '@/utils/cashCount';
 
 interface EndShiftModalProps {
   isOpen: boolean;
@@ -22,8 +23,7 @@ interface EndShiftModalProps {
 }
 
 export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
-  const { staffUser } = useAuthStore();
-  const { currentShift, closeShift, refreshShift } = useShift();
+  const { currentShift, closeShift } = useShift();
   const navigate = useNavigate();
 
   const [shiftSummary, setShiftSummary] = useState<any>(null);
@@ -31,10 +31,11 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
 
   const [actualCashStr, setActualCashStr] = useState('');
   const byDenomination = useFeaturesStore((st) => !!st.posSettings?.pos_cash_count_by_denomination);
+  const posSettings = useFeaturesStore((st) => st.posSettings);
+  const getEffectivePaymentMethods = useFeaturesStore((st) => st.getEffectivePaymentMethods);
   const [count, setCount] = useState<CashCount>({});
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [debouncedCashStr, setDebouncedCashStr] = useState('');
 
   // Fetch live summary whenever modal opens
   useEffect(() => {
@@ -57,23 +58,11 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedCashStr(actualCashStr);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [actualCashStr]);
-
   const activeShift = shiftSummary || currentShift;
-  const expectedCash = activeShift?.current_expected_cash ?? activeShift?.expected_cash ?? activeShift?.opening_float ?? 0;
 
   const totalTransactions = activeShift?.total_transactions ?? 0;
-  const cardAmount = activeShift?.payment_breakdown?.card?.total ?? 0;
-  const momoAmount = activeShift?.payment_breakdown?.mobile_money?.total ?? 0;
 
-  const actualCash = byDenomination ? cashCountTotal(count) : parseFloat(debouncedCashStr) || 0;
-  const discrepancy = actualCash - expectedCash;
-  const hasDiscrepancy = discrepancy !== 0 && (byDenomination ? !cashCountIsEmpty(count) : debouncedCashStr !== '');
+  const actualCash = byDenomination ? cashCountTotal(count) : parseFloat(actualCashStr) || 0;
 
   const [closedShiftId, setClosedShiftId] = useState<string | null>(null);
   const [isZReportOpen, setIsZReportOpen] = useState(false);
@@ -110,122 +99,138 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
 
   const formattedStartTime = formatShiftTime(activeShift?.opened_at);
   const formattedEndTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const duration = (() => {
+    if (!activeShift?.opened_at) return '';
+    const mins = Math.max(0, Math.round((Date.now() - new Date(activeShift.opened_at).getTime()) / 60000));
+    const h = Math.floor(mins / 60);
+    return h ? `${h}h ${mins % 60}m` : `${mins}m`;
+  })();
+
+  // Payment breakdown: only the methods this store takes (plus any that had sales this shift).
+  // Cash is counted blind, so its amount stays hidden.
+  const breakdown = activeShift?.payment_breakdown || {};
+  const line = (...keys: string[]) => keys.reduce(
+    (acc, k) => ({ count: acc.count + (breakdown[k]?.count || 0), total: acc.total + (breakdown[k]?.total || 0) }),
+    { count: 0, total: 0 },
+  );
+  const enabledMethods = getEffectivePaymentMethods();
+  const methodRows = [
+    { key: 'cash', label: 'Cash', on: enabledMethods.includes('cash'), ...line('cash') },
+    { key: 'mobile_money', label: 'Mobile Money', on: enabledMethods.includes('mobile_money'), ...line('mobile_money', 'mobile_money_manual') },
+    { key: 'card', label: 'Card', on: enabledMethods.includes('card'), ...line('card') },
+    { key: 'credit', label: 'Credit', on: !!posSettings?.pos_credit_enabled, ...line('credit') },
+  ].filter((m) => m.on || m.count > 0);
+
+  const canSubmit = byDenomination || actualCashStr !== '';
 
   return (
     <>
       <CustomModal
         isOpen={isOpen}
         onOpenChange={onClose}
-        size="4xl"
+        size="3xl"
         header={
-          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-            <div>
-              <h3 className="text-xl font-bold">End Shift & Recon</h3>
-              <p className="text-xs font-semibold text-muted-foreground">Verify totals and close your current session.</p>
-            </div>
+          <div className="pt-2 px-1 border-b border-border/50 pb-3">
+            <h3 className="text-lg font-bold text-foreground">End Shift</h3>
+            <p className="text-[12px] font-normal text-muted-foreground mt-0.5">Count the cash in the drawer to close your shift.</p>
           </div>
         }
         body={
-          <div className="grid md:grid-cols-2 gap-6 pt-4">
+          <div className="grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-5 md:gap-6 pt-3 pb-1">
 
-            {/* Left Column: Shift Summary */}
-            <div className="flex flex-col gap-4">
-              <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4" /> Shift Summary
-              </h4>
-
-              <div className="p-4 rounded-md flex flex-col gap-3 border">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Shift Time</span>
-                  <span className="text-sm font-bold">{formattedStartTime} - {formattedEndTime}</span>
+            {/* Shift summary */}
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl border border-border/70 divide-y divide-border/60 text-sm">
+                <div className="flex items-center justify-between px-3.5 py-2.5">
+                  <span className="text-muted-foreground">Shift</span>
+                  <span className="font-semibold tabular-nums text-right">
+                    {formattedStartTime} – {formattedEndTime}
+                    {duration && <span className="block text-[11px] font-normal text-muted-foreground">{duration}</span>}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-muted-foreground">Total Transactions</span>
-                  <span className="text-sm font-bold">{isLoadingSummary ? <Spinner/> : totalTransactions}</span>
-                </div>
-              </div>
-
-              <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mt-2">Payment Breakdown</h4>
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="bg-card p-3 rounded-md flex flex-col gap-1 border border-border/60">
-                   <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-blue-500" /> Card</span>
-                   <span className="text-sm font-bold"><CurrencyDisplay amount={cardAmount} /></span>
-                 </div>
-                 <div className="bg-card p-3 rounded-md flex flex-col gap-1 border border-border/60">
-                   <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Smartphone className="h-3.5 w-3.5 text-yellow-500" /> Mobile Money</span>
-                   <span className="text-sm font-bold"><CurrencyDisplay amount={momoAmount} /></span>
-                 </div>
-              </div>
-
-              <div className="bg-muted/40 border border-border/60 p-4 rounded-xl mt-1 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-                   <Banknote className="h-4 w-4 text-primary" />
-                   <span>Expected Cash</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-background px-3 py-1 rounded-full border border-border/60 shadow-xs">
-                  <EyeOff className="h-3.5 w-3.5" /> Blind Recon
+                <div className="flex items-center justify-between px-3.5 py-2.5">
+                  <span className="text-muted-foreground">Sales</span>
+                  <span className="font-semibold tabular-nums">{isLoadingSummary ? <Spinner /> : totalTransactions}</span>
                 </div>
               </div>
+
+              <div className="rounded-xl border border-border/70 divide-y divide-border/60 text-sm">
+                {methodRows.map((m) => (
+                  <div key={m.key} className="flex items-center gap-3 px-3.5 py-2.5">
+                    {m.key === 'credit' ? (
+                      <span className="h-6 w-6 flex items-center justify-center rounded-md bg-muted text-muted-foreground shrink-0">
+                        <Icon icon="solar:notebook-linear" className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <PaymentMethodVisual method={m.key as PaymentMethodType} size="md" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium leading-tight">{m.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{m.count} sale{m.count === 1 ? '' : 's'}</p>
+                    </div>
+                    {m.key === 'cash' ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground" title="Expected cash is hidden until you've counted">
+                        <EyeOff className="h-3.5 w-3.5" /> Hidden
+                      </span>
+                    ) : (
+                      <span className="font-semibold tabular-nums"><CurrencyDisplay amount={m.total} /></span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground px-1">
+                Blind count: the cash you should have is shown on the Z report after you close.
+              </p>
             </div>
 
-            {/* Right Column: Input & Discrepancy */}
-            <div className="flex flex-col gap-5 border-t md:border-t-0 md:border-l border-border/50 pt-6 md:pt-0 md:pl-6">
-              <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4" /> Cash Reconciliation
-              </h4>
-
-              <div className="flex flex-col gap-1 mt-1">
+            {/* Cash count */}
+            <div className="flex flex-col gap-4 md:border-l md:border-border/50 md:pl-6">
+              <div className="flex flex-col gap-1.5">
                 {byDenomination ? (
                   <>
-                    <span className="text-sm font-medium text-foreground">Cash in Drawer, by notes &amp; coins *</span>
+                    <span className="text-sm font-semibold text-foreground">Cash in drawer</span>
                     <CashCountInput value={count} onChange={setCount} />
                   </>
                 ) : (
-                <CustomInputTextField
-                  type="number"
-                  label="Actual Cash in Drawer *"
-                  labelPlacement="outside"
-                  placeholder="0.00"
-                  value={actualCashStr}
-                  onChange={(e: any) => setActualCashStr(e.target.value)}
-                  className="h-14 text-lg font-bold"
-                  autoFocus
-                />
+                  <CustomInputTextField
+                    type="number"
+                    label="Cash in drawer"
+                    labelPlacement="outside"
+                    placeholder="0.00"
+                    value={actualCashStr}
+                    onChange={(e: any) => setActualCashStr(e.target.value)}
+                    className="h-14 text-lg font-bold"
+                    autoFocus
+                  />
                 )}
-                <p className="text-xs text-muted-foreground font-medium pl-1">
-                  {byDenomination
-                    ? 'Count each note and coin in the till. Expected cash is hidden for blind audit.'
-                    : 'Count physical cash in till and enter total. Expected cash is hidden for blind audit.'}
+                <p className="text-[11px] text-muted-foreground px-1">
+                  {byDenomination ? 'Enter how many of each note and coin are in the till.' : 'Count all the cash in the till and enter the total.'}
                 </p>
               </div>
 
-              {/* Notes Field */}
-              <div className="flex flex-col gap-1.5">
-                <Textarea
-                  label="Closing Notes (Optional)"
-                  labelPlacement="outside"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any specific context or remarks for this shift..."
-                  textareaClassName="bg-background focus:ring-primary/50"
-                  rows={3}
-                />
-              </div>
+              <Textarea
+                label="Notes (optional)"
+                labelPlacement="outside"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anything the manager should know about this shift"
+                textareaClassName="bg-background focus:ring-primary/50"
+                rows={2}
+              />
             </div>
-
           </div>
         }
         footer={
-          <div className="flex justify-between w-full pt-4 border-t border-border/50">
-            <Button variant="ghost" onClick={onClose} className="rounded-full font-bold px-6">
+          <div className="flex justify-end gap-2 w-full pt-3 border-t border-border/50">
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="rounded-full font-semibold px-5">
               Cancel
             </Button>
             <Button
               onClick={handleEndShift}
-              disabled={isSubmitting || (!byDenomination && actualCashStr === '')}
-              className="rounded-full font-bold px-8 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20"
+              disabled={isSubmitting || !canSubmit}
+              className="rounded-full font-semibold px-6 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              {isSubmitting ? 'Ending Shift...' : 'Confirm & End Shift'}
+              {isSubmitting ? 'Closing…' : 'End Shift'}
             </Button>
           </div>
         }
