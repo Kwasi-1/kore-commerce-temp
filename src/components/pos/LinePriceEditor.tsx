@@ -123,7 +123,7 @@ export default function LinePriceEditor({ item, canRaise, canDiscount, onSetPric
         onOpenChange={() => setOpen(false)}
         size="sm"
         header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-3">
+          <div className="px-1 border-b border-border/50 pb-3">
             <h3 className="text-lg font-bold text-foreground truncate">{item.name}</h3>
             <p className="text-[12px] font-normal text-muted-foreground mt-0.5">
               {item.quantity} × {listPrice.toFixed(2)} {item.tier_name ? `(${item.tier_name})` : ''}
@@ -131,9 +131,9 @@ export default function LinePriceEditor({ item, canRaise, canDiscount, onSetPric
           </div>
         }
         body={
-          <div className="py-3 space-y-3">
+          <div className="space-y-3">
             {canDiscount && canRaise && (
-              <div className="flex p-1 bg-secondary/50 rounded-full border border-border/50">
+              <div className="flex p-1 bg-secondary/50 rounded-full">
                 {(['discount', 'price'] as const).map((t) => (
                   <button
                     key={t}
