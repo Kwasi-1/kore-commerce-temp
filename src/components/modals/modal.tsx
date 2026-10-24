@@ -7,7 +7,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from "@nextui-org/react";
-import { FC } from "react";
+import { FC, useMemo } from "react";
 
 interface CustomModalProps {
   onClose?: () => void;
@@ -64,8 +64,18 @@ const CustomModal: FC<CustomModalProps> = ({
   isKeyboardDismissDisabled,
   classNames = {},
 }) => {
+  // Opened from inside an open drawer (the mobile cart): render inside it. An open drawer blocks
+  // taps and focus everywhere else, so a window outside it closed the drawer on the first tap.
+  const drawerHost = useMemo(
+    () => (isOpen && typeof document !== "undefined"
+      ? document.querySelector('[data-vaul-drawer][data-state="open"]') ?? undefined
+      : undefined),
+    [isOpen],
+  );
+
   return (
     <NewModal
+      portalContainer={drawerHost}
       size={size ? size : "lg"}
       backdrop="opaque"
       isOpen={isOpen}
@@ -76,8 +86,14 @@ const CustomModal: FC<CustomModalProps> = ({
       placement={placement}
       radius={radius}
       classNames={{
-        ...(classNames.backdrop ? { backdrop: classNames.backdrop } : {}),
-        ...(classNames.wrapper ? { wrapper: classNames.wrapper } : {}),
+        // Inside the drawer: cover its 1px border and rounded top too, so no light edge shows
+        ...(classNames.backdrop || drawerHost
+          ? { backdrop: cn(drawerHost && "-inset-px rounded-t-3xl", classNames.backdrop) }
+          : {}),
+        // Inside the drawer: sit near its top, clear of the phone keyboard (which comes up from below)
+        ...(classNames.wrapper || drawerHost
+          ? { wrapper: cn(drawerHost && "!items-start pt-16", classNames.wrapper) }
+          : {}),
         body: cn("py-0 dark:text-[#F5F5F5]", classNames.body),
         base: cn(
           "border-[#161616] dark:bg-sidebar dark:text-[#a8b0d3] font-header spacing-sm",
