@@ -123,8 +123,8 @@ export default function LinePriceEditor({ item, canRaise, canDiscount, onSetPric
         onOpenChange={() => setOpen(false)}
         size="sm"
         header={
-          <div className="px-1 border-b border-border/50 pb-3">
-            <h3 className="text-lg font-bold text-foreground truncate">{item.name}</h3>
+          <div className="pt-0.5 px-1 border-b border-border/50 pb-3">
+            <h3 className="text-lg font-bold text-foreground truncate capitalize">{item.name}</h3>
             <p className="text-[12px] font-normal text-muted-foreground mt-0.5">
               {item.quantity} × {listPrice.toFixed(2)} {item.tier_name ? `(${item.tier_name})` : ''}
             </p>
