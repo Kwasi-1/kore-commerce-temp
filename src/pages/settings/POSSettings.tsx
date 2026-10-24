@@ -401,11 +401,11 @@ export default function POSSettings() {
                 <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-foreground text-[15px]">Item Discounts</h4>
+                      <h4 className="font-bold text-foreground text-[15px]">Discounts</h4>
                       {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
                     </div>
                     <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
-                      Allow cashiers to apply percentage or fixed discounts on individual items.
+                      Let staff take a % or an amount off a single item (tap its total in the cart) or off the whole sale. Staff need the &ldquo;Apply discounts&rdquo; permission, or a manager&apos;s PIN.
                       {locked && <span className="block text-amber-500 mt-1">Requires Standard plan or higher.</span>}
                     </p>
                   </div>

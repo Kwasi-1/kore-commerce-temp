@@ -3,7 +3,7 @@ import { useCan } from '@/hooks/usePermissions';
 import { getApprovalTicket } from '@/utils/approvalTicket';
 import LinePriceEditor from './LinePriceEditor';
 import { posTotals } from '@/utils/posTotals';
-import { CartItem, useCartStore } from "@/store/cartStore";
+import { CartItem, lineTotal, useCartStore } from "@/store/cartStore";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
 import { Button } from "../ui/button";
@@ -294,6 +294,7 @@ export default function CartPanel({
     updateItemTier,
     updateItemPriceType,
     setItemPrice,
+    setLineDiscount,
     setDiscountApproval,
     discountApproval,
     clearCart,
@@ -325,6 +326,21 @@ export default function CartPanel({
     }
     setItemPrice(item.productId, price, approval || undefined);
     if (approval) toast.success(`Price approved by ${approval.approvedBy}`);
+  };
+
+  // A discount on one line: approved when it's applied, like the whole-sale discount
+  const handleSetLineDiscount = async (item: CartItem, discount: { type: 'percent' | 'amount'; value: number } | null) => {
+    if (!discount || can('pos.discount')) {
+      setLineDiscount(item.productId, discount);
+      return;
+    }
+    const approval = await getApprovalTicket('pos.discount');
+    if (approval === false) {
+      toast('Discount not applied');
+      return;
+    }
+    setLineDiscount(item.productId, discount, approval || undefined);
+    if (approval) toast.success(`Discount approved by ${approval.approvedBy}`);
   };
 
   // Same for a discount: approved when it's applied, not at payment
@@ -1053,7 +1069,7 @@ export default function CartPanel({
                     {/* Price and Remove Row */}
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="font-bold text-sm text-foreground text-right min-w-[70px]">
-                        <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => handleSetPrice(item, p)} />
+                        <LinePriceEditor item={item} canRaise={canRaisePrice} canDiscount={!!posSettings.pos_discounts_enabled} onSetPrice={(p) => handleSetPrice(item, p)} onSetDiscount={(d) => handleSetLineDiscount(item, d)} />
                       </div>
                       <Button
                         variant="ghost"
@@ -1588,7 +1604,7 @@ export default function CartPanel({
                   </span>
                 </div>
                 {savedTransactions.map((t) => {
-                  const subtotal = t.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                  const subtotal = t.items.reduce((sum, item) => sum + lineTotal(item), 0);
                   const total = Math.max(0, subtotal - (t.discount || 0));
 
                   return (
@@ -1794,7 +1810,7 @@ export default function CartPanel({
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
                         Total
                       </span>
-                      <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => handleSetPrice(item, p)} />
+                      <LinePriceEditor item={item} canRaise={canRaisePrice} canDiscount={!!posSettings.pos_discounts_enabled} onSetPrice={(p) => handleSetPrice(item, p)} onSetDiscount={(d) => handleSetLineDiscount(item, d)} />
                     </div>
                   </div>
                 </div>

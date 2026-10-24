@@ -24,7 +24,34 @@ export interface CartItem {
   /** A manager's approval for the raised price, when the cashier doesn't have the permission */
   approval_ticket?: string;
   approved_by?: string;
+  /** A discount on just this line: a % of the line, or an amount off the whole line */
+  line_discount_type?: 'percent' | 'amount';
+  line_discount_value?: number;
+  /** A manager's approval for the line discount, when the cashier doesn't have the permission */
+  discount_ticket?: string;
+  discount_approved_by?: string;
 }
+
+// Money is rounded to pesewas the same way the server does (each line, then the sum). Without it
+// 1.10 x 3 = 3.3000000000000003 and an exact GHS 3.30 cash payment is refused as "less than total".
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/** What a line's own discount takes off (a % follows the quantity), never more than the line. */
+export const lineDiscountAmount = (item: CartItem): number => {
+  const gross = round2(item.price * item.quantity);
+  const value = item.line_discount_value || 0;
+  if (!item.line_discount_type || value <= 0) return 0;
+  const off = item.line_discount_type === 'percent' ? round2((gross * value) / 100) : round2(value);
+  return Math.min(off, gross);
+};
+
+/** A line's total after its own discount. */
+export const lineTotal = (item: CartItem): number => round2(round2(item.price * item.quantity) - lineDiscountAmount(item));
+
+// Changing the pack size, price type or price clears a line's discount (and its approval)
+const NO_LINE_DISCOUNT = {
+  line_discount_type: undefined, line_discount_value: undefined, discount_ticket: undefined, discount_approved_by: undefined,
+} as const;
 
 
 export interface SavedTransaction {
@@ -59,6 +86,12 @@ interface CartState {
   /** Raise a line's price each (never below its set price; lower prices are discounts) */
   setItemPrice: (productId: string, unitPrice: number, approval?: { ticket: string; approvedBy: string }) => void;
   setDiscountApproval: (approval: { ticket: string; approvedBy: string } | null) => void;
+  /** Discount one line (null removes it). A discounted line goes back to its set price. */
+  setLineDiscount: (
+    productId: string,
+    discount: { type: 'percent' | 'amount'; value: number } | null,
+    approval?: { ticket: string; approvedBy: string },
+  ) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
 
@@ -72,12 +105,8 @@ interface CartState {
   setPanelState: (state: 'collapsed' | 'default' | 'expanded') => void;
 }
 
-// Money is rounded to pesewas the same way the server does (each line, then the sum). Without it
-// 1.10 x 3 = 3.3000000000000003 and an exact GHS 3.30 cash payment is refused as "less than total".
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-
 const calculateTotals = (items: CartItem[], discount: number) => {
-  const subtotal = round2(items.reduce((sum, item) => sum + round2(item.price * item.quantity), 0));
+  const subtotal = round2(items.reduce((sum, item) => sum + lineTotal(item), 0));
   const total = round2(Math.max(0, subtotal - (discount || 0)));
   return { subtotal, total };
 };
@@ -179,7 +208,7 @@ export const useCartStore = create<CartState>()(
           if (state.items.some((i) => i.productId === newProductId)) {
             const merged = state.items
               .filter((i) => i.productId !== productId)
-              .map((i) => (i.productId === newProductId ? { ...i, quantity: Math.round((i.quantity + current.quantity) * 1000) / 1000 } : i));
+              .map((i) => (i.productId === newProductId ? { ...i, ...NO_LINE_DISCOUNT, quantity: Math.round((i.quantity + current.quantity) * 1000) / 1000 } : i));
             return { items: merged, ...calculateTotals(merged, state.discount) };
           }
           const newItems = state.items.map((item) => {
@@ -196,6 +225,7 @@ export const useCartStore = create<CartState>()(
                 price_overridden: false,
                 approval_ticket: undefined,
                 approved_by: undefined,
+                ...NO_LINE_DISCOUNT,
               };
             }
             return item;
@@ -217,6 +247,7 @@ export const useCartStore = create<CartState>()(
                 price_overridden: false,
                 approval_ticket: undefined,
                 approved_by: undefined,
+                ...NO_LINE_DISCOUNT,
               };
             }
             return item;
@@ -236,10 +267,30 @@ export const useCartStore = create<CartState>()(
               ...item, price, unit_price: price, list_price: list, price_overridden: raised,
               approval_ticket: raised ? approval?.ticket : undefined,
               approved_by: raised ? approval?.approvedBy : undefined,
+              ...(raised ? NO_LINE_DISCOUNT : {}),
             };
           });
           const totals = calculateTotals(newItems, state.discount);
           return { items: newItems, ...totals };
+        }),
+
+      setLineDiscount: (productId, discount, approval) =>
+        set((state) => {
+          const newItems = state.items.map((item) => {
+            if (item.productId !== productId) return item;
+            if (!discount || !(discount.value > 0)) return { ...item, ...NO_LINE_DISCOUNT };
+            const list = item.list_price ?? item.price;
+            return {
+              ...item,
+              // A line is discounted or price-raised, not both
+              price: list, unit_price: list, price_overridden: false, approval_ticket: undefined, approved_by: undefined,
+              line_discount_type: discount.type,
+              line_discount_value: discount.type === 'percent' ? Math.min(discount.value, 100) : round2(discount.value),
+              discount_ticket: approval?.ticket,
+              discount_approved_by: approval?.approvedBy,
+            };
+          });
+          return { items: newItems, ...calculateTotals(newItems, state.discount) };
         }),
 
       setDiscount: (discount) =>

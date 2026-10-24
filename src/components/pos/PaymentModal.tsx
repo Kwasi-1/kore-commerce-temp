@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { posTotals } from '@/utils/posTotals';
 import { createPortal } from 'react-dom';
-import { useCartStore } from '@/store/cartStore';
+import { lineDiscountAmount, lineTotal, useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useAuthStore } from '@/store/authStore';
@@ -229,10 +229,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   // Raised prices and discounts are approved when they're made (the sale carries those tickets)
   const approvalTickets = [
     ...items.filter((i) => i.price_overridden && i.approval_ticket).map((i) => i.approval_ticket as string),
+    ...items.filter((i) => lineDiscountAmount(i) > 0 && i.discount_ticket).map((i) => i.discount_ticket as string),
     ...(discount > 0 && discountApproval ? [discountApproval.ticket] : []),
   ];
   const needsApproval = (discount > 0 && !can('pos.discount') && !discountApproval) || (owesCredit && !can('pos.credit_sale'))
-    || (items.some((i) => i.price_overridden && !i.approval_ticket) && !can('pos.price_override'));
+    || (items.some((i) => i.price_overridden && !i.approval_ticket) && !can('pos.price_override'))
+    || (items.some((i) => lineDiscountAmount(i) > 0 && !i.discount_ticket) && !can('pos.discount'));
 
   /**
    * Save the sale on the till and sync it in the background. Used for every sale that doesn't need
@@ -271,7 +273,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         unitPrice: item.unit_price,
         price_type: item.price_type,
         priceOverridden: !!item.price_overridden,
-        subtotal: (item.unit_price || 0) * (item.quantity || 1),
+        lineDiscount: lineDiscountAmount(item),
+        subtotal: lineTotal(item),
       })),
       discount: discount || 0,
       subtotal,
@@ -378,6 +381,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           unit_price: item.unit_price,
           price_type: item.price_type,
           priceOverridden: !!item.price_overridden,
+          lineDiscount: lineDiscountAmount(item),
         })),
         discount: discount || 0,
         paymentMethod: isCreditSale ? 'credit' : activeTab,
@@ -521,9 +525,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                       {formatQuantityWithUnit(item.quantity, item.tier_name)}
                     </span>
                     <span className="w-20 text-right font-semibold">
-                      <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
+                      <CurrencyDisplay amount={lineTotal(item)} showStyling={false} />
                     </span>
                   </div>
+                  {lineDiscountAmount(item) > 0 && (
+                    <span className="text-[10px] text-emerald-600 text-left font-medium">
+                      Discount −{lineDiscountAmount(item).toFixed(2)}{item.line_discount_type === 'percent' ? ` (${item.line_discount_value}%)` : ''}
+                    </span>
+                  )}
                   {isMultiQty && (
                     <span className="text-[10px] text-zinc-400 text-left font-medium">
                       @{item.price.toFixed(2)}
@@ -627,7 +636,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   <span className="text-muted-foreground"> × {formatQuantityWithUnit(item.quantity, item.tier_name)}</span>
                 </div>
                 <span className="text-muted-foreground font-medium whitespace-nowrap">
-                  <CurrencyDisplay amount={item.price * item.quantity} showStyling={false} />
+                  <CurrencyDisplay amount={lineTotal(item)} showStyling={false} />
                 </span>
               </div>
             ))}

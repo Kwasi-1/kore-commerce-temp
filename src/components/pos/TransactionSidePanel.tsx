@@ -171,6 +171,9 @@ export default function TransactionSidePanel({
                       )}
                     </div>
                   )}
+                  {getVal(item.lineDiscount) > 0 && (
+                    <span className="text-[10px] text-emerald-600 text-left font-medium">Discount −{formatAmount(getVal(item.lineDiscount))}</span>
+                  )}
                 </div>
               );
             })}
