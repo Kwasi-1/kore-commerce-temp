@@ -641,7 +641,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           {(hasOutOfStockProducts || hideOutOfStock) && (
             <button
               onClick={() => togglePreference('hideOutOfStock')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border whitespace-nowrap !tracking-tighter ${
                 hideOutOfStock
                   ? 'bg-muted text-muted-foreground border-border'
                   : 'border-border text-muted-foreground hover:bg-secondary'
@@ -649,7 +649,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               title="Toggle to hide out of stock products"
             >
               <Icon icon={hideOutOfStock ? "solar:box-minimalistic-bold" : "solar:box-minimalistic-linear"} className="h-3.5 w-3.5" />
-              <span>In Stock Only</span>
+              <span className='!tracking-tight'>In Stock Only</span>
               {hideOutOfStock && (
                 <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse ml-0.5" />
               )}
@@ -667,7 +667,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 }`}
               >
                 <Icon icon="lets-icons:filter" className="h-3.5 w-3.5" />
-                <span>Filters</span>
+                <span className='text-[13px]'>Filters</span>
                 {totalActiveFilters > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] rounded-full font-bold">
                     {totalActiveFilters}
