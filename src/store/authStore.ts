@@ -36,6 +36,11 @@ interface AuthState {
   tenant: Tenant | null;
   graceInfo: GraceInfo | null;
   isFirstLogin: boolean;
+  /** Till locked (e.g. after ending a shift): still signed in, but the PIN must be re-entered.
+   *  Saved with the rest, so refreshing the page doesn't unlock it. */
+  isLocked: boolean;
+  lock: () => void;
+  unlock: () => void;
   login: (token: string, refreshToken: string, staffUser: any, tenant: Tenant, isFirstLogin?: boolean, graceInfo?: GraceInfo | null) => void;
   logout: () => void;
   /** Sign the current person out but keep this device's shop data (held sales, offline products).
@@ -56,6 +61,10 @@ export const useAuthStore = create<AuthState>()(
       tenant: null,
       graceInfo: null,
       isFirstLogin: false,
+      isLocked: false,
+
+      lock: () => set({ isLocked: true }),
+      unlock: () => set({ isLocked: false }),
 
       login: (token, refreshToken, staff, tenant, isFirstLogin = false, graceInfo = null) => {
         const enrichedUser: StaffUser = {
@@ -66,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
           ...tenant,
           name: tenant.name || tenant.business_name || 'My Business',
         };
-        set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin, graceInfo });
+        set({ token, refreshToken, staffUser: enrichedUser, tenant: enrichedTenant, isFirstLogin, graceInfo, isLocked: false });
         // On a till, remember who has signed in today for quick switching at the register
         if (useTillStore.getState().tillKey && staff?.id) {
           useTillStore.getState().recordSignIn({
@@ -95,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       endSession: () => {
-        set({ token: null, refreshToken: null, staffUser: null, isFirstLogin: false, graceInfo: null });
+        set({ token: null, refreshToken: null, staffUser: null, isFirstLogin: false, graceInfo: null, isLocked: false });
         // The next person shouldn't inherit someone else's sale or permissions (held sales stay)
         import('@/store/cartStore').then(({ useCartStore }) => useCartStore.getState().clearCart());
         import('@/store/featuresStore').then(({ useFeaturesStore }) =>
@@ -109,7 +118,7 @@ export const useAuthStore = create<AuthState>()(
           useAuthStore.getState().endSession();
           return;
         }
-        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false, graceInfo: null });
+        set({ token: null, refreshToken: null, staffUser: null, tenant: null, isFirstLogin: false, graceInfo: null, isLocked: false });
         // Reset features store on logout so stale plan data doesn't persist
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
           useFeaturesStore.getState().reset();

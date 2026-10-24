@@ -17,6 +17,19 @@ export const DENOMINATIONS: { key: string; label: string; value: number }[] = [
 
 export type CashCount = Record<string, string>;
 
+/** At most 9999 of any one note or coin, and an "other" amount under GHS 1,000,000 (matches the server). */
+export const MAX_COUNT_DIGITS = 4;
+
+/** Keep an "other" amount typed as money: digits, one point, two decimals, under the cap. */
+export const cleanOtherAmount = (raw: string): string => {
+  let text = raw.replace(/[^\d.]/g, '');
+  const dot = text.indexOf('.');
+  if (dot !== -1) text = text.slice(0, dot + 1) + text.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+  const [whole, frac] = text.split('.');
+  text = whole.slice(0, 6) + (frac !== undefined ? `.${frac}` : '');
+  return text;
+};
+
 /** Total of a count, rounded to pesewas. */
 export const cashCountTotal = (count: CashCount): number => {
   const sum = DENOMINATIONS.reduce((acc, d) => acc + (parseInt(count[d.key] || '0', 10) || 0) * d.value, 0) +

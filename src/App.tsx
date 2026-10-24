@@ -21,6 +21,7 @@ import ReloadPrompt from '@/components/shared/ReloadPrompt';
 import AccountSettings from '@/pages/settings/AccountSettings';
 import TopProgressBar from '@/components/shared/TopProgressBar';
 import ApprovalModal from '@/components/pos/ApprovalModal';
+import TillLockScreen from '@/components/pos/TillLockScreen';
 
 // Pages — lazy with auto-retry for code splitting.
 const Login = lazyWithRetry(() => import('@/pages/Login'));
@@ -94,6 +95,7 @@ function AppRoutes() {
     <>
       <TopProgressBar />
       <ApprovalModal />
+      <TillLockScreen />
       <Routes>
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />

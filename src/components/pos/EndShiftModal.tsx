@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../ui/spinner';
 import ZReportModal from './ZReportModal';
+import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import CashCountInput from './CashCountInput';
 import { CashCount, cashCountPayload, cashCountTotal } from '@/utils/cashCount';
@@ -240,7 +241,9 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
         isOpen={isZReportOpen}
         onClose={() => {
           setIsZReportOpen(false);
-          navigate('/pos/locked');
+          // Lock the till instead of signing out: their PIN unlocks it, or someone else switches in
+          useAuthStore.getState().lock();
+          navigate('/pos/register');
         }}
         shiftId={closedShiftId}
       />

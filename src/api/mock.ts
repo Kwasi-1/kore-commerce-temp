@@ -1325,6 +1325,13 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  // Unlock the till / Change PIN: any PIN except 0000 is "correct" in demo mode
+  mock.onPost(/\/auth\/staff\/check-pin$/).reply((config) => {
+    const { pin } = JSON.parse(config.data || '{}');
+    return pin === '0000'
+      ? [400, { error: { status: 'INVALID_PIN', message: 'Incorrect PIN. 4 tries left.', code: 400 } }]
+      : [200, { success: { status: 'OK', message: 'PIN is correct', code: 200 } }];
+  });
   mock.onPost(/\/tenant\/products\/bulk-edit$/).reply((config) => {
     const body = JSON.parse(config.data || "{}");
     const rows: any[] = body.rows || [];
