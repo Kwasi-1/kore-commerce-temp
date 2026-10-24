@@ -73,7 +73,7 @@ export const PLAN_MODULES: Record<string, string[]> = {
     'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
     'suppliers', 'purchase_orders', 'supplier_credit', 'stock_reconciliation',
     'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
-    'ecommerce', 'payroll', 'settings',
+    'ecommerce', 'payroll', 'price_override', 'settings',
   ],
   ecom_only: ['inventory_basic', 'ecommerce', 'reports_basic', 'settings'],
   // Legacy plan names — graceful fallback
@@ -87,7 +87,7 @@ export const PLAN_MODULES: Record<string, string[]> = {
     'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
     'suppliers', 'purchase_orders', 'supplier_credit', 'stock_reconciliation',
     'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
-    'ecommerce', 'payroll', 'settings',
+    'ecommerce', 'payroll', 'price_override', 'settings',
   ],
 };
 

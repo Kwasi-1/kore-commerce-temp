@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import LinePriceEditor from './LinePriceEditor';
 import { posTotals } from '@/utils/posTotals';
-import { useCan } from '@/hooks/usePermissions';
 import { CartItem, useCartStore } from "@/store/cartStore";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
@@ -302,9 +301,10 @@ export default function CartPanel({
   const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks, hideOutOfStock } = useRegisterPreferencesStore();
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
-  // "Change prices at the till": the store switch and this person's permission
-  const can = useCan();
-  const canRaisePrice = !!posSettings.pos_price_override_enabled && can('pos.price_override');
+  // "Change prices at the till": Business plan or add-on, and the store switch. Someone without the
+  // permission can still raise a price; the sale then asks for a manager's PIN.
+  const hasModule = useFeaturesStore((st) => st.hasModule);
+  const canRaisePrice = hasModule('price_override') && !!posSettings.pos_price_override_enabled;
   const cachedProducts = useProductCacheStore((state) => state.products);
 
   // Derive the initial default payment method from settings: prefer cash if enabled

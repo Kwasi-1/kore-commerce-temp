@@ -170,7 +170,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const change = Math.max(0, amountTendered - total);
 
   // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
-  const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'));
+  const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'))
+    || (items.some((i) => i.price_overridden) && !can('pos.price_override'));
 
   /**
    * Save the sale on the till and sync it in the background. Used for every sale that doesn't need
@@ -182,7 +183,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     if (needsApproval) {
       const message = isCreditSale && !can('pos.credit_sale')
         ? "Credit sales need a manager's approval, which needs an internet connection."
-        : "This discount needs a manager's approval, which needs an internet connection.";
+        : discount > 0 && !can('pos.discount')
+        ? "This discount needs a manager's approval, which needs an internet connection."
+        : "A changed price needs a manager's approval, which needs an internet connection.";
       if (toastId) toast.error(message, { id: toastId });
       else toast.error(message);
       setIsProcessing(false);

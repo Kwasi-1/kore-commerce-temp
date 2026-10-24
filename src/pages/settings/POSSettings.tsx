@@ -18,7 +18,7 @@ import TillsSection from '@/components/settings/TillsSection';
 export default function POSSettings() {
   const { posSettings, storeSettings, fetchSettings, updatePOSSettings, isLoading } = useSettingsStore();
   const { staffUser, tenant, setTenant } = useAuthStore();
-  const { posSettings: featureSettings, plan, platform_paystack_enabled, updatePOSSettings: updateFeaturePOSSettings, loadFeatures } = useFeaturesStore();
+  const { posSettings: featureSettings, plan, platform_paystack_enabled, updatePOSSettings: updateFeaturePOSSettings, loadFeatures, hasModule } = useFeaturesStore();
   const isPaystackPlatformAllowed = platform_paystack_enabled ?? true;
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingFeatures, setIsSavingFeatures] = useState(false);
@@ -467,6 +467,33 @@ export default function POSSettings() {
                     isSelected={locked ? false : localFeatures.pos_wholesale_enabled}
                     isDisabled={locked}
                     onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_wholesale_enabled: val }))}
+                    color="primary"
+                  />
+                </div>
+              );
+            })()}
+
+            <div className="border-t border-border/50" />
+
+            {/* Change prices at the till: Business plan or the add-on */}
+            {(() => {
+              const locked = !hasModule('price_override');
+              return (
+                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-[15px]">Change Prices at the Till</h4>
+                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                      Let staff raise an item&apos;s price in the register by tapping its total. It can&apos;t go below the set price; lower prices use a discount. Staff need the &ldquo;Change prices at the till&rdquo; permission, or a manager&apos;s PIN.
+                      {locked && <span className="block text-amber-500 mt-1">Requires the Business plan or the Price Changes add-on.</span>}
+                    </p>
+                  </div>
+                  <Switch
+                    isSelected={locked ? false : Boolean(localFeatures.pos_price_override_enabled)}
+                    isDisabled={locked}
+                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_price_override_enabled: val }))}
                     color="primary"
                   />
                 </div>
