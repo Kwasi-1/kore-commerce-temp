@@ -486,12 +486,23 @@ export default function CartPanel({
                 return (
                   <DropdownMenuItem
                     key={t.id}
-                    onClick={() => updateItemTier(item.productId, {
+                    onClick={() => {
+                      // Enough stock for this quantity in the new pack size (plus other lines of the same item)?
+                      const stock = item.stock_quantity ?? Infinity;
+                      const otherLines = items
+                        .filter((i) => i.variant_id === item.variant_id && i.productId !== item.productId)
+                        .reduce((sum, i) => sum + i.quantity * (i.units_per_tier || 1), 0);
+                      if (otherLines + item.quantity * (t.units_per_tier || 1) > stock + 0.0001) {
+                        toast.error(`Not enough stock for ${item.quantity} × ${t.name}`);
+                        return;
+                      }
+                      updateItemTier(item.productId, {
                       id: t.id,
                       name: t.name,
                       units_per_tier: t.units_per_tier,
                       price: numericPrice
-                    })}
+                      });
+                    }}
                     className={`text-xs font-bold justify-between cursor-pointer rounded-xl hover:bg-muted/40 ${isSelected ? 'bg-muted/70 text-foreground' : 'text-muted-foreground'}`}
                   >
                     <span>{t.name}</span>

@@ -146,7 +146,7 @@ export default function POSSettings() {
                 <h5 className="font-bold text-sm">Paystack Online Gateway Disabled by Platform Administrator</h5>
                 <p className="leading-relaxed hidden md:block">
                   Online payment processing has been disabled platform-wide by the administrator.
-                  All POS registers are automatically operating in <strong>Manual Cash &amp; MoMo mode</strong>.
+                  Cash, card (on your card machine) and MoMo (confirmed by the cashier) still work.
                 </p>
               </div>
             </div>
@@ -223,7 +223,6 @@ export default function POSSettings() {
                     { id: 'mobile_money', label: 'Mobile Money (MoMo)', icon: '📱' },
                     { id: 'card', label: 'Card / POS Terminal', icon: '💳' },
                   ].map(method => {
-                    const isCard = method.id === 'card';
                     const isCash = method.id === 'cash';
 
                     // Card is taken on the shop's own card machine, so it doesn't need Paystack
@@ -256,7 +255,6 @@ export default function POSSettings() {
                         <span>{method.icon}</span>
                         {method.label}
                         {isCash && <span className="text-[10px] opacity-70 ml-1">(default)</span>}
-                        {isCard && !isPaystackPlatformAllowed && <span className="text-[10px] opacity-70 ml-1">(Disabled by Platform Admin)</span>}
 
                       </button>
                     );
@@ -279,7 +277,7 @@ export default function POSSettings() {
                   )}
                 </div>
                 <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
-                  Automate MoMo STK Push &amp; Card checkout via Paystack. When turned OFF, Card payments are disabled by default.
+                  For sending MoMo payment prompts to customers&apos; phones (coming soon). Card and MoMo work without it: card on your card machine, MoMo confirmed by the cashier.
                   {!isPaystackPlatformAllowed && (
                     <span className="block text-amber-500 font-semibold mt-1">Overridden platform-wide by Platform Admin.</span>
                   )}

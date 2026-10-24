@@ -163,9 +163,20 @@ export const useCartStore = create<CartState>()(
 
       updateItemTier: (productId, newTier) =>
         set((state) => {
+          const current = state.items.find((i) => i.productId === productId);
+          if (!current) return state;
+          const newProductId = `${current.variant_id}-${newTier.id}`;
+          if (newProductId === productId) return state;
+          // Already a line in that pack size: add this line's quantity to it instead of making a
+          // second line with the same key (which removed/edited both together)
+          if (state.items.some((i) => i.productId === newProductId)) {
+            const merged = state.items
+              .filter((i) => i.productId !== productId)
+              .map((i) => (i.productId === newProductId ? { ...i, quantity: Math.round((i.quantity + current.quantity) * 1000) / 1000 } : i));
+            return { items: merged, ...calculateTotals(merged, state.discount) };
+          }
           const newItems = state.items.map((item) => {
             if (item.productId === productId) {
-              const newProductId = `${item.variant_id}-${newTier.id}`;
               return {
                 ...item,
                 productId: newProductId,
