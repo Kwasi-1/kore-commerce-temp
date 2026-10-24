@@ -500,54 +500,7 @@ export default function POSSettings() {
               );
             })()}
 
-            <div className="border-t border-border/50" />
-
-            {/* Service Charge */}
-            {(() => {
-              const locked = plan !== 'business';
-              return (
-                <div className={`flex items-start justify-between gap-4 ${locked ? 'opacity-50' : ''}`}>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-foreground text-[15px]">Service Charge</h4>
-                      {locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
-                      Add a service charge percentage to all sales (e.g. 10% for restaurants).
-                      {locked && <span className="block text-amber-500 mt-1">Requires Business plan.</span>}
-                    </p>
-                    {!locked && localFeatures.pos_service_charge_enabled && (
-                      <div className="flex gap-3 mt-3">
-                        <div className="flex-1">
-                          <CustomInputTextField
-                            label="Rate (e.g. 0.10 for 10%)"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="1"
-                            value={String(localFeatures.pos_service_charge_rate)}
-                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_service_charge_rate: parseFloat(e.target.value) || 0 }))}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <CustomInputTextField
-                            label="Label (e.g. Service Charge)"
-                            value={localFeatures.pos_service_charge_label}
-                            onChange={(e: any) => setLocalFeatures(p => ({ ...p, pos_service_charge_label: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <Switch
-                    isSelected={locked ? false : localFeatures.pos_service_charge_enabled}
-                    isDisabled={locked}
-                    onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_service_charge_enabled: val }))}
-                    color="primary"
-                  />
-                </div>
-              );
-            })()}
+            {/* Service charge: hidden until the restaurant module (the register never applied it) */}
 
           </div>
 

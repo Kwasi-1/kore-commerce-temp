@@ -26,7 +26,7 @@ interface PaymentModalProps {
 }
 
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
-  const { items, subtotal, discount, clearCart } = useCartStore();
+  const { items, subtotal, discount, discountApproval, clearCart } = useCartStore();
 
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
@@ -170,8 +170,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const change = Math.max(0, amountTendered - total);
 
   // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
-  const needsApproval = (discount > 0 && !can('pos.discount')) || (isCreditSale && !can('pos.credit_sale'))
-    || (items.some((i) => i.price_overridden) && !can('pos.price_override'));
+  // Raised prices and discounts are approved when they're made (the sale carries those tickets)
+  const approvalTickets = [
+    ...items.filter((i) => i.price_overridden && i.approval_ticket).map((i) => i.approval_ticket as string),
+    ...(discount > 0 && discountApproval ? [discountApproval.ticket] : []),
+  ];
+  const needsApproval = (discount > 0 && !can('pos.discount') && !discountApproval) || (isCreditSale && !can('pos.credit_sale'))
+    || (items.some((i) => i.price_overridden && !i.approval_ticket) && !can('pos.price_override'));
 
   /**
    * Save the sale on the till and sync it in the background. Used for every sale that doesn't need
@@ -227,6 +232,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       // signed in on a shared till by the time it syncs)
       cashierId: staffUser?.id,
       offlineCreatedAt: new Date().toISOString(),
+      ...(approvalTickets.length ? { approval: { tickets: approvalTickets } } : {}),
     };
     if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
     if (activeTab === 'mobile_money') offlinePayload.momoNumber = momoNumber;
@@ -315,7 +321,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         discount: discount || 0,
         paymentMethod: isCreditSale ? 'credit' : activeTab,
         isCreditSale,
-        customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined
+        customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
+        ...(approvalTickets.length ? { approval: { tickets: approvalTickets } } : {}),
       };
 
       if (!isCreditSale) {

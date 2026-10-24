@@ -26,7 +26,6 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
   const [reportData, setReportData] = useState<any>(initialReportData || null);
   const [isLoading, setIsLoading] = useState(false);
   const [showCount, setShowCount] = useState(false);
-  const posSettings = useFeaturesStore((st) => st.posSettings);
   const getEffectivePaymentMethods = useFeaturesStore((st) => st.getEffectivePaymentMethods);
   const tenant = useAuthStore((st) => st.tenant);
   const storeSettings = useSettingsStore((st) => st.storeSettings);
@@ -142,7 +141,8 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
     { key: 'cash', label: 'Cash', on: enabledMethods.includes('cash'), ...pbLine('cash') },
     { key: 'mobile_money', label: 'Mobile Money', on: enabledMethods.includes('mobile_money'), ...pbLine('mobile_money', 'mobile_money_manual') },
     { key: 'card', label: 'Card', on: enabledMethods.includes('card'), ...pbLine('card') },
-    { key: 'credit', label: 'Credit', on: !!posSettings?.pos_credit_enabled, ...pbLine('credit') },
+    // Credit only when there were credit sales
+    { key: 'credit', label: 'Credit', on: false, ...pbLine('credit') },
   ].filter((m) => m.on || m.total > 0 || m.count > 0);
 
   // Cash drawer: lines that are zero are left out so a simple shift reads short

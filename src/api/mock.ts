@@ -1325,6 +1325,10 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  // Approve a raised price / discount at the till: demo staff can do both themselves
+  mock.onPost(/\/pos\/auth\/approval-ticket$/).reply(200, {
+    success: { status: 'OK', code: 200, data: { ticket: null, approver_name: null } },
+  });
   // Unlock the till / Change PIN: any PIN except 0000 is "correct" in demo mode
   mock.onPost(/\/auth\/staff\/check-pin$/).reply((config) => {
     const { pin } = JSON.parse(config.data || '{}');

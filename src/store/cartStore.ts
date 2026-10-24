@@ -21,6 +21,9 @@ export interface CartItem {
   list_price?: number;
   /** The cashier raised the price above list_price ("Change prices at the till") */
   price_overridden?: boolean;
+  /** A manager's approval for the raised price, when the cashier doesn't have the permission */
+  approval_ticket?: string;
+  approved_by?: string;
 }
 
 
@@ -38,6 +41,8 @@ export interface SavedTransaction {
 interface CartState {
   items: CartItem[];
   discount: number;
+  /** A manager's approval for the discount, when the cashier doesn't have the permission */
+  discountApproval: { ticket: string; approvedBy: string } | null;
   subtotal: number;
   total: number;
   savedTransactions: SavedTransaction[];
@@ -52,7 +57,8 @@ interface CartState {
   updateItemTier: (productId: string, newTier: { id: string; name: string; units_per_tier: number; price: number }) => void;
   updateItemPriceType: (productId: string, priceType: 'retail' | 'wholesale', newPrice: number) => void;
   /** Raise a line's price each (never below its set price; lower prices are discounts) */
-  setItemPrice: (productId: string, unitPrice: number) => void;
+  setItemPrice: (productId: string, unitPrice: number, approval?: { ticket: string; approvedBy: string }) => void;
+  setDiscountApproval: (approval: { ticket: string; approvedBy: string } | null) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
 
@@ -93,6 +99,7 @@ export const useCartStore = create<CartState>()(
       tenantId: null,
       items: [],
       discount: 0,
+      discountApproval: null,
       subtotal: 0,
       total: 0,
       savedTransactions: [],
@@ -187,6 +194,8 @@ export const useCartStore = create<CartState>()(
                 price: newTier.price,
                 list_price: newTier.price,
                 price_overridden: false,
+                approval_ticket: undefined,
+                approved_by: undefined,
               };
             }
             return item;
@@ -206,6 +215,8 @@ export const useCartStore = create<CartState>()(
                 price: newPrice,
                 list_price: newPrice,
                 price_overridden: false,
+                approval_ticket: undefined,
+                approved_by: undefined,
               };
             }
             return item;
@@ -214,13 +225,18 @@ export const useCartStore = create<CartState>()(
           return { items: newItems, ...totals };
         }),
 
-      setItemPrice: (productId, unitPrice) =>
+      setItemPrice: (productId, unitPrice, approval) =>
         set((state) => {
           const newItems = state.items.map((item) => {
             if (item.productId !== productId) return item;
             const list = item.list_price ?? item.price;
             const price = Math.max(round2(unitPrice), list);
-            return { ...item, price, unit_price: price, list_price: list, price_overridden: price > list + 0.0001 };
+            const raised = price > list + 0.0001;
+            return {
+              ...item, price, unit_price: price, list_price: list, price_overridden: raised,
+              approval_ticket: raised ? approval?.ticket : undefined,
+              approved_by: raised ? approval?.approvedBy : undefined,
+            };
           });
           const totals = calculateTotals(newItems, state.discount);
           return { items: newItems, ...totals };
@@ -229,13 +245,16 @@ export const useCartStore = create<CartState>()(
       setDiscount: (discount) =>
         set((state) => {
           const totals = calculateTotals(state.items, discount);
-          return { discount, ...totals };
+          return { discount, ...totals, ...(discount > 0 ? {} : { discountApproval: null }) };
         }),
+
+      setDiscountApproval: (discountApproval) => set({ discountApproval }),
 
       clearCart: () =>
         set({
           items: [],
           discount: 0,
+          discountApproval: null,
           subtotal: 0,
           total: 0,
         }),
@@ -336,6 +355,7 @@ export const useCartStore = create<CartState>()(
         tenantId: state.tenantId,
         items: state.items,
         discount: state.discount,
+        discountApproval: state.discountApproval,
         subtotal: state.subtotal,
         total: state.total,
         savedTransactions: filterExpiredTransactions(state.savedTransactions),

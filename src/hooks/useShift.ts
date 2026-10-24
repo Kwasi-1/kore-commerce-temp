@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { create } from 'zustand';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 
 export interface Shift {
   id: string;
@@ -16,31 +18,65 @@ export interface Shift {
   current_expected_cash?: number; // Provided by /current
 }
 
-export function useShift() {
-  const [currentShift, setCurrentShift] = useState<Shift | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+/**
+ * The signed-in person's current shift, shared by every part of the register (page, header,
+ * search, End Shift). Each used to keep its own copy, so starting a shift only updated the one
+ * that opened it and the rest needed a page reload.
+ */
+interface ShiftState {
+  currentShift: Shift | null;
+  isLoading: boolean;
+  setCurrentShift: (shift: Shift | null) => void;
+  fetchCurrentShift: () => Promise<void>;
+}
 
-  const fetchCurrentShift = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await apiClient.get('/pos/shifts/current');
-      const data = response.data.success?.data;
-      setCurrentShift(data?.shift || null);
+let inFlight: Promise<void> | null = null;
 
-      // Server auto-closed a stale previous-day shift — notify the cashier
-      if (data?.stale_shift_closed) {
-        toast('Your previous shift was auto-closed. Please open a new shift to continue.', {
-          icon: '⚠️',
-          duration: 6000,
-        });
+const useShiftStore = create<ShiftState>((set) => ({
+  currentShift: null,
+  isLoading: true,
+  setCurrentShift: (currentShift) => set({ currentShift }),
+  // Components mounting together share one request
+  fetchCurrentShift: () => {
+    if (inFlight) return inFlight;
+    set({ isLoading: true });
+    inFlight = (async () => {
+      try {
+        const response = await apiClient.get('/pos/shifts/current');
+        const data = response.data.success?.data;
+        set({ currentShift: data?.shift || null });
+
+        // Server auto-closed a stale previous-day shift — notify the cashier
+        if (data?.stale_shift_closed) {
+          toast('Your previous shift was auto-closed. Please open a new shift to continue.', {
+            icon: '⚠️',
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch current shift:', error);
+        set({ currentShift: null });
+      } finally {
+        set({ isLoading: false });
+        inFlight = null;
       }
-    } catch (error) {
-      console.error('Failed to fetch current shift:', error);
-      setCurrentShift(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    })();
+    return inFlight;
+  },
+}));
+
+// A different person signed in on this till: their shift isn't the last person's
+useAuthStore.subscribe((state, prev) => {
+  if (state.staffUser?.id !== prev.staffUser?.id) {
+    useShiftStore.setState({ currentShift: null, isLoading: true });
+  }
+});
+
+export function useShift() {
+  const currentShift = useShiftStore((s) => s.currentShift);
+  const isLoading = useShiftStore((s) => s.isLoading);
+  const fetchCurrentShift = useShiftStore((s) => s.fetchCurrentShift);
+  const setCurrentShift = useShiftStore((s) => s.setCurrentShift);
 
   useEffect(() => {
     fetchCurrentShift();

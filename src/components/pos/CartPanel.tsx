@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useCan } from '@/hooks/usePermissions';
+import { getApprovalTicket } from '@/utils/approvalTicket';
 import LinePriceEditor from './LinePriceEditor';
 import { posTotals } from '@/utils/posTotals';
 import { CartItem, useCartStore } from "@/store/cartStore";
@@ -292,6 +294,8 @@ export default function CartPanel({
     updateItemTier,
     updateItemPriceType,
     setItemPrice,
+    setDiscountApproval,
+    discountApproval,
     clearCart,
     setDiscount,
     resumeTransaction,
@@ -305,6 +309,32 @@ export default function CartPanel({
   // permission can still raise a price; the sale then asks for a manager's PIN.
   const hasModule = useFeaturesStore((st) => st.hasModule);
   const canRaisePrice = hasModule('price_override') && !!posSettings.pos_price_override_enabled;
+  const can = useCan();
+
+  // A raised price by someone without the permission is approved by a manager right away
+  const handleSetPrice = async (item: CartItem, price: number) => {
+    const raised = price > (item.list_price ?? item.price) + 0.0001;
+    if (!raised || can('pos.price_override')) {
+      setItemPrice(item.productId, price);
+      return;
+    }
+    const approval = await getApprovalTicket('pos.price_override');
+    if (approval === false) {
+      toast('Price not changed');
+      return;
+    }
+    setItemPrice(item.productId, price, approval || undefined);
+    if (approval) toast.success(`Price approved by ${approval.approvedBy}`);
+  };
+
+  // Same for a discount: approved when it's applied, not at payment
+  const approveDiscount = async (): Promise<boolean> => {
+    if (can('pos.discount') || discountApproval) return true;
+    const approval = await getApprovalTicket('pos.discount');
+    if (approval === false) return false;
+    setDiscountApproval(approval);
+    return true;
+  };
   const cachedProducts = useProductCacheStore((state) => state.products);
 
   // Derive the initial default payment method from settings: prefer cash if enabled
@@ -782,13 +812,14 @@ export default function CartPanel({
   const taxEnabled = posSettings.pos_tax_enabled;
   const { taxRate, taxLabel, taxPercent, tax: taxAmount, total: calculatedTotal } = posTotals(subtotal, discount, posSettings);
 
-  const handleAddDiscountClick = () => {
+  const handleAddDiscountClick = async () => {
+    if (!(await approveDiscount())) return;
     setActivePromo({ type: "percentage", value: defaultDiscountPercent });
     setPromoMode("percentage");
     setPromoInput(defaultDiscountPercent.toString());
   };
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     const val = parseFloat(promoInput);
     if (isNaN(val) || val < 0) {
       toast.error("Please enter a valid discount amount.");
@@ -803,6 +834,7 @@ export default function CartPanel({
       return;
     }
 
+    if (val > 0 && !(await approveDiscount())) return;
     setActivePromo({ type: promoMode, value: val });
     if (promoMode === "percentage") {
       setDefaultDiscountPercent(val); // Save new percentage default
@@ -813,6 +845,7 @@ export default function CartPanel({
 
   const handleRemovePromo = () => {
     setActivePromo(null);
+    setDiscountApproval(null);
     setIsPromoPopoverOpen(false);
   };
 
@@ -1020,7 +1053,7 @@ export default function CartPanel({
                     {/* Price and Remove Row */}
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="font-bold text-sm text-foreground text-right min-w-[70px]">
-                        <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => setItemPrice(item.productId, p)} />
+                        <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => handleSetPrice(item, p)} />
                       </div>
                       <Button
                         variant="ghost"
@@ -1281,7 +1314,7 @@ export default function CartPanel({
                       <p className="text-[14px] font-bold text-foreground">
                         {activePromo.type === "percentage"
                           ? `Promo (${activePromo.value}%)`
-                          : `Discount ($${activePromo.value})`}
+                          : `Discount (GHS ${Number(activePromo.value).toFixed(2)})`}
                       </p>
                     </div>
 
@@ -1313,23 +1346,23 @@ export default function CartPanel({
                               Percentage (%)
                             </button>
                             <button
-                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "fixed" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all px-3 ${promoMode === "fixed" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                               onClick={() => {
                                 setPromoMode("fixed");
                                 setPromoInput("0");
                               }}
                             >
-                              Fixed Amount ($)
+                              Fixed Amount (GHS)
                             </button>
                           </div>
 
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
-                              {promoMode === "percentage" ? "%" : "$"}
+                              {promoMode === "percentage" ? "%" : "GHS"}
                             </span>
                             <input
                               type="number"
-                              className="w-full pl-8 pr-3 py-2 bg-background border rounded-lg text-sm font-bold outline-none no-spin-buttons"
+                              className={`w-full ${promoMode === "percentage" ? "pl-8" : "pl-12"} pr-3 py-2 bg-background border rounded-lg text-sm font-bold outline-none no-spin-buttons`}
                               value={promoInput}
                               onChange={(e) => setPromoInput(e.target.value)}
                             />
@@ -1761,7 +1794,7 @@ export default function CartPanel({
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
                         Total
                       </span>
-                      <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => setItemPrice(item.productId, p)} />
+                      <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => handleSetPrice(item, p)} />
                     </div>
                   </div>
                 </div>
@@ -1798,7 +1831,7 @@ export default function CartPanel({
                       <p className="text-[14px] font-bold text-foreground">
                         {activePromo.type === "percentage"
                           ? `Promo (${activePromo.value}%)`
-                          : `Discount ($${activePromo.value})`}
+                          : `Discount (GHS ${Number(activePromo.value).toFixed(2)})`}
                       </p>
                     </div>
 
@@ -1830,23 +1863,23 @@ export default function CartPanel({
                               Percentage (%)
                             </button>
                             <button
-                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all ${promoMode === "fixed" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              className={`flex-1 text-[12px] font-bold py-2 rounded-full transition-all px-3 ${promoMode === "fixed" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                               onClick={() => {
                                 setPromoMode("fixed");
                                 setPromoInput("0");
                               }}
                             >
-                              Fixed Amount ($)
+                              Fixed Amount (GHS)
                             </button>
                           </div>
 
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
-                              {promoMode === "percentage" ? "%" : "$"}
+                              {promoMode === "percentage" ? "%" : "GHS"}
                             </span>
                             <input
                               type="number"
-                              className="w-full pl-8 pr-3 py-2 bg-background border rounded-lg text-sm font-bold outline-none no-spin-buttons"
+                              className={`w-full ${promoMode === "percentage" ? "pl-8" : "pl-12"} pr-3 py-2 bg-background border rounded-lg text-sm font-bold outline-none no-spin-buttons`}
                               value={promoInput}
                               onChange={(e) => setPromoInput(e.target.value)}
                             />

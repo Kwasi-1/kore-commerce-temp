@@ -71,6 +71,7 @@ export default function LinePriceEditor({ item, canEdit, onSetPrice, className }
       {raised && (
         <span className="block text-[10px] font-medium text-amber-600 dark:text-amber-400 leading-tight">
           {item.price.toFixed(2)} each (was {listPrice.toFixed(2)})
+          {item.approved_by && <span className="block text-muted-foreground">Approved by {item.approved_by}</span>}
         </span>
       )}
     </button>

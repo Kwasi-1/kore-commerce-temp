@@ -32,7 +32,6 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
 
   const [actualCashStr, setActualCashStr] = useState('');
   const byDenomination = useFeaturesStore((st) => !!st.posSettings?.pos_cash_count_by_denomination);
-  const posSettings = useFeaturesStore((st) => st.posSettings);
   const getEffectivePaymentMethods = useFeaturesStore((st) => st.getEffectivePaymentMethods);
   const [count, setCount] = useState<CashCount>({});
   const [notes, setNotes] = useState('');
@@ -119,7 +118,8 @@ export default function EndShiftModal({ isOpen, onClose }: EndShiftModalProps) {
     { key: 'cash', label: 'Cash', on: enabledMethods.includes('cash'), ...line('cash') },
     { key: 'mobile_money', label: 'Mobile Money', on: enabledMethods.includes('mobile_money'), ...line('mobile_money', 'mobile_money_manual') },
     { key: 'card', label: 'Card', on: enabledMethods.includes('card'), ...line('card') },
-    { key: 'credit', label: 'Credit', on: !!posSettings?.pos_credit_enabled, ...line('credit') },
+    // Credit only when there were credit sales
+    { key: 'credit', label: 'Credit', on: false, ...line('credit') },
   ].filter((m) => m.on || m.count > 0);
 
   const canSubmit = byDenomination || actualCashStr !== '';
