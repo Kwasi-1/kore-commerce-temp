@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import LinePriceEditor from './LinePriceEditor';
+import { posTotals } from '@/utils/posTotals';
+import { useCan } from '@/hooks/usePermissions';
 import { CartItem, useCartStore } from "@/store/cartStore";
 import PaymentModal from "./PaymentModal";
 import SaveTransactionModal from "./SaveTransactionModal";
@@ -88,10 +91,10 @@ const flattenProducts = (rawProducts: any[]): Product[] => {
     if (item.variant_id && item.packaging_tiers) {
       const attrValues = item.variant_attributes ? Object.values(item.variant_attributes).filter(Boolean) : [];
       const parentName = item.product_name || item.name || '';
-      const combinedName = attrValues.length > 0 
+      const combinedName = attrValues.length > 0
         ? `${parentName} · ${attrValues.join(' · ')}`
         : parentName;
-        
+
       const defaultTier = item.packaging_tiers.find((t: any) => t.is_default_sale_unit) || item.packaging_tiers[0];
       const rawRetailPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
       const stockDisplayVal = parseVal(item.stock_display, item.stock_quantity ?? 0);
@@ -129,10 +132,10 @@ const flattenProducts = (rawProducts: any[]): Product[] => {
     // Case B: Parent product containing nested variants
     (item.variants || []).forEach((variant: any) => {
       const attrValues = variant.variant_attributes ? Object.values(variant.variant_attributes).filter(Boolean) : [];
-      const combinedName = attrValues.length > 0 
+      const combinedName = attrValues.length > 0
         ? `${item.name} · ${attrValues.join(' · ')}`
         : item.name;
-        
+
       const defaultTier = variant.packaging_tiers.find((t: any) => t.is_default_sale_unit) || variant.packaging_tiers[0];
       const defaultPrice = defaultTier ? parseVal(defaultTier.prices?.retail, 0) : 0;
       const stockDisplayVal = parseVal(variant.stock_display, variant.stock_quantity ?? 0);
@@ -269,7 +272,7 @@ const ScrollingMaskText: React.FC<ScrollingMaskTextProps> = ({
   );
 };
 
-export default function CartPanel({ 
+export default function CartPanel({
   isMobileView = false,
   panelState = 'default',
   onStateChange,
@@ -289,6 +292,7 @@ export default function CartPanel({
     updateQuantity,
     updateItemTier,
     updateItemPriceType,
+    setItemPrice,
     clearCart,
     setDiscount,
     resumeTransaction,
@@ -298,6 +302,9 @@ export default function CartPanel({
   const { showProductImages, defaultPriceType, soundEffectsEnabled, showSubPacks, hideOutOfStock } = useRegisterPreferencesStore();
   const { posSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const effectiveMethods = getEffectivePaymentMethods();
+  // "Change prices at the till": the store switch and this person's permission
+  const can = useCan();
+  const canRaisePrice = !!posSettings.pos_price_override_enabled && can('pos.price_override');
   const cachedProducts = useProductCacheStore((state) => state.products);
 
   // Derive the initial default payment method from settings: prefer cash if enabled
@@ -410,7 +417,7 @@ export default function CartPanel({
     const unitsPerTier = item ? item.units_per_tier : 1;
     let newQty = parseFloat(editingQtyValue);
     const stock = stockQuantity ?? Infinity;
-    
+
     if (isNaN(newQty) || newQty <= 0) {
       newQty = 1;
     } else if (newQty * unitsPerTier > stock) {
@@ -422,7 +429,7 @@ export default function CartPanel({
       }
       toast.error(`Only ${newQty} in stock!`);
     }
-    
+
     newQty = Math.round(newQty * 1000) / 1000;
     updateQuantity(productId, newQty);
     setEditingProductId(null);
@@ -432,12 +439,12 @@ export default function CartPanel({
     const item = items.find(i => i.productId === productId);
     const unitsPerTier = item ? item.units_per_tier : 1;
     const stock = stockQuantity ?? Infinity;
-    
+
     if (fraction * unitsPerTier > stock) {
       toast.error(`Insufficient stock!`);
       return;
     }
-    
+
     updateQuantity(productId, Math.round(fraction * 1000) / 1000);
   };
 
@@ -457,7 +464,7 @@ export default function CartPanel({
         {hasMultipleTiers ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button 
+              <button
                 type="button"
                 className="border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground capitalize"
                 title="Click to switch unit tier"
@@ -475,7 +482,7 @@ export default function CartPanel({
                 const isSelected = t.id === item.packaging_tier_id;
                 const rawTierPrice = item.price_type === 'wholesale' && t.prices?.wholesale ? t.prices.wholesale : t.prices?.retail;
                 const numericPrice = parseVal(rawTierPrice, 0);
-                
+
                 return (
                   <DropdownMenuItem
                     key={t.id}
@@ -503,10 +510,10 @@ export default function CartPanel({
         )}
 
         {/* Price Type Switcher Dropdown (Retail / Wholesale) */}
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button 
+            <button
               type="button"
               className={`border border-border rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground flex items-center gap-1 ${item.price_type !== 'wholesale' && 'hidden'}`}
               title="Click to switch Retail / Wholesale price"
@@ -652,11 +659,11 @@ export default function CartPanel({
       toast.error(`Only ${p.stock_display} ${p.stock_display_unit} in stock!`);
       return;
     }
-    
+
     const activePrice = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
       ? tier.prices.wholesale
       : tier.prices.retail;
-      
+
     const activePriceType = (defaultPriceType === 'wholesale' && tier.prices.wholesale !== null)
       ? 'wholesale'
       : 'retail';
@@ -676,11 +683,11 @@ export default function CartPanel({
       unit_price: activePrice,
       price_type: activePriceType
     });
-    
+
     if (soundEffectsEnabled) {
       playCartChime();
     }
-    
+
     setExpandedSearchTerm('');
     saveRecentVariantId(p.variant_id);
     setRecentVariantIds(getRecentVariantIds());
@@ -760,13 +767,9 @@ export default function CartPanel({
     }
   }, [subtotal, activePromo, setDiscount]);
 
-  // Tax derived from featuresStore (respects pos_tax_enabled toggle)
+  // Tax is added on top of (subtotal - discount) when turned on in POS settings (same as the server)
   const taxEnabled = posSettings.pos_tax_enabled;
-  const taxRate = taxEnabled ? (posSettings.pos_tax_rate || 0) : 0;
-  const taxLabel = posSettings.pos_tax_label || 'Tax';
-  const taxAmount = subtotal * taxRate;
-  const taxPercent = Math.round(taxRate * 100);
-  const calculatedTotal = subtotal + taxAmount - discount;
+  const { taxRate, taxLabel, taxPercent, tax: taxAmount, total: calculatedTotal } = posTotals(subtotal, discount, posSettings);
 
   const handleAddDiscountClick = () => {
     setActivePromo({ type: "percentage", value: defaultDiscountPercent });
@@ -861,7 +864,7 @@ export default function CartPanel({
 
         {/* Expanded 2-Column Content */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
-          
+
           {/* LEFT COLUMN: Scrollable Cart Items List */}
           <div className="flex-1 flex flex-col min-w-0 border-r border-border/60 overflow-hidden bg-background">
             <div className="px-4 sm:px-6 py-4 border-b border-border/40 shrink-0">
@@ -869,7 +872,7 @@ export default function CartPanel({
                 Cart Items ({items.reduce((acc, i) => acc + i.quantity, 0)})
               </h3>
             </div>
-            
+
             <div ref={expandedScrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-hide">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 py-20">
@@ -943,7 +946,7 @@ export default function CartPanel({
                           onFocus={(e) => e.target.select()}
                         />
                       ) : (
-                        <span 
+                        <span
                           className="font-bold text-xs px-1 text-center cursor-pointer hover:text-primary transition-colors min-w-[20px]"
                           onClick={() => {
                             setEditingProductId(item.productId);
@@ -1006,7 +1009,7 @@ export default function CartPanel({
                     {/* Price and Remove Row */}
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="font-bold text-sm text-foreground text-right min-w-[70px]">
-                        <CurrencyDisplay amount={item.price * item.quantity} />
+                        <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => setItemPrice(item.productId, p)} />
                       </div>
                       <Button
                         variant="ghost"
@@ -1031,7 +1034,7 @@ export default function CartPanel({
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Quick Search & Add
                 </label>
-                
+
                 {/* Search Bar Input */}
                 <div className="relative">
                   <Icon icon="solar:magnifer-linear" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground h-4.5 w-4.5" />
@@ -1103,7 +1106,7 @@ export default function CartPanel({
                       <Icon icon="solar:close-circle-linear" className="h-4.5 w-4.5" />
                     </button>
                   )}
-                  
+
                   {/* Expanded Search Dropdown: Quick Picks (when empty) or Live Search Results */}
                   {(isSearchFocused || expandedSearchTerm.trim() !== '') && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border/80 rounded-[20px] shadow-xl z-50 max-h-[300px] overflow-y-auto p-2 flex flex-col gap-1.5 scrollbar-hide">
@@ -1579,7 +1582,7 @@ export default function CartPanel({
                         <span className="text-[13px] sm:text-sm font-bold text-foreground !tracking-tight whitespace-nowrap">
                           <CurrencyDisplay amount={total} showStyling={false} />
                         </span>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -1686,7 +1689,7 @@ export default function CartPanel({
                           onFocus={(e) => e.target.select()}
                         />
                       ) : (
-                        <span 
+                        <span
                           className="font-bold text-[13px] px-1 text-center cursor-pointer hover:text-primary transition-colors min-w-[22px]"
                           onClick={() => {
                             setEditingProductId(item.productId);
@@ -1747,7 +1750,7 @@ export default function CartPanel({
                       <span className="text-muted-foreground text-[12px] font-semibold mr-1">
                         Total
                       </span>
-                      <CurrencyDisplay amount={item.price * item.quantity} />
+                      <LinePriceEditor item={item} canEdit={canRaisePrice} onSetPrice={(p) => setItemPrice(item.productId, p)} />
                     </div>
                   </div>
                 </div>

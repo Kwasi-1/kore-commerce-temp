@@ -223,11 +223,11 @@ export default function POSSettings() {
                     { id: 'mobile_money', label: 'Mobile Money (MoMo)', icon: '📱' },
                     { id: 'card', label: 'Card / POS Terminal', icon: '💳' },
                   ].map(method => {
-                    const isPaystackOn = isPaystackPlatformAllowed && (localFeatures.pos_paystack_enabled ?? true);
                     const isCard = method.id === 'card';
                     const isCash = method.id === 'cash';
 
-                    const isLockedDisabled = isCard && !isPaystackOn;
+                    // Card is taken on the shop's own card machine, so it doesn't need Paystack
+                    const isLockedDisabled = false;
                     const isSelected = isCash || (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id);
                     const enabled = isSelected && !isLockedDisabled;
 
@@ -257,7 +257,7 @@ export default function POSSettings() {
                         {method.label}
                         {isCash && <span className="text-[10px] opacity-70 ml-1">(default)</span>}
                         {isCard && !isPaystackPlatformAllowed && <span className="text-[10px] opacity-70 ml-1">(Disabled by Platform Admin)</span>}
-                        {isCard && isPaystackPlatformAllowed && !isPaystackOn && <span className="text-[10px] opacity-70 ml-1">(disabled)</span>}
+
                       </button>
                     );
                   })}

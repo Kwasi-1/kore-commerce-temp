@@ -151,13 +151,11 @@ export const useFeaturesStore = create<FeaturesState>()(
         return platformPaystackOn && tenantPaystackOn;
       },
 
+      // Card is taken on the shop's own card machine and MoMo is confirmed by the cashier, so
+      // neither depends on Paystack
       getEffectivePaymentMethods: () => {
         const settings = get().posSettings;
-        const raw = settings?.pos_payment_methods || ['cash', 'mobile_money', 'card'];
-        const platformPaystackOn = get().platform_paystack_enabled ?? true;
-        const tenantPaystackOn = settings?.pos_paystack_enabled ?? true;
-        const isPaystackOn = platformPaystackOn && tenantPaystackOn;
-        return isPaystackOn ? raw : raw.filter((m) => m !== 'card');
+        return settings?.pos_payment_methods || ['cash', 'mobile_money', 'card'];
       },
 
       loadFeatures: async () => {

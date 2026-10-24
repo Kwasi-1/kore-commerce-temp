@@ -17,6 +17,10 @@ export interface CartItem {
   unit_price: number;
   price_type: 'retail' | 'wholesale';
   packaging_tiers?: any[];
+  /** The item's set price for this pack size and price type */
+  list_price?: number;
+  /** The cashier raised the price above list_price ("Change prices at the till") */
+  price_overridden?: boolean;
 }
 
 
@@ -47,6 +51,8 @@ interface CartState {
   updateQuantity: (productId: string, quantity: number) => void;
   updateItemTier: (productId: string, newTier: { id: string; name: string; units_per_tier: number; price: number }) => void;
   updateItemPriceType: (productId: string, priceType: 'retail' | 'wholesale', newPrice: number) => void;
+  /** Raise a line's price each (never below its set price; lower prices are discounts) */
+  setItemPrice: (productId: string, unitPrice: number) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
 
@@ -121,7 +127,12 @@ export const useCartStore = create<CartState>()(
                 : i
             );
           } else {
-            newItems = [...state.items, { ...newItem, quantity: newItem.quantity || 1 }];
+            newItems = [...state.items, {
+              ...newItem,
+              quantity: newItem.quantity || 1,
+              list_price: newItem.list_price ?? newItem.price,
+              price_overridden: false,
+            }];
           }
 
           const totals = calculateTotals(newItems, state.discount);
@@ -162,7 +173,9 @@ export const useCartStore = create<CartState>()(
                 tier_name: newTier.name,
                 units_per_tier: newTier.units_per_tier,
                 unit_price: newTier.price,
-                price: newTier.price
+                price: newTier.price,
+                list_price: newTier.price,
+                price_overridden: false,
               };
             }
             return item;
@@ -179,10 +192,24 @@ export const useCartStore = create<CartState>()(
                 ...item,
                 price_type: priceType,
                 unit_price: newPrice,
-                price: newPrice
+                price: newPrice,
+                list_price: newPrice,
+                price_overridden: false,
               };
             }
             return item;
+          });
+          const totals = calculateTotals(newItems, state.discount);
+          return { items: newItems, ...totals };
+        }),
+
+      setItemPrice: (productId, unitPrice) =>
+        set((state) => {
+          const newItems = state.items.map((item) => {
+            if (item.productId !== productId) return item;
+            const list = item.list_price ?? item.price;
+            const price = Math.max(round2(unitPrice), list);
+            return { ...item, price, unit_price: price, list_price: list, price_overridden: price > list + 0.0001 };
           });
           const totals = calculateTotals(newItems, state.discount);
           return { items: newItems, ...totals };

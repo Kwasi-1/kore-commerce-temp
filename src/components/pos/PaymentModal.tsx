@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { posTotals } from '@/utils/posTotals';
 import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -25,7 +26,7 @@ interface PaymentModalProps {
 }
 
 export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }: PaymentModalProps) {
-  const { items, total, subtotal, discount, clearCart } = useCartStore();
+  const { items, subtotal, discount, clearCart } = useCartStore();
 
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card'>(defaultMethod);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
@@ -55,25 +56,22 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const tenant = useAuthStore((state) => state.tenant);
   const staffUser = useAuthStore((state) => state.staffUser);
 
-  const { posSettings: featureSettings, getEffectivePaymentMethods, isPaystackEnabled: checkPaystack } = useFeaturesStore();
+  const { posSettings: featureSettings, getEffectivePaymentMethods } = useFeaturesStore();
   const can = useCan();
-  const isPaystackEnabled = checkPaystack();
 
   // Network & offline queue
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueueStore();
 
-  // Derive tax from featuresStore
-  const taxRate = featureSettings.pos_tax_enabled ? (featureSettings.pos_tax_rate || 0) : 0;
-  const tax = subtotal * taxRate;
-  const taxLabel = featureSettings.pos_tax_label || 'Tax';
-  const taxPercent = Math.round(taxRate * 100);
+  // Tax is added on top of (subtotal - discount) when turned on in POS settings; `total` is what
+  // the customer pays (the server works it out the same way)
+  const { taxRate, taxLabel, taxPercent, tax, total } = posTotals(subtotal, discount, featureSettings);
 
   // Enabled payment methods derived centrally from featuresStore
   const ALL_TABS = [
     { id: 'cash',         label: 'Cash', requiresOnline: false },
     { id: 'mobile_money', label: 'MoMo', requiresOnline: false },
-    { id: 'card',         label: 'Card', requiresOnline: true  },
+    { id: 'card',         label: 'Card', requiresOnline: false },
   ] as const;
 
   const enabledMethods = getEffectivePaymentMethods();
@@ -208,6 +206,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         unit_price: item.unit_price,
         unitPrice: item.unit_price,
         price_type: item.price_type,
+        priceOverridden: !!item.price_overridden,
         subtotal: (item.unit_price || 0) * (item.quantity || 1),
       })),
       discount: discount || 0,
@@ -215,7 +214,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       tax,
       total,
       cashierName: staffUser?.name || 'Staff',
-      // When offline, mobile_money is recorded as manual MoMo
+      // MoMo is confirmed by the cashier (there's no Paystack prompt at the till yet)
       paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
       isCreditSale,
       customerDetails: isCreditSale ? { name: customerName, phone: customerPhone } : undefined,
@@ -287,15 +286,15 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    // ─── OFFLINE-FIRST: anything that doesn't need Paystack or a manager's PIN ──
-    // Cash, manual MoMo and credit are saved on the till and synced straight away in the background.
-    const needsGateway = !isCreditSale && (activeTab === 'card' || (activeTab === 'mobile_money' && isPaystackEnabled));
-    if (!needsGateway && !needsApproval) {
+    // ─── OFFLINE-FIRST: everything that doesn't need a manager's PIN ──────────
+    // Cash, card (shop's card machine), MoMo (confirmed by the cashier) and credit are saved on the
+    // till and synced straight away in the background.
+    if (!needsApproval) {
       saveOfflineSale(undefined, { online: true });
       return;
     }
 
-    // ─── ONLINE BRANCH (gateway payments, or a manager's approval needed) ─────
+    // ─── ONLINE BRANCH (a manager's approval is needed) ───────────────────────
     // The same key goes with the offline fallback, so a sale the server received before the
     // connection dropped isn't recorded twice
     const attemptKey = `pos-${crypto.randomUUID()}`;
@@ -307,7 +306,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           packaging_tier_id: item.packaging_tier_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
-          price_type: item.price_type
+          price_type: item.price_type,
+          priceOverridden: !!item.price_overridden,
         })),
         discount: discount || 0,
         paymentMethod: isCreditSale ? 'credit' : activeTab,
@@ -319,14 +319,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         if (activeTab === 'cash') {
           payload.amountTendered = amountTendered;
         } else if (activeTab === 'mobile_money') {
+          // Confirmed by the cashier; no Paystack reference until the till sends real prompts
+          payload.paymentMethod = 'mobile_money_manual';
           payload.momoNumber = momoNumber;
-          payload.paystackEnabled = isPaystackEnabled;
-          if (isPaystackEnabled) {
-            payload.paystackReference = `POS-MOCK-${Date.now()}`;
-          }
-        } else {
-          payload.paystackEnabled = isPaystackEnabled;
-          payload.paystackReference = `POS-MOCK-${Date.now()}`;
         }
       }
 
@@ -357,16 +352,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         error.code === 'ECONNABORTED';
 
       // If online call failed due to network disconnect/timeout, fallback to offline queue (Cash / MoMo / Credit)
-      if (isNetworkError && activeTab !== 'card') {
+      if (isNetworkError) {
         saveOfflineSale(toastId, { key: attemptKey });
         return;
       }
-
-      if (isNetworkError && activeTab === 'card') {
-        toast.error('Network connection unavailable. Card transactions require internet connectivity.', { id: toastId });
-      } else {
-        toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
-      }
+      toast.error(error.response?.data?.error?.message || 'Transaction failed', { id: toastId });
     } finally {
       setIsProcessing(false);
     }
@@ -414,7 +404,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               {isCreditSale
                 ? 'CREDIT'
                 : activeTab === 'mobile_money'
-                  ? (isPaystackEnabled ? 'MOBILE MONEY' : 'MOMO (MANUAL)')
+                  ? 'MOBILE MONEY'
                   : activeTab.replace('_', ' ')}
             </span>
           </div>
@@ -799,11 +789,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     />
 
                     <div className="p-4 bg-secondary rounded-lg text-[12px] md:text-sm font-medium border border-border/50 text-muted-foreground">
-                      {!isOnline
-                        ? 'Offline Mode: Record customer MoMo number. Confirm payment directly with customer before completing.'
-                        : isPaystackEnabled
-                        ? 'The customer will receive a secure payment prompt on their phone.'
-                        : 'Paystack Gateway is OFF. Enter customer MoMo number to log transaction for manual reference.'}
+                      Check the customer&apos;s MoMo payment has arrived before completing the sale.
                     </div>
                   </div>
                 )}
@@ -811,9 +797,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 {activeTab === 'card' && (
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center bgsecondary/30 rounded-lg p-8 border border-border/50 text-center">
                     <CreditCard className="h-8 w-8 text-muted-foreground mb-3" />
-                    <h4 className="font-bold text-base mb-1 text-foreground">Charge Card Terminal</h4>
-                    <p className="text-xs text-muted-foreground font-medium max-w-[200px]">
-                      Process payment on physical terminal, then confirm below.
+                    <h4 className="font-bold text-base mb-1 text-foreground">Card machine</h4>
+                    <p className="text-xs text-muted-foreground font-medium max-w-[220px]">
+                      Take the payment on your card machine, then complete the sale.
                     </p>
                   </div>
                 )}
