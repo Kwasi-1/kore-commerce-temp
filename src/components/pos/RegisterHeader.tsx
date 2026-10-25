@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import toast from 'react-hot-toast';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle, Cloud } from 'lucide-react';
+import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle, Cloud, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -64,6 +65,12 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
     navigate('/login');
   };
 
+
+
+  const lockTill = () => {
+    if (!navigator.onLine) toast("Offline: unlocking needs the internet, or use Switch user.", { icon: '⚠️' });
+    useAuthStore.getState().lock();
+  };
 
   return (
     <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
@@ -286,6 +293,17 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
           </Button>
         )}
 
+        {/* Lock the till: step away without ending the shift (PIN to come back) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={lockTill}
+          className="hidden md:flex rounded-full text-muted-foreground hover:text-foreground transition-colors"
+          title="Lock till"
+        >
+          <Lock className="h-4 w-4 md:h-5 md:w-5" />
+        </Button>
+
         {/* Registered tills: who else signed in here today, for quick switching */}
         <div className="hidden md:flex">
           <TillRecentUsers />
@@ -329,6 +347,10 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
                 {currentShift ? 'End Shift & Recon' : 'Start Shift'}
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem className="md:hidden cursor-pointer gap-2 py-2.5 font-medium rounded-xl" onClick={lockTill}>
+              <Lock className="h-4 w-4" />
+              Lock till
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 font-medium rounded-xl" onClick={() => setIsCashMovementOpen(true)}>
               <Icon icon="solar:wallet-money-bold" className="h-4 w-4 text-amber-500" />
               Log Cash In / Out

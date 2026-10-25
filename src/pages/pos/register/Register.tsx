@@ -12,6 +12,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useShift } from '@/hooks/useShift';
 import { Icon } from '@iconify/react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { useIdleLock } from '@/hooks/useIdleLock';
 
 import { useNavDrawerStore } from '@/store/navDrawerStore';
 
@@ -32,6 +33,7 @@ export default function Register() {
 
   // Mount offline sync — drains queued transactions when internet returns
   useOfflineSync();
+  useIdleLock();
 
   // Cart state for the mobile floating button
   const { items, subtotal, discount } = useCartStore();

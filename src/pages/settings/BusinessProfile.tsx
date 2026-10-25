@@ -6,9 +6,12 @@ import { useSettingsStore } from '@/store/settingsStore';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import PayoutAccountCard from '@/components/settings/PayoutAccountCard';
+import { useAuthStore } from '@/store/authStore';
 
 export default function BusinessProfile() {
   const { fetchSettings: reloadStoreSettings } = useSettingsStore();
+  const isOwner = useAuthStore((st) => st.staffUser?.role === 'owner');
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
@@ -205,6 +208,9 @@ export default function BusinessProfile() {
             </div>
           </form>
         </section>
+
+        {/* Payouts: owner only */}
+        {isOwner && <PayoutAccountCard />}
 
       </div>
     </PageLayout>

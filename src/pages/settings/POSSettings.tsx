@@ -188,6 +188,32 @@ export default function POSSettings() {
 
             <div className="border-t border-border/50" />
 
+            {/* Idle lock */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Lock the Till When Idle</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  After this long with no taps or typing, the till locks and staff enter their PIN to carry on. The cart is kept. Doesn&apos;t lock during a payment or while offline. Staff can always lock it themselves with the lock button.
+                </p>
+              </div>
+              <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5 shrink-0 self-start">
+                {[0, 2, 5, 10, 15].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setLocalFeatures(p => ({ ...p, pos_idle_lock_minutes: m }))}
+                    className={`h-8 px-3 rounded-full text-xs font-semibold transition-colors ${
+                      (localFeatures.pos_idle_lock_minutes || 0) === m ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {m === 0 ? 'Off' : `${m} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-border/50" />
+
             {/* Made in-house products (production batches) */}
             <div className="flex items-start justify-between gap-4">
               <div>
