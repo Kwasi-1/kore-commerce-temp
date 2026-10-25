@@ -11,6 +11,7 @@ import { format, startOfToday, endOfToday } from "date-fns";
 import { DateFilterValue } from "@/components/shared/custom-only-date-filter";
 import TransactionSidePanel from "@/components/pos/TransactionSidePanel";
 import TransactionRefundModal from "@/components/pos/TransactionRefundModal";
+import UnmatchedMomoNotice from "@/components/pos/UnmatchedMomoNotice";
 import CustomModal from "@/components/modals/modal";
 import { useAuthStore } from "@/store/authStore";
 import { useFeaturesStore } from "@/store/featuresStore";
@@ -45,6 +46,7 @@ export default function Transactions() {
   const navigate = useAppNavigate();
   const staffUser = useAuthStore((state) => state.staffUser);
   const isCashier = staffUser?.role === "cashier";
+  const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
 
   const getEmptyStateTitle = () => {
     const activeRange = dateFilter.active;
@@ -658,6 +660,9 @@ export default function Transactions() {
       {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md) */}
       {/* ========================================================================= */}
       <MobileDashboardWrapper>
+        {!isCashier && momoPromptsReady && (
+          <div className="px-4 pt-3"><UnmatchedMomoNotice /></div>
+        )}
         {/* 1. Hero Balance / Revenue Card + Metric Carousel */}
         <MobileHeroCard
           title={isCashier ? "My Sales" : "Total Sales"}
@@ -921,6 +926,8 @@ export default function Transactions() {
       {/* DESKTOP TRANSACTIONS VIEW (Hidden < md, Flex >= md)                       */}
       {/* ========================================================================= */}
       <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+        {/* MoMo prompts paid with no sale: for managers to sort out */}
+        {!isCashier && momoPromptsReady && <UnmatchedMomoNotice />}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-start">
           <DashboardCard
             title={isCashier ? "My Sales" : "Total Sales"}

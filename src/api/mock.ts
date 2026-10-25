@@ -1325,6 +1325,14 @@ export function setupMockApi() {
   ];
 
   // GET /tenant/products/brands & /categories (must precede the /tenant/products/:id handler)
+  // Payout account (demo: not set up yet; banks list is a short sample)
+  mock.onGet(/\/tenant\/payout-account\/banks/).reply(200, {
+    success: { status: 'OK', code: 200, data: { banks: [
+      { code: 'MTN', name: 'MTN', type: 'mobile_money' }, { code: 'VOD', name: 'Vodafone', type: 'mobile_money' },
+      { code: 'ATL', name: 'AirtelTigo', type: 'mobile_money' }, { code: 'GCB', name: 'GCB Bank', type: 'bank' },
+    ] } },
+  });
+  mock.onGet(/\/tenant\/payout-account$/).reply(200, { success: { status: 'OK', code: 200, data: { account: null } } });
   // Approve a raised price / discount at the till: demo staff can do both themselves
   mock.onPost(/\/pos\/auth\/approval-ticket$/).reply(200, {
     success: { status: 'OK', code: 200, data: { ticket: null, approver_name: null } },

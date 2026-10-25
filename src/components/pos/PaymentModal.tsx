@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { posTotals } from '@/utils/posTotals';
 import { createPortal } from 'react-dom';
 import { lineDiscountAmount, lineTotal, useCartStore } from '@/store/cartStore';
@@ -12,11 +12,13 @@ import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { Icon } from '@iconify/react';
 import PaymentMethodVisual from './PaymentMethodVisual';
+import MomoPrompt from './MomoPrompt';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueueStore } from '@/store/offlineQueueStore';
+import { useTillBusyStore } from '@/hooks/useIdleLock';
 import { useCan } from '@/hooks/usePermissions';
 import { APP_CONFIG } from '@/config/app.config';
 import { getReceiptPrefix, generatePosOrderNumber } from '@/utils/receipt';
@@ -44,6 +46,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [activeTab, setActiveTab] = useState<'cash' | 'mobile_money' | 'card' | 'split'>(defaultMethod);
   // Split payment: paid several ways (e.g. part cash, part MoMo, rest on credit)
   const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
+  // MoMo prompt to the customer's phone (when the shop is set up for it); "manual" = cashier-confirmed
+  const [momoManual, setMomoManual] = useState(false);
+  const promptPaid = useRef<{ reference: string; phone: string } | null>(null);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
   const [showOffline, setShowOffline] = useState(false);
@@ -117,10 +122,19 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     return (ids[0] as any) || 'cash';
   };
 
+  // The idle lock waits while the payment window is open
+  useEffect(() => {
+    if (!isOpen) return;
+    useTillBusyStore.getState().setBusy(true);
+    return () => useTillBusyStore.getState().setBusy(false);
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       setActiveTab(resolveDefault(defaultMethod));
       setSplitLines([]);
+      setMomoManual(false);
+      promptPaid.current = null;
       setAmountTenderedStr('');
       setMomoNumber('');
       setIsCreditSale(false);
@@ -225,6 +239,15 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     }));
   const owesCredit = isCreditSale || splitHasCredit;
 
+  const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
+  const usePrompt = activeTab === 'mobile_money' && !isCreditSale && momoPromptsReady && isOnline && !momoManual;
+  // The customer approved the prompt: complete the sale with Paystack's reference
+  const completeWithPrompt = (reference: string, phone: string) => {
+    promptPaid.current = { reference, phone };
+    setMomoNumber(phone);
+    handleTransaction();
+  };
+
   // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
   // Raised prices and discounts are approved when they're made (the sale carries those tickets)
   const approvalTickets = [
@@ -282,7 +305,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       total,
       cashierName: staffUser?.name || 'Staff',
       // MoMo is confirmed by the cashier (there's no Paystack prompt at the till yet)
-      paymentMethod: activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
+      paymentMethod: promptPaid.current ? 'mobile_money' : activeTab === 'mobile_money' ? 'mobile_money_manual' : activeTab,
+      ...(promptPaid.current ? { paystackReference: promptPaid.current.reference } : {}),
       isCreditSale,
       customerDetails: owesCredit ? { name: customerName, phone: customerPhone } : undefined,
       customerName: owesCredit ? customerName : undefined,
@@ -295,7 +319,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       ...(approvalTickets.length ? { approval: { tickets: approvalTickets } } : {}),
     };
     if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
-    if (activeTab === 'mobile_money') offlinePayload.momoNumber = momoNumber;
+    if (activeTab === 'mobile_money') offlinePayload.momoNumber = promptPaid.current?.phone || momoNumber;
 
     enqueue({
       localId,
@@ -335,7 +359,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
-    if (activeTab === 'mobile_money' && !isCreditSale) {
+    if (activeTab === 'mobile_money' && !isCreditSale && !promptPaid.current) {
       if (!momoNumber) {
         toast.error('Phone number is required for MoMo');
         return;
@@ -395,9 +419,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         if (activeTab === 'cash') {
           payload.amountTendered = amountTendered;
         } else if (activeTab === 'mobile_money') {
-          // Confirmed by the cashier; no Paystack reference until the till sends real prompts
-          payload.paymentMethod = 'mobile_money_manual';
-          payload.momoNumber = momoNumber;
+          if (promptPaid.current) {
+            // Paid through the prompt: the server checks this reference with Paystack
+            payload.paymentMethod = 'mobile_money';
+            payload.paystackReference = promptPaid.current.reference;
+            payload.momoNumber = promptPaid.current.phone;
+          } else {
+            // Confirmed by the cashier
+            payload.paymentMethod = 'mobile_money_manual';
+            payload.momoNumber = momoNumber;
+          }
         }
       }
 
@@ -874,7 +905,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   </div>
                 )}
 
-                {activeTab === 'mobile_money' && (
+                {usePrompt && (
+                  <MomoPrompt amount={total} onPaid={completeWithPrompt} onManual={() => setMomoManual(true)} />
+                )}
+
+                {activeTab === 'mobile_money' && !usePrompt && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <CustomInputTextField
                       label="Customer MoMo Number"
@@ -991,10 +1026,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         </div>
         <Button
           onClick={handleTransaction}
-          disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem}
+          disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem || usePrompt}
           className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
         >
-          {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
+          {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : usePrompt ? 'Completes when the customer pays' : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
         </Button>
       </div>
     </div>
