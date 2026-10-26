@@ -53,7 +53,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_service_charge_label: 'Service Charge',
   pos_split_payment_enabled: false,
   pos_paystack_enabled: true,
-  pos_payment_methods: ['cash', 'mobile_money', 'card'],
+  pos_payment_methods: ['cash', 'mobile_money'],
   pos_notes_enabled: true,
   pos_customer_required: false,
   pos_price_override_enabled: false,
@@ -161,7 +161,7 @@ export const useFeaturesStore = create<FeaturesState>()(
       // neither depends on Paystack
       getEffectivePaymentMethods: () => {
         const settings = get().posSettings;
-        return settings?.pos_payment_methods || ['cash', 'mobile_money', 'card'];
+        return settings?.pos_payment_methods || ['cash', 'mobile_money'];
       },
 
       loadFeatures: async () => {

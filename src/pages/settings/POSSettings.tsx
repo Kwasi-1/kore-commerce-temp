@@ -253,12 +253,12 @@ export default function POSSettings() {
 
                     // Card is taken on the shop's own card machine, so it doesn't need Paystack
                     const isLockedDisabled = false;
-                    const isSelected = isCash || (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card']).includes(method.id);
+                    const isSelected = isCash || (localFeatures.pos_payment_methods ?? ['cash', 'mobile_money']).includes(method.id);
                     const enabled = isSelected && !isLockedDisabled;
 
                     const toggle = () => {
                       if (isCash || isLockedDisabled) return;
-                      const current: string[] = localFeatures.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
+                      const current: string[] = localFeatures.pos_payment_methods ?? ['cash', 'mobile_money'];
                       if (enabled) {
                         const next = current.filter(m => m !== method.id);
                         setLocalFeatures(p => ({ ...p, pos_payment_methods: next.length ? next : ['cash'] }));
@@ -313,7 +313,7 @@ export default function POSSettings() {
                 isSelected={isPaystackPlatformAllowed ? (localFeatures.pos_paystack_enabled ?? true) : false}
                 isDisabled={!isPaystackPlatformAllowed}
                 onValueChange={(val) => setLocalFeatures(p => {
-                  const currentMethods = p.pos_payment_methods ?? ['cash', 'mobile_money', 'card'];
+                  const currentMethods = p.pos_payment_methods ?? ['cash', 'mobile_money'];
                   const nextMethods = val ? currentMethods : currentMethods.filter(m => m !== 'card');
                   return { ...p, pos_paystack_enabled: val, pos_payment_methods: nextMethods };
                 })}
