@@ -188,6 +188,23 @@ export default function POSSettings() {
 
             <div className="border-t border-border/50" />
 
+            {/* Manual MoMo: require the transaction ID */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-foreground text-[15px]">Require MoMo Transaction ID</h4>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
+                  When MoMo is confirmed by the cashier, they must type the transaction ID from the MoMo alert. It&apos;s kept with the sale so you can match it to your MoMo statement. Payment prompts are checked by Paystack and don&apos;t need it.
+                </p>
+              </div>
+              <Switch
+                isSelected={Boolean(localFeatures.pos_require_momo_txn_id)}
+                onValueChange={(val) => setLocalFeatures(p => ({ ...p, pos_require_momo_txn_id: val }))}
+                color="primary"
+              />
+            </div>
+
+            <div className="border-t border-border/50" />
+
             {/* Idle lock */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div>

@@ -36,6 +36,8 @@ export interface POSSettings {
   made_in_house_enabled: boolean;
   /** Lock the till after this many minutes idle (0 = off) */
   pos_idle_lock_minutes: number;
+  /** Manual MoMo: the cashier must type the transaction ID from the MoMo alert */
+  pos_require_momo_txn_id: boolean;
   /** Count the drawer by notes and coins at shift open/close */
   pos_cash_count_by_denomination: boolean;
 }
@@ -61,6 +63,7 @@ const DEFAULT_POS_SETTINGS: POSSettings = {
   pos_shift_management_enabled: false,
   made_in_house_enabled: false,
   pos_idle_lock_minutes: 0,
+  pos_require_momo_txn_id: false,
   pos_cash_count_by_denomination: false,
 };
 

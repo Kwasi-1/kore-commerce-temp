@@ -30,7 +30,7 @@ interface PaymentModalProps {
 }
 
 type SplitMethod = 'cash' | 'mobile_money' | 'card' | 'credit';
-interface SplitLine { id: string; method: SplitMethod; amount: string; momo?: string }
+interface SplitLine { id: string; method: SplitMethod; amount: string; momo?: string; txn?: string }
 const SPLIT_LABEL: Record<SplitMethod, string> = { cash: 'Cash', mobile_money: 'MoMo', card: 'Card', credit: 'Credit' };
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 // Money as typed: digits, one point, two decimals
@@ -51,6 +51,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const promptPaid = useRef<{ reference: string; phone: string } | null>(null);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
+  // Transaction ID from the MoMo alert (manual MoMo): proof of payment for disputes
+  const [momoTxnId, setMomoTxnId] = useState('');
   const [showOffline, setShowOffline] = useState(false);
 
   // Credit Toggle & Customer Autocomplete
@@ -137,6 +139,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       promptPaid.current = null;
       setAmountTenderedStr('');
       setMomoNumber('');
+      setMomoTxnId('');
       setIsCreditSale(false);
       setCustomerName('');
       setCustomerPhone('');
@@ -221,6 +224,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     ? `GHS ${splitRemaining.toFixed(2)} is still to pay`
     : splitChange > splitCash + 0.001
     ? 'Only cash can be more than what\'s left (for change)'
+    : featureSettings.pos_require_momo_txn_id && splitLines.some((l) => l.method === 'mobile_money' && !l.txn?.trim())
+    ? 'Enter the MoMo transaction ID'
     : null;
   const splitAddable: SplitMethod[] = [
     ...methodTabs.map((t) => t.id as SplitMethod).filter((m) => !splitLines.some((l) => l.method === m)),
@@ -236,6 +241,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       method: l.method === 'mobile_money' ? 'mobile_money_manual' : l.method,
       amount: parseFloat(l.amount) || 0,
       ...(l.momo ? { momoNumber: l.momo } : {}),
+      ...(l.txn?.trim() ? { momoTransactionId: l.txn.trim() } : {}),
     }));
   const owesCredit = isCreditSale || splitHasCredit;
 
@@ -319,7 +325,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       ...(approvalTickets.length ? { approval: { tickets: approvalTickets } } : {}),
     };
     if (activeTab === 'cash') offlinePayload.amountTendered = amountTendered;
-    if (activeTab === 'mobile_money') offlinePayload.momoNumber = promptPaid.current?.phone || momoNumber;
+    if (activeTab === 'mobile_money') {
+      offlinePayload.momoNumber = promptPaid.current?.phone || momoNumber || undefined;
+      if (!promptPaid.current && momoTxnId.trim()) offlinePayload.momoTransactionId = momoTxnId.trim();
+    }
 
     enqueue({
       localId,
@@ -359,12 +368,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       return;
     }
 
+    // Manual MoMo: the number is optional (checked if typed); the transaction ID when the owner requires it
+    const requireTxnId = !!featureSettings.pos_require_momo_txn_id;
     if (activeTab === 'mobile_money' && !isCreditSale && !promptPaid.current) {
-      if (!momoNumber) {
-        toast.error('Phone number is required for MoMo');
+      if (requireTxnId && !momoTxnId.trim()) {
+        toast.error('Enter the transaction ID from the MoMo alert');
         return;
       }
-      if (!isValidGhanaPhone(momoNumber)) {
+      if (momoNumber && !isValidGhanaPhone(momoNumber)) {
         toast.error('Please enter a valid 10-digit MoMo number (e.g. 024XXXXXXX or 055XXXXXXX)');
         return;
       }
@@ -427,7 +438,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           } else {
             // Confirmed by the cashier
             payload.paymentMethod = 'mobile_money_manual';
-            payload.momoNumber = momoNumber;
+            if (momoNumber) payload.momoNumber = momoNumber;
+            if (momoTxnId.trim()) payload.momoTransactionId = momoTxnId.trim();
           }
         }
       }
@@ -912,7 +924,15 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 {activeTab === 'mobile_money' && !usePrompt && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <CustomInputTextField
-                      label="Customer MoMo Number"
+                      label="Transaction ID from the MoMo alert"
+                      labelPlacement="outside"
+                      placeholder={featureSettings.pos_require_momo_txn_id ? 'Required' : 'Optional, e.g. 52834019274'}
+                      value={momoTxnId}
+                      onChange={(e: any) => setMomoTxnId(e.target.value.replace(/[^\w.-]/g, '').slice(0, 60))}
+                      className="h-14 text-lg font-bold rounded-xl bg-background border-border"
+                    />
+                    <CustomInputTextField
+                      label="Customer MoMo Number (optional)"
                       labelPlacement="outside"
                       type="tel"
                       placeholder="e.g. 0241234567"
@@ -973,6 +993,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
+                        {l.method === 'mobile_money' && (
+                          <input
+                            value={l.txn || ''}
+                            placeholder={featureSettings.pos_require_momo_txn_id ? 'MoMo transaction ID (required)' : 'MoMo transaction ID (optional)'}
+                            onChange={(e) => updateSplit(l.id, { txn: e.target.value.replace(/[^\w.-]/g, '').slice(0, 60) })}
+                            className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-sm focus:outline-none"
+                          />
+                        )}
                         {l.method === 'mobile_money' && (
                           <input
                             value={l.momo || ''}

@@ -70,8 +70,8 @@ export default function TransactionSidePanel({
   const renderReceiptContent = () => {
     if (!receiptData) return null;
     return (
-      <div 
-        id="receipt-content" 
+      <div
+        id="receipt-content"
         className="bg-white text-black p-6 rounded-xl relative border border-border/20 font-sans text-sm shadow-sm print:p-0 print:w-full print:border-none print:shadow-none"
       >
         {/* Refunded Stamp */}
@@ -125,6 +125,12 @@ export default function TransactionSidePanel({
               <span>{formatAmount(p.method === 'cash' && p.tendered != null ? p.tendered : p.amount)}</span>
             </div>
           ))}
+          {receiptData?.momoTransactionId && (
+            <div className="flex justify-between">
+              <span className="font-semibold">MoMo Txn ID:</span>
+              <span className="font-mono font-bold text-zinc-950">{receiptData.momoTransactionId}</span>
+            </div>
+          )}
           {momoPhone && (
             <div className="flex justify-between">
               <span className="font-semibold">MoMo Phone:</span>
@@ -249,7 +255,7 @@ export default function TransactionSidePanel({
         footer={
           receiptData ? (
             <div className="flex flex-col gap-3 w-full pb-4">
-              <Button 
+              <Button
                 variant="default"
                 className="w-full"
                 onClick={onReprint}
@@ -258,13 +264,13 @@ export default function TransactionSidePanel({
                 Reprint Receipt
               </Button>
               {isRefundDisabled ? (
-                <Tooltip 
+                <Tooltip
                   content={refundTooltip}
                   placement="top"
                   className="max-w-xs text-xs py-1.5 px-3 text-center bg-card/70 backdrop-blur"
                 >
                   <div className="w-full">
-                    <Button 
+                    <Button
                       variant="destructive"
                       className="w-full opacity-60 cursor-not-allowed"
                       disabled={true}
@@ -279,7 +285,7 @@ export default function TransactionSidePanel({
                   </div>
                 </Tooltip>
               ) : (
-                <Button 
+                <Button
                   variant="destructive"
                   className="w-full"
                   onClick={onIssueRefund}
