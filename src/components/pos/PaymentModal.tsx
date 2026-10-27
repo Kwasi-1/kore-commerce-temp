@@ -13,6 +13,7 @@ import CustomModal from '@/components/modals/modal';
 import { Icon } from '@iconify/react';
 import PaymentMethodVisual from './PaymentMethodVisual';
 import MomoPrompt, { type MomoAction } from './MomoPrompt';
+import SplitMomoPrompt from './SplitMomoPrompt';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
@@ -30,7 +31,15 @@ interface PaymentModalProps {
 }
 
 type SplitMethod = 'cash' | 'mobile_money' | 'card' | 'credit';
-interface SplitLine { id: string; method: SplitMethod; amount: string; momo?: string; txn?: string }
+interface SplitLine {
+  id: string; method: SplitMethod; amount: string; momo?: string; txn?: string;
+  /** MoMo part: confirmed by the cashier instead of a prompt */
+  manual?: boolean;
+  /** MoMo part paid through a prompt (Paystack reference and the number that paid) */
+  paidRef?: string; paidPhone?: string;
+  /** MoMo part: a prompt is out */
+  pending?: boolean;
+}
 const SPLIT_LABEL: Record<SplitMethod, string> = { cash: 'Cash', mobile_money: 'MoMo', card: 'Card', credit: 'Credit' };
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 // Money as typed: digits, one point, two decimals
@@ -216,6 +225,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const splitRemaining = r2(total - splitPaid);
   const splitChange = r2(Math.max(0, splitPaid - total));
   const splitHasCredit = isSplit && splitLines.some((l) => l.method === 'credit');
+  // A MoMo part is paid by a prompt when the shop is set up for it and the till is online (a prompt
+  // already out or paid stays one), otherwise confirmed by the cashier
+  const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
+  const linePrompted = (l: SplitLine) =>
+    l.method === 'mobile_money' && !l.manual && (!!l.paidRef || !!l.pending || (momoPromptsReady && isOnline));
+  const splitPending = isSplit && splitLines.some((l) => l.pending);
   const splitProblem = !isSplit
     ? null
     : splitLines.length === 0
@@ -226,7 +241,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     ? `GHS ${splitRemaining.toFixed(2)} is still to pay`
     : splitChange > splitCash + 0.001
     ? 'Only cash can be more than what\'s left (for change)'
-    : featureSettings.pos_require_momo_txn_id && splitLines.some((l) => l.method === 'mobile_money' && !l.txn?.trim())
+    : splitPending
+    ? 'Wait for the customer to approve the MoMo prompt'
+    : splitLines.some((l) => linePrompted(l) && !l.paidRef)
+    ? 'Send the MoMo prompt, or confirm it manually'
+    : featureSettings.pos_require_momo_txn_id && splitLines.some((l) => l.method === 'mobile_money' && !linePrompted(l) && !l.txn?.trim())
     ? 'Enter the MoMo transaction ID'
     : null;
   const splitAddable: SplitMethod[] = [
@@ -237,19 +256,26 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     setSplitLines((lines) => [...lines, { id: crypto.randomUUID(), method, amount: splitRemaining > 0 ? splitRemaining.toFixed(2) : '' }]);
   const updateSplit = (id: string, patch: Partial<SplitLine>) =>
     setSplitLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  const removeSplit = (id: string) => setSplitLines((lines) => lines.filter((l) => l.id !== id));
+  const removeSplit = (id: string) => {
+    if (splitLines.find((l) => l.id === id)?.paidRef) {
+      toast('That MoMo payment stays under "MoMo paid without a sale" for a manager to sort out', { duration: 5000 });
+    }
+    setSplitLines((lines) => lines.filter((l) => l.id !== id));
+  };
   const splitPayload = () =>
-    splitLines.map((l) => ({
-      method: l.method === 'mobile_money' ? 'mobile_money_manual' : l.method,
-      amount: parseFloat(l.amount) || 0,
-      ...(l.momo ? { momoNumber: l.momo } : {}),
-      ...(l.txn?.trim() ? { momoTransactionId: l.txn.trim() } : {}),
-    }));
+    splitLines.map((l) => l.paidRef
+      // Paid through a prompt: the server checks the reference with Paystack
+      ? { method: 'mobile_money', amount: parseFloat(l.amount) || 0, paystackReference: l.paidRef, ...(l.paidPhone ? { momoNumber: l.paidPhone } : {}) }
+      : {
+        method: l.method === 'mobile_money' ? 'mobile_money_manual' : l.method,
+        amount: parseFloat(l.amount) || 0,
+        ...(l.momo ? { momoNumber: l.momo } : {}),
+        ...(l.txn?.trim() ? { momoTransactionId: l.txn.trim() } : {}),
+      });
   const owesCredit = isCreditSale || splitHasCredit;
 
-  const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
   const usePrompt = activeTab === 'mobile_money' && !isCreditSale && momoPromptsReady && isOnline && !momoManual;
-  const promptLocked = usePrompt && !!momoAction?.locked;
+  const promptLocked = (usePrompt && !!momoAction?.locked) || splitPending;
   // Owners/managers see why prompts aren't on when Paystack is switched on but not set up
   const momoPromptsReason = useFeaturesStore((st) => st.momo_prompts_reason);
   const showPromptSetupHint = activeTab === 'mobile_money' && !momoPromptsReady && !!featureSettings.pos_paystack_enabled
@@ -976,7 +1002,10 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     {splitLines.length === 0 && (
                       <p className="text-xs text-muted-foreground font-medium">Add how the customer is paying, e.g. part cash and part MoMo.</p>
                     )}
-                    {splitLines.map((l) => (
+                    {splitLines.map((l) => {
+                      // A prompt that's out or paid fixes this part's amount
+                      const fixed = !!l.pending || !!l.paidRef;
+                      return (
                       <div key={l.id} className="rounded-xl border border-border/70 p-2.5 space-y-2">
                         <div className="flex items-center gap-2.5">
                           {l.method === 'credit' ? (
@@ -987,27 +1016,44 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                             <PaymentMethodVisual method={l.method} size="md" />
                           )}
                           <span className="text-sm font-semibold flex-1">{l.method === 'credit' ? 'On credit' : SPLIT_LABEL[l.method]}</span>
-                          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 h-10 w-36 cursor-text">
+                          <label className={`flex items-center gap-1.5 rounded-lg border border-border px-2.5 h-10 w-36 ${fixed ? 'bg-muted/50' : 'bg-background cursor-text'}`}>
                             <span className="text-[11px] text-muted-foreground font-semibold">GHS</span>
                             <input
                               value={l.amount}
                               inputMode="decimal"
                               placeholder="0.00"
+                              disabled={fixed}
                               onChange={(e) => updateSplit(l.id, { amount: cleanMoney(e.target.value) })}
                               aria-label={`${SPLIT_LABEL[l.method]} amount`}
-                              className="w-full min-w-0 bg-transparent text-right text-sm font-bold tabular-nums focus:outline-none"
+                              className="w-full min-w-0 bg-transparent text-right text-sm font-bold tabular-nums focus:outline-none disabled:opacity-80"
                             />
                           </label>
                           <button
                             type="button"
                             onClick={() => removeSplit(l.id)}
+                            disabled={!!l.pending}
                             aria-label={`Remove ${SPLIT_LABEL[l.method]}`}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0"
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0 disabled:opacity-40 disabled:pointer-events-none"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                        {l.method === 'mobile_money' && (
+                        {l.paidRef && (
+                          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/5 border border-emerald-500/30 px-3 py-2 text-xs">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex-1">Paid</span>
+                            {l.paidPhone && <span className="text-muted-foreground">{formatPhoneNumber(l.paidPhone)}</span>}
+                          </div>
+                        )}
+                        {linePrompted(l) && !l.paidRef && (
+                          <SplitMomoPrompt
+                            amount={parseFloat(l.amount) || 0}
+                            onPaid={(reference, phone) => updateSplit(l.id, { paidRef: reference, paidPhone: phone, pending: false })}
+                            onPending={(pending) => updateSplit(l.id, { pending })}
+                            onManual={() => updateSplit(l.id, { manual: true, pending: false })}
+                          />
+                        )}
+                        {l.method === 'mobile_money' && !linePrompted(l) && (
                           <input
                             value={l.txn || ''}
                             placeholder={featureSettings.pos_require_momo_txn_id ? 'MoMo transaction ID (required)' : 'MoMo transaction ID (optional)'}
@@ -1015,7 +1061,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                             className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-sm focus:outline-none"
                           />
                         )}
-                        {l.method === 'mobile_money' && (
+                        {l.method === 'mobile_money' && !linePrompted(l) && (
                           <input
                             value={l.momo || ''}
                             inputMode="tel"
@@ -1024,8 +1070,18 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                             className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-sm focus:outline-none"
                           />
                         )}
+                        {l.method === 'mobile_money' && l.manual && momoPromptsReady && isOnline && (
+                          <button
+                            type="button"
+                            onClick={() => updateSplit(l.id, { manual: false })}
+                            className="w-full text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          >
+                            Send a prompt instead
+                          </button>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                     {splitAddable.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {splitAddable.map((m) => (
