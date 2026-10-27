@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 import { isOwnerOrAdmin } from '@/utils/roles';
 import TillsSection from '@/components/settings/TillsSection';
+import { Link } from 'react-router-dom';
 
 
 export default function POSSettings() {
@@ -20,6 +21,8 @@ export default function POSSettings() {
   const { staffUser, tenant, setTenant } = useAuthStore();
   const { posSettings: featureSettings, plan, platform_paystack_enabled, updatePOSSettings: updateFeaturePOSSettings, loadFeatures, hasModule } = useFeaturesStore();
   const isPaystackPlatformAllowed = platform_paystack_enabled ?? true;
+  const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
+  const momoPromptsReason = useFeaturesStore((st) => st.momo_prompts_reason);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingFeatures, setIsSavingFeatures] = useState(false);
   const [expiryEnabled, setExpiryEnabled] = useState(false);
@@ -70,6 +73,8 @@ export default function POSSettings() {
       const res = await apiClient.put('/tenant/features/pos', changedFields);
       const updated = res.data.success?.data?.pos_settings || {};
       updateFeaturePOSSettings(updated);
+      // Paystack on/off changes whether MoMo prompts are ready: re-check
+      loadFeatures();
 
       const savedKeys: string[] = res.data.success?.data?.updated || [];
       const blocked: string[] = res.data.success?.data?.blocked || [];
@@ -320,11 +325,24 @@ export default function POSSettings() {
                   )}
                 </div>
                 <p className="text-xs font-medium text-muted-foreground mt-0.5 max-w-[400px]">
-                  For sending MoMo payment prompts to customers&apos; phones (coming soon). Card and MoMo work without it: card on your card machine, MoMo confirmed by the cashier.
+                  Sends MoMo payment prompts to customers&apos; phones; the sale completes when Paystack confirms the payment. Without it, MoMo is confirmed by the cashier. Card is taken on your own card machine either way.
                   {!isPaystackPlatformAllowed && (
                     <span className="block text-amber-500 font-semibold mt-1">Overridden platform-wide by Platform Admin.</span>
                   )}
                 </p>
+                {/* Whether prompts actually work yet (from the saved settings) */}
+                {isPaystackPlatformAllowed && featureSettings.pos_paystack_enabled && (
+                  momoPromptsReady ? (
+                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1.5">MoMo prompts: ready</p>
+                  ) : (
+                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1.5">
+                      MoMo prompts: not ready. {momoPromptsReason}
+                      {/payout/i.test(momoPromptsReason || '') && (
+                        <Link to="/settings/profile" className="ml-1 underline">Set up payouts</Link>
+                      )}
+                    </p>
+                  )
+                )}
               </div>
               <Switch
                 isSelected={isPaystackPlatformAllowed ? (localFeatures.pos_paystack_enabled ?? true) : false}

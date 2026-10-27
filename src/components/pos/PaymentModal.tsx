@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import CustomModal from '@/components/modals/modal';
 import { Icon } from '@iconify/react';
 import PaymentMethodVisual from './PaymentMethodVisual';
-import MomoPrompt from './MomoPrompt';
+import MomoPrompt, { type MomoAction } from './MomoPrompt';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
@@ -49,6 +49,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   // MoMo prompt to the customer's phone (when the shop is set up for it); "manual" = cashier-confirmed
   const [momoManual, setMomoManual] = useState(false);
   const promptPaid = useRef<{ reference: string; phone: string } | null>(null);
+  // What the bottom button does while a MoMo prompt is in use (see MomoPrompt)
+  const [momoAction, setMomoAction] = useState<MomoAction | null>(null);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
   // Transaction ID from the MoMo alert (manual MoMo): proof of payment for disputes
@@ -247,6 +249,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
   const momoPromptsReady = useFeaturesStore((st) => st.momo_prompts_ready);
   const usePrompt = activeTab === 'mobile_money' && !isCreditSale && momoPromptsReady && isOnline && !momoManual;
+  const promptLocked = usePrompt && !!momoAction?.locked;
+  // Owners/managers see why prompts aren't on when Paystack is switched on but not set up
+  const momoPromptsReason = useFeaturesStore((st) => st.momo_prompts_reason);
+  const showPromptSetupHint = activeTab === 'mobile_money' && !momoPromptsReady && !!featureSettings.pos_paystack_enabled
+    && !!momoPromptsReason && (staffUser?.role === 'owner' || staffUser?.role === 'manager');
   // The customer approved the prompt: complete the sale with Paystack's reference
   const completeWithPrompt = (reference: string, phone: string) => {
     promptPaid.current = { reference, phone };
@@ -834,7 +841,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <div>
             <div
               className="flex items-center justify-between cursor-pointer group rounded-xl p-3 -mx-3 hover:bg-secondary/40 transition-colors border border-transparent hover:border-border/50"
-              onClick={() => setIsCreditSale(!isCreditSale)}
+              onClick={() => !promptLocked && setIsCreditSale(!isCreditSale)}
             >
               <div>
                 <h4 className="font-bold text-foreground text-[15px]">Mark as Credit Sale</h4>
@@ -843,7 +850,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               <div className={`transition-colors ${isCreditSale ? 'text-foreground' : 'text-muted-foreground'}`}>
                 <Switch
                    isSelected={isCreditSale}
-                   onValueChange={setIsCreditSale}
+                   onValueChange={(v) => !promptLocked && setIsCreditSale(v)}
+                   isDisabled={promptLocked}
                    color="default"
                    size="sm"
                    classNames={{ wrapper: "mr-0" }}
@@ -864,7 +872,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                   {paymentTabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
+                      onClick={() => !promptLocked && setActiveTab(tab.id as any)}
+                      disabled={promptLocked}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[12px] md:text-sm font-bold transition-all duration-200 cursor-pointer ${
                         activeTab === tab.id
                           ? 'bg-background shadow-sm text-foreground'
@@ -918,11 +927,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                 )}
 
                 {usePrompt && (
-                  <MomoPrompt amount={total} onPaid={completeWithPrompt} onManual={() => setMomoManual(true)} />
+                  <MomoPrompt amount={total} onPaid={completeWithPrompt} onManual={() => setMomoManual(true)} onAction={setMomoAction} />
                 )}
 
                 {activeTab === 'mobile_money' && !usePrompt && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {showPromptSetupHint && (
+                      <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                        MoMo prompts are off: {momoPromptsReason}
+                      </p>
+                    )}
                     <CustomInputTextField
                       label="Transaction ID from the MoMo alert"
                       labelPlacement="outside"
@@ -1052,13 +1066,35 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
           <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
         </div>
-        <Button
-          onClick={handleTransaction}
-          disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem || usePrompt}
-          className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
-        >
-          {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : usePrompt ? 'Completes when the customer pays' : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
-        </Button>
+        {usePrompt && momoAction ? (
+          <>
+            <Button
+              onClick={momoAction.onClick}
+              disabled={momoAction.disabled || isProcessing}
+              className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm gap-2"
+            >
+              {(momoAction.loading || isProcessing) && <Loader2 className="h-5 w-5 animate-spin" />}
+              {momoAction.label}
+            </Button>
+            {momoAction.link && (
+              <button
+                type="button"
+                onClick={momoAction.link.onClick}
+                className="w-full mt-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                {momoAction.link.label}
+              </button>
+            )}
+          </>
+        ) : (
+          <Button
+            onClick={handleTransaction}
+            disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem}
+            className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
+          >
+            {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -1198,7 +1234,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     <>
       <CustomModal
         isOpen={isOpen}
-        onOpenChange={() => { if (!isProcessing) onClose(); }}
+        onOpenChange={() => {
+          if (isProcessing) return;
+          if (promptLocked) {
+            toast('Cancel the MoMo prompt first');
+            return;
+          }
+          onClose();
+        }}
         size="4xl"
         classNames={{
           body: "p-0 overflow-hidden max-h-[90dvh] md:max-h-[90vh]",

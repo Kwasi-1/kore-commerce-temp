@@ -110,6 +110,8 @@ interface FeaturesState {
   platform_paystack_enabled: boolean;
   /** MoMo payment prompts at the till (Paystack on and payouts set up) */
   momo_prompts_ready: boolean;
+  /** Why prompts are off, e.g. "Set up your payout account first" */
+  momo_prompts_reason: string | null;
   /** Signed-in staff member's permissions (from /tenant/features) and whose they are */
   permissions: string[] | null;
   permissionsFor: string | null;
@@ -135,6 +137,7 @@ export const useFeaturesStore = create<FeaturesState>()(
       posSettings: DEFAULT_POS_SETTINGS,
       platform_paystack_enabled: true,
       momo_prompts_ready: false,
+      momo_prompts_reason: null,
       permissions: null,
       permissionsFor: null,
       isLoaded: false,
@@ -188,6 +191,7 @@ export const useFeaturesStore = create<FeaturesState>()(
             posSettings,
             platform_paystack_enabled,
             momo_prompts_ready: !!data.momo_prompts_ready,
+            momo_prompts_reason: data.momo_prompts_reason || null,
             permissions: Array.isArray(data.permissions) ? data.permissions : null,
             permissionsFor: data.staff_id || null,
             isLoaded: true,

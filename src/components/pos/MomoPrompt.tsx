@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, CheckCircle2, XCircle, Smartphone } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
-import { Button } from '@/components/ui/button';
-import { CurrencyDisplay } from '@/hooks';
 import { cn } from '@/lib/utils';
+
+/** What the payment window's bottom button (and the small link under it) should do right now. */
+export interface MomoAction {
+  label: string;
+  onClick?: () => void;
+  disabled: boolean;
+  loading: boolean;
+  link?: { label: string; onClick: () => void };
+  /** A prompt is out: keep the payment tabs and the close button locked */
+  locked: boolean;
+}
 
 interface Props {
   amount: number;
@@ -12,6 +21,8 @@ interface Props {
   onPaid: (reference: string, phone: string) => void;
   /** Fall back to "the customer paid, I checked it" */
   onManual: () => void;
+  /** Called whenever the bottom button should change */
+  onAction: (action: MomoAction) => void;
 }
 
 const NETWORKS = [
@@ -19,13 +30,14 @@ const NETWORKS = [
   { id: 'vod', label: 'Telecel' },
   { id: 'tgo', label: 'AirtelTigo' },
 ] as const;
+type Network = (typeof NETWORKS)[number]['id'];
 const GIVE_UP_AFTER_MS = 3 * 60_000;
 const POLL_MS = 3_000;
 
 type Stage = 'form' | 'waiting' | 'otp' | 'paid' | 'failed';
 
-/** Guess the network from the number's prefix (the cashier can change it). */
-const guessNetwork = (phone: string): 'mtn' | 'vod' | 'tgo' | null => {
+/** Guess the network from the number's prefix (ported numbers can be wrong, so it can be changed). */
+const guessNetwork = (phone: string): Network | null => {
   const d = phone.replace(/\D/g, '').replace(/^233/, '0');
   const p = d.slice(0, 3);
   if (['024', '054', '055', '059', '025', '053'].includes(p)) return 'mtn';
@@ -37,11 +49,14 @@ const guessNetwork = (phone: string): 'mtn' | 'vod' | 'tgo' | null => {
 /**
  * Sends a MoMo payment prompt to the customer's phone and waits for them to approve it. The sale is
  * completed only once Paystack confirms the payment. Leaving while it's waiting cancels the prompt
- * (a late approval then shows under "MoMo paid without a sale" for a manager).
+ * (a late approval then shows under "MoMo paid without a sale" for a manager). The only action
+ * button is the payment window's own; this reports what it should do through onAction.
  */
-export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
+export default function MomoPrompt({ amount, onPaid, onManual, onAction }: Props) {
   const [phone, setPhone] = useState('');
-  const [network, setNetwork] = useState<'mtn' | 'vod' | 'tgo' | ''>('');
+  // Chosen by the cashier; otherwise the guess from the number is used
+  const [picked, setPicked] = useState<Network | ''>('');
+  const [showNetworks, setShowNetworks] = useState(false);
   const [stage, setStage] = useState<Stage>('form');
   const [message, setMessage] = useState('');
   const [otp, setOtp] = useState('');
@@ -51,6 +66,11 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
   const startedAt = useRef(0);
   const stageRef = useRef<Stage>('form');
   stageRef.current = stage;
+
+  const digits = phone.replace(/\D/g, '').replace(/^233/, '0');
+  const guessed = guessNetwork(phone);
+  const network: Network | null = picked || guessed;
+  const phoneComplete = digits.length >= 10;
 
   const cancelPending = () => {
     const ref = refRef.current;
@@ -102,14 +122,14 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
   }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = async () => {
-    const net = network || guessNetwork(phone);
-    if (!net) {
+    if (!network) {
+      setShowNetworks(true);
       toast.error("Choose the customer's network");
       return;
     }
     setBusy(true);
     try {
-      const r = await apiClient.post('/pos/momo/charge', { amount, phone, provider: net });
+      const r = await apiClient.post('/pos/momo/charge', { amount, phone, provider: network });
       const charge = r.data?.success?.data?.charge;
       refRef.current = charge?.reference || null;
       startedAt.current = Date.now();
@@ -144,8 +164,26 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
     setMessage('');
   };
 
+  // Tell the payment window what its bottom button does now
+  const clock = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const amountText = `GHS ${amount.toFixed(2)}`;
+  useEffect(() => {
+    const manualLink = { label: 'Customer already paid? Confirm manually', onClick: onManual };
+    if (stage === 'form') {
+      onAction({ label: `Send prompt · ${amountText}`, onClick: send, disabled: busy || !phoneComplete, loading: busy, link: manualLink, locked: false });
+    } else if (stage === 'waiting') {
+      onAction({ label: `Waiting for approval… ${clock}`, disabled: true, loading: true, link: { label: 'Cancel prompt', onClick: reset }, locked: true });
+    } else if (stage === 'otp') {
+      onAction({ label: 'Submit code', onClick: submitOtp, disabled: busy || otp.length < 4, loading: busy, link: { label: 'Cancel prompt', onClick: reset }, locked: true });
+    } else if (stage === 'failed') {
+      onAction({ label: 'Send again', onClick: reset, disabled: false, loading: false, link: { label: 'Confirm manually instead', onClick: onManual }, locked: false });
+    } else {
+      onAction({ label: 'Completing sale…', disabled: true, loading: true, locked: true });
+    }
+  }, [stage, busy, phoneComplete, otp, clock, amountText, network, phone]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (stage === 'form') {
-    const guessed = guessNetwork(phone);
+    const pills = showNetworks || (phoneComplete && !guessed) || (!!picked && picked !== guessed);
     return (
       <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
         <label className="block">
@@ -153,54 +191,54 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
           <input
             type="tel"
             inputMode="tel"
+            autoFocus
             placeholder="e.g. 0241234567"
             value={phone}
-            onChange={(e) => {
-              const v = e.target.value.replace(/[^\d+]/g, '').slice(0, 13);
-              setPhone(v);
-              if (!network || network === guessNetwork(phone)) setNetwork(guessNetwork(v) || '');
-            }}
+            onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 13))}
             className="w-full h-14 px-4 text-lg font-bold rounded-xl bg-background border border-border focus:outline-none focus:border-foreground/40"
           />
         </label>
-        <div className="flex gap-1.5">
-          {NETWORKS.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => setNetwork(n.id)}
-              className={cn(
-                'flex-1 h-9 rounded-full border text-xs font-semibold transition-colors',
-                (network || guessed) === n.id ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
-              )}
-            >
-              {n.label}
-            </button>
-          ))}
-        </div>
-        <Button className="w-full h-12 rounded-full font-bold gap-2" onClick={send} disabled={busy || phone.replace(/\D/g, '').length < 10}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-          Send prompt for <CurrencyDisplay amount={amount} showStyling={false} />
-        </Button>
-        <button type="button" onClick={onManual} className="w-full text-xs font-semibold text-muted-foreground hover:text-foreground">
-          Customer already paid? Confirm manually instead
-        </button>
+        {phoneComplete && (
+          pills ? (
+            <div className="space-y-1.5">
+              <span className="block text-xs text-muted-foreground">Network</span>
+              <div className="flex gap-1.5">
+                {NETWORKS.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => setPicked(n.id)}
+                    className={cn(
+                      'flex-1 h-9 rounded-full border text-xs font-semibold transition-colors',
+                      network === n.id ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
+                    )}
+                  >
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Network: <b className="text-foreground">{NETWORKS.find((n) => n.id === network)?.label}</b>
+              {' · '}
+              <button type="button" onClick={() => setShowNetworks(true)} className="font-semibold text-foreground hover:underline">
+                Change
+              </button>
+            </p>
+          )
+        )}
+        <p className="text-[11px] text-muted-foreground">The customer approves the prompt on their phone with their MoMo PIN.</p>
       </div>
     );
   }
 
   if (stage === 'waiting') {
     return (
-      <div className="rounded-xl border border-border/70 p-5 text-center space-y-3 animate-in fade-in">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-        <div>
-          <p className="font-bold">Waiting for the customer to approve</p>
-          <p className="text-xs text-muted-foreground mt-1">{message || `A prompt was sent to ${phone}. They approve it with their MoMo PIN.`}</p>
-        </div>
-        <p className="text-[11px] text-muted-foreground tabular-nums">
-          Gives up in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
-        </p>
-        <Button variant="outline" className="rounded-full" onClick={reset}>Cancel</Button>
+      <div className="rounded-xl border border-border/70 p-5 text-center space-y-2 animate-in fade-in">
+        <Loader2 className="h-7 w-7 animate-spin mx-auto text-muted-foreground" />
+        <p className="font-bold">Waiting for the customer to approve</p>
+        <p className="text-xs text-muted-foreground">{message || `A prompt was sent to ${phone}. They approve it with their MoMo PIN.`}</p>
       </div>
     );
   }
@@ -214,15 +252,10 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
           autoFocus
           value={otp}
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          onKeyDown={(e) => e.key === 'Enter' && otp.length >= 4 && submitOtp()}
           placeholder="Code from the customer's phone"
           className="w-full h-12 px-4 text-lg font-bold tracking-widest rounded-xl bg-background border border-border focus:outline-none"
         />
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex-1 rounded-full" onClick={reset} disabled={busy}>Cancel</Button>
-          <Button className="flex-1 rounded-full" onClick={submitOtp} disabled={busy || otp.length < 4}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit code'}
-          </Button>
-        </div>
       </div>
     );
   }
@@ -230,24 +263,17 @@ export default function MomoPrompt({ amount, onPaid, onManual }: Props) {
   if (stage === 'paid') {
     return (
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center space-y-2 animate-in fade-in">
-        <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-600" />
+        <CheckCircle2 className="h-7 w-7 mx-auto text-emerald-600" />
         <p className="font-bold text-emerald-700 dark:text-emerald-400">Payment received</p>
-        <p className="text-xs text-muted-foreground">Completing the sale…</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-center space-y-3 animate-in fade-in">
-      <XCircle className="h-8 w-8 mx-auto text-destructive" />
-      <div>
-        <p className="font-bold text-destructive">Not paid</p>
-        <p className="text-xs text-muted-foreground mt-1">{message}</p>
-      </div>
-      <div className="flex gap-2">
-        <Button variant="outline" className="flex-1 rounded-full" onClick={reset}>Try again</Button>
-        <Button variant="outline" className="flex-1 rounded-full" onClick={onManual}>Confirm manually</Button>
-      </div>
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2 animate-in fade-in">
+      <XCircle className="h-7 w-7 mx-auto text-destructive" />
+      <p className="font-bold text-destructive">Not paid</p>
+      <p className="text-xs text-muted-foreground">{message}</p>
     </div>
   );
 }

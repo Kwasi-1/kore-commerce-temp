@@ -4,6 +4,7 @@ import apiClient from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { cn } from '@/lib/utils';
+import { useFeaturesStore } from '@/store/featuresStore';
 
 interface PayoutAccount {
   account_type: 'mobile_money' | 'bank';
@@ -65,6 +66,8 @@ export default function PayoutAccountCard() {
       setEditing(false);
       setNumber('');
       toast.success('Payout account saved');
+      // MoMo prompts may be ready now: refresh what the till knows
+      useFeaturesStore.getState().loadFeatures();
     } catch (err: any) {
       const e = err?.response?.data?.error;
       if (e?.account) setAccount(e.account);
