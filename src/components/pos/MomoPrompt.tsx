@@ -3,6 +3,7 @@ import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
 import { cn } from '@/lib/utils';
+import { CustomInputTextField } from '@/components/shared/text-field';
 
 /** What the payment window's bottom button (and the small link under it) should do right now. */
 export interface MomoAction {
@@ -186,18 +187,15 @@ export default function MomoPrompt({ amount, onPaid, onManual, onAction }: Props
     const pills = showNetworks || (phoneComplete && !guessed) || (!!picked && picked !== guessed);
     return (
       <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <label className="block">
-          <span className="block text-sm font-medium mb-1.5">Customer MoMo number</span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoFocus
-            placeholder="e.g. 0241234567"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 13))}
-            className="w-full h-14 px-4 text-lg font-bold rounded-xl bg-background border border-border focus:outline-none focus:border-foreground/40"
-          />
-        </label>
+        <CustomInputTextField
+          label="Customer MoMo number"
+          labelPlacement="outside"
+          type="tel"
+          placeholder="e.g. 0241234567"
+          value={phone}
+          onChange={(e: any) => setPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 13))}
+          inputProps={{ inputMode: 'tel', autoFocus: true }}
+        />
         {phoneComplete && (
           pills ? (
             <div className="space-y-1.5">
@@ -210,7 +208,7 @@ export default function MomoPrompt({ amount, onPaid, onManual, onAction }: Props
                     onClick={() => setPicked(n.id)}
                     className={cn(
                       'flex-1 h-9 rounded-full border text-xs font-semibold transition-colors',
-                      network === n.id ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
+                      network === n.id ? 'border-foreground ring-foreground' : 'border-border hover:bg-muted',
                     )}
                   >
                     {n.label}
@@ -219,7 +217,7 @@ export default function MomoPrompt({ amount, onPaid, onManual, onAction }: Props
               </div>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground !font-sans">
               Network: <b className="text-foreground">{NETWORKS.find((n) => n.id === network)?.label}</b>
               {' · '}
               <button type="button" onClick={() => setShowNetworks(true)} className="font-semibold text-foreground hover:underline">
@@ -247,14 +245,14 @@ export default function MomoPrompt({ amount, onPaid, onManual, onAction }: Props
     return (
       <div className="rounded-xl border border-border/70 p-4 space-y-3 animate-in fade-in">
         <p className="text-sm font-semibold">{message}</p>
-        <input
-          inputMode="numeric"
-          autoFocus
+        <CustomInputTextField
+          label="Code from the customer's phone"
+          labelPlacement="outside"
+          placeholder="e.g. 123456"
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          onChange={(e: any) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
           onKeyDown={(e) => e.key === 'Enter' && otp.length >= 4 && submitOtp()}
-          placeholder="Code from the customer's phone"
-          className="w-full h-12 px-4 text-lg font-bold tracking-widest rounded-xl bg-background border border-border focus:outline-none"
+          inputProps={{ inputMode: 'numeric', autoFocus: true }}
         />
       </div>
     );
