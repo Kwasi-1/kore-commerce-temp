@@ -14,6 +14,7 @@ import { Icon } from '@iconify/react';
 import PaymentMethodVisual from './PaymentMethodVisual';
 import MomoPrompt, { type MomoAction } from './MomoPrompt';
 import SplitMomoPrompt from './SplitMomoPrompt';
+import RecoverableMomo, { type RecoverableCharge } from './RecoverableMomo';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
@@ -57,7 +58,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
   // MoMo prompt to the customer's phone (when the shop is set up for it); "manual" = cashier-confirmed
   const [momoManual, setMomoManual] = useState(false);
-  const promptPaid = useRef<{ reference: string; phone: string } | null>(null);
+  const promptPaid = useRef<{ reference: string; phone: string; amount: number } | null>(null);
+  // This cashier's recently paid prompts that aren't on a sale (e.g. the window was closed too soon)
+  const [recoverable, setRecoverable] = useState<RecoverableCharge[]>([]);
+  const [completeRecovered, setCompleteRecovered] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   // What the bottom button does while a MoMo prompt is in use (see MomoPrompt)
   const [momoAction, setMomoAction] = useState<MomoAction | null>(null);
   const [amountTenderedStr, setAmountTenderedStr] = useState('');
@@ -148,6 +153,8 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       setSplitLines([]);
       setMomoManual(false);
       promptPaid.current = null;
+      setCompleteRecovered(false);
+      setConfirmClose(false);
       setAmountTenderedStr('');
       setMomoNumber('');
       setMomoTxnId('');
@@ -257,8 +264,11 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const updateSplit = (id: string, patch: Partial<SplitLine>) =>
     setSplitLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const removeSplit = (id: string) => {
-    if (splitLines.find((l) => l.id === id)?.paidRef) {
-      toast('That MoMo payment stays under "MoMo paid without a sale" for a manager to sort out', { duration: 5000 });
+    const line = splitLines.find((l) => l.id === id);
+    // A paid MoMo part taken off is offered again (it's still paid and not on a sale)
+    if (line?.paidRef) {
+      const paid = { reference: line.paidRef, phone: line.paidPhone || '', amount: parseFloat(line.amount) || 0, paid_at: new Date().toISOString() };
+      setRecoverable((list) => [paid, ...list.filter((c) => c.reference !== paid.reference)]);
     }
     setSplitLines((lines) => lines.filter((l) => l.id !== id));
   };
@@ -282,10 +292,86 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
     && !!momoPromptsReason && (staffUser?.role === 'owner' || staffUser?.role === 'manager');
   // The customer approved the prompt: complete the sale with Paystack's reference
   const completeWithPrompt = (reference: string, phone: string) => {
-    promptPaid.current = { reference, phone };
+    promptPaid.current = { reference, phone, amount: total };
     setMomoNumber(phone);
     handleTransaction();
   };
+
+  // ─── Paid MoMo prompts that never made it onto a sale ──────────────────────
+  // Asked of the server each time the window opens (it survives a closed window, a refresh, or
+  // another till). Payments in sales still waiting to sync from this till aren't offered again.
+  useEffect(() => {
+    setRecoverable([]);
+    if (!isOpen || !isOnline || !momoPromptsReady) return;
+    let alive = true;
+    apiClient.get('/pos/momo/recoverable').then((r) => {
+      const queued = new Set<string>();
+      useOfflineQueueStore.getState().queue
+        .filter((t) => t.syncStatus === 'pending' || t.syncStatus === 'syncing')
+        .forEach((t: any) => {
+          if (t.payload?.paystackReference) queued.add(t.payload.paystackReference);
+          (t.payload?.payments || []).forEach((p: any) => p.paystackReference && queued.add(p.paystackReference));
+        });
+      if (alive) setRecoverable((r.data?.success?.data?.charges || []).filter((c: RecoverableCharge) => !queued.has(c.reference)));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [isOpen, isOnline, momoPromptsReady]);
+
+  // A paid single MoMo whose sale didn't go through is given back if the cashier moves off MoMo
+  useEffect(() => {
+    if (activeTab === 'mobile_money' || !promptPaid.current || isSuccess) return;
+    const paid = { ...promptPaid.current, paid_at: new Date().toISOString() };
+    promptPaid.current = null;
+    setRecoverable((list) => [paid, ...list.filter((c) => c.reference !== paid.reference)]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const usedRefs = new Set(splitLines.map((l) => l.paidRef).filter(Boolean));
+  const recoverShown = recoverable.filter((c) => !usedRefs.has(c.reference) && c.reference !== promptPaid.current?.reference);
+  const splitHasPaidMomo = splitLines.some((l) => l.method === 'mobile_money' && l.paidRef);
+  // Most a recovered payment can be: what's left for MoMo in a split, otherwise the sale's total
+  // (a single MoMo payment has to match the total; a smaller one becomes the MoMo part of a split)
+  const momoRoom = activeTab === 'split'
+    ? r2(total - splitLines.filter((l) => !(l.method === 'mobile_money' && !l.paidRef)).reduce((s, l) => s + (parseFloat(l.amount) || 0), 0))
+    : total;
+  const showRecover = !isCreditSale && !isSuccess && !promptLocked && recoverShown.length > 0
+    && !(activeTab === 'split' && splitHasPaidMomo);
+
+  const applyRecovered = (c: RecoverableCharge) => {
+    if (activeTab !== 'split' && Math.abs(c.amount - total) < 0.01) {
+      // The whole sale: complete it as a prompted MoMo sale
+      promptPaid.current = { reference: c.reference, phone: c.phone, amount: c.amount };
+      setMomoNumber(c.phone);
+      setActiveTab('mobile_money');
+      setCompleteRecovered(true);
+      return;
+    }
+    if (!splitEnabled) {
+      toast.error('This payment doesn’t match the total. Ask a manager to sort it out.');
+      return;
+    }
+    // Part of the sale: the paid MoMo part of a split (taking the place of an unpaid MoMo part)
+    const paid = { paidRef: c.reference, paidPhone: c.phone, amount: c.amount.toFixed(2), manual: false, pending: false };
+    setActiveTab('split');
+    setSplitLines((lines) => {
+      const i = lines.findIndex((l) => l.method === 'mobile_money' && !l.paidRef);
+      if (i === -1) return [...lines, { id: crypto.randomUUID(), method: 'mobile_money', ...paid }];
+      return lines.map((l, j) => (j === i ? { ...l, ...paid } : l));
+    });
+  };
+
+  // Completing a recovered whole-sale payment waits for the MoMo tab to be the active one
+  useEffect(() => {
+    if (!completeRecovered || activeTab !== 'mobile_money') return;
+    setCompleteRecovered(false);
+    handleTransaction();
+  }, [completeRecovered, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Something is paid but the sale isn't complete: clicking outside doesn't close, and closing asks first
+  const paidNotCompleted = !isSuccess && (splitLines.some((l) => !!l.paidRef) || !!promptPaid.current);
+  const paymentStarted = promptLocked || paidNotCompleted;
+  const paidAmount = splitLines.some((l) => l.paidRef)
+    ? splitLines.filter((l) => l.paidRef).reduce((s, l) => s + (parseFloat(l.amount) || 0), 0)
+    : promptPaid.current?.amount || 0;
 
   // A manager's PIN approval is checked by the server, so these sales can't be saved on the till first
   // Raised prices and discounts are approved when they're made (the sale carries those tickets)
@@ -928,6 +1014,13 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
               </div>
 
               <div className="space-y-6">
+                {showRecover && (
+                  <RecoverableMomo
+                    charges={recoverShown}
+                    canUse={(c) => c.amount <= momoRoom + 0.001 && (splitEnabled || (activeTab !== 'split' && Math.abs(c.amount - total) < 0.01))}
+                    onUse={applyRecovered}
+                  />
+                )}
                 {activeTab === 'cash' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <CustomInputTextField
@@ -1292,18 +1385,56 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         isOpen={isOpen}
         onOpenChange={() => {
           if (isProcessing) return;
+          if (paidNotCompleted) {
+            setConfirmClose(true);
+            return;
+          }
           if (promptLocked) {
             toast('Cancel the MoMo prompt first');
             return;
           }
           onClose();
         }}
+        isDismissable={!paymentStarted}
+        isKeyboardDismissDisabled={paymentStarted}
         size="4xl"
         classNames={{
           body: "p-0 overflow-hidden max-h-[90dvh] md:max-h-[90vh]",
           header: "hidden"
         }}
         body={modalBody}
+      />
+      <CustomModal
+        isOpen={confirmClose}
+        onOpenChange={() => setConfirmClose(false)}
+        size="sm"
+        classNames={{ header: 'hidden' }}
+        body={
+          <div className="py-4 space-y-4 pt-6">
+            <div className="space-y-1.5">
+              <p className="text-base font-bold text-foreground">Close without completing the sale?</p>
+              <p className="text-sm text-muted-foreground">
+                The customer already paid GHS {paidAmount.toFixed(2)} by MoMo. If you close, it&apos;s offered again when you
+                open the payment window in the next 30 minutes. After that it goes to a manager under &quot;MoMo paid
+                without a sale&quot;.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 rounded-full" onClick={() => setConfirmClose(false)}>
+                Keep it open
+              </Button>
+              <Button
+                className="flex-1 rounded-full bg-foreground text-background hover:bg-foreground/90"
+                onClick={() => {
+                  setConfirmClose(false);
+                  onClose();
+                }}
+              >
+                Close anyway
+              </Button>
+            </div>
+          </div>
+        }
       />
       {/* Print Portal - Rendered at document root, only visible during print */}
       {isOpen && typeof document !== 'undefined' && createPortal(
