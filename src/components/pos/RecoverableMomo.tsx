@@ -6,6 +6,9 @@ export interface RecoverableCharge {
   amount: number;
   phone: string;
   paid_at: string | null;
+  /** Released to every till by a manager (it may have been taken by another cashier) */
+  released?: boolean;
+  staff_name?: string | null;
 }
 
 interface Props {
@@ -40,6 +43,7 @@ export default function RecoverableMomo({ charges, canUse, onUse }: Props) {
                 GHS {c.amount.toFixed(2)} MoMo from {formatPhoneNumber(c.phone)}, paid {ago(c.paid_at)}
               </p>
               <p className="text-[11px] text-muted-foreground">
+                {c.released ? `Released by a manager${c.staff_name ? `, taken by ${c.staff_name}` : ''}. ` : ''}
                 {usable ? 'It isn’t on a sale yet. Use it for this one?' : 'It doesn’t fit this sale, so a manager has to sort it out'}
               </p>
             </div>
