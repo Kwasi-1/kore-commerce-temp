@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
+import { useCartStore } from '@/store/cartStore';
 
 export const NETWORKS = [
   { id: 'mtn', label: 'MTN' },
@@ -93,7 +94,12 @@ export function useMomoCharge(onPaid: (reference: string, phone: string) => void
   const send = async (amount: number, phone: string, provider: Network) => {
     setBusy(true);
     try {
-      const r = await apiClient.post('/pos/momo/charge', { amount, phone, provider });
+      // The cart goes with the prompt, so the sale can be restored if it's never completed
+      const cart = useCartStore.getState().items.map((i) => ({
+        variant_id: i.variant_id, packaging_tier_id: i.packaging_tier_id, quantity: i.quantity, price_type: i.price_type,
+        unit_price: i.unit_price, name: i.name, sku: i.sku, tier_name: i.tier_name, units_per_tier: i.units_per_tier, imageUrl: i.imageUrl,
+      }));
+      const r = await apiClient.post('/pos/momo/charge', { amount, phone, provider, cart });
       const charge = r.data?.success?.data?.charge;
       refRef.current = charge?.reference || null;
       startedAt.current = Date.now();

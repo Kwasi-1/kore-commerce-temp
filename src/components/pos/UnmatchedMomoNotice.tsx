@@ -6,6 +6,7 @@ import CustomModal from '@/components/modals/modal';
 import { Button } from '@/components/ui/button';
 import { CurrencyDisplay, formatPhoneNumber } from '@/hooks';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 interface Charge {
   reference: string;
@@ -13,7 +14,14 @@ interface Charge {
   phone: string;
   paid_at: string | null;
   date_created: string | null;
+  staff_id: string | null;
   staff_name: string | null;
+  /** Who it was sent to, to ring up the sale */
+  released_to: string[];
+  released_to_names: string[];
+  /** Someone is ringing it up right now */
+  claimed_by_name: string | null;
+  has_cart: boolean;
   /** The cashier who took it can still use it at the till until then */
   cashier_can_use_until: string | null;
   /** A manager let any cashier use it at the till */
@@ -47,6 +55,11 @@ export default function UnmatchedMomoNotice() {
   const [tab, setTab] = useState<'open' | 'done'>('open');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  // "Send to a cashier": who can ring up the sale (default: the cashier who took it, and you)
+  const me = useAuthStore((s) => s.staffUser);
+  const [pickFor, setPickFor] = useState<string | null>(null);
+  const [staffList, setStaffList] = useState<{ id: string; name: string; role: string }[] | null>(null);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
 
   const load = () =>
     apiClient
@@ -86,12 +99,31 @@ export default function UnmatchedMomoNotice() {
     }
   };
 
+  const startPicking = (c: Charge) => {
+    setPickFor(c.reference);
+    setChosen(new Set(c.released ? c.released_to : [c.staff_id, me?.id].filter(Boolean) as string[]));
+    if (!staffList) {
+      apiClient.get('/tenant/staff', { params: { per_page: 100 } }).then((r) => {
+        const staff = r.data?.success?.data?.staff || [];
+        setStaffList(staff.filter((s: any) => s.is_active !== false).map((s: any) => ({ id: s.id, name: s.name, role: s.role })));
+      }).catch(() => setStaffList([]));
+    }
+  };
+
   const release = async (ref: string) => {
+    if (chosen.size === 0) {
+      toast.error('Choose who can ring it up');
+      return;
+    }
     setSaving(ref);
     try {
-      await apiClient.post(`/pos/momo/charge/${ref}/release`);
-      toast.success('Any cashier can now use it: it shows when they open the payment window');
-      setCharges((list) => list.map((c) => (c.reference === ref ? { ...c, released: true, cashier_can_use_until: null } : c)));
+      const r = await apiClient.post(`/pos/momo/charge/${ref}/release`, { staff_ids: Array.from(chosen) });
+      const names = (staffList || []).filter((s) => chosen.has(s.id)).map((s) => s.name);
+      toast.success('Sent: it shows on their register to restore the sale');
+      setPickFor(null);
+      setCharges((list) => list.map((c) => (c.reference === ref
+        ? { ...c, ...r.data?.success?.data?.charge, released: true, cashier_can_use_until: null, released_to: Array.from(chosen), released_to_names: names }
+        : c)));
     } catch (err: any) {
       toast.error(err?.response?.data?.error?.message || "Couldn't release it");
     } finally {
@@ -120,22 +152,74 @@ export default function UnmatchedMomoNotice() {
           {c.staff_name || 'The cashier'} can still use it at the till for {minsLeft(c.cashier_can_use_until)} min. Check before refunding.
         </p>
       )}
-      {c.released && (
-        <p className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg px-2.5 py-1.5">
+      {c.released && pickFor !== c.reference && (
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg px-2.5 py-1.5">
           <Store className="h-3.5 w-3.5 shrink-0" />
-          Released to the tills: any cashier is offered it when they open the payment window.
-        </p>
+          <span className="flex-1">
+            {c.claimed_by_name
+              ? `${c.claimed_by_name} is ringing it up now.`
+              : c.released_to_names?.length
+              ? `Sent to ${c.released_to_names.join(' and ')}: it shows on their register to restore the sale.`
+              : 'Sent to the tills: any cashier is offered it when they open the payment window.'}
+          </span>
+          {!c.claimed_by_name && (
+            <button type="button" onClick={() => startPicking(c)} className="font-semibold underline shrink-0">Change</button>
+          )}
+        </div>
       )}
 
-      {!c.released && (
+      {pickFor === c.reference ? (
+        <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
+          <p className="text-xs font-semibold">Who can ring up the sale?</p>
+          {staffList === null ? (
+            <p className="text-[11px] text-muted-foreground">Loading staff…</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {staffList.map((s) => {
+                const on = chosen.has(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setChosen((set) => {
+                      const next = new Set(set);
+                      if (on) next.delete(s.id);
+                      else next.add(s.id);
+                      return next;
+                    })}
+                    className={cn(
+                      'h-8 px-3 rounded-full border text-xs font-semibold transition-colors',
+                      on ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
+                    )}
+                  >
+                    {s.id === me?.id ? `${s.name} (you)` : s.name}
+                    {s.id === c.staff_id ? ' · took it' : ''}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            {c.has_cart
+              ? 'It shows on their register with the items that were in the cart, ready to complete.'
+              : 'No items were saved with this one: they add the items, then use it in the payment window.'}
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => setPickFor(null)}>Cancel</Button>
+            <Button size="sm" className="flex-1 rounded-full" disabled={saving === c.reference || chosen.size === 0} onClick={() => release(c.reference)}>
+              Send
+            </Button>
+          </div>
+        </div>
+      ) : !c.released && (
         <Button
           size="sm"
           variant="outline"
           className="w-full rounded-full"
           disabled={saving === c.reference}
-          onClick={() => release(c.reference)}
+          onClick={() => startPicking(c)}
         >
-          Use at a till (ring up the sale)
+          Send to a cashier to complete
         </Button>
       )}
       <div className="flex gap-2">
@@ -195,8 +279,8 @@ export default function UnmatchedMomoNotice() {
             <div>
               <h3 className="text-lg font-bold text-foreground">MoMo payments without a sale</h3>
               <p className="text-[12px] font-normal text-muted-foreground mt-0.5">
-                The customer paid but the sale was never completed. Ring up the sale with it at a till, or sort it out
-                (e.g. refund it) and note what you did. No products were sold, so nothing goes to Returns.
+                The customer paid but the sale was never completed. Send it to a cashier (or yourself) to complete the sale,
+                or sort it out (e.g. refund it) and note what you did. No products were sold, so nothing goes to Returns.
               </p>
             </div>
             <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">

@@ -94,6 +94,8 @@ interface CartState {
   ) => void;
   setDiscount: (discount: number) => void;
   clearCart: () => void;
+  /** Put these lines in the cart in place of what's there (restoring a sale) */
+  replaceItems: (items: CartItem[]) => void;
 
   // Saved Transactions Actions
   saveTransaction: (customerName: string) => void;
@@ -309,6 +311,9 @@ export const useCartStore = create<CartState>()(
           subtotal: 0,
           total: 0,
         }),
+
+      replaceItems: (items) =>
+        set({ items, discount: 0, discountApproval: null, ...calculateTotals(items, 0) }),
 
       saveTransaction: (customerName) =>
         set((state) => {

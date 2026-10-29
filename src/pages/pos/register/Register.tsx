@@ -17,6 +17,7 @@ import { useIdleLock } from '@/hooks/useIdleLock';
 import { useNavDrawerStore } from '@/store/navDrawerStore';
 
 import PaymentModal from '@/components/pos/PaymentModal';
+import RestoreMomoBanner from '@/components/pos/RestoreMomoBanner';
 import SaveTransactionModal from '@/components/pos/SaveTransactionModal';
 
 interface CartToast {
@@ -159,6 +160,12 @@ export default function Register() {
 
       {/* Extracted Header Component */}
       <RegisterHeader onOpenShiftModal={() => setIsShiftModalOpen(true)} />
+
+      {/* Paid MoMo payments this cashier can ring up (closed too soon, or sent by a manager) */}
+      <RestoreMomoBanner
+        onOpenPayment={() => handleOpenPaymentModal('mobile_money')}
+        blockedReason={isShiftRequired && !currentShift ? 'Start your shift first' : null}
+      />
 
       {/* Main Content: Split View */}
       <div className="flex flex-1 gap-6 min-h-0 relative">

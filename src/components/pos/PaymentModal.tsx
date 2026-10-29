@@ -15,6 +15,7 @@ import PaymentMethodVisual from './PaymentMethodVisual';
 import MomoPrompt, { type MomoAction } from './MomoPrompt';
 import SplitMomoPrompt from './SplitMomoPrompt';
 import RecoverableMomo, { type RecoverableCharge } from './RecoverableMomo';
+import { claimCharge, unclaimCharge } from './momoRecovery';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
@@ -312,7 +313,12 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           if (t.payload?.paystackReference) queued.add(t.payload.paystackReference);
           (t.payload?.payments || []).forEach((p: any) => p.paystackReference && queued.add(p.paystackReference));
         });
-      if (alive) setRecoverable((r.data?.success?.data?.charges || []).filter((c: RecoverableCharge) => !queued.has(c.reference)));
+      if (!alive) return;
+      const list: RecoverableCharge[] = (r.data?.success?.data?.charges || []).filter((c: RecoverableCharge) => !queued.has(c.reference));
+      // One this cashier is already holding (e.g. restored from the register) comes first
+      list.sort((a, b) => Number(!!b.claimed_by_me) - Number(!!a.claimed_by_me));
+      list.filter((c) => c.claimed_by_me).forEach((c) => claimedRefs.current.add(c.reference));
+      setRecoverable(list);
     }).catch(() => {});
     return () => { alive = false; };
   }, [isOpen, isOnline, momoPromptsReady]);
@@ -336,7 +342,35 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const showRecover = !isCreditSale && !isSuccess && !promptLocked && recoverShown.length > 0
     && !(activeTab === 'split' && splitHasPaidMomo);
 
-  const applyRecovered = (c: RecoverableCharge) => {
+  // Payments this window is holding for the cashier: let go of them if it closes without a sale
+  const claimedRefs = useRef(new Set<string>());
+  const succeededRef = useRef(false);
+  succeededRef.current = isSuccess;
+  const [claimingRef, setClaimingRef] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    claimedRefs.current = new Set();
+    return () => {
+      if (!succeededRef.current) claimedRefs.current.forEach(unclaimCharge);
+    };
+  }, [isOpen]);
+
+  // Hold it for this cashier first, so nobody else it was sent to uses it too
+  const applyRecovered = async (c: RecoverableCharge) => {
+    if (!c.claimed_by_me) {
+      setClaimingRef(c.reference);
+      const ok = await claimCharge(c.reference);
+      setClaimingRef(null);
+      if (!ok) {
+        setRecoverable((list) => list.filter((x) => x.reference !== c.reference));
+        return;
+      }
+    }
+    claimedRefs.current.add(c.reference);
+    applyRecoveredNow(c);
+  };
+
+  const applyRecoveredNow = (c: RecoverableCharge) => {
     if (activeTab !== 'split' && Math.abs(c.amount - total) < 0.01) {
       // The whole sale: complete it as a prompted MoMo sale
       promptPaid.current = { reference: c.reference, phone: c.phone, amount: c.amount };
@@ -1019,6 +1053,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
                     charges={recoverShown}
                     canUse={(c) => c.amount <= momoRoom + 0.001 && (splitEnabled || (activeTab !== 'split' && Math.abs(c.amount - total) < 0.01))}
                     onUse={applyRecovered}
+                    busyRef={claimingRef}
                   />
                 )}
                 {activeTab === 'cash' && (
