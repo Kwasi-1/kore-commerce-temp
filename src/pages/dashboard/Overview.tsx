@@ -23,6 +23,7 @@ import {
 
 import { getModules } from '@/utils/permissions';
 import { useFeaturesStore } from '@/store/featuresStore';
+import UnmatchedMomoNotice from '@/components/pos/UnmatchedMomoNotice';
 import {
   MobileDashboardWrapper,
   MobileHeroCard,
@@ -35,6 +36,9 @@ export default function Overview() {
   const navigate = useNavigate();
   const { formatAmount } = useCurrency();
   const { staffUser, tenant } = useAuthStore();
+  // MoMo payments without a sale: an alert icon in the header for owners and managers
+  const momoPromptsReady = useFeaturesStore((s) => s.momo_prompts_ready);
+  const showMomoAlert = momoPromptsReady && (staffUser?.role === 'owner' || staffUser?.role === 'manager');
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
   const hasModule = useFeaturesStore((s) => s.hasModule);
@@ -285,8 +289,10 @@ export default function Overview() {
       titleClassName='xl:text-[27px] textwrap leading-[1]'
       subtitle="Here's what's happening with your store today."
       subtitleStyles='!block'
+      mobileActions={showMomoAlert ? <UnmatchedMomoNotice variant="icon" /> : undefined}
       actions={
         <div className="hidden md:flex gap-3">
+          {showMomoAlert && <UnmatchedMomoNotice variant="icon" />}
           <Button
             variant="outline"
             onClick={() => navigate('/inventory/products')}

@@ -654,15 +654,13 @@ export default function Transactions() {
         ) : null
       }
       constrainHeight={true}
+      mobileActions={!isCashier && momoPromptsReady ? <UnmatchedMomoNotice variant="icon" /> : undefined}
     >
 
       {/* ========================================================================= */}
       {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md) */}
       {/* ========================================================================= */}
       <MobileDashboardWrapper>
-        {!isCashier && momoPromptsReady && (
-          <div className="px-4 pt-3"><UnmatchedMomoNotice /></div>
-        )}
         {/* 1. Hero Balance / Revenue Card + Metric Carousel */}
         <MobileHeroCard
           title={isCashier ? "My Sales" : "Total Sales"}

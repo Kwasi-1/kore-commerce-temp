@@ -33,6 +33,8 @@ interface PageLayoutProps {
   titleClassName?: string;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Small header buttons shown on mobile only, beside the notifications pill (e.g. an alert icon) */
+  mobileActions?: React.ReactNode;
   filterSlot?: React.ReactNode;
   subtitleStyles?: string;
   className?: string;
@@ -50,6 +52,7 @@ export default function PageLayout({
   titleClassName,
   subtitle,
   actions,
+  mobileActions,
   filterSlot,
   subtitleStyles,
   className = "",
@@ -122,6 +125,8 @@ export default function PageLayout({
 
               {/* Inline actions (Desktop only) */}
               {actions && <div className="hidden md:flex items-center gap-3">{actions}</div>}
+
+              {mobileActions && <div className="flex md:hidden items-center gap-2">{mobileActions}</div>}
 
               {/* Grace Period Warning Pill — rendered ONLY when accessing a route via grace period */}
               {isGraceAccess && graceInfo && (

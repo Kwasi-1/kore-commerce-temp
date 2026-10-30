@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Clock, Store } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CurrencyDisplay, formatPhoneNumber } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { UNMATCHED_MOMO_HISTORY_KEY, UNMATCHED_MOMO_KEY, useUnmatchedMomo } from '@/hooks/useUnmatchedMomo';
 
 interface Charge {
   reference: string;
@@ -68,9 +70,12 @@ const pill = (on: boolean) => cn(
  * complete the sale, refunded (in cash from a drawer, or to their MoMo), or noted as handled another
  * way. Money only: no products were sold, so nothing goes to Returns.
  */
-export default function UnmatchedMomoNotice() {
-  const [charges, setCharges] = useState<Charge[]>([]);
-  const [history, setHistory] = useState<Charge[] | null>(null);
+export default function UnmatchedMomoNotice({ variant = 'banner' }: {
+  /** banner: a strip across the page (desktop); icon: a small header button with a count (mobile) */
+  variant?: 'banner' | 'icon';
+}) {
+  const queryClient = useQueryClient();
+  const { data: charges = [] } = useUnmatchedMomo<Charge>();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'open' | 'done'>('open');
   const [saving, setSaving] = useState<string | null>(null);
@@ -87,24 +92,18 @@ export default function UnmatchedMomoNotice() {
   const [txnId, setTxnId] = useState('');
   const [note, setNote] = useState('');
 
-  const load = () =>
-    apiClient
-      .get('/pos/momo/unmatched')
-      .then((r) => setCharges(r.data?.success?.data?.charges || []))
-      .catch(() => setCharges([]));
-  const loadHistory = () =>
-    apiClient
-      .get('/pos/momo/unmatched', { params: { resolved: 1 } })
-      .then((r) => setHistory(r.data?.success?.data?.charges || []))
-      .catch(() => setHistory([]));
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  useEffect(() => {
-    if (open && tab === 'done') loadHistory();
-  }, [open, tab]);
+  // Sorted out: fetched when that tab is opened
+  const { data: history = null } = useQuery<Charge[]>({
+    queryKey: UNMATCHED_MOMO_HISTORY_KEY,
+    queryFn: async () => (await apiClient.get('/pos/momo/unmatched', { params: { resolved: 1 } })).data?.success?.data?.charges || [],
+    enabled: open && tab === 'done',
+  });
+  const setCharges = (update: (list: Charge[]) => Charge[]) =>
+    queryClient.setQueryData<Charge[]>(UNMATCHED_MOMO_KEY, (list) => update(list || []));
+  const refreshAll = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: UNMATCHED_MOMO_KEY, exact: true }),
+    queryClient.invalidateQueries({ queryKey: UNMATCHED_MOMO_HISTORY_KEY }),
+  ]);
 
   const errorOf = (err: any, fallback: string) => err?.response?.data?.error?.message || fallback;
 
@@ -146,6 +145,7 @@ export default function UnmatchedMomoNotice() {
       setCharges((list) => list.map((c) => (c.reference === ref
         ? { ...c, ...r.data?.success?.data?.charge, released: true, cashier_can_use_until: null, released_to: Array.from(chosen), released_to_names: names }
         : c)));
+      refreshAll();
     } catch (err: any) {
       toast.error(errorOf(err, "Couldn't send it"));
     } finally {
@@ -160,7 +160,7 @@ export default function UnmatchedMomoNotice() {
       toast.success(done);
       setActive(null);
       setCharges((list) => list.filter((c) => c.reference !== ref));
-      setHistory(null);
+      refreshAll();
     } catch (err: any) {
       toast.error(errorOf(err, "Couldn't save"));
     } finally {
@@ -173,7 +173,7 @@ export default function UnmatchedMomoNotice() {
     try {
       await apiClient.post(`/pos/momo/charge/${ref}/reopen`);
       toast.success('Back under To sort out');
-      await Promise.all([load(), loadHistory()]);
+      await refreshAll();
     } catch (err: any) {
       toast.error(errorOf(err, "Couldn't reopen it"));
     } finally {
@@ -411,15 +411,31 @@ export default function UnmatchedMomoNotice() {
     </div>
   );
 
+  const openWindow = () => {
+    setTab('open');
+    setActive(null);
+    setOpen(true);
+  };
+
   return (
     <>
+      {variant === 'icon' ? (
+        <button
+          type="button"
+          onClick={openWindow}
+          title={`${charges.length} MoMo payment${charges.length === 1 ? '' : 's'} without a sale`}
+          aria-label={`${charges.length} MoMo payment${charges.length === 1 ? '' : 's'} without a sale`}
+          className="relative h-10 w-10 shrink-0 rounded-full border border-amber-500/40 bg-amber-500/15 text-amber-500 flex items-center justify-center"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-black flex items-center justify-center">
+            {charges.length}
+          </span>
+        </button>
+      ) : (
       <button
         type="button"
-        onClick={() => {
-          setTab('open');
-          setActive(null);
-          setOpen(true);
-        }}
+        onClick={openWindow}
         className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-center gap-3 text-left"
       >
         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
@@ -429,11 +445,13 @@ export default function UnmatchedMomoNotice() {
         </span>
         <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 shrink-0">Review</span>
       </button>
+      )}
 
       <CustomModal
         isOpen={open}
         onOpenChange={() => setOpen(false)}
         size="lg"
+        placement="auto"
         scrollBehavior="inside"
         header={
           <div className="pt-2 px-1 border-b border-border/50 pb-3 space-y-3">
