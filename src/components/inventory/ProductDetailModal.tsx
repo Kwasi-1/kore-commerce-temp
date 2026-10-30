@@ -156,6 +156,7 @@ export function ProductDetailModal({
       activeVariant.isAvailableOnline !== false
     : isOnline;
 
+  const selectedInactive = variants.length > 1 && activeVariant?.is_active === false;
   const activeVariantName =
     Object.values(activeVariant?.variant_attributes || {}).join(" / ") ||
     activeVariant?.sku ||
@@ -282,11 +283,11 @@ export function ProductDetailModal({
                           {isSelectedVariantOnline ? "Online Storefront & POS" : "In-Store POS Only"}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-muted text-muted-foreground border border-border/40">
-                          {isSelectedVariantOnline ? "Published" : "Hidden Online"}
+                          {selectedInactive ? "Inactive" : isSelectedVariantOnline ? "Published" : "Hidden Online"}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {variants.length > 1 && activeVariant?.is_active === false ? (
+                        {selectedInactive ? (
                           `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is inactive: it isn't sold at the till or online`
                         ) : variants.length > 1 ? (
                           isSelectedVariantOnline
@@ -404,9 +405,6 @@ export function ProductDetailModal({
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide flex-wrap">
                       {variants.map((v: any) => {
-                        const isVOnline =
-                          v.is_available_online !== false &&
-                          v.isAvailableOnline !== false;
                         const isVInactive = v.is_active === false;
                         return (
                           <button
@@ -426,15 +424,8 @@ export function ProductDetailModal({
                               {Object.values(v.variant_attributes || {}).join(" / ") ||
                                 v.sku}
                             </span>
-                            {isVInactive ? (
+                            {isVInactive && (
                               <span className="text-[10px] font-medium opacity-80">Inactive</span>
-                            ) : hasEcommerce && (
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  isVOnline ? "bg-emerald-500" : "bg-muted-foreground/40"
-                                }`}
-                                title={isVOnline ? "Available Online & POS" : "In-Store Only"}
-                              />
                             )}
                           </button>
                         );

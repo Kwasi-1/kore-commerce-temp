@@ -18,7 +18,7 @@ interface Change {
 }
 
 interface Preview {
-  products: { product_id: string; name: string; rows: number[]; new_variants?: number; changes: Change[]; summary: string }[];
+  products: { product_id: string; name: string; rows: number[]; new_variants?: number; changes: Change[]; warnings?: string[]; summary: string }[];
   errors: { index: number | null; sku: string | null; name?: string; message: string }[];
   not_found: { index: number; sku: string; name?: string }[];
   unchanged: number;
@@ -159,6 +159,12 @@ export function UpdateProductsModal({ isOpen, onClose, onSuccess, onDownload, is
               </li>
             ))}
           </ul>
+          {/* Doesn't stop the save: a pack size or price that looks like a typo, or an open purchase order */}
+          {p.warnings?.map((w) => (
+            <p key={w} className="pl-8 text-[11px] leading-snug font-semibold text-amber-600 dark:text-amber-400">
+              {w}
+            </p>
+          ))}
         </div>
       ))}
     </div>

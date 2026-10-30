@@ -14,7 +14,6 @@ import {
   XCircle,
   Plus,
   Upload,
-  Edit,
   Archive,
   Trash2,
   Loader2,
@@ -26,6 +25,7 @@ import {
   Globe,
   Store,
   Download,
+  MoreVertical,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { BulkProductUploadModal } from "./components/BulkProductUploadModal";
@@ -33,6 +33,7 @@ import { UpdateProductsModal } from "./components/UpdateProductsModal";
 import { ProductDetailModal } from "@/components/inventory/ProductDetailModal";
 import { ProductHistoryDrawer } from "@/components/inventory/ProductHistoryDrawer";
 import RecordBatchModal from "@/components/inventory/RecordBatchModal";
+import { QuickStockIntakeModal, type ProductStockItem } from "./components/QuickStockIntakeModal";
 import { ProductStatusModal } from "@/components/inventory/ProductStatusModal";
 import { ProductChannelModal } from "@/components/inventory/ProductChannelModal";
 import { StorefrontCatalogCuratorModal } from "@/components/inventory/StorefrontCatalogCuratorModal";
@@ -62,6 +63,8 @@ export default function Products() {
   // "Record batch" for products made in-house; ?recordBatch=<id> opens it (used right after creating one)
   const [searchParams, setSearchParams] = useSearchParams();
   const [batchProductId, setBatchProductId] = useState<string | null>(null);
+  // Grouped view: "Adjust stock" on one variant
+  const [stockItem, setStockItem] = useState<ProductStockItem | null>(null);
   useEffect(() => {
     const id = searchParams.get("recordBatch");
     if (id) {
@@ -337,6 +340,7 @@ export default function Products() {
         setIsStatusModalOpen(false);
         setProductToToggleStatus(null);
         fetchProducts();
+        if (productToToggleStatus.productId) refreshVariants(productToToggleStatus.productId);
       } catch (error) {
         toast.error("Failed to update variant status");
       } finally {
@@ -427,6 +431,7 @@ export default function Products() {
       }
 
       const parentId = productToToggleChannel.productId || productToToggleChannel.id;
+      if (productVariantsCache[parentId]) refreshVariants(parentId);
       if (
         selectedProductForDetail &&
         (selectedProductForDetail.id === parentId ||
@@ -623,6 +628,11 @@ export default function Products() {
               }`}
             >
               {p.has_variants ? `${p.variant_count} variants` : "Simple"}
+              {p.has_variants && (p.variants || []).some((v: any) => v.is_active === false) && (
+                <span className="ml-1 font-normal text-muted-foreground">
+                  · {(p.variants || []).filter((v: any) => v.is_active === false).length} inactive
+                </span>
+              )}
             </span>
           ),
           total_stock: getStockCell(p.total_stock_base_units, "units"),
@@ -801,9 +811,108 @@ export default function Products() {
     return flatRows;
   }, [products, effectiveViewMode]);
 
+  /** Reloads one product's variants for the grouped view's expanded table. */
+  const refreshVariants = async (productId: string) => {
+    try {
+      const res = await apiClient.get(`/tenant/products/${productId}`);
+      const vs = res.data.success?.data?.product?.variants;
+      if (vs) setProductVariantsCache((prev) => ({ ...prev, [productId]: vs }));
+    } catch {
+      // the next expand fetches again
+    }
+  };
+
+  /** The same per-variant actions as the list view's row menu. */
+  const variantMenu = (p: any, v: any) => {
+    const attrStr = Object.values(v.variant_attributes || {}).join(" / ");
+    const fullName = attrStr ? `${p.name} (${attrStr})` : p.name;
+    const isVOnline = v.is_available_online !== false && v.isAvailableOnline !== false;
+    const isVActive = v.is_active !== false;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => e.stopPropagation()}
+            className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
+            aria-label={`Actions for ${fullName}`}
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        {/* Menu clicks bubble through the portal to the row: don't open the panel too */}
+        <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onClick={() => handleEdit(p)} className="gap-2 text-xs">
+            <Icon icon="fluent:edit-20-filled" className="h-4 w-4" /> Edit Product
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="gap-2 text-xs"
+            onClick={() =>
+              setStockItem({
+                id: v.id,
+                variantId: v.id,
+                productId: p.id,
+                name: fullName,
+                category: p.category || "General",
+                sku: v.sku || "",
+                quantity: Number(v.stock_quantity ?? 0),
+                base_unit_name: v.base_unit_name || "unit",
+                imageUrl: v.image_url || p.images?.[0],
+                packaging_tiers: v.packaging_tiers || [],
+                cost_price: v.cost_price_per_base_unit || 0,
+                // In-house products record batches instead (when that feature is on)
+                isMadeInHouse: !!p.is_made_in_house && !!useFeaturesStore.getState().posSettings?.made_in_house_enabled,
+              })
+            }
+          >
+            <Icon icon="fluent:box-arrow-up-20-regular" className="h-4 w-4" /> Adjust Stock
+          </DropdownMenuItem>
+          {hasEcommerce && (
+            <DropdownMenuItem
+              className="gap-2 text-xs"
+              onClick={() =>
+                promptToggleChannel({
+                  ...v,
+                  name: fullName,
+                  is_available_online: isVOnline,
+                  isAvailableOnline: isVOnline,
+                  isVariant: true,
+                  productId: p.id,
+                })
+              }
+            >
+              <Icon icon="fluent:globe-20-filled" className="h-4 w-4" /> Change Sales Channel
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            className="gap-2 text-xs"
+            onClick={() => {
+              setProductToToggleStatus({
+                ...v,
+                name: fullName,
+                is_active: isVActive,
+                isActive: isVActive,
+                isVariant: true,
+                productId: p.id,
+                parentStatus: p.status,
+              });
+              setIsStatusModalOpen(true);
+            }}
+          >
+            <Icon icon="fluent:archive-20-filled" className="h-4 w-4" /> {isVActive ? "Deactivate" : "Activate"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   const renderVariantsAccordion = (row: any) => {
     const p = row.__record;
-    const variants = productVariantsCache[p.id] || [];
+    // Inactive variants last
+    const variants = [...(productVariantsCache[p.id] || [])].sort(
+      (a: any, b: any) => Number(a.is_active === false) - Number(b.is_active === false)
+    );
     const isLoadingVars = !!loadingVariants[p.id];
 
     if (isLoadingVars) {
@@ -836,6 +945,7 @@ export default function Products() {
               <th className="px-4 py-2.5">Stock</th>
               <th className="px-4 py-2.5">Default Sale Tier</th>
               <th className="px-4 py-2.5">Retail Price</th>
+              <th className="px-4 py-2.5">Status</th>
               <th className="px-4 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
@@ -854,9 +964,18 @@ export default function Products() {
                 ? defaultSaleTier.name
                 : v.base_unit_name;
               const retailPrice = getRetailPrice(v);
+              const isVActive = v.is_active !== false;
 
               return (
-                <tr key={v.id} className="hover:bg-muted/10 transition-colors">
+                <tr
+                  key={v.id}
+                  onClick={() => {
+                    setSelectedProductForDetail(p);
+                    setSelectedVariantForDetail(v.id);
+                    setIsDetailModalOpen(true);
+                  }}
+                  className={cn("hover:bg-muted/10 transition-colors cursor-pointer", !isVActive && "opacity-60")}
+                >
                   <td className="px-4 py-2.5 font-bold text-foreground capitalize">
                     {attrStr}
                   </td>
@@ -877,29 +996,19 @@ export default function Products() {
                   <td className="px-4 py-2.5 font-semibold text-foreground">
                     GHS {Number(retailPrice).toFixed(2)}
                   </td>
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                        isVActive
+                          ? "text-green-600 dark:text-green-400 bg-green-500/10"
+                          : "text-muted-foreground bg-muted border border-border"
+                      }`}
+                    >
+                      {isVActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toast.success(`Edit variant ${v.sku}`)}
-                        className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
-                        title="Edit Variant"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          toast.success(`Manage tiers for ${v.sku}`)
-                        }
-                        className="h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground rounded"
-                        title="Manage Tiers"
-                      >
-                        <Layers className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    <div className="flex justify-end">{variantMenu(p, v)}</div>
                   </td>
                 </tr>
               );
@@ -1646,6 +1755,17 @@ export default function Products() {
         onToggleChannel={(prod) => {
           promptToggleChannel(prod);
         }}
+      />
+
+      <QuickStockIntakeModal
+        isOpen={!!stockItem}
+        onClose={() => setStockItem(null)}
+        product={stockItem}
+        onSuccess={() => {
+          if (stockItem) refreshVariants(stockItem.productId);
+          fetchProducts();
+        }}
+        onRecordBatch={(id) => setBatchProductId(id)}
       />
 
       {/* Product Status Confirmation Modal */}
