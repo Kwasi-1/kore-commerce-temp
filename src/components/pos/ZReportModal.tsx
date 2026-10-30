@@ -302,7 +302,9 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                         <div className="rounded-xl border border-border/70 divide-y divide-border/60 text-[12px]">
                           {movements.map((m) => listRow(
                             <span>
-                              <span className="capitalize">{m.category}</span>
+                              <span className="capitalize">
+                                {m.category === 'momo_refund' ? `MoMo refund${m.cashier_name ? ` (by ${m.cashier_name})` : ''}` : m.category}
+                              </span>
                               {m.reason && <span className="block text-muted-foreground">{m.reason}</span>}
                             </span>,
                             <span className={m.movement_type === 'paid_out' ? 'text-destructive' : 'text-emerald-600'}>
