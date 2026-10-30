@@ -31,16 +31,65 @@ interface ParsedProduct {
   tier_2_wholesale_price: string;
   tier_3_name: string;
   tier_3_units: string;
+  /** "tier_2" (or tier 2's name): tier_3_units counts tier-2 packs, e.g. Bag = 10 packs. Blank: base units. */
+  tier_3_made_of: string;
   tier_3_retail_price: string;
   tier_3_wholesale_price: string;
   tags: string;
   _error?: string;
+  /** Doesn't block the import; the size or price looks like a typo */
+  _warnings?: string[];
   _skuConflict?: boolean;
   /** Set by the server check: this product or SKU is already in the store (import creates only) */
   _exists?: string;
   /** The row's cells as written in the file (no import defaults), for handing over to Update Products */
   _raw?: Record<string, string>;
 }
+
+const num = (v: string) => (v?.trim() ? Number(v) : NaN);
+const slug = (v: string) => (v || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+/** tier_3_made_of says tier 3 is counted in tier-2 packs ("tier_2", "2", or tier 2's own name). */
+const tier3OfTier2 = (r: Pick<ParsedProduct, "tier_3_made_of" | "tier_2_name">) => {
+  const v = slug(r.tier_3_made_of);
+  return !!v && (v === "tier_2" || v === "tier2" || v === "2" || v === slug(r.tier_2_name));
+};
+
+/** Base units in one tier-3 pack (bag = 10 x pack of 15 = 150), or NaN when not set. */
+const tier3Singles = (r: ParsedProduct) => {
+  const n = num(r.tier_3_units);
+  return tier3OfTier2(r) ? n * num(r.tier_2_units) : n;
+};
+
+const unitPlural = (r: ParsedProduct) => `${r.base_unit_name || "unit"}s`;
+
+/** Size / price checks that only warn: the same mistakes the product form warns about. */
+const tierWarnings = (r: ParsedProduct): string[] => {
+  const out: string[] = [];
+  const t2 = r.tier_2_name && num(r.tier_2_units) > 1 ? num(r.tier_2_units) : NaN;
+  const t3 = r.tier_3_name ? tier3Singles(r) : NaN;
+  const unit = r.base_unit_name || "unit";
+  if (t2 > 1 && t3 > 1) {
+    if (t2 === t3) out.push(`${r.tier_2_name} and ${r.tier_3_name} hold the same amount`);
+    else if (t3 < t2 && !tier3OfTier2(r))
+      out.push(`${r.tier_3_name} holds fewer ${unitPlural(r)} (${t3}) than ${r.tier_2_name} (${t2}). If it's ${t3} × ${r.tier_2_name}, put tier_2 in tier_3_made_of`);
+  }
+  const single = num(r.retail_price);
+  const check = (name: string, units: number, price: string) => {
+    const pr = num(price);
+    if (single > 0 && units > 1 && pr > 0 && pr / units > single + 0.005)
+      out.push(`${name} works out at GHS ${(pr / units).toFixed(2)} per ${unit}, more than one ${unit} (GHS ${single.toFixed(2)})`);
+  };
+  check(r.tier_2_name, t2, r.tier_2_retail_price);
+  check(r.tier_3_name, t3, r.tier_3_retail_price);
+  return out;
+};
+
+const tierError = (r: ParsedProduct): string | undefined => {
+  if (r.tier_3_made_of?.trim() && !tier3OfTier2(r)) return `tier_3_made_of should be tier_2 or blank (got '${r.tier_3_made_of}')`;
+  if (tier3OfTier2(r) && !(r.tier_2_name && num(r.tier_2_units) > 1)) return "tier_3_made_of is tier_2 but tier 2 has no name or size";
+  return undefined;
+};
 
 interface UploadResultSummary {
   created: number;
@@ -80,6 +129,8 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
       error = "Invalid retail price";
     } else if (isNaN(Number(item.quantity)) || Number(item.quantity) < 0) {
       error = "Invalid quantity";
+    } else if (tierError(item)) {
+      error = tierError(item);
     } else if (item.sku?.trim()) {
       const s = item.sku.trim().toLowerCase();
       const namesUsingSku = skuToNames.get(s);
@@ -101,6 +152,7 @@ const validateRows = (rows: ParsedProduct[]): ParsedProduct[] => {
 
     return {
       ...item,
+      _warnings: tierWarnings(item),
       _error: error || (item._error?.startsWith("SKU '") || item._error?.startsWith("Variant '") || item._error?.startsWith("Product '") ? item._error : undefined),
       _skuConflict: isSkuConflict || Boolean(item._skuConflict),
     };
@@ -194,6 +246,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
           tier_2_wholesale_price: (row.tier_2_wholesale_price || "").toString().trim(),
           tier_3_name: (row.tier_3_name || "").trim(),
           tier_3_units: (row.tier_3_units || row.tier_3_count || "").toString().trim(),
+          tier_3_made_of: (row.tier_3_made_of || row.tier_3_of || "").toString().trim(),
           tier_3_retail_price: (row.tier_3_retail_price || "").toString().trim(),
           tier_3_wholesale_price: (row.tier_3_wholesale_price || "").toString().trim(),
           tags: (row.tags || "").trim(),
@@ -210,6 +263,10 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
           ),
         }));
 
+        // Update Products takes tier sizes in base units: hand it bag = 150, not "10 packs"
+        processed.forEach((r) => {
+          if (r._raw && tier3OfTier2(r) && tier3Singles(r) > 0) r._raw.tier_3_units = String(tier3Singles(r));
+        });
         setParsedData(validateRows(processed));
         setStep("review");
         markExisting(processed).then((checked) => {
@@ -369,7 +426,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
       tier_2_retail_price: p.tier_2_retail_price ? Number(p.tier_2_retail_price) : undefined,
       tier_2_wholesale_price: p.tier_2_wholesale_price ? Number(p.tier_2_wholesale_price) : undefined,
       tier_3_name: p.tier_3_name || undefined,
-      tier_3_units: p.tier_3_units ? Number(p.tier_3_units) : undefined,
+      tier_3_units: p.tier_3_units ? tier3Singles(p) : undefined, // always base units for the server
       tier_3_retail_price: p.tier_3_retail_price ? Number(p.tier_3_retail_price) : undefined,
       tier_3_wholesale_price: p.tier_3_wholesale_price ? Number(p.tier_3_wholesale_price) : undefined,
       tags: p.tags ? p.tags.split(/[|,]/).map((t) => t.trim()).filter(Boolean) : [],
@@ -473,16 +530,20 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
       "tier_2_wholesale_price",
       "tier_3_name",
       "tier_3_units",
+      "tier_3_made_of",
       "tier_3_retail_price",
       "tier_3_wholesale_price",
       "tags",
     ].join(",");
 
     const rows = [
-      `"Sugar Bread","Bakery","Freshly baked bread","BRD-001","","piece","50","8.00","12.00","10.00","","","","","","","","","fresh|bakery"`,
-      `"Voltic Mineral Water","Beverages","500ml natural spring water","VOL-500","500ml Bottle","bottle","240","1.20","2.50","2.00","Carton","24","55.00","48.00","","","","","drinks|water"`,
-      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-RED-L","Red / Large","piece","30","15.00","35.00","28.00","","","","","","","","","clothing|tshirt"`,
-      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","clothing|tshirt"`,
+      `"Sugar Bread","Bakery","Freshly baked bread","BRD-001","","piece","50","8.00","12.00","10.00","","","","","","","","","","fresh|bakery"`,
+      // tier_2_units = bottles in a carton
+      `"Voltic Mineral Water","Beverages","500ml natural spring water","VOL-500","500ml Bottle","bottle","240","1.20","2.50","2.00","Carton","24","55.00","48.00","","","","","","drinks|water"`,
+      // Packs inside packs: a pack is 15 singles, a bag is 10 packs (tier_3_made_of = tier_2), so 150 singles
+      `"Softcare Diaper","Baby","Baby diapers","DIAP-S","Small","single","300","1.80","2.50","","Pack","15","25.00","","Bag","10","tier_2","240.00","","baby|diapers"`,
+      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-RED-L","Red / Large","piece","30","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
+      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
     ].join("\n");
 
     const sampleCsv = `${headers}\n${rows}`;
@@ -651,6 +712,10 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
                 <h3 className="text-base md:text-lg font-medium text-foreground  text-center">Click or drag CSV file to upload</h3>
                 <p className="text-xs text-muted-foreground mt-2 text-center max-w-sm leading-relaxed">
                   Supports single items, multi-variant products, wholesale pricing, and bulk packaging tiers (Cartons/Packs).
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1.5 text-center max-w-sm leading-relaxed">
+                  Pack sizes count single units (Carton = 24 bottles). For packs inside packs, put <span className="font-mono">tier_2</span> in{" "}
+                  <span className="font-mono">tier_3_made_of</span>: Bag = 10 packs.
                 </p>
               </div>
 
@@ -919,17 +984,26 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
                                 {hasTier2 ? (
                                   <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full border border-border flex items-center gap-1">
                                     <Layers className="w-3 h-3 text-muted-foreground" />
-                                    {row.tier_2_name} ({row.tier_2_units})
+                                    {row.tier_2_name} ({row.tier_2_units} {unitPlural(row)})
                                   </span>
                                 ) : (
                                   <span className="text-muted-foreground text-[11px]">—</span>
                                 )}
                                 {hasTier3 && (
                                   <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full border border-border">
-                                    {row.tier_3_name} ({row.tier_3_units})
+                                    {row.tier_3_name} (
+                                    {tier3OfTier2(row)
+                                      ? `${row.tier_3_units} × ${row.tier_2_name} = ${tier3Singles(row)} ${unitPlural(row)}`
+                                      : `${row.tier_3_units} ${unitPlural(row)}`}
+                                    )
                                   </span>
                                 )}
                               </div>
+                              {row._warnings?.map((w) => (
+                                <p key={w} className="mt-1 text-[10px] leading-tight font-semibold text-amber-600 dark:text-amber-400">
+                                  {w}
+                                </p>
+                              ))}
                             </td>
                             <td className="p-2 w-32">
                               <input

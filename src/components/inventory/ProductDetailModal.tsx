@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CustomModal from "@/components/modals/modal";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/hooks";
@@ -15,6 +15,8 @@ interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: any | null;
+  /** The variant whose row was clicked; the panel opens on it instead of the first one. */
+  initialVariantId?: string | null;
   onEdit?: (product: any) => void;
   /** In-house products: open "Record batch" (also the mobile entry point). */
   onRecordBatch?: (productId: string) => void;
@@ -25,6 +27,7 @@ export function ProductDetailModal({
   isOpen,
   onClose,
   product,
+  initialVariantId,
   onEdit,
   onRecordBatch,
   onToggleChannel,
@@ -41,6 +44,20 @@ export function ProductDetailModal({
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+
+  // Opening the panel selects the clicked variant; later refreshes of the same product keep
+  // whichever variant the user has picked since
+  const openedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOpen || !product) {
+      openedForRef.current = null;
+      return;
+    }
+    if (openedForRef.current !== product.id) {
+      openedForRef.current = product.id;
+      setSelectedVariantId(initialVariantId || null);
+    }
+  }, [isOpen, product, initialVariantId]);
 
   useEffect(() => {
     if (isOpen && product) {

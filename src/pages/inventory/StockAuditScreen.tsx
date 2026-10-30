@@ -266,7 +266,8 @@ export default function StockAuditScreen() {
       }
     }
 
-    const defaultTier = tiers.find(t => t.is_default_purchase_unit || t.is_base_unit) || tiers[0];
+    // The "Order by" size first, then the base unit (one find() with || would usually hit the base unit first)
+    const defaultTier = tiers.find(t => t.is_default_purchase_unit) || tiers.find(t => t.is_base_unit) || tiers[0];
 
     const newMatched: MatchedRow = {
       variant_id: candidateId,

@@ -299,10 +299,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
     [images]
   );
 
-  // A variant can't keep a photo that was removed from the gallery
+  // A variant can't keep a photo that was removed from the gallery. Only photos that were in the
+  // gallery and are now gone count: on load the variants (with their photos) arrive in the same
+  // render as the gallery, so checking against the gallery as a whole would wipe them.
+  const prevGalleryRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const urls = new Set(gallery.map(g => g.url));
-    setVariants(prev => (prev.some(v => v.image && !urls.has(v.image)) ? prev.map(v => (v.image && !urls.has(v.image) ? { ...v, image: null } : v)) : prev));
+    const removed = new Set([...prevGalleryRef.current].filter(u => !urls.has(u)));
+    prevGalleryRef.current = urls;
+    if (removed.size === 0) return;
+    setVariants(prev => (prev.some(v => v.image && removed.has(v.image)) ? prev.map(v => (v.image && removed.has(v.image) ? { ...v, image: null } : v)) : prev));
   }, [gallery]);
 
   // Leaving without saving: throw away photos uploaded in this session (nightly cleanup is the backstop)
@@ -450,11 +456,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
       handleNavClick("images");
       return;
     }
-    const result = validateForm({ name, category, hasVariants, simpleTiers, variants });
+    const result = validateForm({ name, category, hasVariants, simpleTiers, simpleSellMode, variants });
     setErrors(result.errors);
     if (hasErrors(result.errors)) {
       toast.error(result.summary.join(" · "));
-      scrollToField(result.firstErrorId);
+      // Pack problems live in collapsed panels: open them before scrolling there
+      if (!hasVariants && result.errors.simple?.packs) setShowSimplePacks(true);
+      if (hasVariants && Object.values(result.errors.variants).some(r => r.packs)) {
+        setVariants(prev => prev.map(v => (result.errors.variants[v.key]?.packs ? { ...v, isExpanded: true } : v)));
+      }
+      setTimeout(() => scrollToField(result.firstErrorId), 50);
       return;
     }
     const below = belowCostList();
@@ -560,6 +571,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
         ? await apiClient.put(`/tenant/products/${initialData.id}`, payload)
         : await apiClient.post("/tenant/products", payload);
       productId = res.data?.success?.data?.product?.id || initialData?.id;
+      // e.g. a pack's size changed while it's on a purchase order that isn't fully received
+      (res.data?.success?.data?.notices || []).forEach((n: string) => toast(n, { duration: 8000, icon: "ℹ️" }));
     } catch (error: any) {
       setIsSaving(false);
       toast.error(error?.response?.data?.error?.message || error?.message || "Failed to save product");
@@ -909,11 +922,19 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   <div className="rounded-lg border border-border bg-muted/20 p-3">
                     <TiersEditor
                       tiers={simpleTiers}
-                      onChange={setSimpleTiers}
+                      onChange={(t) => {
+                        setSimpleTiers(t);
+                        if (errors.simple?.packs) setErrors(prev => ({ ...prev, simple: { ...prev.simple, packs: undefined } }));
+                      }}
                       unitName={baseUnitName}
                       cost={simpleCostPrice}
                       sellMode={simpleSellMode}
-                      onSellModeChange={setSimpleSellMode}
+                      onSellModeChange={(m) => {
+                        setSimpleSellMode(m);
+                        if (errors.simple?.packs) setErrors(prev => ({ ...prev, simple: { ...prev.simple, packs: undefined } }));
+                      }}
+                      error={errors.simple?.packs}
+                      id="pf-simple-packs"
                     />
                   </div>
                 )}

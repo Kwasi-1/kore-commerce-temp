@@ -74,12 +74,18 @@ export function QuickStockIntakeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
+  // Receiving starts on the product's "Order by" size (e.g. Box of 48); removing starts on single units
+  const purchaseTierId = (p: ProductStockItem | null) => {
+    const t = (p?.packaging_tiers || []).find((x) => x.is_default_purchase_unit && !x.is_base_unit && Number(x.units_per_tier) > 1);
+    return t ? t.id : "base";
+  };
+
   // Reset form when modal opens with a product
   useEffect(() => {
     if (isOpen && product) {
       setAdjustmentMode("add");
       setInputQuantity("");
-      setSelectedTierId("base");
+      setSelectedTierId(purchaseTierId(product));
       setReason(product.isMadeInHouse ? "correction" : "shipment");
       setUnitCost("");
       setBatchCost("");
@@ -198,7 +204,8 @@ export function QuickStockIntakeModal({
       label: `Base (${product.base_unit_name || "unit"}) - 1x`,
       value: "base",
     };
-    const tierOpts = (product.packaging_tiers || []).map((t) => ({
+    // The base unit is already the first option
+    const tierOpts = (product.packaging_tiers || []).filter((t) => !t.is_base_unit && Number(t.units_per_tier) > 1).map((t) => ({
       label: `${t.name} (${t.units_per_tier} ${product.base_unit_name || "units"})`,
       value: t.id,
     }));
@@ -313,6 +320,7 @@ export function QuickStockIntakeModal({
                 onClick={() => {
                   setAdjustmentMode("add");
                   setReason("shipment");
+                  setSelectedTierId(purchaseTierId(product));
                 }}
                 className={`py-2 sm:py-2.5 px-2 rounded-full text-xs font-bold flex items-center justify-center gap-1 transition-all whitespace-nowrap ${
                   adjustmentMode === "add"
@@ -329,6 +337,7 @@ export function QuickStockIntakeModal({
                 onClick={() => {
                   setAdjustmentMode("reduce");
                   setReason("correction");
+                  setSelectedTierId("base");
                 }}
                 className={`py-2 sm:py-2.5 px-2 rounded-full text-xs font-bold flex items-center justify-center gap-1 transition-all whitespace-nowrap ${
                   adjustmentMode === "reduce"

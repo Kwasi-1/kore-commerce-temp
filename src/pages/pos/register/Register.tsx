@@ -7,6 +7,7 @@ import { CurrencyDisplay } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useCartStore } from '@/store/cartStore';
+import { posTotals } from '@/utils/posTotals';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useShift } from '@/hooks/useShift';
@@ -38,8 +39,9 @@ export default function Register() {
 
   // Cart state for the mobile floating button
   const { items, subtotal, discount } = useCartStore();
-  const taxRate = 0.12;
-  const calculatedTotal = subtotal + (subtotal * taxRate) - discount;
+  // Same total as the cart panel: tax only when turned on in POS settings, added on top
+  const posSettings = useFeaturesStore((s) => s.posSettings);
+  const { total: calculatedTotal } = posTotals(subtotal, discount, posSettings);
 
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isOpeningShift, setIsOpeningShift] = useState(false);
@@ -135,7 +137,6 @@ export default function Register() {
     }
   };
 
-  const { posSettings } = useFeaturesStore();
   const isShiftRequired = Boolean(posSettings?.pos_shift_management_enabled);
 
   useEffect(() => {

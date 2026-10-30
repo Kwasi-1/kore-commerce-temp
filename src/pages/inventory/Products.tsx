@@ -91,6 +91,7 @@ export default function Products() {
   const [channelFilter, setChannelFilter] = useState<"all" | "online" | "in_store">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedVariantForDetail, setSelectedVariantForDetail] = useState<string | null>(null);
   const [selectedProductForDetail, setSelectedProductForDetail] =
     useState<any>(null);
 
@@ -380,6 +381,7 @@ export default function Products() {
     const row = tableRows.find((r) => (r.id || r.key) === key);
     if (row?.__record) {
       setSelectedProductForDetail(row.__record);
+      setSelectedVariantForDetail(row.__variant?.id || null);
       setIsDetailModalOpen(true);
     }
   };
@@ -1241,6 +1243,7 @@ export default function Products() {
                   key={item.id}
                   onClick={() => {
                     setSelectedProductForDetail(item.product);
+                    setSelectedVariantForDetail(item.variant?.id || null);
                     setIsDetailModalOpen(true);
                   }}
                   className="py-3 gap-5 flex items-center justify-between text-[12px] cursor-pointer hover:bg-muted/20 px-1 rounded-lg transition-colors"
@@ -1635,6 +1638,7 @@ export default function Products() {
           setSelectedProductForDetail(null);
         }}
         product={selectedProductForDetail}
+        initialVariantId={selectedVariantForDetail}
         onEdit={(prod) => {
           setIsDetailModalOpen(false);
           handleEdit(prod);
