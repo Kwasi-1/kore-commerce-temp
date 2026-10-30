@@ -114,9 +114,9 @@ export default function PageLayout({
               <div className="flex flex-col gap-0.5 min-w-0">
                 <h1
                   className={cn(
-                    "text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
+                    "text-2xl pd:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
                     headerVariant === "action-bridge" &&
-                      "!text-[22px] md:!text-2xl lg:!text-[26px] text-action-pill-foreground pd:text-foreground",
+                      "!text-[22px] pd:!text-2xl lg:!text-[26px] text-action-pill-foreground pd:text-foreground",
                     showBackButton ? "text-2xl" : "text-2xl",
                     titleClassName,
                   )}
@@ -180,7 +180,7 @@ export default function PageLayout({
               ) : (
                 <div
                   className={cn(
-                    "flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0",
+                    "flex items-center gap-1.5 pd:gap-2 border rounded-full px-1 py-1 shrink-0",
                     headerVariant === "action-bridge"
                       ? "border-sidebar bg-action-pill text-action-pill-foreground pd:bg-card pd:border-border pd:text-foreground"
                       : "border-border bg-card",
@@ -192,13 +192,13 @@ export default function PageLayout({
                     size="icon"
                     onClick={() => navigate("/notifications")}
                     className={cn(
-                      "relative rounded-full transition-colors h-8 w-8 md:h-10 md:w-10",
+                      "relative rounded-full transition-colors h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10",
                       headerVariant === "action-bridge"
                         ? "text-action-pill-foreground/80 hover:text-action-pill-foreground pd:text-muted-foreground pd:hover:text-foreground"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    <Bell className="h-4 w-4 md:h-5 md:w-5" />
+                    <Bell className="h-4 w-4 pd:h-[18px] pd:w-[18px] md:h-5 md:w-5" />
                     {unreadNotificationsCount > 0 && (
                       <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
                     )}
@@ -217,7 +217,7 @@ export default function PageLayout({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
-                        <div className={`h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm ${headerVariant === "action-bridge"&& "border-sidebar/20 pd:border-border/80"}`}>
+                        <div className={`h-9 w-9 pd:h-10 pd:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm ${headerVariant === "action-bridge"&& "border-sidebar/20 pd:border-border/80"}`}>
                           {staffUser?.name
                             ? staffUser.name.substring(0, 2).toUpperCase()
                             : "AU"}

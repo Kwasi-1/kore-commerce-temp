@@ -425,9 +425,9 @@ export default function UnmatchedMomoNotice({ variant = 'banner' }: {
           onClick={openWindow}
           title={`${charges.length} MoMo payment${charges.length === 1 ? '' : 's'} without a sale`}
           aria-label={`${charges.length} MoMo payment${charges.length === 1 ? '' : 's'} without a sale`}
-          className="relative h-8 w-8 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center text-current opacity-80 hover:opacity-100 transition-opacity"
+          className="relative h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center text-current opacity-80 hover:opacity-100 transition-opacity"
         >
-          <Wallet className="h-4 w-4 md:h-5 md:w-5" />
+          <Wallet className="h-4 w-4 pd:h-[18px] pd:w-[18px] md:h-5 md:w-5" />
           <span className="absolute top-0 right-0 md:top-1 md:right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-amber-500 text-[9px] font-bold leading-none text-black flex items-center justify-center">
             {charges.length}
           </span>
