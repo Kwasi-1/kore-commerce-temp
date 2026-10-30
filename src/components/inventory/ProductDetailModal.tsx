@@ -75,7 +75,7 @@ export function ProductDetailModal({
             setSelectedVariantId((prev) =>
               prev && freshData.variants.some((v: any) => v.id === prev)
                 ? prev
-                : freshData.variants[0].id
+                : (freshData.variants.find((v: any) => v.is_active !== false) || freshData.variants[0]).id
             );
           }
         })
@@ -99,7 +99,7 @@ export function ProductDetailModal({
           .then((res) => {
             setHistoryItems(res.data.success?.data?.history || []);
           })
-          .catch((err) => {
+          .catch((err) => { 
             console.error("Failed to load stock history:", err);
             setHistoryItems([]);
           })
@@ -115,7 +115,10 @@ export function ProductDetailModal({
   const currentProduct = productData || product;
   // In-house products: "Record Batch" is the primary action; Edit moves to the header
   const showBatch = !!onRecordBatch && !!currentProduct.is_made_in_house && madeInHouseEnabled;
-  const variants = currentProduct.variants || [];
+  // Inactive variants (switched off, or removed in the product form) stay visible, last and greyed
+  const variants = [...(currentProduct.variants || [])].sort(
+    (a: any, b: any) => Number(a.is_active === false) - Number(b.is_active === false)
+  );
   const activeVariant =
     variants.find((v: any) => v.id === selectedVariantId) || variants[0] || null;
 
@@ -283,7 +286,9 @@ export function ProductDetailModal({
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {variants.length > 1 ? (
+                        {variants.length > 1 && activeVariant?.is_active === false ? (
+                          `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is inactive: it isn't sold at the till or online`
+                        ) : variants.length > 1 ? (
                           isSelectedVariantOnline
                             ? `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is available online and for in-store checkout`
                             : `Selected variant (${Object.values(activeVariant?.variant_attributes || {}).join(" / ") || activeVariant?.sku || "Variant"}) is exclusive to physical in-store POS register`
@@ -402,22 +407,28 @@ export function ProductDetailModal({
                         const isVOnline =
                           v.is_available_online !== false &&
                           v.isAvailableOnline !== false;
+                        const isVInactive = v.is_active === false;
                         return (
                           <button
                             key={v.id}
                             type="button"
                             onClick={() => setSelectedVariantId(v.id)}
+                            title={isVInactive ? "Inactive: not sold at the till or online" : undefined}
                             className={`px-3 py-1 text-xs font-semibold rounded-md border transition-all flex items-center gap-1.5 ${
                               activeVariant?.id === v.id
                                 ? "bg-foreground text-background border-foreground font-bold shadow-xs"
-                                : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+                                : isVInactive
+                                  ? "border-dashed border-border text-muted-foreground/60 hover:text-muted-foreground"
+                                  : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
                             }`}
                           >
                             <span>
                               {Object.values(v.variant_attributes || {}).join(" / ") ||
                                 v.sku}
                             </span>
-                            {hasEcommerce && (
+                            {isVInactive ? (
+                              <span className="text-[10px] font-medium opacity-80">Inactive</span>
+                            ) : hasEcommerce && (
                               <span
                                 className={`h-1.5 w-1.5 rounded-full ${
                                   isVOnline ? "bg-emerald-500" : "bg-muted-foreground/40"
