@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { useThemeStore } from '@/store/themeStore';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle, Cloud, Lock } from 'lucide-react';
+import { Settings, Moon, Sun, LogOut, Power, WifiOff, RefreshCw, AlertTriangle, Cloud, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,7 +24,7 @@ import { useRegisterPreferencesStore } from '@/store/registerPreferencesStore';
 import { Switch } from '@/components/ui/switch';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import OfflineQueueDrawer from './OfflineQueueDrawer';
-import { useNotificationStore } from '@/store/notificationStore';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { useCartStore } from '@/store/cartStore';
 import TillRecentUsers from './TillRecentUsers';
 
@@ -43,8 +43,7 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
   const { staffUser, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
-  const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
-  const savedTransactions = useCartStore((s) => s.savedTransactions);
+const savedTransactions = useCartStore((s) => s.savedTransactions);
   const hasSavedTransactions = savedTransactions.length > 0;
   const { isOnline, pendingCount, failedCount } = useNetworkStatus();
   const hidePreferencesOnMobile = hasSavedTransactions || !isOnline || failedCount > 0 || pendingCount > 0;
@@ -119,12 +118,11 @@ export default function RegisterHeader({ onOpenShiftModal }: RegisterHeaderProps
           </button>
         ) : null}
 
-        <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="hidden md:flex relative rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10">
-          <Bell className="h-4 w-4 md:h-5 md:w-5" />
-          {unreadNotificationsCount > 0 && (
-            <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
-          )}
-        </Button>
+        <NotificationBell
+          className="hidden md:flex rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8 md:h-10 md:w-10"
+          iconClassName="h-4 w-4 md:h-5 md:w-5"
+          dotClassName="top-1 right-1 md:top-2 md:right-2"
+        />
 
         {/* Settings Button: Mobile opens Modal directly, Desktop uses DropdownMenu */}
         <Button

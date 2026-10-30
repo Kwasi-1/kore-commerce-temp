@@ -5,7 +5,6 @@ import { useModuleContext } from "@/components/shared/ModuleRoute";
 import { useNavigate, useLocation } from "react-router-dom";
 import { isBottomNavRoute } from "@/components/navigation/BottomNav";
 import {
-  Bell,
   Settings,
   Moon,
   Sun,
@@ -27,7 +26,7 @@ import {
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 
-import { useNotificationStore } from "@/store/notificationStore";
+import NotificationBell from "@/components/notifications/NotificationBell";
 interface PageLayoutProps {
   title?: React.ReactNode;
   titleClassName?: string;
@@ -81,8 +80,7 @@ export default function PageLayout({
     navigate("/login");
   };
 
-  const unreadNotificationsCount = useNotificationStore((s) => s.unreadCount);
-  const location = useLocation();
+const location = useLocation();
   const showBottomNav = isBottomNavRoute(location.pathname);
 
   return (
@@ -187,22 +185,16 @@ export default function PageLayout({
                   )}
                 >
                   {alertSlot}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate("/notifications")}
+                  <NotificationBell
                     className={cn(
-                      "relative rounded-full transition-colors h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10",
+                      "rounded-full transition-colors h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10",
                       headerVariant === "action-bridge"
                         ? "text-action-pill-foreground/80 hover:text-action-pill-foreground pd:text-muted-foreground pd:hover:text-foreground"
                         : "text-muted-foreground hover:text-foreground",
                     )}
-                  >
-                    <Bell className="h-4 w-4 pd:h-[18px] pd:w-[18px] md:h-5 md:w-5" />
-                    {unreadNotificationsCount > 0 && (
-                      <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
-                    )}
-                  </Button>
+                    iconClassName="h-4 w-4 pd:h-[18px] pd:w-[18px] md:h-5 md:w-5"
+                    dotClassName="top-1 right-1 md:top-2 md:right-2"
+                  />
 
                   <Button
                     onClick={() => navigate("/settings/account")}

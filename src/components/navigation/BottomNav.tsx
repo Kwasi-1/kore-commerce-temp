@@ -12,7 +12,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
 import { useCan } from '@/hooks/usePermissions';
-import { useNotificationStore } from '@/store/notificationStore';
+import { useUnreadNotifications } from '@/hooks/useNotifications';
 import { useNavDrawerStore, NavDrawerGroup } from '@/store/navDrawerStore';
 import { getModules } from '@/utils/permissions';
 import { useAppNavigate } from '@/hooks/useAppNavigate';
@@ -79,7 +79,7 @@ export default function BottomNav() {
   const navigate = useAppNavigate();
 
   const { isOpen, setIsOpen, activeGroup, setActiveGroup, closeDrawer, openDrawer } = useNavDrawerStore();
-  const { unreadCount } = useNotificationStore();
+  const unreadCount = useUnreadNotifications();
   const { posSettings } = useFeaturesStore();
 
   const previousPlanModules = getPlanModules((graceInfo as any)?.previous_plan || 'standard');

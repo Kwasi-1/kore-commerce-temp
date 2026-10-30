@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore, getPlanModules } from '@/store/featuresStore';
-import { useNotificationStore } from '@/store/notificationStore';
+import { useUnreadNotifications } from '@/hooks/useNotifications';
 import { getModules } from '@/utils/permissions';
 import PlanGraceBanner from '@/components/shared/PlanGraceBanner';
 import apiClient from '@/api/client';
@@ -141,12 +141,11 @@ export default function Sidebar() {
 
   const [lowStockCount, setLowStockCount] = useState<number>(0);
   const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
-  const { unreadCount: unreadNotificationsCount, fetchUnreadCount } = useNotificationStore();
+  const unreadNotificationsCount = useUnreadNotifications();
 
   useEffect(() => {
     if (!tenant?.id) return;
     let isMounted = true;
-    fetchUnreadCount();
 
     if (can('online.orders')) {
       apiClient.get('/tenant/orders?channel=online&status=pending&limit=1')
@@ -199,7 +198,7 @@ export default function Sidebar() {
     return () => {
       isMounted = false;
     };
-  }, [tenant?.id, fetchUnreadCount, location.pathname, can]);
+  }, [tenant?.id, location.pathname, can]);
 
   const rawNavSections: NavSection[] = [
     {

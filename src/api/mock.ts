@@ -5289,6 +5289,8 @@ export function setupMockApi() {
     }
 
     const unreadCount = mockNotifications.filter((n) => !n.read).length;
+    const page = Number(params.page) || 1;
+    const perPage = Number(params.per_page) || 30;
 
     return [
       200,
@@ -5296,14 +5298,24 @@ export function setupMockApi() {
         success: {
           message: 'Notifications fetched successfully',
           data: {
-            notifications: filtered,
+            notifications: filtered.slice((page - 1) * perPage, page * perPage),
             unreadCount,
             total: filtered.length,
+            page,
+            per_page: perPage,
+            has_more: page * perPage < filtered.length,
+            can_manage: true,
           },
         },
       },
     ];
   });
+
+  // GET /tenant/notifications/unread-count
+  mock.onGet(/\/tenant\/notifications\/unread-count$/).reply(() => [
+    200,
+    { success: { data: { unreadCount: mockNotifications.filter((n) => !n.read).length } } },
+  ]);
 
   // PATCH /tenant/notifications/:id/read
   mock.onPatch(/\/tenant\/notifications\/[^/]+\/read$/).reply((config) => {
