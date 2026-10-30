@@ -7,7 +7,7 @@ import RecurringExpenseForm from '@/components/expenses/RecurringExpenseForm';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -43,7 +43,7 @@ const SOURCE_LABELS: Record<string, string> = {
 const sourceLabel = (source?: string) => SOURCE_LABELS[source || 'backoffice'] || source;
 
 export default function Expenses() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const can = useCan();
   const isManagerOrOwner = can('expenses.manage');
 
@@ -402,10 +402,10 @@ export default function Expenses() {
   const totalExpenses = summary?.total ?? summaryList.reduce((acc: number, curr: any) => acc + (curr.total_amount || 0), 0);
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Expenses"
       actions={
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden pd:flex items-center gap-3">
           <div className="inline-flex items-center bg-muted/80 p-[3px] rounded-lg border border-border/60 text-[12px] font-medium">
             <button
               type="button"
@@ -446,7 +446,7 @@ export default function Expenses() {
       }
       constrainHeight={true}
     >
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper desktopFrom="sm">
         <MobileHeroCard
           title="Total Expenses"
           badge={dateFilter.active === 'this_month' ? 'This Month' : dateFilter.active?.replace(/_/g, ' ')}
@@ -695,11 +695,11 @@ export default function Expenses() {
         )}
       </MobileDashboardWrapper>
 
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         {activeTab === 'log' ? (
           <>
             <div className="mb-4 lg:mb-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 desk:grid-cols-2 lg:grid-cols-4 gap-3 desk:gap-4">
                 <DashboardCard
                   title="Total Expenses"
                   value={isLoading ? '...' : <CurrencyDisplay amount={totalExpenses} />}

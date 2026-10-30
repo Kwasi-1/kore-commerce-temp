@@ -16,7 +16,7 @@ import PayrollRunDetailsDrawer from '@/components/staff/PayrollRunDetailsDrawer'
 import ImportStaffToPayrollModal from '@/components/staff/ImportStaffToPayrollModal';
 import { RemoveSalaryProfileModal } from '@/components/staff/RemoveSalaryProfileModal';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import { isProfileConfigured } from '@/utils/payrollHelpers';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -53,7 +53,7 @@ export default function PayrollManagement() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
 
   const isRunRoute = location.pathname.startsWith('/staff/payroll/run');
   const staffIdParam = searchParams.get('staff_id') || undefined;
@@ -457,7 +457,7 @@ export default function PayrollManagement() {
   ];
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Payroll & Salaries"
       subtitle={
         isMobile ? (
@@ -467,7 +467,7 @@ export default function PayrollManagement() {
         ) : undefined
       }
       actions={
-        <div className="hidden md:inline-flex items-center bg-muted/80 p-[3px] rounded-lg border border-border/60 text-[12px] font-medium">
+        <div className="hidden pd:inline-flex items-center bg-muted/80 p-[3px] rounded-lg border border-border/60 text-[12px] font-medium">
           <button
             type="button"
             onClick={() => handleTabChange('log')}
@@ -495,9 +495,9 @@ export default function PayrollManagement() {
         </div>
       }
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {activeTab === 'log' ? (
           <MobileHeroCard
             title="Total Disbursed"
@@ -732,8 +732,8 @@ export default function PayrollManagement() {
         )}
       </MobileDashboardWrapper>
 
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
-        <div className="mb-4 lg:mb-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
+        <div className="mb-4 lg:mb-5 grid grid-cols-1 desk:grid-cols-2 lg:grid-cols-4 gap-3 desk:gap-4">
           {activeTab === 'log' ? (
             <>
               <DashboardCard title="Total Disbursed" value={isLoading ? '...' : <CurrencyDisplay amount={monthTotalDisbursed} />} />

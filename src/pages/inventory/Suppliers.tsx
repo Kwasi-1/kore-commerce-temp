@@ -8,7 +8,7 @@ import SupplierStatusModal from '@/components/inventory/SupplierStatusModal';
 import SupplierDetailModal from '@/components/inventory/SupplierDetailModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import { CurrencyDisplay } from '@/hooks';
 
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ import { useCan } from '@/hooks/usePermissions';
 export default function Suppliers() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const can = useCan();
   const showCreditTab = can('purchasing.supplier_payments');
 
@@ -231,7 +231,7 @@ export default function Suppliers() {
   };
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Suppliers" 
       subtitle={
         isMobile ? (
@@ -240,12 +240,12 @@ export default function Suppliers() {
       }
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE SUPPLIERS VIEW (Hidden >= md, Block < md)                          */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* Action Capsule Bar (Search + New Supplier + Credit Ledger) */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -368,7 +368,7 @@ export default function Suppliers() {
       {/* ========================================================================= */}
       {/* DESKTOP SUPPLIERS VIEW (Hidden < md, Flex >= md)                          */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         <EnhancedTableComponent
           columns={columns}
           rows={rows}

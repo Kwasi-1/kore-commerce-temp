@@ -410,11 +410,11 @@ export default function CreditLedger() {
   }));
 
   return (
-    <PageLayout title="Credit Ledger" constrainHeight={true}>
+    <PageLayout desktopFrom="sm" title="Credit Ledger" constrainHeight={true}>
       {/* ========================================================================= */}
       {/* MOBILE CREDIT LEDGER VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)*/}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero Outstanding Debt Card + Metric Carousel */}
         <MobileHeroCard
           title="Total Outstanding Debt"
@@ -547,7 +547,7 @@ export default function CreditLedger() {
       {/* ========================================================================= */}
       {/* DESKTOP CREDIT LEDGER VIEW (Hidden < md, Flex >= md)                      */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-6 relative h-full pb-24 md:pb-0">
         {!posSettings.pos_credit_enabled && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium shrink-0">
             <Info className="w-4 h-4 shrink-0" />
@@ -556,7 +556,7 @@ export default function CreditLedger() {
         )}
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 desk:gap-4">
           <DashboardCard
             title="Total Outstanding Debt"
             value={isLoading ? '...' : <CurrencyDisplay amount={stats.totalDebt} />}

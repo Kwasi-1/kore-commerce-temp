@@ -617,15 +617,15 @@ export default function StockReconciliation() {
   }, [categories, categorySearchTerm]);
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Stock Reconciliation" 
-      titleSection="hidden md:flex"
+      titleSection="hidden pd:flex"
       constrainHeight={true}
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK RECONCILIATION VIEW (Hidden >= md, Block < md)              */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden -mt-4">
+      <MobileDashboardWrapper desktopFrom="sm" className="-mt-4">
         {/* Top Sticky Header with Audit Progress */}
         <div className="px-4 pt-5 pb-2 flex items-center justify-between gap-3 text-action-pill-foreground">
           <div className="min-w-0 flex-1">
@@ -819,9 +819,9 @@ export default function StockReconciliation() {
       {/* ========================================================================= */}
       {/* DESKTOP STOCK RECONCILIATION VIEW (Hidden < md, Flex >= md)               */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-5 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-5 relative h-full pb-24 md:pb-0">
         {/* Metric summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 desk:gap-4">
           <DashboardCard
             title="Items Counted"
             value={

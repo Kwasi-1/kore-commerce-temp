@@ -239,26 +239,26 @@ export default function StockManagement() {
   }, [products]);
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Stock Management"
       subtitle={
         <>
-          <span className="hidden md:inline">
+          <span className="hidden pd:inline">
             Quickly adjust physical stock levels across all your inventory.
           </span>
-          <span className="md:hidden">
+          <span className="pd:hidden">
             {products.length} product{products.length !== 1 ? 's' : ''} listed
           </span>
         </>
       }
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK MANAGEMENT VIEW (Hidden >= md, Block < md)                   */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* Action Capsule Bar (Search + Quick Actions) */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -372,7 +372,7 @@ export default function StockManagement() {
       {/* ========================================================================= */}
       {/* DESKTOP STOCK MANAGEMENT VIEW (Hidden < md, Flex >= md)                   */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-6 relative h-full pb-24 md:pb-0">
         {/* Enhanced Table */}
         <EnhancedTableComponent
           columns={columns}

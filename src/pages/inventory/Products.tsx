@@ -127,11 +127,14 @@ export default function Products() {
     );
   });
 
-  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+  // Phone layout under 640px; the desktop table drops its minor columns under 1024px (tablets)
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 640);
+  const [isWide, setIsWide] = useState<boolean>(window.innerWidth >= 1024);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 640);
+      setIsWide(window.innerWidth >= 1024);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -1007,12 +1010,12 @@ export default function Products() {
   ];
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Products Inventory"
       constrainHeight={true}
       actions={
         hasEcommerce ? (
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden pd:flex items-center gap-2">
             {/* Dynamic Channel Filter Segmented Pill */}
             <div className="inline-flex items-center rounded-lg border border-border/70 p-0.5 bg-muted/40 h-9 text-xs">
               <button
@@ -1071,7 +1074,7 @@ export default function Products() {
       {/* ========================================================================= */}
       {/* MOBILE PRODUCTS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)     */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero Products Count / Overview Card + Carousel */}
         <MobileHeroCard
           title={displayTotalLabel}
@@ -1306,9 +1309,9 @@ export default function Products() {
       {/* ========================================================================= */}
       {/* DESKTOP PRODUCTS VIEW (Hidden < md, Flex >= md)                           */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 pb-24 md:pb-0">
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <div className="grid grid-cols-2 desk:grid-cols-3 lg:grid-cols-4 gap-3 desk:gap-4 mb-6">
         <DashboardCard
           title={displayTotalLabel}
           value={isLoading ? '...' : displayTotalCount}
@@ -1330,7 +1333,7 @@ export default function Products() {
         <DashboardCard
           title="Active Products"
           value={isLoading ? '...' : activeProductsCount}
-          className="border border-border md:col-span-3 lg:col-span-1"
+          className="border border-border desk:col-span-3 lg:col-span-1"
           action={<CheckCircle2 className="text-muted-foreground/50 h-5 w-5" />}
         />
       </div>
@@ -1343,8 +1346,8 @@ export default function Products() {
             ? [
                 { key: "image", label: "Image" },
                 { key: "name", label: "Name" },
-                { key: "category", label: "Category" },
-                ...(hasEcommerce ? [{ key: "channel", label: "Channel" }] : []),
+                ...(isWide ? [{ key: "category", label: "Category" }] : []),
+                ...(hasEcommerce && isWide ? [{ key: "channel", label: "Channel" }] : []),
                 { key: "variants", label: "Variants" },
                 { key: "total_stock", label: "Total Stock" },
                 { key: "status", label: "Status" },
@@ -1352,10 +1355,10 @@ export default function Products() {
             : [
                 { key: "image", label: "Image" },
                 { key: "name", label: "Name" },
-                { key: "category", label: "Category" },
+                ...(isWide ? [{ key: "category", label: "Category" }] : []),
                 { key: "sku", label: "SKU" },
-                ...(hasEcommerce ? [{ key: "channel", label: "Channel" }] : []),
-                { key: "sell_mode", label: "Sell Mode" },
+                ...(hasEcommerce && isWide ? [{ key: "channel", label: "Channel" }] : []),
+                ...(isWide ? [{ key: "sell_mode", label: "Sell Mode" }] : []),
                 { key: "price", label: "Price" },
                 { key: "stock", label: "Stock" },
                 { key: "status", label: "Status" },

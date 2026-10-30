@@ -21,7 +21,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import {
   MobileDashboardWrapper,
   MobileHeroCard,
@@ -33,7 +33,7 @@ import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 
 export default function Customers() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,7 +147,7 @@ export default function Customers() {
   ];
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Customers" 
       subtitle={isMobile ? `${customers.length} members registered` : undefined}
       constrainHeight={true}
@@ -155,7 +155,7 @@ export default function Customers() {
       {/* ========================================================================= */}
       {/* MOBILE VIEW (Hidden >= md, Block < md)                                    */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero KPI Card + Metric Carousel */}
         <MobileHeroCard
           title="Total Store Customers"
@@ -297,7 +297,7 @@ export default function Customers() {
       {/* ========================================================================= */}
       {/* DESKTOP VIEW (Hidden < md, Flex >= md)                                    */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <DashboardCard
