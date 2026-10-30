@@ -7,7 +7,7 @@ import PurchaseOrderReceiveModal, { ReceiveItemRow } from '@/components/inventor
 import PurchaseOrderCancelModal from '@/components/inventory/PurchaseOrderCancelModal';
 import PurchaseOrderCloseEarlyModal from '@/components/inventory/PurchaseOrderCloseEarlyModal';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react/dist/iconify.js';
@@ -26,7 +26,7 @@ import {
 } from '@/components/mobile-dashboard';
 
 export default function PurchaseOrders() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<any>(null);
@@ -362,7 +362,7 @@ export default function PurchaseOrders() {
   };
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Purchase Orders" 
       subtitle={
         isMobile ? (
@@ -371,9 +371,9 @@ export default function PurchaseOrders() {
       }
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         <MobileActionCapsuleBar
           searchConfig={{
             value: searchQuery,
@@ -508,7 +508,7 @@ export default function PurchaseOrders() {
         </MobileActivitySheet>
       </MobileDashboardWrapper>
 
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         <EnhancedTableComponent
           columns={columns}
           rows={rows}

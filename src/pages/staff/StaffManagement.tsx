@@ -11,7 +11,7 @@ import StaffPermissionsModal from '@/components/staff/StaffPermissionsModal';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import { useAuthStore } from '@/store/authStore';
 import { ROLE_LABELS } from '@/utils/roles';
 import { Icon } from '@iconify/react';
@@ -63,7 +63,7 @@ const getAvatarBg = (role: string) => {
 };
 
 export default function StaffManagement() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -344,19 +344,19 @@ export default function StaffManagement() {
   const handleRowActionClick = (actionKey: string, row: any) => handleAction(actionKey, row.__record);
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Staff Management"
       subtitle={
         seatSummary || (isMobile ? `${staffList.length} staff member${staffList.length !== 1 ? 's' : ''} listed` : undefined)
       }
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE STAFF MANAGEMENT VIEW (Hidden >= md, Block < md)                   */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* Action Capsule Bar (Search + Add Staff + Refresh) */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -501,7 +501,7 @@ export default function StaffManagement() {
       {/* ========================================================================= */}
       {/* DESKTOP STAFF MANAGEMENT VIEW (Hidden < md, Flex >= md)                   */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         <EnhancedTableComponent
           columns={columns}
           rows={rows}

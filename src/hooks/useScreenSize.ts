@@ -39,4 +39,18 @@ export const useIsMobile = () => {
   return size === 'mobile';
 };
 
+/**
+ * Phones (under 640px): pages switched to their desktop layout from 640px (PageLayout
+ * desktopFrom="sm") use this instead of useIsMobile, which still means "under md".
+ */
+export const useIsPhone = () => {
+  const [isPhone, setIsPhone] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  useEffect(() => {
+    const onResize = () => setIsPhone(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return isPhone;
+};
+
 export default useScreenSize;

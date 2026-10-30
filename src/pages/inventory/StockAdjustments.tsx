@@ -510,21 +510,21 @@ export default function StockAdjustments() {
   }, [filteredAdjustments]);
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Stock Adjustments"
       subtitle={
-        <span className="md:hidden">
+        <span className="pd:hidden">
           {pendingItems.length > 0 ? `${pendingItems.length} pending approval` : `${adjustments.length} total logged`}
         </span>
       }
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
       headerVariant="action-bridge"
       constrainHeight={true}
     >
       {/* ========================================================================= */}
       {/* MOBILE STOCK ADJUSTMENTS VIEW (Hidden >= md, Block < md)                  */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* Action Capsule Bar (Search + Date Filter + Quick Actions) */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -684,9 +684,9 @@ export default function StockAdjustments() {
       {/* ========================================================================= */}
       {/* DESKTOP STOCK ADJUSTMENTS VIEW (Hidden < md, Flex >= md)                  */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-5 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-5 relative h-full pb-24 md:pb-0">
         {/* Metric summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 desk:gap-4">
           <DashboardCard
             title="Pending Approvals"
             value={

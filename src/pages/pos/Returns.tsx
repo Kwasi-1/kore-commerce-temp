@@ -170,11 +170,11 @@ export default function Returns() {
   }));
 
   return (
-    <PageLayout title="POS Returns History" constrainHeight={true}>
+    <PageLayout desktopFrom="sm" title="POS Returns History" constrainHeight={true}>
       {/* ========================================================================= */}
       {/* MOBILE RETURNS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md)      */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero Total Refunds Approved Card + Metric Carousel */}
         <MobileHeroCard
           title="Total Refunds Approved"
@@ -318,9 +318,9 @@ export default function Returns() {
       {/* ========================================================================= */}
       {/* DESKTOP RETURNS VIEW (Hidden < md, Flex >= md)                            */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-6 relative h-full pb-24 md:pb-0">
         {/* KPI Dashboard Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 desk:gap-4">
           <DashboardCard
             title="Total Returns Logged"
             value={isLoading ? '...' : (summary?.total_logged ?? returns.length).toString()}

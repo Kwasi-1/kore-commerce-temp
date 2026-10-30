@@ -654,13 +654,14 @@ export default function Transactions() {
         ) : null
       }
       constrainHeight={true}
-      mobileActions={!isCashier && momoPromptsReady ? <UnmatchedMomoNotice variant="icon" /> : undefined}
+      desktopFrom="sm"
+      alertSlot={!isCashier && momoPromptsReady ? <UnmatchedMomoNotice variant="icon" /> : undefined}
     >
 
       {/* ========================================================================= */}
-      {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - Block < md, Hidden >= md) */}
+      {/* MOBILE TRANSACTIONS VIEW (ZEN-Inspired Design - phones only, < 640px)     */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper>
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero Balance / Revenue Card + Metric Carousel */}
         <MobileHeroCard
           title={isCashier ? "My Sales" : "Total Sales"}
@@ -921,12 +922,11 @@ export default function Transactions() {
       </MobileDashboardWrapper>
 
       {/* ========================================================================= */}
-      {/* DESKTOP TRANSACTIONS VIEW (Hidden < md, Flex >= md)                       */}
+      {/* DESKTOP TRANSACTIONS VIEW (tablets and up, >= 640px; room left for the     */}
+      {/* floating bottom nav until the sidebar takes over at md)                    */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 gap-6 relative h-full md:h-full">
-        {/* MoMo prompts paid with no sale: for managers to sort out */}
-        {!isCashier && momoPromptsReady && <UnmatchedMomoNotice />}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-start">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 gap-6 relative h-full pb-24 md:pb-0">
+        <div className="grid grid-cols-1 desk:grid-cols-3 gap-3 desk:gap-4 items-start">
           <DashboardCard
             title={isCashier ? "My Sales" : "Total Sales"}
             value={isLoading ? "..." : <CurrencyDisplay amount={stats.total} />}

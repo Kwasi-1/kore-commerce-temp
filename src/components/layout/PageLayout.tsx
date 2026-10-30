@@ -33,8 +33,8 @@ interface PageLayoutProps {
   titleClassName?: string;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
-  /** Small header buttons shown on mobile only, beside the notifications pill (e.g. an alert icon) */
-  mobileActions?: React.ReactNode;
+  /** An alert button shown inside the notifications pill, before the bell (e.g. MoMo payments to sort out) */
+  alertSlot?: React.ReactNode;
   filterSlot?: React.ReactNode;
   subtitleStyles?: string;
   className?: string;
@@ -45,6 +45,12 @@ interface PageLayoutProps {
   onBackClick?: () => void;
   titleSection?: string;
   headerVariant?: "default" | "action-bridge";
+  /**
+   * Where the page switches from its phone layout to its desktop layout: "md" (768px, the default)
+   * or "sm" (640px, tablets) for pages whose content uses desk: for that switch. The sidebar and
+   * bottom nav switch at md either way.
+   */
+  desktopFrom?: "sm" | "md";
 }
 
 export default function PageLayout({
@@ -52,7 +58,7 @@ export default function PageLayout({
   titleClassName,
   subtitle,
   actions,
-  mobileActions,
+  alertSlot,
   filterSlot,
   subtitleStyles,
   className = "",
@@ -63,6 +69,7 @@ export default function PageLayout({
   onBackClick,
   titleSection,
   headerVariant = "default",
+  desktopFrom = "md",
 }: PageLayoutProps) {
   const { staffUser, graceInfo, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -82,6 +89,7 @@ export default function PageLayout({
     <div
       className={cn(
         "w-full min-h-full text-foreground scrollbar-hide flex flex-col py-2 md:p-4",
+        desktopFrom === "sm" && "desk-sm",
         constrainHeight
           ? "md:h-full md:overflow-hidden"
           : showBottomNav
@@ -93,9 +101,9 @@ export default function PageLayout({
       {title && (
         <div
           className={cn(
-            "w-full mb-4 flex flex-col gap-3 md:gap-4 shrink-0",
+            "w-full mb-4 flex flex-col gap-3 pd:gap-4 shrink-0",
             headerVariant === "action-bridge" &&
-              "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 md:w-full md:bg-transparent dark:md:bg-transparent md:text-foreground md:mx-0 md:mt-0 md:px-0 md:pt-0 md:pb-0 md:mb-4",
+              "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 pd:w-full pd:bg-transparent dark:pd:bg-transparent pd:text-foreground pd:mx-0 pd:mt-0 pd:px-0 pd:pt-0 pd:pb-0 pd:mb-4",
             titleSection,
           )}
         >
@@ -106,9 +114,9 @@ export default function PageLayout({
               <div className="flex flex-col gap-0.5 min-w-0">
                 <h1
                   className={cn(
-                    "text-2xl md:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
+                    "text-2xl pd:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
                     headerVariant === "action-bridge" &&
-                      "!text-[22px] md:!text-2xl lg:!text-[26px] text-action-pill-foreground md:text-foreground",
+                      "!text-[22px] pd:!text-2xl lg:!text-[26px] text-action-pill-foreground pd:text-foreground",
                     showBackButton ? "text-2xl" : "text-2xl",
                     titleClassName,
                   )}
@@ -121,12 +129,10 @@ export default function PageLayout({
             {/* Right side: Actions (Desktop) + Grace Pill + Profile Pill */}
             <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
               {/* Inline filter slot (Desktop only) */}
-              {filterSlot && <div className="hidden md:block shrink-0">{filterSlot}</div>}
+              {filterSlot && <div className="hidden pd:block shrink-0">{filterSlot}</div>}
 
               {/* Inline actions (Desktop only) */}
-              {actions && <div className="hidden md:flex items-center gap-3">{actions}</div>}
-
-              {mobileActions && <div className="flex md:hidden items-center gap-2">{mobileActions}</div>}
+              {actions && <div className="hidden pd:flex items-center gap-3">{actions}</div>}
 
               {/* Grace Period Warning Pill — rendered ONLY when accessing a route via grace period */}
               {isGraceAccess && graceInfo && (
@@ -164,7 +170,7 @@ export default function PageLayout({
                   className={cn(
                     "h-10 w-10 md:h-11 md:w-auto md:px-4 rounded-full border shadow-sm shrink-0",
                     headerVariant === "action-bridge"
-                      ? "border-sidebar bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover md:bg-card md:border-border md:text-foreground md:hover:bg-muted"
+                      ? "border-sidebar bg-action-pill text-action-pill-foreground hover:bg-action-pill-hover pd:bg-card pd:border-border pd:text-foreground pd:hover:bg-muted"
                       : "bg-card border-border hover:bg-muted text-foreground",
                   )}
                 >
@@ -174,24 +180,25 @@ export default function PageLayout({
               ) : (
                 <div
                   className={cn(
-                    "flex items-center gap-1.5 md:gap-2 border rounded-full px-1 py-1 shrink-0",
+                    "flex items-center gap-1.5 pd:gap-2 border rounded-full px-1 py-1 shrink-0",
                     headerVariant === "action-bridge"
-                      ? "border-sidebar bg-action-pill text-action-pill-foreground md:bg-card md:border-border md:text-foreground"
+                      ? "border-sidebar bg-action-pill text-action-pill-foreground pd:bg-card pd:border-border pd:text-foreground"
                       : "border-border bg-card",
                   )}
                 >
+                  {alertSlot}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate("/notifications")}
                     className={cn(
-                      "relative rounded-full transition-colors h-8 w-8 md:h-10 md:w-10",
+                      "relative rounded-full transition-colors h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10",
                       headerVariant === "action-bridge"
-                        ? "text-action-pill-foreground/80 hover:text-action-pill-foreground md:text-muted-foreground md:hover:text-foreground"
+                        ? "text-action-pill-foreground/80 hover:text-action-pill-foreground pd:text-muted-foreground pd:hover:text-foreground"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    <Bell className="h-4 w-4 md:h-5 md:w-5" />
+                    <Bell className="h-4 w-4 pd:h-[18px] pd:w-[18px] md:h-5 md:w-5" />
                     {unreadNotificationsCount > 0 && (
                       <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 rounded-full bg-red-500"></span>
                     )}
@@ -210,7 +217,7 @@ export default function PageLayout({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-1 lg:pr-1 ml-1 md:ml-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background rounded-full transition-all duration-300 hover:bg-muted/80">
-                        <div className={`h-9 w-9 md:h-10 md:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm ${headerVariant === "action-bridge"&& "border-sidebar/20 md:border-border/80"}`}>
+                        <div className={`h-9 w-9 pd:h-10 pd:w-10 rounded-full border border-border/80 bg-[#0D8ABC] overflow-hidden flex items-center justify-center text-white font-bold text-xs md:text-sm ${headerVariant === "action-bridge"&& "border-sidebar/20 pd:border-border/80"}`}>
                           {staffUser?.name
                             ? staffUser.name.substring(0, 2).toUpperCase()
                             : "AU"}
@@ -267,8 +274,8 @@ export default function PageLayout({
           </div>
           {subtitle && (
             <p className={cn(
-              "hidden md:block text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl",
-              headerVariant === "action-bridge" && "text-action-pill-foreground/70 md:text-muted-foreground",
+              "hidden pd:block text-[12px] md:text-sm text-muted-foreground font-medium -mt-4 mb-2 max-w-xl",
+              headerVariant === "action-bridge" && "text-action-pill-foreground/70 pd:text-muted-foreground",
               subtitleStyles
             )}>
               {subtitle}
@@ -279,7 +286,7 @@ export default function PageLayout({
               Collapses when everything inside is desktop-only ("hidden md:flex"): the check looks at the
               content one level below the wrapper divs, otherwise the empty wrappers leave a blank gap. */}
           {headerVariant !== "action-bridge" && (actions || filterSlot) && (
-            <div className="flex md:hidden flex-wrap items-center gap-3 w-full justify-start mb-2 empty:hidden [&:not(:has(>*>*:not(.hidden)))]:hidden">
+            <div className="flex pd:hidden flex-wrap items-center gap-3 w-full justify-start mb-2 empty:hidden [&:not(:has(>*>*:not(.hidden)))]:hidden">
               {filterSlot && <div className="shrink-0">{filterSlot}</div>}
               {actions && (
                 <div className="flex items-center gap-3 w-full sm:w-auto">

@@ -6,7 +6,7 @@ import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import { useAuthStore } from '@/store/authStore';
 import { 
   CreditCard, 
@@ -41,7 +41,7 @@ import { useCan } from '@/hooks/usePermissions';
 export default function SupplierCredit() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [searchParams] = useSearchParams();
   const staffUser = useAuthStore((state) => state.staffUser);
   const can = useCan();
@@ -320,7 +320,7 @@ export default function SupplierCredit() {
   };
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Suppliers Credit" 
       subtitle={
         isMobile ? (
@@ -331,12 +331,12 @@ export default function SupplierCredit() {
       }
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE SUPPLIERS CREDIT VIEW (Hidden >= md, Block < md)                   */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* Compact Credit Metric Strip on Mobile (On top of Action Bar) */}
         <div className="grid grid-cols-3 gap-2 mx-4 pt-1 pb-1 border border-border/20 rounded-xl">
           <div className="bg-inherit borde borde-borde/20 rounded-xl p-2.5 flex flex-col items-center text-center shadow-xs">
@@ -477,7 +477,7 @@ export default function SupplierCredit() {
       {/* ========================================================================= */}
       {/* DESKTOP SUPPLIERS CREDIT VIEW (Hidden < md, Flex >= md)                   */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
           <DashboardCard
             title="Total Outstanding Owed"

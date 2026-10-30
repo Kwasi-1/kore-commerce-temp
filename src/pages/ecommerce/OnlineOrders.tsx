@@ -20,7 +20,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
@@ -37,7 +37,7 @@ import OrderStatusConfirmModal from './components/OrderStatusConfirmModal';
 
 export default function OnlineOrders() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -284,7 +284,7 @@ export default function OnlineOrders() {
   ];
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title="Online Orders"
       subtitle={isMobile ? `${orders.length} orders listed` : undefined}
       constrainHeight={true}
@@ -292,7 +292,7 @@ export default function OnlineOrders() {
       {/* ========================================================================= */}
       {/* MOBILE VIEW (Hidden >= md, Block < md)                                    */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Hero KPI Card + Metric Carousel */}
         <MobileHeroCard
           title="Total Online GMV"
@@ -446,7 +446,7 @@ export default function OnlineOrders() {
       {/* ========================================================================= */}
       {/* DESKTOP VIEW (Hidden < md, Flex >= md)                                    */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <DashboardCard

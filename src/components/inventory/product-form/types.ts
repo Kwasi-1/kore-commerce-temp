@@ -5,7 +5,9 @@ export interface TierRow {
   key: string; // stable React key
   id?: string; // server id (present when editing an existing tier)
   name: string;
-  units_per_tier: string;
+  units_per_tier: string; // base units in one of this tier (what's saved); derived from contains × of
+  contains?: string; // how many of `of` are in this tier, as typed, e.g. "10" (packs)
+  of?: string; // key of the smaller tier it's made of; '' / undefined = the base unit
   is_base_unit: boolean;
   is_default_sale_unit: boolean;
   is_default_purchase_unit: boolean;
@@ -59,6 +61,7 @@ export interface RowErrors {
   sku?: string;
   retail?: string;
   name?: string;
+  packs?: string;
 }
 
 export interface FormErrors {

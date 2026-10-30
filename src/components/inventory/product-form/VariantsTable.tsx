@@ -147,7 +147,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         title="Packs, wholesale & more"
         className={cn(
           'relative h-8 w-8 inline-flex items-center justify-center rounded-md transition-colors',
-          v.isExpanded ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          errors[v.key]?.packs ? 'text-destructive bg-destructive/10' : v.isExpanded ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
         )}
       >
         <Icon icon="lucide:sliders-horizontal" className="text-[15px]" />
@@ -231,6 +231,8 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         cost={v.cost_price_per_base_unit}
         sellMode={v.sell_mode}
         onSellModeChange={(m) => update(v.key, { sell_mode: m })}
+        error={errors[v.key]?.packs}
+        id={`pf-variant-${v.key}-packs`}
       />
     </div>
   );
@@ -332,7 +334,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
           </div>
           <div className="divide-y divide-border">
             {variants.map((v) => (
-              <div key={v.key} className={cn('px-3 py-2', (errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name) && 'bg-destructive/[0.03]')}>
+              <div key={v.key} className={cn('px-3 py-2', (errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name || errors[v.key]?.packs) && 'bg-destructive/[0.03]')}>
                 <div className={cols}>
                   {nameCell(v)}
                   <div>{skuCell(v)}</div>
@@ -351,7 +353,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
           {variants.map((v) => (
             <div
               key={v.key}
-              className={cn('rounded-lg border bg-card p-3 space-y-2', errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name ? 'border-destructive/50' : 'border-border')}
+              className={cn('rounded-lg border bg-card p-3 space-y-2', errors[v.key]?.retail || errors[v.key]?.sku || errors[v.key]?.name || errors[v.key]?.packs ? 'border-destructive/50' : 'border-border')}
             >
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">{nameCell(v)}</div>

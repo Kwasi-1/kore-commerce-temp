@@ -284,15 +284,14 @@ export default function Overview() {
   }));
 
   return (
-    <PageLayout
+    <PageLayout desktopFrom="sm"
       title={`${getGreeting()}, ${userName}`}
       titleClassName='xl:text-[27px] textwrap leading-[1]'
       subtitle="Here's what's happening with your store today."
       subtitleStyles='!block'
-      mobileActions={showMomoAlert ? <UnmatchedMomoNotice variant="icon" /> : undefined}
+      alertSlot={showMomoAlert ? <UnmatchedMomoNotice variant="icon" /> : undefined}
       actions={
-        <div className="hidden md:flex gap-3">
-          {showMomoAlert && <UnmatchedMomoNotice variant="icon" />}
+        <div className="hidden pd:flex gap-3">
           <Button
             variant="outline"
             onClick={() => navigate('/inventory/products')}
@@ -316,7 +315,7 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* MOBILE DASHBOARD VIEW (ZEN-Inspired UX - Block < md, Hidden >= md)       */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className='-mt-6'>
+      <MobileDashboardWrapper desktopFrom="sm" className='-mt-6'>
         {/* 1. Hero Balance / Revenue Card + Carousel */}
         <MobileHeroCard
           title="Today's Sales Revenue"
@@ -520,7 +519,7 @@ export default function Overview() {
       {/* ========================================================================= */}
       {/* DESKTOP DASHBOARD VIEW (Hidden < md, Block >= md)                        */}
       {/* ========================================================================= */}
-      <div className="hidden md:block">
+      <div className="hidden desk:block pb-24 md:pb-0">
 
         {/* Section Header with View Switcher */}
         <div className="flex items-center justify-between mb-4 mt-1 md:mt-2">
@@ -566,7 +565,7 @@ export default function Overview() {
         {hasPos && (!hasEcommerce || desktopView === 'pos') && (
           <div className="mb-6 md:mb-10">
             {/* Top Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4">
+            <div className="grid grid-cols-1 desk:grid-cols-2 lg:grid-cols-4 gap-3 desk:gap-4 mb-3 desk:mb-4">
               <DashboardCard
                 title="Today's Revenue"
                 value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={todaySales.revenue} />}
@@ -647,7 +646,7 @@ export default function Overview() {
               />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 desk:gap-4">
               {/* 7-Day Revenue Chart */}
               <div className="lg:col-span-2 bg-card p-4 md:p-6 rounded-xl border border-border shadow-sm text-card-foreground">
                 <div className="flex justify-between items-center mb-6">
@@ -746,7 +745,7 @@ export default function Overview() {
         {/* Ecommerce Module Overview */}
         {hasEcommerce && (!hasPos || desktopView === 'ecommerce') && (
           <div className="mb-6 md:mb-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-4">
+            <div className="grid grid-cols-1 desk:grid-cols-2 lg:grid-cols-4 gap-3 desk:gap-4 mb-4">
               <DashboardCard
                 title="Online Revenue Today"
                 value={isLoading ? <Spinner className="py-1" /> : <CurrencyDisplay amount={ecomStats.todayRevenue} />}

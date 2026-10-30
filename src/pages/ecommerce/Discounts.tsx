@@ -24,7 +24,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { CurrencyDisplay } from '@/hooks';
-import { useIsMobile } from '@/hooks/useScreenSize';
+import { useIsPhone } from '@/hooks/useScreenSize';
 import {
   MobileDashboardWrapper,
   MobileActionCapsuleBar,
@@ -32,7 +32,7 @@ import {
 } from '@/components/mobile-dashboard';
 
 export default function Discounts() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsPhone();
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,17 +177,17 @@ export default function Discounts() {
   });
 
   return (
-    <PageLayout 
+    <PageLayout desktopFrom="sm" 
       title="Discounts & Promotions"
       subtitle={isMobile ? `${discounts.length} promo codes` : undefined}
       headerVariant="action-bridge"
       constrainHeight={true}
-      subtitleStyles="!block -mt-3 mb-2 md:-mt-4 md:mb-2 text-[11px] md:text-sm"
+      subtitleStyles="!block -mt-3 mb-2 pd:-mt-4 pd:mb-2 text-[11px] pd:text-sm"
     >
       {/* ========================================================================= */}
       {/* MOBILE VIEW (Hidden >= md, Block < md)                                    */}
       {/* ========================================================================= */}
-      <MobileDashboardWrapper className="block md:hidden">
+      <MobileDashboardWrapper desktopFrom="sm">
         {/* 1. Action Capsule Bar */}
         <MobileActionCapsuleBar
           searchConfig={{
@@ -333,7 +333,7 @@ export default function Discounts() {
       {/* ========================================================================= */}
       {/* DESKTOP VIEW (Hidden < md, Flex >= md)                                    */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 relative h-full">
+      <div className="hidden desk:flex flex-col flex-1 min-h-0 relative h-full pb-24 md:pb-0">
         <EnhancedTableComponent
           columns={columns}
           rows={rows}

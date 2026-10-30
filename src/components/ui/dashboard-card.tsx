@@ -46,9 +46,9 @@ export function DashboardCard({
     <div
       onClick={handleCardClick}
       className={cn(
-        "flex flex-col h-full min-h-[110px] rounded-xl md:rounded-[10px] bg-card/60 backdrop-blur-lg p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-300 ease-in-out",
+        "flex flex-col h-full min-h-[110px] rounded-xl pd:rounded-[11px] md:rounded-[10px] bg-card/60 backdrop-blur-lg p-4 md:p-5 border md:shadow-sm text-card-foreground transition-all duration-300 ease-in-out",
         (onClick || collapsibleContent) && "cursor-pointer hover:border-foreground/50",
-        subvalue ? "md:min-h-[150px]" : "md:min-h-[140px]",
+        subvalue ? "pd:min-h-[145px] md:min-h-[150px]" : "md:min-h-[140px]",
         isActive ? "border-foreground/20 bg-secondary/30 hover:md:ring-1 ring-foreground/10" : "border-border dark:border-border/60",
         className,
       )}
@@ -78,7 +78,7 @@ export function DashboardCard({
 
       <div className="flex flex-col gap-2 mt-2">
         <div className="flex">
-          <p className={`text-[1.3rem] md:text-2xl lg:text-[1.75rem] xl:text-3xl font-semibold text-ink textforeground ${valueStyle}`}>
+          <p className={`text-[1.3rem] sm:text-[1.4rem] md:text-2xl lg:text-[1.75rem] xl:text-3xl font-semibold text-ink textforeground ${valueStyle}`}>
             {value}
           </p>
           {valueTrailing}

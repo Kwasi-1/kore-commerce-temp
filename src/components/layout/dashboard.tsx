@@ -66,7 +66,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, isLoading }) => {
                       {stat.label}
                     </p>
                     <div className="flex items-center justify-between">
-                      <div className="text-[28px] md:text-3xl font-semibold text-foreground tracking-tight leading-none whitespace-nowrap">
+                      <div className="text-[28px] desk:text-2xl lg:text-3xl font-semibold text-foreground tracking-tight leading-none whitespace-nowrap">
                         {isMonetaryValue(stat.value) ? (
                           isVisible ? (
                             stat.value
