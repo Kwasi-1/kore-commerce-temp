@@ -387,7 +387,7 @@ export default function VariantsTable({ variants, onChange, errors, isEditing, g
         </div>
       )}
 
-      {isEditing && <p className="text-[11px] text-muted-foreground">Change stock levels in Stock Adjustments.</p>}
+      {isEditing && <p className="text-[11px] text-muted-foreground">Change stock levels in Stock Management.</p>}
     </div>
   );
 }

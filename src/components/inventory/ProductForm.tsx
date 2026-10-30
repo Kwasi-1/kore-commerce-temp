@@ -896,7 +896,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel, onDirtyC
                   inputProps={{ min: "0", step: "any", inputMode: "decimal", onWheel: blurOnWheel }}
                 />
                 {isEditing && (
-                  <p className="col-span-2 text-[11px] text-muted-foreground">Change stock levels in Stock Adjustments.</p>
+                  <p className="col-span-2 text-[11px] text-muted-foreground">Change stock levels in Stock Management.</p>
                 )}
               </div>
 
