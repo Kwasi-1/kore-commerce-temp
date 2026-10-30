@@ -21,11 +21,12 @@ export function useNotificationAction() {
   const [restockItem, setRestockItem] = useState<ProductStockItem | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const openRestock = async (n: NotificationItem) => {
-    setLoadingId(n.id);
+  /** Opens Adjust Stock Level for one variant. `key` marks which button shows "Opening…". */
+  const openRestock = async (productId: string, variantId: string, key: string) => {
+    setLoadingId(key);
     try {
-      const p = (await apiClient.get(`/tenant/products/${n.productId}`)).data?.success?.data?.product;
-      const v = (p?.variants || []).find((x: any) => x.id === n.referenceId);
+      const p = (await apiClient.get(`/tenant/products/${productId}`)).data?.success?.data?.product;
+      const v = (p?.variants || []).find((x: any) => x.id === variantId);
       if (!p || !v) throw new Error('missing');
       const attrs = Object.values(v.variant_attributes || {}).filter(Boolean).join(' / ');
       setRestockItem({
@@ -52,7 +53,7 @@ export function useNotificationAction() {
   const actionFor = (n: NotificationItem): { label: string; run: () => void } | null => {
     if (!canManage) return null;
     if (n.referenceType === 'low_stock' && n.productId && can('stock.adjust')) {
-      return { label: 'Restock', run: () => openRestock(n) };
+      return { label: 'Restock', run: () => openRestock(n.productId as string, n.referenceId as string, n.id) };
     }
     if (n.referenceType === 'low_stock' && can(['stock.adjust', 'products.edit'])) {
       return { label: 'View stock', run: () => navigate(NEEDS_RESTOCK_URL) };
@@ -73,5 +74,7 @@ export function useNotificationAction() {
     />
   );
 
-  return { actionFor, restockModal, loadingId };
+  const canRestock = canManage && can('stock.adjust');
+
+  return { actionFor, openRestock, canRestock, restockModal, loadingId };
 }

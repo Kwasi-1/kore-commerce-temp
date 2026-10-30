@@ -109,6 +109,34 @@ export function useRecentNotifications(enabled: boolean) {
   });
 }
 
+export interface RestockItem {
+  variant_id: string;
+  product_id: string;
+  name: string;
+  variant: string | null;
+  sku: string | null;
+  quantity: number;
+  unit: string;
+  alert_level: number;
+  image: string | null;
+}
+
+/** The items inside the "needs restocking" stack: out of stock first, then the lowest, 20 at a time. */
+export function useRestockItems(enabled: boolean, search = '', perPage = 20) {
+  return useInfiniteQuery({
+    queryKey: [...NOTIFICATIONS_KEY, 'stock-items', search.trim(), perPage],
+    queryFn: async ({ pageParam }) => {
+      const params: Record<string, string | number> = { page: pageParam, per_page: perPage };
+      if (search.trim()) params.search = search.trim();
+      const d = (await apiClient.get('/tenant/notifications/stock-items', { params })).data?.success?.data || {};
+      return { items: (d.items || []) as RestockItem[], total: Number(d.total ?? 0), page: Number(d.page ?? pageParam), has_more: !!d.has_more };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.has_more ? last.page + 1 : undefined),
+    enabled,
+  });
+}
+
 /** Mark read / delete / mark all / clear read. Each refreshes every notification query; errors are shown, not hidden. */
 export function useNotificationActions() {
   const queryClient = useQueryClient();
