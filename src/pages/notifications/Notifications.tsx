@@ -12,6 +12,7 @@ import {
   type NotificationTab,
 } from '@/hooks/useNotifications';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
+import StockStrip from '@/components/notifications/StockStrip';
 import { useNotificationAction } from '@/components/notifications/useNotificationAction';
 
 export type { NotificationItem } from '@/hooks/useNotifications';
@@ -58,7 +59,7 @@ export default function Notifications() {
                 placeholder="Search alerts by title, order, or keyword..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus:border-foreground/20"
               />
             </div>
 
@@ -122,6 +123,9 @@ export default function Notifications() {
 
         {/* Notifications Feed */}
         <div className="space-y-2.5">
+          {(activeTab === 'all' || activeTab === 'inventory') && list.data?.pages[0] && (
+            <StockStrip summary={list.data.pages[0].stockSummary} />
+          )}
           {list.isLoading ? (
             <div className="py-16 text-center text-muted-foreground space-y-2">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />

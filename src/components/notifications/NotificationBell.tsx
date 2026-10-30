@@ -13,6 +13,7 @@ import {
   useUnreadNotifications,
 } from '@/hooks/useNotifications';
 import { NotificationRow } from './NotificationRow';
+import StockStrip from './StockStrip';
 import { useNotificationAction } from './useNotificationAction';
 
 interface Props {
@@ -72,13 +73,18 @@ export default function NotificationBell({ className, iconClassName, dotClassNam
     </div>
   ) : recent.isError ? (
     <p className="py-8 text-center text-xs text-muted-foreground">Couldn't load notifications.</p>
-  ) : (recent.data || []).length === 0 ? (
-    <p className="py-8 text-center text-xs text-muted-foreground">You're all caught up.</p>
   ) : (
-    <div className="space-y-0.5">
-      {(recent.data || []).map((n) => (
-        <NotificationRow key={n.id} item={n} action={actionFor(n)} busy={loadingId === n.id} compact onAfterAction={close} />
-      ))}
+    <div className="space-y-1.5">
+      {recent.data && <StockStrip summary={recent.data.stockSummary} compact onNavigate={close} />}
+      {(recent.data?.items || []).length === 0 ? (
+        <p className="py-8 text-center text-xs text-muted-foreground">You're all caught up.</p>
+      ) : (
+        <div className="space-y-0.5">
+          {(recent.data?.items || []).map((n) => (
+            <NotificationRow key={n.id} item={n} action={actionFor(n)} busy={loadingId === n.id} compact onAfterAction={close} />
+          ))}
+        </div>
+      )}
     </div>
   );
 

@@ -731,7 +731,7 @@ export default function Overview() {
                 
                 {lowStockProducts.length > 0 && (
                   <button 
-                    onClick={() => navigate('/inventory/stock')}
+                    onClick={() => navigate('/inventory/stock?stock=needs_restock')}
                     className="mt-4 pt-3 border-t border-border/60 w-full text-left text-sm font-semibold text-primary hover:underline transition-colors"
                   >
                     → Manage stock levels

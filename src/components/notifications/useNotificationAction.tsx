@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
 import { useCan } from '@/hooks/usePermissions';
 import { useFeaturesStore } from '@/store/featuresStore';
-import { NOTIFICATIONS_KEY, useCanManageNotifications, type NotificationItem } from '@/hooks/useNotifications';
+import { NEEDS_RESTOCK_URL, NOTIFICATIONS_KEY, useCanManageNotifications, type NotificationItem } from '@/hooks/useNotifications';
 import { QuickStockIntakeModal, type ProductStockItem } from '@/pages/inventory/components/QuickStockIntakeModal';
 
 /**
@@ -54,8 +54,8 @@ export function useNotificationAction() {
     if (n.referenceType === 'low_stock' && n.productId && can('stock.adjust')) {
       return { label: 'Restock', run: () => openRestock(n) };
     }
-    if ((n.referenceType === 'low_stock' || n.referenceType === 'low_stock_summary') && can(['stock.adjust', 'products.edit'])) {
-      return { label: 'View stock', run: () => navigate('/inventory/stock') };
+    if (n.referenceType === 'low_stock' && can(['stock.adjust', 'products.edit'])) {
+      return { label: 'View stock', run: () => navigate(NEEDS_RESTOCK_URL) };
     }
     if (n.category === 'orders' && can('online.orders')) {
       return { label: 'View orders', run: () => navigate('/ecommerce/orders') };

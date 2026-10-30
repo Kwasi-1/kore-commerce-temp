@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
@@ -31,7 +31,20 @@ export default function StockManagement() {
   // Search & Filter state (server-side)
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Selection>(new Set(['all']));
-  const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set(['all']));
+  // ?stock=needs_restock (from notifications, the dashboard, the sidebar badge) preselects the filter
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stockParam = searchParams.get('stock');
+  const [stockStatusFilter, setStockStatusFilter] = useState<Selection>(new Set([stockParam || 'all']));
+  useEffect(() => {
+    if (!stockParam) return;
+    setStockStatusFilter(new Set([stockParam]));
+    // Applied: drop it from the URL so the filter can be changed freely
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('stock');
+      return next;
+    }, { replace: true });
+  }, [stockParam, setSearchParams]);
   const [sourceFilter, setSourceFilter] = useState<Selection>(new Set(['all']));
   const [batchProductId, setBatchProductId] = useState<string | null>(null);
   // Made-in-house rules (stock from batches) only apply while the setting is on
@@ -290,6 +303,7 @@ export default function StockManagement() {
           secondary={true}
           tabs={[
             { id: 'all', label: 'All' },
+            { id: 'needs_restock', label: 'Needs Restock' },
             { id: 'low_stock', label: 'Low Stock' },
             { id: 'out_of_stock', label: 'Out of Stock' },
             { id: 'in_stock', label: 'In Stock' },
@@ -395,9 +409,11 @@ export default function StockManagement() {
           filterLabel="Stock Status"
           filterOptions={[
             { uid: 'all', name: 'All Statuses' },
-            { uid: 'in_stock', name: 'In Stock (> 5)' },
-            { uid: 'low_stock', name: 'Low Stock (1 - 5)' },
-            { uid: 'out_of_stock', name: 'Out of Stock (0)' },
+            // Each item's own alert level decides "low" (not a fixed 5)
+            { uid: 'needs_restock', name: 'Needs Restock (low + out)' },
+            { uid: 'in_stock', name: 'In Stock' },
+            { uid: 'low_stock', name: 'Low Stock' },
+            { uid: 'out_of_stock', name: 'Out of Stock' },
           ]}
           filterValue={stockStatusFilter}
           onFilterChange={(keys: any) => setStockStatusFilter(keys)}

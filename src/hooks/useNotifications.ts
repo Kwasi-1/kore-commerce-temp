@@ -17,8 +17,18 @@ export interface NotificationItem {
   productId?: string | null;
 }
 
+/** Active items at or below their alert level right now (live, not notifications) */
+export interface StockSummary {
+  low: number;
+  out: number;
+}
+
+/** Stock Levels, opened on everything at or below its alert level */
+export const NEEDS_RESTOCK_URL = '/inventory/stock?stock=needs_restock';
+
 interface ListPage {
   notifications: NotificationItem[];
+  stockSummary: StockSummary;
   unreadCount: number;
   total: number;
   page: number;
@@ -63,6 +73,7 @@ const fetchPage = async (page: number, tab: NotificationTab, search: string, per
   const d = (await apiClient.get('/tenant/notifications', { params })).data?.success?.data || {};
   return {
     notifications: d.notifications || [],
+    stockSummary: d.stockSummary || { low: 0, out: 0 },
     unreadCount: d.unreadCount ?? 0,
     total: d.total ?? 0,
     page: d.page ?? page,
@@ -82,13 +93,16 @@ export function useNotificationList(tab: NotificationTab, search: string) {
   });
 }
 
-/** The header bell: the latest 10, unread first. */
+/** The header bell: the latest 10, unread first, and the live stock count. */
 export function useRecentNotifications(enabled: boolean) {
   return useQuery({
     queryKey: [...NOTIFICATIONS_KEY, 'recent'],
     queryFn: async () => {
       const page = await fetchPage(1, 'all', '', 10);
-      return [...page.notifications].sort((a, b) => Number(a.read) - Number(b.read));
+      return {
+        items: [...page.notifications].sort((a, b) => Number(a.read) - Number(b.read)),
+        stockSummary: page.stockSummary,
+      };
     },
     enabled,
     staleTime: 10_000,

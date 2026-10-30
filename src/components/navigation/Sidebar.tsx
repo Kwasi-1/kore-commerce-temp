@@ -228,7 +228,8 @@ export default function Sidebar() {
       items: [
         { name: 'Products', to: '/inventory/products', icon: Package, permission: 'products.edit' },
         { name: 'Stock Adjustments', to: '/inventory/adjustments', icon: ClipboardList, moduleKey: 'adjustments', permission: ['stock.adjust', 'stock.approve'] },
-        { name: 'Stock Levels', to: '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined, permission: ['stock.adjust', 'products.edit'] },
+        // With items to restock, the link (and its badge) opens straight on them
+        { name: 'Stock Levels', to: lowStockCount > 0 ? '/inventory/stock?stock=needs_restock' : '/inventory/stock', icon: Layers, badge: lowStockCount > 0 ? lowStockCount : undefined, permission: ['stock.adjust', 'products.edit'] },
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation', permission: 'stock.count' },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers', permission: ['purchasing.manage', 'purchasing.supplier_payments'] },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders', permission: 'purchasing.manage' },
@@ -301,10 +302,11 @@ export default function Sidebar() {
     .map((section) => ({ ...section, show: section.show && section.items.length > 0 }));
 
   const allNavPaths = useMemo(() => {
-    return navSections.flatMap((s) => s.items.map((i) => i.to));
+    return navSections.flatMap((s) => s.items.map((i) => i.to.split("?")[0]));
   }, []);
 
-  const isRouteActive = (to: string) => {
+  const isRouteActive = (link: string) => {
+    const to = link.split('?')[0]; // a link may preselect a filter (Stock Levels → ?stock=needs_restock)
     if (location.pathname === to) return true;
     if (to === '/dashboard') return false;
     if (location.pathname.startsWith(to + '/')) {
