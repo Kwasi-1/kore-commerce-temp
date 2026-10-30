@@ -278,12 +278,11 @@ export default function UnmatchedMomoNotice() {
           <div className="pt-2 px-1 border-b border-border/50 pb-3 space-y-3">
             <div>
               <h3 className="text-lg font-bold text-foreground">MoMo payments without a sale</h3>
-              <p className="text-[12px] font-normal text-muted-foreground mt-0.5">
-                The customer paid but the sale was never completed. Send it to a cashier (or yourself) to complete the sale,
-                or sort it out (e.g. refund it) and note what you did. No products were sold, so nothing goes to Returns.
+              <p className="hidden text-[12px] font-normal text-muted-foreground mt-0.5 leading-relaxed">
+                The customer approved these after the sale was abandoned. Refund them or ring up the sale, then note what you did.
               </p>
             </div>
-            <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
+            <div className="inline-flex rounded-full border-border/70 bg-muted/40 p-0.5">
               {([['open', `To sort out (${charges.length})`], ['done', 'Sorted out']] as const).map(([id, label]) => (
                 <button
                   key={id}
@@ -301,7 +300,7 @@ export default function UnmatchedMomoNotice() {
           </div>
         }
         body={
-          <div className="py-3 space-y-3">
+          <div className="py-3 space-y-3 pb-6">
             {tab === 'open' && charges.map(renderOpen)}
             {tab === 'done' && history === null && <p className="text-xs text-muted-foreground">Loading…</p>}
             {tab === 'done' && history?.length === 0 && (
