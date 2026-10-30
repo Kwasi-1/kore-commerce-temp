@@ -141,17 +141,16 @@ export default function Notifications() {
               </CardContent>
             </Card>
           ) : items.length === 0 ? (
-            <Card className="border-border/60 bg-card">
-              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground mb-3">
-                  <Icon icon="solar:bell-linear" className="h-6 w-6 opacity-60" />
-                </div>
-                <h3 className="text-base font-bold text-foreground">No Notifications</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">
-                  You're all caught up! There are no alerts matching your current filter.
-                </p>
-              </CardContent>
-            </Card>
+            // No card behind it: in dark mode a card here shows as a large grey block
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground mb-3">
+                <Icon icon="solar:bell-linear" className="h-6 w-6 opacity-60" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">No Notifications</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">
+                You're all caught up! There are no alerts matching your current filter.
+              </p>
+            </div>
           ) : (
             <>
               {items.map((item) => (

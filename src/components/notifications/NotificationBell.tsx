@@ -77,7 +77,10 @@ export default function NotificationBell({ className, iconClassName, dotClassNam
     <div className="space-y-1.5">
       {recent.data && <StockStrip summary={recent.data.stockSummary} compact onNavigate={close} />}
       {(recent.data?.items || []).length === 0 ? (
-        <p className="py-8 text-center text-xs text-muted-foreground">You're all caught up.</p>
+        <p className="py-8 text-center text-xs text-muted-foreground">
+          {/* Not "all caught up" right under "81 items need restocking" */}
+          {recent.data && recent.data.stockSummary.low + recent.data.stockSummary.out > 0 ? 'No new notifications.' : "You're all caught up."}
+        </p>
       ) : (
         <div className="space-y-0.5">
           {(recent.data?.items || []).map((n) => (

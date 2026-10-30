@@ -29,11 +29,18 @@ export default function StockStrip({ summary, compact, onNavigate }: Props) {
   return (
     <div
       className={clsx(
-        'flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06]',
-        compact ? 'px-3 py-2' : 'px-4 py-3',
+        // Neutral like the notification rows: it's on screen most of the time, so colour would turn into noise
+        'flex items-center gap-3 border bg-card border-border',
+        compact ? 'rounded-lg px-3 py-2' : 'rounded-xl p-4',
       )}
     >
-      <Icon icon="solar:box-minimalistic-linear" className={clsx('shrink-0 text-amber-600 dark:text-amber-400', compact ? 'h-4 w-4' : 'h-5 w-5')} />
+      {compact ? (
+        <Icon icon="solar:box-minimalistic-linear" className="h-4 w-4 shrink-0 text-muted-foreground" />
+      ) : (
+        <div className="p-2.5 rounded-[10px] border shrink-0 bg-muted/50 border-border/80">
+          <Icon icon="solar:box-minimalistic-linear" className="h-5 w-5 text-foreground/80" />
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <p className={clsx('font-semibold text-foreground', compact ? 'text-xs' : 'text-sm')}>
           {total} item{total === 1 ? '' : 's'} need{total === 1 ? 's' : ''} restocking
