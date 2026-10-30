@@ -10,6 +10,19 @@ export default {
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    // The full list (not extend), so `desk` sits in order with the others: an extended smaller
+    // breakpoint is emitted last and would override lg:/xl: on big screens.
+    // desk: where pages switch from their phone layout to their desktop layout (tablets from
+    // 640px). The sidebar and bottom nav still switch at md.
+    screens: {
+      sm: "640px",
+      desk: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+      "3xl": "1640px",
+    },
     container: {
       center: true,
       padding: "2rem",
@@ -19,9 +32,6 @@ export default {
       },
     },
     extend: {
-      screens: {
-        "3xl": "1640px",
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -128,5 +138,12 @@ export default {
     require("tailwindcss-animate"),
     require("tailwind-scrollbar-hide"),
     nextui(),
+    // pd: "page desktop", for PageLayout's header. Desktop from md, or from desk (640px) on pages
+    // already switched to their desktop layout there (PageLayout desktopFrom="sm" adds .desk-sm).
+    // Use it only for switches with no lg:/xl: override on the same property (plugin variants
+    // come after the breakpoints in the CSS).
+    function ({ addVariant }) {
+      addVariant("pd", ["@media (min-width: 768px) { & }", "@media (min-width: 640px) { .desk-sm & }"]);
+    },
   ],
 };

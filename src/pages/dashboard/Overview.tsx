@@ -289,10 +289,9 @@ export default function Overview() {
       titleClassName='xl:text-[27px] textwrap leading-[1]'
       subtitle="Here's what's happening with your store today."
       subtitleStyles='!block'
-      mobileActions={showMomoAlert ? <UnmatchedMomoNotice variant="icon" /> : undefined}
+      alertSlot={showMomoAlert ? <UnmatchedMomoNotice variant="icon" /> : undefined}
       actions={
         <div className="hidden md:flex gap-3">
-          {showMomoAlert && <UnmatchedMomoNotice variant="icon" />}
           <Button
             variant="outline"
             onClick={() => navigate('/inventory/products')}
