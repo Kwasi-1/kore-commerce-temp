@@ -120,7 +120,7 @@ export function StockHistoryModal({
           </div>
 
           {/* Timeline Feed */}
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 !font-sans">
             <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
               Adjustment Timeline
             </h5>

@@ -21,6 +21,8 @@ interface MatchedRow {
   cost_price: number;
   packaging_tier_id: string | null;
   packaging_tier_name: string;
+  /** The file's pack name matched none of the product's sizes: the user must pick one */
+  tier_unmatched?: string | null;
   expiry_date?: string;
   batch_reference?: string;
   checked: boolean;
@@ -96,6 +98,8 @@ export default function StockAuditScreen() {
         current_stock: Number(row.current_stock) || 0,
         quantity_to_add: Number(row.quantity_to_add) || 0,
         cost_price: Number(row.cost_price) || 0,
+        // Unknown pack name in the file: no size until the user picks one
+        packaging_tier_id: row.tier_unmatched ? null : row.packaging_tier_id,
         checked: true,
         track_expiry: false
       }));
@@ -316,7 +320,8 @@ export default function StockAuditScreen() {
       setMatchedRows(prev => prev.map((r, i) => i === idx ? {
         ...r,
         packaging_tier_id: tier.id,
-        packaging_tier_name: tier.name
+        packaging_tier_name: tier.name,
+        tier_unmatched: null,
       } : r));
     }
   };
@@ -352,6 +357,11 @@ export default function StockAuditScreen() {
     const checkedMatched = matchedRows.filter(r => r.checked);
     if (checkedMatched.length === 0) {
       toast.error("Please select at least one row to receive into stock.");
+      return;
+    }
+    const needSize = checkedMatched.filter(r => r.tier_unmatched && !r.packaging_tier_id).length;
+    if (needSize > 0) {
+      toast.error(`Pick the pack size for ${needSize} row${needSize === 1 ? "" : "s"} marked in amber`);
       return;
     }
 
@@ -602,7 +612,7 @@ export default function StockAuditScreen() {
                     </th>
                     <th className="px-4 py-2.5">Product Variant</th>
                     <th className="px-4 py-2.5">SKU</th>
-                    <th className="px-4 py-2.5">Current Stock</th>
+                    <th className="px-4 py-2.5">Current Stock (Units)</th>
                     <th className="px-4 py-2.5 w-32">Quantity to Add</th>
                     <th className="px-4 py-2.5 w-36">Packaging Tier</th>
                     <th className="px-4 py-2.5 w-32 text-right">Cost Price</th>
@@ -625,6 +635,8 @@ export default function StockAuditScreen() {
                     const baseUnitsAdded = qtyToAdd * unitsMultiplier;
                     const currentStockNum = Number(row.current_stock || 0);
                     const newTotal = currentStockNum + baseUnitsAdded;
+                    const baseName = packagingTiers.find((t: any) => t.is_base_unit)?.name || "unit";
+                    const needsSize = !!row.tier_unmatched && !row.packaging_tier_id;
 
                     return (
                       <tr
@@ -672,12 +684,16 @@ export default function StockAuditScreen() {
                               {row.packaging_tier_name} (Base)
                             </span>
                           ) : (
+                            <>
                             <select
                               value={row.packaging_tier_id || ""}
                               onChange={(e) => handleTierChange(idx, e.target.value)}
                               disabled={!row.checked || loadingPOSProducts}
-                              className="w-full h-8 px-2 border border-input rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50"
+                              className={`w-full h-8 px-2 border rounded-md bg-background text-xs text-foreground focus:outline-none focus:border-foreground/15 disabled:opacity-50 ${
+                                needsSize ? "border-amber-500 bg-amber-500/5" : "border-input"
+                              }`}
                             >
+                              {needsSize && <option value="">Pick a size</option>}
                               {packagingTiers.map((t: any) => (
                                 <option key={t.id} value={t.id}>
                                   {t.name} ({t.units_per_tier}x)
@@ -687,6 +703,16 @@ export default function StockAuditScreen() {
                                 <option value="">{row.packaging_tier_name || "Unit"}</option>
                               )}
                             </select>
+                            {needsSize ? (
+                              <span className="block mt-0.5 text-[10px] leading-tight font-semibold text-amber-600 dark:text-amber-400">
+                                "{row.tier_unmatched}" isn't one of its sizes
+                              </span>
+                            ) : unitsMultiplier > 1 && qtyToAdd > 0 ? (
+                              <span className="block mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                                = {baseUnitsAdded} {baseName}s
+                              </span>
+                            ) : null}
+                            </>
                           )}
                         </td>
                         <td className="px-2 py-1.5">
