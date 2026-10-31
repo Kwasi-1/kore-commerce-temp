@@ -17,6 +17,7 @@ interface BulkProductUploadModalProps {
 interface ParsedProduct {
   name: string;
   category: string;
+  brand: string;
   description: string;
   sku: string;
   variant_name: string;
@@ -232,6 +233,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
         const processed: ParsedProduct[] = results.data.map((row) => ({
           name: (row.name || row.product_name || "").trim(),
           category: (row.category || "").trim(),
+          brand: (row.brand || "").toString().trim(),
           description: (row.description || "").trim(),
           sku: (row.sku || row.variant_sku || "").trim(),
           variant_name: (row.variant_name || row.attributes || "").trim(),
@@ -252,7 +254,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
           tags: (row.tags || "").trim(),
           _raw: Object.fromEntries(
             Object.entries({
-              name: row.name ?? row.product_name, category: row.category, description: row.description,
+              name: row.name ?? row.product_name, category: row.category, brand: row.brand, description: row.description,
               sku: row.sku ?? row.variant_sku, base_unit_name: row.base_unit_name ?? row.unit_name,
               cost_price: row.cost_price, retail_price: row.retail_price ?? row.price, wholesale_price: row.wholesale_price,
               tier_2_name: row.tier_2_name, tier_2_units: row.tier_2_units ?? row.tier_2_count,
@@ -413,6 +415,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
     const payload = validProducts.map((p) => ({
       name: p.name,
       category: p.category || "General",
+      brand: p.brand || undefined,
       description: p.description,
       sku: p.sku || undefined,
       variant_name: p.variant_name || undefined,
@@ -516,6 +519,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
     const headers = [
       "name",
       "category",
+      "brand",
       "description",
       "sku",
       "variant_name",
@@ -537,13 +541,13 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
     ].join(",");
 
     const rows = [
-      `"Sugar Bread","Bakery","Freshly baked bread","BRD-001","","piece","50","8.00","12.00","10.00","","","","","","","","","","fresh|bakery"`,
+      `"Sugar Bread","Bakery","","Freshly baked bread","BRD-001","","piece","50","8.00","12.00","10.00","","","","","","","","","","fresh|bakery"`,
       // tier_2_units = bottles in a carton
-      `"Voltic Mineral Water","Beverages","500ml natural spring water","VOL-500","500ml Bottle","bottle","240","1.20","2.50","2.00","Carton","24","55.00","48.00","","","","","","drinks|water"`,
+      `"Voltic Mineral Water","Beverages","Voltic","500ml natural spring water","VOL-500","500ml Bottle","bottle","240","1.20","2.50","2.00","Carton","24","55.00","48.00","","","","","","drinks|water"`,
       // Packs inside packs: a pack is 15 singles, a bag is 10 packs (tier_3_made_of = tier_2), so 150 singles
-      `"Softcare Diaper","Baby","Baby diapers","DIAP-S","Small","single","300","1.80","2.50","","Pack","15","25.00","","Bag","10","tier_2","240.00","","baby|diapers"`,
-      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-RED-L","Red / Large","piece","30","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
-      `"Graphic Cotton T-Shirt","Fashion","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
+      `"Softcare Diaper","Baby","Softcare","Baby diapers","DIAP-S","Small","single","300","1.80","2.50","","Pack","15","25.00","","Bag","10","tier_2","240.00","","baby|diapers"`,
+      `"Graphic Cotton T-Shirt","Fashion","","100% Premium Cotton","TSHIRT-RED-L","Red / Large","piece","30","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
+      `"Graphic Cotton T-Shirt","Fashion","","100% Premium Cotton","TSHIRT-BLU-M","Blue / Medium","piece","25","15.00","35.00","28.00","","","","","","","","","","clothing|tshirt"`,
     ].join("\n");
 
     const sampleCsv = `${headers}\n${rows}`;
@@ -851,6 +855,7 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
                         <th className="px-3 py-2.5 font-bold !tracking-wide">Wholesale</th>
                         <th className="px-3 py-2.5 font-bold !tracking-wide">Packaging Tiers</th>
                         <th className="px-3 py-2.5 font-bold !tracking-wide">Category</th>
+                        <th className="px-3 py-2.5 font-bold !tracking-wide">Brand</th>
                         <th className="px-3 py-2.5 font-bold !tracking-wide">Tags</th>
                       </tr>
                     </thead>
@@ -1012,6 +1017,15 @@ export function BulkProductUploadModal({ isOpen, onClose, onSuccess, onUpdateExi
                                 onChange={(e) => handleCellChange(idx, "category", e.target.value)}
                                 className="w-full px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/30 outline-none text-xs bg-transparent"
                                 placeholder="Category"
+                              />
+                            </td>
+                            <td className="p-2 w-28">
+                              <input
+                                type="text"
+                                value={row.brand}
+                                onChange={(e) => handleCellChange(idx, "brand", e.target.value)}
+                                className="w-full px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/30 outline-none text-xs bg-transparent"
+                                placeholder="Optional"
                               />
                             </td>
                             <td className="p-2 min-w-[130px]">

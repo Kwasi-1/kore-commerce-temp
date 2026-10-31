@@ -112,6 +112,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
 
   // Use array for multi-select
   const [activeCategories, setActiveCategories] = useState<string[]>([]);
+  const [activeBrands, setActiveBrands] = useState<string[]>([]);
+  // Which list the filter shows (the brand list only appears when products have brands)
+  const [filterKind, setFilterKind] = useState<'category' | 'brand'>('category');
+  const clearFilters = () => {
+    setActiveCategories([]);
+    setActiveBrands([]);
+  };
 
   // Only show full-screen spinner on cold start (first visit with zero cache)
   const [isLoading, setIsLoading] = useState(() => {
@@ -201,6 +208,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           price: rawRetailPrice,
           imageUrl: item.imageUrl || item.images?.[0] || undefined,
           category: item.category || 'General',
+          brand: item.brand || undefined,
           description: item.description,
           stock_quantity: item.stock_quantity ?? 0,
           stock_display: stockDisplayVal,
@@ -243,6 +251,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
           price: defaultPrice,
           imageUrl: variant.imageUrl || item.thumbnail || item.images?.[0] || undefined,
           category: item.category || 'General',
+          brand: item.brand || undefined,
           description: item.description,
           stock_quantity: variant.stock_quantity ?? 0,
           stock_display: stockDisplayVal,
@@ -363,6 +372,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       (p) => p.name,
       (p) => p.sku,
       (p) => p.category,
+      (p) => p.brand,
       (p) => p.description,
       (p) => Object.values(p.variant_attributes || {}).join(' '),
     ]);
@@ -370,14 +380,14 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     // If matches exist in local catalog, display instantly with no spinner and 0 network traffic
     if (localMatches.length > 0) {
       setProducts(localMatches);
-      setActiveCategories([]);
+      clearFilters();
       return;
     }
 
     // 2. Server Fallback: If 0 local matches and online, check if it's a newly added product on server
     if (!navigator.onLine) {
       setProducts([]);
-      setActiveCategories([]);
+      clearFilters();
       return;
     }
 
@@ -387,7 +397,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
       const foundProducts = searchResponse.data?.success?.data?.products || [];
       const flat = flattenProducts(foundProducts);
       setProducts(flat);
-      setActiveCategories([]);
+      clearFilters();
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed');
@@ -512,10 +522,16 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     });
   };
 
-  // Filter products by active categories and out-of-stock preference
-  let filteredProducts = activeCategories.length === 0 
-    ? products 
+  const toggleBrand = (brand: string) =>
+    setActiveBrands(prev => (prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]));
+
+  // Filter products by active categories and brands (both apply) and out-of-stock preference
+  let filteredProducts = activeCategories.length === 0
+    ? products
     : products.filter(p => activeCategories.includes(p.category || 'Others Product'));
+  if (activeBrands.length > 0) {
+    filteredProducts = filteredProducts.filter(p => !!p.brand && activeBrands.includes(p.brand));
+  }
 
   if (hideOutOfStock) {
     filteredProducts = filteredProducts.filter(p => (p.stock_quantity ?? 0) > 0);
@@ -528,7 +544,22 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
     });
   }
 
-  const totalActiveFilters = activeCategories.length + (hideOutOfStock ? 1 : 0);
+  const totalActiveFilters = activeCategories.length + activeBrands.length + (hideOutOfStock ? 1 : 0);
+
+  // Brands across the whole catalogue, counted per product like the categories
+  const brandSource = cachedProducts.length > 0 ? cachedProducts : products;
+  const brandCounts = new Map<string, Set<string>>();
+  brandSource.forEach(p => {
+    if (!p.brand) return;
+    if (!brandCounts.has(p.brand)) brandCounts.set(p.brand, new Set());
+    brandCounts.get(p.brand)!.add(p.product_name);
+  });
+  const brands = Array.from(brandCounts.entries())
+    .map(([name, set]) => ({ name, count: set.size }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const hasBrands = brands.length > 0;
+  const showingBrands = hasBrands && filterKind === 'brand';
+  const displayBrands = simpleSearch(brands, filterSearchTerm, [(b) => b.name]);
 
   const hasOutOfStockProducts = products.some(p => (p.stock_quantity ?? 0) <= 0);
 
@@ -536,7 +567,55 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
   const displayCategories = simpleSearch(categories, filterSearchTerm, [(c) => c.name]);
 
   // Render Category Checkbox List
-  const renderCategoryCheckboxes = () => (
+  /** Categories | Brands switch inside the filter (only when some products have a brand) */
+  const renderFilterKindSwitch = (large = false) =>
+    hasBrands ? (
+      <div className={cn('grid grid-cols-2 p-0.5 rounded-full bg-muted/60 border border-border/50', large ? 'mb-3' : 'mb-2')}>
+        {(['category', 'brand'] as const).map(kind => {
+          const count = kind === 'category' ? activeCategories.length : activeBrands.length;
+          return (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => {
+                setFilterKind(kind);
+                setFilterSearchTerm('');
+              }}
+              className={cn(
+                'rounded-full font-semibold transition-colors',
+                large ? 'py-2 text-sm' : 'py-1 text-xs',
+                filterKind === kind ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {kind === 'category' ? 'Categories' : 'Brands'}
+              {count > 0 && ` (${count})`}
+            </button>
+          );
+        })}
+      </div>
+    ) : null;
+
+  const renderCategoryCheckboxes = () => showingBrands ? (
+    <div className="flex flex-col gap-1 max-h-[260px] overflow-y-auto scrollbar-hide py-1">
+      {displayBrands.map(b => (
+        <DropdownMenuCheckboxItem
+          key={b.name}
+          checked={activeBrands.includes(b.name)}
+          onCheckedChange={() => toggleBrand(b.name)}
+          className="cursor-pointer rounded-md"
+          onSelect={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center justify-between w-full pr-2">
+            <span>{b.name}</span>
+            <span className="text-muted-foreground text-xs ml-2">({b.count})</span>
+          </div>
+        </DropdownMenuCheckboxItem>
+      ))}
+      {displayBrands.length === 0 && (
+        <div className="text-sm text-muted-foreground text-center py-4">No brands found.</div>
+      )}
+    </div>
+  ) : (
     <div className="flex flex-col gap-1 max-h-[260px] overflow-y-auto scrollbar-hide py-1">
       {displayCategories.map(cat => (
         <DropdownMenuCheckboxItem
@@ -697,12 +776,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 </div>
               )}
 
-              {/* Categories Search & List */}
+              {/* Categories / Brands Search & List */}
+              {renderFilterKindSwitch()}
               <div className="relative mb-2">
                 <Icon icon="solar:magnifer-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Search categories..."
+                <input
+                  type="text"
+                  placeholder={showingBrands ? 'Search brands...' : 'Search categories...'}
                   value={filterSearchTerm}
                   onChange={(e) => setFilterSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-xs border rounded-full outline-none focus:ring-0 focus:border-foreground/10 bg-background"
@@ -718,7 +798,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                     size="sm" 
                     className="w-full text-xs text-muted-foreground hover:text-foreground h-7"
                     onClick={() => {
-                      setActiveCategories([]);
+                      clearFilters();
                       setPreference('hideOutOfStock', false);
                     }}
                   >
@@ -835,9 +915,9 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                   Show Out of Stock
                 </Button>
               )}
-              {activeCategories.length > 0 && (
-                <Button variant="secondary" className="rounded-full font-semibold" onClick={() => setActiveCategories([])}>
-                  Clear Categories
+              {(activeCategories.length > 0 || activeBrands.length > 0) && (
+                <Button variant="secondary" className="rounded-full font-semibold" onClick={clearFilters}>
+                  {activeBrands.length > 0 ? 'Clear Filters' : 'Clear Categories'}
                 </Button>
               )}
             </div>
@@ -867,7 +947,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                     variant="ghost" 
                     size="sm" 
                     onClick={() => {
-                      setActiveCategories([]);
+                      clearFilters();
                       setPreference('hideOutOfStock', false);
                     }} 
                     className="text-muted-foreground text-xs h-7 px-2 hover:text-foreground"
@@ -899,12 +979,13 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
               </div>
             )}
 
-            {/* Search Categories */}
+            {/* Search Categories / Brands */}
+            {renderFilterKindSwitch(true)}
             <div className="relative w-full">
               <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Find categories..."
+              <input
+                type="text"
+                placeholder={showingBrands ? 'Find brands...' : 'Find categories...'}
                 value={filterSearchTerm}
                 onChange={(e) => setFilterSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border outline-none focus:ring-0 focus:border-foreground/10"
@@ -912,9 +993,37 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
             </div>
           </div>
 
-          {/* Categories List in Mobile Drawer */}
+          {/* Categories (or Brands) List in Mobile Drawer */}
           <div className="px-6 py-2 overflow-y-auto max-h-[45vh] flex flex-col divide-y divide-border/20">
-            {displayCategories.map(cat => {
+            {showingBrands && displayBrands.map(b => {
+              const isChecked = activeBrands.includes(b.name);
+              return (
+                <button
+                  key={b.name}
+                  onClick={() => toggleBrand(b.name)}
+                  className="flex items-center justify-between w-full py-3 px-1 border-b border-border/20 last:border-0"
+                >
+                  <span className={`text-sm ${isChecked ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
+                    {b.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
+                      {b.count}
+                    </span>
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={() => toggleBrand(b.name)}
+                      onClick={(e) => e.stopPropagation()}
+                      className='h-5 w-5 rounded-md'
+                    />
+                  </div>
+                </button>
+              );
+            })}
+            {showingBrands && displayBrands.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-6">No brands match your search.</div>
+            )}
+            {!showingBrands && displayCategories.map(cat => {
               const isChecked = activeCategories.includes(cat.name);
               return (
                 <button
@@ -939,7 +1048,7 @@ export default function ProductSearchBar({ isCartCollapsed = false }: ProductSea
                 </button>
               );
             })}
-            {displayCategories.length === 0 && (
+            {!showingBrands && displayCategories.length === 0 && (
               <div className="text-sm text-muted-foreground text-center py-6">No categories match your search.</div>
             )}
           </div>

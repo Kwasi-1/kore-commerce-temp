@@ -1,3 +1,4 @@
+import { useFeaturesStore } from '@/store/featuresStore';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import CustomModal from '@/components/modals/modal';
@@ -52,7 +53,14 @@ export default function TransactionSidePanel({
   const amountTendered = getVal(receiptData?.amountTendered ?? receiptData?.payment?.amountTendered);
   const changeGiven = getVal(receiptData?.changeGiven ?? receiptData?.payment?.changeGiven);
   const discount = getVal(receiptData?.discount);
-  const tax = receiptData?.tax !== undefined ? getVal(receiptData?.tax) : undefined;
+  const tax = getVal(receiptData?.tax ?? receiptData?.summary?.tax);
+  // The rate and label stored with the sale (older sales: worked out from the amount; sales still
+  // queued offline: the till's current settings)
+  const posSettings = useFeaturesStore((s) => s.posSettings);
+  const taxLabel = receiptData?.taxLabel ?? receiptData?.summary?.taxLabel ?? posSettings?.pos_tax_label ?? 'Tax';
+  const storedRate = receiptData?.taxRate ?? receiptData?.summary?.taxRate;
+  const taxRate = storedRate != null ? Number(storedRate) : posSettings?.pos_tax_enabled ? Number(posSettings?.pos_tax_rate) || 0 : 0;
+  const taxPercent = Math.round(taxRate * 10000) / 100;
   const isRefunded = receiptData?.status === 'refunded' || receiptData?.orderStatus === 'refunded';
 
   const { isOnline } = useNetworkStatus();
@@ -198,9 +206,13 @@ export default function TransactionSidePanel({
               <span className="text-emerald-600">-{formatAmount(discount)}</span>
             </div>
           )}
-          {tax !== undefined && (
+          {/* Only sales that were charged tax show it (tax is off by default) */}
+          {tax > 0 && (
             <div className="flex justify-between font-medium">
-              <span>Tax (12%)</span>
+              <span>
+                {taxLabel}
+                {taxPercent > 0 && ` (${taxPercent}%)`}
+              </span>
               <span>{formatAmount(tax)}</span>
             </div>
           )}

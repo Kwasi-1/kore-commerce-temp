@@ -5265,6 +5265,28 @@ export function setupMockApi() {
     },
   ];
 
+  // Demo items at or below their alert level (25: enough to try "Show more")
+  const RESTOCK_NAMES: [string, string | null, string][] = [
+    ['Voltic Mineral Water', '500ml', 'bottle'], ['Voltic Mineral Water', '1.5L', 'bottle'], ['Milo Sachet', null, 'piece'],
+    ['Peak Milk', 'Tin', 'tin'], ['Ideal Milk', null, 'tin'], ['Royal Aroma Rice', '5kg', 'bag'], ['Gino Tomato Paste', '70g', 'sachet'],
+    ['Frytol Cooking Oil', '1L', 'bottle'], ['Key Soap', null, 'bar'], ['Omo Detergent', '500g', 'pack'], ['Sunlight Dish Soap', null, 'bottle'],
+    ['Softcare Diaper', 'Small', 'single'], ['Softcare Diaper', 'Medium', 'single'], ['Always Pads', null, 'pack'], ['Colgate', '75ml', 'tube'],
+    ['Pepsodent', '120g', 'tube'], ['Closeup', null, 'tube'], ['Rexona', 'Roll-on', 'piece'], ['Nivea Lotion', '400ml', 'bottle'],
+    ['Geisha Soap', null, 'bar'], ['Kalypo', 'Mango', 'piece'], ['Kalypo', 'Apple', 'piece'], ['Coca-Cola', '350ml', 'bottle'],
+    ['Fanta', '350ml', 'bottle'], ['Bel Aqua', '750ml', 'bottle'],
+  ];
+  const mockRestockItems = RESTOCK_NAMES.map(([name, variant, unit], i) => ({
+    variant_id: `mock-restock-${i}`,
+    product_id: `mock-restock-product-${i}`,
+    name,
+    variant,
+    sku: `${name.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase()}-${String(i + 1).padStart(3, '0')}`,
+    quantity: i % 5 === 4 ? 3 : 0,
+    unit,
+    alert_level: 5,
+    image: null,
+  }));
+
   // GET /tenant/notifications
   mock.onGet(/\/tenant\/notifications$/).reply((config) => {
     const params = config.params || {};
@@ -5305,6 +5327,34 @@ export function setupMockApi() {
             per_page: perPage,
             has_more: page * perPage < filtered.length,
             can_manage: true,
+            stockSummary: {
+              low: mockRestockItems.filter((i) => i.quantity > 0).length,
+              out: mockRestockItems.filter((i) => i.quantity <= 0).length,
+            },
+          },
+        },
+      },
+    ];
+  });
+
+  // GET /tenant/notifications/stock-items (the "needs restocking" stack)
+  mock.onGet(/\/tenant\/notifications\/stock-items$/).reply((config) => {
+    const params = config.params || {};
+    const page = Number(params.page) || 1;
+    const perPage = Number(params.per_page) || 20;
+    const q = String(params.search || '').toLowerCase();
+    const list = mockRestockItems
+      .filter((i) => !q || i.name.toLowerCase().includes(q) || (i.sku || '').toLowerCase().includes(q))
+      .sort((a, b) => Number(a.quantity > 0) - Number(b.quantity > 0) || a.quantity - b.quantity);
+    return [
+      200,
+      {
+        success: {
+          data: {
+            items: list.slice((page - 1) * perPage, page * perPage),
+            total: list.length,
+            page,
+            has_more: page * perPage < list.length,
           },
         },
       },

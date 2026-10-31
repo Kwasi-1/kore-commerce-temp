@@ -27,6 +27,7 @@ export interface Product {
   price: number; // retail price of default tier
   imageUrl?: string;
   category: string;
+  brand?: string;
   description?: string;
   stock_quantity: number;
   stock_display: number;
