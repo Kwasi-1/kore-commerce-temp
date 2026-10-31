@@ -79,6 +79,33 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
     );
   }
 
+  // Mark as read / delete: in the card's top-right corner on phones, after the action on wider screens
+  const manageButtons = (className: string) =>
+    canManage ? (
+      <div className={clsx('flex items-center gap-1', className)}>
+        {!item.read && (
+          <button
+            onClick={() => markRead.mutate(item.id)}
+            disabled={markRead.isPending}
+            title="Mark as read"
+            aria-label="Mark as read"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
+          </button>
+        )}
+        <button
+          onClick={() => remove.mutate(item.id)}
+          disabled={remove.isPending}
+          title="Delete"
+          aria-label="Delete notification"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
+        </button>
+      </div>
+    ) : null;
+
   return (
     <div
       className={clsx(
@@ -86,7 +113,9 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
         item.read ? 'bg-card/70 border-border/70 text-muted-foreground' : 'bg-card border-foreground/20 shadow-xs',
       )}
     >
-      <div className="flex items-start gap-3.5 min-w-0 flex-1">
+      {manageButtons('sm:hidden absolute top-3 right-3')}
+
+      <div className={clsx('flex items-start gap-3.5 min-w-0 flex-1', canManage && (item.read ? 'pr-8 sm:pr-0' : 'pr-16 sm:pr-0'))}>
         <div className="p-2.5 rounded-[10px] border shrink-0 mt-0.5 bg-muted/50 border-border/80 text-foreground">
           <Icon icon={CATEGORY_ICON[item.category] || CATEGORY_ICON.system} className="h-5 w-5 text-foreground/80" />
         </div>
@@ -101,7 +130,13 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
       </div>
 
       {(action || canManage) && (
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+        <div
+          className={clsx(
+            'items-center sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40',
+            // On phones this strip is only for the action; the buttons sit in the corner
+            action ? 'flex' : 'hidden sm:flex',
+          )}
+        >
           {action && (
             <Button
               type="button"
@@ -115,30 +150,7 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
               <Icon icon="solar:arrow-right-linear" className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           )}
-          {canManage && (
-            <div className="flex items-center gap-1 ml-auto sm:ml-0">
-              {!item.read && (
-                <button
-                  onClick={() => markRead.mutate(item.id)}
-                  disabled={markRead.isPending}
-                  title="Mark as read"
-                  aria-label="Mark as read"
-                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <Icon icon="solar:check-circle-linear" className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                onClick={() => remove.mutate(item.id)}
-                disabled={remove.isPending}
-                title="Delete"
-                aria-label="Delete notification"
-                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+          {manageButtons('hidden sm:flex')}
         </div>
       )}
     </div>
