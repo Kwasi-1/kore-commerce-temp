@@ -138,7 +138,7 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
       {(action || canManage) && (
         <div
           className={clsx(
-            'items-center sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40',
+            'items-center justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40',
             // On phones this strip is only for the action; the buttons sit in the corner
             action ? 'flex' : 'hidden sm:flex',
           )}
