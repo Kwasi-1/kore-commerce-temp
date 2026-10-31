@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { Spinner } from '../ui/spinner';
+import { MIN_SALES_FOR_TYPICAL } from '@/utils/saleStats';
 import PaymentMethodVisual, { PaymentMethodType } from './PaymentMethodVisual';
 
 interface ZReportModalProps {
@@ -75,6 +76,8 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 total_transactions: (eod?.pos?.transactions || 0) + (eod?.ecommerce?.transactions || 0),
                 net_sales: (eod?.total_sales || 0) - totalPaidOut,
               },
+              median_sale: eod?.median_sale,
+              largest_sale: eod?.largest_sale,
               payment_breakdown: pb,
               cash_reconciliation: {
                 opening_float: 0,
@@ -127,6 +130,11 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
   const grossSales = reportData?.gross_sales ?? reportData?.summary?.gross_sales ?? 0;
   const totalTransactions = reportData?.total_transactions ?? reportData?.summary?.total_transactions ?? 0;
   const averageSale = reportData?.average_order_value ?? (totalTransactions ? grossSales / totalTransactions : 0);
+  // One big sale pulls the average up, so show the typical (median) and largest sale beside it.
+  // With only a few sales the median says little, so it waits for MIN_SALES_FOR_TYPICAL.
+  const medianSale = reportData?.median_sale;
+  const largestSale = reportData?.largest_sale;
+  const showSpread = totalTransactions >= MIN_SALES_FOR_TYPICAL && medianSale != null && largestSale != null;
   const rawPb = reportData?.payment_breakdown || {};
   const pbLine = (...keys: string[]) => keys.reduce(
     (acc, k) => {
@@ -238,6 +246,8 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                         {listRow('Total sales', <CurrencyDisplay amount={grossSales} />)}
                         {listRow('Number of sales', totalTransactions, undefined, true)}
                         {listRow('Average sale', <CurrencyDisplay amount={averageSale} />, undefined, true)}
+                        {showSpread && listRow('Typical sale', <CurrencyDisplay amount={medianSale} />, undefined, true)}
+                        {showSpread && listRow('Largest sale', <CurrencyDisplay amount={largestSale} />, undefined, true)}
                       </div>
                     </section>
 

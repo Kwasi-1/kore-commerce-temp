@@ -33,6 +33,7 @@ import {
   Receipt
 } from 'lucide-react';
 import ZReportModal from '@/components/pos/ZReportModal';
+import { MIN_SALES_FOR_TYPICAL } from '@/utils/saleStats';
 
 export default function EndOfDay() {
   const navigate = useNavigate();
@@ -93,6 +94,8 @@ export default function EndOfDay() {
   const expenseRecords = eodData?.expenses?.records || [];
   const totalExpenses = parseVal(eodData?.expenses?.total);
   const avgOrderValue = parseVal(eodData?.average_order_value);
+  const medianSale = parseVal(eodData?.median_sale);
+  const completedSales = (eodData?.pos?.completed_transactions || 0) + (eodData?.ecommerce?.transactions || 0);
 
   const pb = eodData?.payment_breakdown || {};
   const paymentBreakdownChartData = [
@@ -223,6 +226,11 @@ export default function EndOfDay() {
           <DashboardCard
             title="Avg Order Value"
             value={<CurrencyDisplay amount={avgOrderValue} />}
+            subvalue={
+              completedSales >= MIN_SALES_FOR_TYPICAL && eodData?.median_sale != null ? (
+                <span>Typical sale <CurrencyDisplay amount={medianSale} symbolClassName="mr-0.5" /></span>
+              ) : undefined
+            }
             className="border border-border shadow-2xs"
           />
         ) : (
