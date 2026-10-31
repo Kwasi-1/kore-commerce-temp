@@ -115,18 +115,24 @@ export function NotificationRow({ item, action, busy, compact, onAfterAction }: 
     >
       {manageButtons('sm:hidden absolute top-3 right-3')}
 
-      <div className={clsx('flex items-start gap-3.5 min-w-0 flex-1', canManage && (item.read ? 'pr-8 sm:pr-0' : 'pr-16 sm:pr-0'))}>
-        <div className="p-2.5 rounded-[10px] border shrink-0 mt-0.5 bg-muted/50 border-border/80 text-foreground">
-          <Icon icon={CATEGORY_ICON[item.category] || CATEGORY_ICON.system} className="h-5 w-5 text-foreground/80" />
-        </div>
-        <div className="space-y-1 min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h4 className={clsx('text-sm font-bold', item.read ? 'text-foreground/90' : 'text-foreground')}>{item.title}</h4>
-            {!item.read && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-            {item.timestamp && <span className="text-xs text-muted-foreground">· {timeAgo(item.timestamp)}</span>}
+      {/* Phones: icon beside the title and time, the message full width underneath.
+          Wider screens: the message stays beside the icon, the time after the title. */}
+      <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-0">
+        <div className={clsx('flex items-start gap-3.5 min-w-0', canManage && (item.read ? 'pr-8 sm:pr-0' : 'pr-16 sm:pr-0'))}>
+          <div className="p-2.5 rounded-[10px] border shrink-0 sm:mt-0.5 bg-muted/50 border-border/80 text-foreground">
+            <Icon icon={CATEGORY_ICON[item.category] || CATEGORY_ICON.system} className="h-5 w-5 text-foreground/80" />
           </div>
-          <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed">{item.message}</p>
+          <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className={clsx('text-sm font-bold', item.read ? 'text-foreground/90' : 'text-foreground')}>{item.title}</h4>
+              {!item.read && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+              {item.timestamp && <span className="hidden sm:inline text-xs text-muted-foreground">· {timeAgo(item.timestamp)}</span>}
+            </div>
+            {item.timestamp && <p className="sm:hidden text-xs text-muted-foreground">{timeAgo(item.timestamp)}</p>}
+            <p className="hidden sm:block text-[13px] text-muted-foreground leading-relaxed">{item.message}</p>
+          </div>
         </div>
+        <p className="sm:hidden text-xs text-muted-foreground leading-relaxed pl-3">{item.message}</p>
       </div>
 
       {(action || canManage) && (

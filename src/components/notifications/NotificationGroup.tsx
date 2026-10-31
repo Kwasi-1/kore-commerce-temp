@@ -75,19 +75,21 @@ export default function NotificationGroup({ kind, items, actionFor, loadingId }:
                 <Icon icon={ICON[kind] || ICON.system} className="h-5 w-5 text-foreground/80" />
               </div>
               <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-foreground">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-bold text-foreground truncate">
                     {items.length} {items.length === 1 ? one : many}
                   </p>
                   {unread > 0 && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                  {when && <span className="text-xs text-muted-foreground">· {when}</span>}
+                  {when && <span className="hidden sm:inline shrink-0 text-xs text-muted-foreground">· {when}</span>}
                 </div>
+                {/* Phones: the time on its own line, like the single notifications */}
+                {when && <p className="sm:hidden text-xs text-muted-foreground">{when}</p>}
                 <p className="text-xs sm:text-[13px] text-muted-foreground truncate">
                   {newest.title}
                   {items.length > 1 && ` and ${items.length - 1} more`}
                 </p>
               </div>
-              <span className="shrink-0 text-xs font-semibold text-muted-foreground">Show</span>
+              <span className="hidden sm:inline shrink-0 text-xs font-semibold text-muted-foreground">Show</span>
               <Icon icon="solar:alt-arrow-down-linear" className="h-4 w-4 shrink-0 text-muted-foreground" />
             </button>
           </motion.div>
