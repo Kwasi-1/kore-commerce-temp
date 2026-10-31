@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { pageWindow } from "@/utils/pageWindow";
 
 interface PaginationProps {
   currentPage: number;
@@ -18,7 +19,7 @@ const Pagination: React.FC<PaginationProps> = ({
 }) => {
   if (totalPages <= 1) return null;
 
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages = pageWindow(currentPage, totalPages);
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -33,7 +34,11 @@ const Pagination: React.FC<PaginationProps> = ({
       </Button>
 
       <div className="flex items-center gap-1">
-        {pages.map((page) => (
+        {pages.map((page) => typeof page !== "number" ? (
+          <span key={page} className="w-8 text-center text-muted-foreground select-none" aria-hidden>
+            …
+          </span>
+        ) : (
           <Button
             key={page}
             variant={page === currentPage ? "default" : "outline"}

@@ -211,16 +211,16 @@ export default function ProductReport() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem disabled={!canExport} onSelect={handleDownloadPdf}>
-          <Icon icon="lucide:file-text" className="w-4 h-4 mr-2" />
+          <Icon icon="material-icon-theme:pdf" className="w-4 h-4 mr-2" />
           Download PDF
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!canExport} onSelect={handleDownloadCsv}>
-          <Icon icon="lucide:sheet" className="w-4 h-4 mr-2" />
+          <Icon icon="selfhst:microsoft-excel-2018" className="w-4 h-4 mr-2" />
           Download CSV (Excel)
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!canExport} onSelect={() => setEmailOpen(true)}>
-          <Icon icon="lucide:mail" className="w-4 h-4 mr-2" />
+          <Icon icon="mage:email" className="w-4 h-4 mr-2" />
           Email PDF…
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -231,9 +231,9 @@ export default function ProductReport() {
     <button
       type="button"
       disabled={isExporting || isLoading || !summary}
-      className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+      className="inline-flex items-center gap-2 h-[38px] px-3 xl:px-4 rounded-lg border border-border bg-card text-[13px] font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
     >
-      <Icon icon={isExporting ? 'lucide:loader-2' : 'lucide:share'} className={`w-4 h-4 ${isExporting ? 'animate-spin' : ''}`} />
+      <Icon icon={isExporting ? 'lucide:loader-2' : 'bx:export'} className={`w-4 h-4 ${isExporting ? 'animate-spin' : ''}`} />
       <span className="hidden sm:block md:hidden xl:block">Export</span>
       <span className="hidden sm:block md:hidden xl:block"><Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 opacity-60" /></span>
     </button>,
@@ -248,9 +248,9 @@ export default function ProductReport() {
             <button
               type="button"
               onClick={() => setReorderOpen(true)}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+              className="inline-flex items-center gap-2 h-[38px] px-3 xl:px-4 rounded-lg border border-border bg-card text-[13px] font-semibold text-foreground hover:bg-muted transition-colors"
             >
-              <Icon icon="lucide:package-plus" className="w-4 h-4" />
+              <Icon icon="hugeicons:package-plus" className="w-4 h-4" />
               <span className="hidden sm:block md:hidden xl:block">Plan restock</span>
             </button>
           )}

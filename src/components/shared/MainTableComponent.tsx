@@ -19,6 +19,7 @@ import {
   DateFilterValue,
 } from "@/components/shared/custom-only-date-filter";
 import { Button as UIbutton } from "../ui/button";
+import { pageWindow } from "@/utils/pageWindow";
 
 // Types for the enhanced table
 export interface TableColumn {
@@ -946,8 +947,16 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
             {/* Pagination bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-end px-2 pt-2 border-t border-border/70 mt-2">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center justify-between gap-3 px-2 pt-2 border-t border-border/70 mt-2">
+                <span className="hidden sm:block text-xs text-muted-foreground tabular-nums">
+                  {(() => {
+                    const size = isServerPaginated ? (serverPagination?.perPage || 1) : (pageSize || 8);
+                    const total = isServerPaginated ? (serverPagination?.total ?? 0) : processedRows.length;
+                    const from = (activePage - 1) * size + 1;
+                    return total > 0 ? `${from}–${Math.min(total, activePage * size)} of ${total}` : null;
+                  })()}
+                </span>
+                <div className="flex items-center gap-1 ml-auto">
                   <Button
                     isIconOnly
                     size="sm"
@@ -965,8 +974,12 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
                   >
                     <Icon icon="ph:caret-left" className="text-base" />
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
+                  {pageWindow(activePage, totalPages).map(
+                    (page) => typeof page !== "number" ? (
+                      <span key={page} className="w-8 text-center text-muted-foreground select-none" aria-hidden>
+                        …
+                      </span>
+                    ) : (
                       <Button
                         key={page}
                         isIconOnly
