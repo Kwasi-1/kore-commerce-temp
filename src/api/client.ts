@@ -47,6 +47,10 @@ apiClient.interceptors.request.use(
     if (tillKey && config.headers) {
       config.headers['X-Till-Key'] = tillKey;
     }
+    // Reports split days at local midnight (minutes east of UTC; 0 in Ghana)
+    if (config.headers) {
+      config.headers['X-Timezone-Offset'] = String(-new Date().getTimezoneOffset());
+    }
     return config;
   },
   (error) => {

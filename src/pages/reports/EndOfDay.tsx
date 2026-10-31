@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import DashboardCard from '@/components/ui/dashboard-card';
 import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { useFeaturesStore } from '@/store/featuresStore';
 import {
   CustomOnlyDateFilterComponent,
@@ -32,7 +32,11 @@ import {
   Receipt
 } from 'lucide-react';
 import ZReportModal from '@/components/pos/ZReportModal';
+import CompactPagination from '@/components/shared/compact-pagination';
 import { MIN_SALES_FOR_TYPICAL } from '@/utils/saleStats';
+
+const DAYS_PER_PAGE = 15;
+const SHIFTS_PER_PAGE = 10;
 
 export default function EndOfDay() {
   const navigate = useNavigate();
@@ -51,35 +55,46 @@ export default function EndOfDay() {
   });
 
   const [selectedZReportShiftId, setSelectedZReportShiftId] = useState<string | null>(null);
+  // Long ranges are paged in the browser; back to page 1 whenever the dates change
+  const [dayPage, setDayPage] = useState(1);
+  const [shiftPage, setShiftPage] = useState(1);
   const [isZReportOpen, setIsZReportOpen] = useState(false);
 
+  // Only the latest request's answer is shown (an older, slower one can't overwrite it)
+  const latestRequest = useRef(0);
+
   const fetchEOD = async (filter: DateFilterValue) => {
+    const requestId = ++latestRequest.current;
     setIsLoading(true);
     try {
+      // Local calendar days; the server runs each from local midnight to midnight
+      const day = (d: Date) => format(d, 'yyyy-MM-dd');
       let queryParams = '';
       if (filter.active === 'today') {
-        const todayStr = new Date().toISOString().split('T')[0];
-        queryParams = `date=${todayStr}`;
+        queryParams = `date=${day(new Date())}`;
       } else if (filter.start_date && filter.end_date) {
-        queryParams = `start_date=${filter.start_date.toISOString()}&end_date=${filter.end_date.toISOString()}`;
+        queryParams = `start_date=${day(filter.start_date)}&end_date=${day(filter.end_date)}`;
       } else if (filter.start_date) {
-        queryParams = `start_date=${filter.start_date.toISOString()}`;
+        queryParams = `start_date=${day(filter.start_date)}`;
       } else {
-        const todayStr = new Date().toISOString().split('T')[0];
-        queryParams = `date=${todayStr}`;
+        queryParams = `date=${day(new Date())}`;
       }
 
       const response = await apiClient.get(`/tenant/reports/end-of-day?${queryParams}`);
+      if (requestId !== latestRequest.current) return;
       setEodData(response.data.success?.data?.summary);
     } catch (error) {
+      if (requestId !== latestRequest.current) return;
       console.error('Failed to fetch EOD report:', error);
       toast.error('Failed to load End of Day summary');
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequest.current) setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    setDayPage(1);
+    setShiftPage(1);
     fetchEOD(dateFilter);
   }, [dateFilter]);
 
@@ -120,10 +135,18 @@ export default function EndOfDay() {
 
 
   const shiftRecords = eodData?.shifts?.records || [];
+  const pagedShifts = shiftRecords.slice((shiftPage - 1) * SHIFTS_PER_PAGE, shiftPage * SHIFTS_PER_PAGE);
   const closedShiftsCount = eodData?.shifts?.closed_shifts || 0;
   const hasClosedShifts = closedShiftsCount > 0;
 
-  const dailyBreakdown = eodData?.daily_breakdown || [];
+  // Newest day first
+  const dailyBreakdown: any[] = [...(eodData?.daily_breakdown || [])].reverse();
+  const pagedDays = dailyBreakdown.slice((dayPage - 1) * DAYS_PER_PAGE, dayPage * DAYS_PER_PAGE);
+  const breakdownMaxDays: number = eodData?.daily_breakdown_max_days ?? 366;
+  const rangeDays = dateFilter.start_date && dateFilter.end_date
+    ? differenceInCalendarDays(new Date(dateFilter.end_date), new Date(dateFilter.start_date)) + 1
+    : Infinity;
+  const breakdownTooLong = rangeDays > breakdownMaxDays;
   const startDateStr = dateFilter.start_date instanceof Date ? format(dateFilter.start_date, 'yyyy-MM-dd') : dateFilter.start_date ? format(new Date(dateFilter.start_date), 'yyyy-MM-dd') : '';
   const endDateStr = dateFilter.end_date instanceof Date ? format(dateFilter.end_date, 'yyyy-MM-dd') : dateFilter.end_date ? format(new Date(dateFilter.end_date), 'yyyy-MM-dd') : '';
   const isMultiDay = Boolean(
@@ -249,6 +272,12 @@ export default function EndOfDay() {
           />
       </div>
 
+      {isMultiDay && !isLoading && dailyBreakdown.length === 0 && breakdownTooLong && (
+        <div className="mb-6 px-4 py-3 rounded-xl border border-border bg-muted/30 text-xs text-muted-foreground">
+          The day-by-day breakdown is shown for ranges of up to {breakdownMaxDays} days. Pick a shorter range to see each day.
+        </div>
+      )}
+
       {/* Multi-Day: Day-by-Day Performance Breakdown */}
       {isMultiDay && dailyBreakdown.length > 0 && (
         <div className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden mb-6 shadow-2xs">
@@ -283,7 +312,7 @@ export default function EndOfDay() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 font-medium">
-                {dailyBreakdown.map((day: any) => {
+                {pagedDays.map((day: any) => {
                   const parsedDate = new Date(day.date + 'T00:00:00');
                   const formattedDate = format(parsedDate, 'EEE, MMM d, yyyy');
                   const digital = (day.mobile_money || 0) + (day.card || 0);
@@ -342,6 +371,7 @@ export default function EndOfDay() {
               </tbody>
             </table>
           </div>
+          <CompactPagination page={dayPage} pageSize={DAYS_PER_PAGE} total={dailyBreakdown.length} onPageChange={setDayPage} noun="days" />
         </div>
       )}
 
@@ -467,7 +497,7 @@ export default function EndOfDay() {
               </thead>
               <tbody className="divide-y divide-border/50 font-medium">
                 {shiftRecords.length > 0 ? (
-                  shiftRecords.map((shift: any) => {
+                  pagedShifts.map((shift: any) => {
                     const status = (shift.status || '').toUpperCase();
                     const isClosed = status === 'CLOSED' || status === 'FORCE_CLOSED';
                     const rawShiftVariance = parseVal(shift.variance);
@@ -580,6 +610,7 @@ export default function EndOfDay() {
               </tbody>
             </table>
           </div>
+          <CompactPagination page={shiftPage} pageSize={SHIFTS_PER_PAGE} total={shiftRecords.length} onPageChange={setShiftPage} noun="shifts" />
         </div>
       )}
 

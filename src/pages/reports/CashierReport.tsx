@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
 import { DashboardCard } from '@/components/ui/dashboard-card';
@@ -25,7 +25,11 @@ export default function CashierReport() {
   const [summaryData, setSummaryData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Only the latest request's answer is shown (an older, slower one can't overwrite it)
+  const latestRequest = useRef(0);
+
   const fetchReport = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     setIsLoading(true);
     try {
       const startStr = dateFilter.start_date ? dateFilter.start_date.toISOString() : '';
@@ -37,15 +41,17 @@ export default function CashierReport() {
       params.set('sort', sortPreset);
 
       const response = await apiClient.get(`/tenant/reports/cashiers?${params.toString()}`);
+      if (requestId !== latestRequest.current) return;
       const data = response.data?.success?.data || response.data?.data || {};
 
       setReportData(data.cashiers || data.cashier_performance || []);
       setSummaryData(data.summary || {});
     } catch (error) {
+      if (requestId !== latestRequest.current) return;
       console.error('Failed to fetch cashier report:', error);
       toast.error('Failed to load cashier metrics');
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequest.current) setIsLoading(false);
     }
   }, [dateFilter, sortPreset]);
 

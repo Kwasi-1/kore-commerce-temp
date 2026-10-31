@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
@@ -118,21 +118,27 @@ export function useProductReport(isMultiChannel: boolean) {
   const focused = isFocusedView(filters);
   const apiKey = buildApiParams(filters, isMultiChannel).toString();
 
+  // Only the latest request's answer is shown (an older, slower one can't overwrite it)
+  const latestRequest = useRef(0);
+
   const fetchReport = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     setIsLoading(true);
     try {
       const params = new URLSearchParams(apiKey);
       params.set('sort', filters.sort);
       if (filters.compare !== 'none') params.set('compare', filters.compare);
       const response = await apiClient.get(`/tenant/reports/products?${params.toString()}`);
+      if (requestId !== latestRequest.current) return;
       const data = response.data?.success?.data || response.data?.data || {};
       setRows(data.products || []);
       setSummary(data.summary || null);
     } catch (error: any) {
+      if (requestId !== latestRequest.current) return;
       console.error('Failed to fetch product report:', error);
       toast.error(error?.response?.data?.error?.message || 'Failed to load product report');
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequest.current) setIsLoading(false);
     }
   }, [apiKey, filters.sort, filters.compare]);
 
