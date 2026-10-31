@@ -73,9 +73,11 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
               },
               summary: {
                 gross_sales: eod?.total_sales || 0,
-                total_transactions: (eod?.pos?.transactions || 0) + (eod?.ecommerce?.transactions || 0),
+                // Fully refunded sales are out of the total, so out of the count too
+                total_transactions: (eod?.pos?.completed_transactions ?? eod?.pos?.transactions ?? 0) + (eod?.ecommerce?.transactions || 0),
                 net_sales: (eod?.total_sales || 0) - totalPaidOut,
               },
+              refunds: { count: eod?.pos?.refunded_transactions || 0, total: eod?.pos?.refunds || 0 },
               median_sale: eod?.median_sale,
               largest_sale: eod?.largest_sale,
               payment_breakdown: pb,
@@ -132,6 +134,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
   const averageSale = reportData?.average_order_value ?? (totalTransactions ? grossSales / totalTransactions : 0);
   // One big sale pulls the average up, so show the typical (median) and largest sale beside it.
   // With only a few sales the median says little, so it waits for MIN_SALES_FOR_TYPICAL.
+  const refunds = reportData?.refunds || { count: 0, total: 0 };
   const medianSale = reportData?.median_sale;
   const largestSale = reportData?.largest_sale;
   const showSpread = totalTransactions >= MIN_SALES_FOR_TYPICAL && medianSale != null && largestSale != null;
@@ -205,7 +208,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
           </div>
         }
         body={
-          <div className="pt-3 pb-2">
+          <div className="pb-2">
             {isLoading ? (
               <div className="flex justify-center items-center h-48"><Spinner /></div>
             ) : !reportData ? (
@@ -244,6 +247,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Sales</p>
                       <div className="rounded-xl border border-border/70 divide-y divide-border/60">
                         {listRow('Total sales', <CurrencyDisplay amount={grossSales} />)}
+                        {refunds.count > 0 && listRow(
+                          `Refunded, not in total (${refunds.count})`,
+                          <CurrencyDisplay amount={refunds.total} />,
+                          undefined,
+                          true,
+                        )}
                         {listRow('Number of sales', totalTransactions, undefined, true)}
                         {listRow('Average sale', <CurrencyDisplay amount={averageSale} />, undefined, true)}
                         {showSpread && listRow('Typical sale', <CurrencyDisplay amount={medianSale} />, undefined, true)}
