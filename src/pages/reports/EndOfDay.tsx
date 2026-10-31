@@ -319,7 +319,7 @@ export default function EndOfDay() {
 
                   return (
                     <tr key={day.date} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-foreground text-xs">
+                      <td className="px-5 py-3.5 font-semibold text-foreground text-[12px]">
                         {formattedDate}
                       </td>
                       <td className="px-5 py-3.5 text-center">
