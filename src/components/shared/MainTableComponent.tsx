@@ -19,7 +19,7 @@ import {
   DateFilterValue,
 } from "@/components/shared/custom-only-date-filter";
 import { Button as UIbutton } from "../ui/button";
-import { pageWindow } from "@/utils/pageWindow";
+import Pagination from "@/components/shared/pagination";
 
 // Types for the enhanced table
 export interface TableColumn {
@@ -947,80 +947,12 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
             {/* Pagination bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between gap-3 px-2 pt-2 border-t border-border/70 mt-2">
-                <span className="hidden sm:block text-xs text-muted-foreground tabular-nums">
-                  {(() => {
-                    const size = isServerPaginated ? (serverPagination?.perPage || 1) : (pageSize || 8);
-                    const total = isServerPaginated ? (serverPagination?.total ?? 0) : processedRows.length;
-                    const from = (activePage - 1) * size + 1;
-                    return total > 0 ? `${from}–${Math.min(total, activePage * size)} of ${total}` : null;
-                  })()}
-                </span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="flat"
-                    isDisabled={activePage === 1}
-                    onPress={() => {
-                      const newPage = Math.max(1, activePage - 1);
-                      if (isServerPaginated) {
-                        onPageChange!(newPage);
-                      } else {
-                        setCurrentPage(newPage);
-                      }
-                    }}
-                    className="border border-border rounded-md"
-                  >
-                    <Icon icon="ph:caret-left" className="text-base" />
-                  </Button>
-                  {pageWindow(activePage, totalPages).map(
-                    (page) => typeof page !== "number" ? (
-                      <span key={page} className="w-8 text-center text-muted-foreground select-none" aria-hidden>
-                        …
-                      </span>
-                    ) : (
-                      <Button
-                        key={page}
-                        isIconOnly
-                        size="sm"
-                        variant={activePage === page ? "solid" : "flat"}
-                        color={activePage === page ? "primary" : "default"}
-                        onPress={() => {
-                          if (isServerPaginated) {
-                            onPageChange!(page);
-                          } else {
-                            setCurrentPage(page);
-                          }
-                        }}
-                        className={`border rounded-md ${
-                          activePage === page
-                            ? "bg-primary text-primary-foreground font-bold border-primary"
-                            : "border-border text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {page}
-                      </Button>
-                    ),
-                  )}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="flat"
-                    isDisabled={activePage === totalPages}
-                    onPress={() => {
-                      const newPage = Math.min(totalPages, activePage + 1);
-                      if (isServerPaginated) {
-                        onPageChange!(newPage);
-                      } else {
-                        setCurrentPage(newPage);
-                      }
-                    }}
-                    className="border border-border rounded-md"
-                  >
-                    <Icon icon="ph:caret-right" className="text-base" />
-                  </Button>
-                </div>
+              <div className="flex items-center justify-end px-2 pt-2 border-t border-border/70 mt-2">
+                <Pagination
+                  currentPage={activePage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => (isServerPaginated ? onPageChange!(page) : setCurrentPage(page))}
+                />
               </div>
             )}
           </motion.div>

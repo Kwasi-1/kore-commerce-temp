@@ -58,6 +58,17 @@ import {
   MobileActivitySheet,
 } from "@/components/mobile-dashboard";
 
+/**
+ * A variant's status as sold: an archived or draft product isn't on sale whatever its variants
+ * say, so that wins; otherwise the variant's own on/off switch.
+ */
+function variantStatus(p: any, v: any): "Archived" | "Draft" | "Active" | "Inactive" {
+  const productStatus = String(p?.status || "").toLowerCase();
+  if (productStatus === "archived") return "Archived";
+  if (productStatus === "draft") return "Draft";
+  return v?.is_active !== false ? "Active" : "Inactive";
+}
+
 export default function Products() {
   const navigate = useNavigate();
   // "Record batch" for products made in-house; ?recordBatch=<id> opens it (used right after creating one)
@@ -709,7 +720,6 @@ export default function Products() {
         const retailPrice = getRetailPrice(v);
         const isVariantOnline =
           v.is_available_online !== false && v.isAvailableOnline !== false;
-        const isVariantActive = v.is_active !== false;
 
         const isOutOfStock = v.stock_quantity === 0;
         const isLowStock = v.stock_quantity > 0 && v.stock_quantity <= 5;
@@ -738,11 +748,6 @@ export default function Products() {
           name: (
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="truncate">{fullName}</span>
-              {p.status?.toLowerCase() === "draft" && (
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground border border-border">
-                  Draft
-                </span>
-              )}
             </div>
           ),
           category: p.category || "—",
@@ -797,11 +802,11 @@ export default function Products() {
           stock: getStockCell(stockInfo.value, stockInfo.unit, v.packaging_tiers || p.packaging_tiers),
           status: (
             <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
-              isVariantActive
+              variantStatus(p, v) === "Active"
                 ? "text-green-600 dark:text-green-400 bg-green-500/10"
                 : "text-muted-foreground bg-muted border border-border"
             }`}>
-              {isVariantActive ? "Active" : "Inactive"}
+              {variantStatus(p, v)}
             </span>
           ),
         });
@@ -1081,7 +1086,7 @@ export default function Products() {
           isLowStock,
           isActive: isVariantActive,
           isAvailableOnline: isVariantOnline,
-          status: isVariantActive ? "Active" : "Inactive",
+          status: variantStatus(p, v),
         });
       });
     });
@@ -1374,14 +1379,14 @@ export default function Products() {
                         <p className="font-bold text-foreground truncate sm:text-sm">
                           {item.name}
                         </p>
-                        {item.product?.status?.toLowerCase() === "draft" && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground border border-border">
-                            DRAFT
-                          </span>
-                        )}
-                        {!item.isActive && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                            INACTIVE
+                        {item.status && item.status !== "Active" && (
+                          <span className={cn(
+                            "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                            item.status === "Inactive"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "bg-muted text-muted-foreground border border-border",
+                          )}>
+                            {item.status}
                           </span>
                         )}
                       </div>

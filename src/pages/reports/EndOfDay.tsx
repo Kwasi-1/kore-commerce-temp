@@ -32,7 +32,7 @@ import {
   Receipt
 } from 'lucide-react';
 import ZReportModal from '@/components/pos/ZReportModal';
-import CompactPagination from '@/components/shared/compact-pagination';
+import Pagination from '@/components/shared/pagination';
 import { MIN_SALES_FOR_TYPICAL } from '@/utils/saleStats';
 
 const DAYS_PER_PAGE = 15;
@@ -371,7 +371,11 @@ export default function EndOfDay() {
               </tbody>
             </table>
           </div>
-          <CompactPagination page={dayPage} pageSize={DAYS_PER_PAGE} total={dailyBreakdown.length} onPageChange={setDayPage} noun="days" />
+          {Math.ceil(dailyBreakdown.length / DAYS_PER_PAGE) > 1 && (
+          <div className="flex justify-end px-5 py-3 border-t border-border/50">
+            <Pagination currentPage={dayPage} totalPages={Math.ceil(dailyBreakdown.length / DAYS_PER_PAGE)} onPageChange={setDayPage} />
+          </div>
+          )}
         </div>
       )}
 
@@ -610,7 +614,11 @@ export default function EndOfDay() {
               </tbody>
             </table>
           </div>
-          <CompactPagination page={shiftPage} pageSize={SHIFTS_PER_PAGE} total={shiftRecords.length} onPageChange={setShiftPage} noun="shifts" />
+          {Math.ceil(shiftRecords.length / SHIFTS_PER_PAGE) > 1 && (
+          <div className="flex justify-end px-5 py-3 border-t border-border/50">
+            <Pagination currentPage={shiftPage} totalPages={Math.ceil(shiftRecords.length / SHIFTS_PER_PAGE)} onPageChange={setShiftPage} />
+          </div>
+          )}
         </div>
       )}
 

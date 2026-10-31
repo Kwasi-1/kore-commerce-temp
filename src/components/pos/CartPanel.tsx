@@ -1142,7 +1142,13 @@ export default function CartPanel({
                               const flat = flattenProducts([found]);
                               if (flat.length > 0) match = flat[0];
                             }
-                          } catch (err) {
+                          } catch (err: any) {
+                            // A draft or archived product: say why it can't be sold (anything else isn't an exact SKU)
+                            const apiError = err?.response?.data?.error;
+                            if (apiError?.status === 'NOT_ON_SALE') {
+                              toast.error(apiError.message);
+                              return;
+                            }
                             // not exact SKU
                           }
                         }
