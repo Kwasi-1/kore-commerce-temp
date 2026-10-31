@@ -259,7 +259,7 @@ export default function ProductReport() {
         </div>
       }
     >
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         {/* Mobile: date, search and export live in the capsule bar */}
         <div className="hidden">
           <MobileActionCapsuleBar

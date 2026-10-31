@@ -118,7 +118,7 @@ export default function NotificationBell({ className, iconClassName, dotClassNam
             header={header}
             body={list}
             footer={viewAll}
-            classNames={{ header: 'pr-12', body: 'px-2 py-1', footer: 'justify-center border-t border-border/60 py-2' }}
+            classNames={{ header: 'pr-12', body: 'px-2 py-1', footer: 'justify-center border-t border-border/60 py-2',  base: 'sm:min-w-96' }}
           />
         </>
       ) : (
