@@ -48,11 +48,12 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
             const res = await apiClient.get(`/tenant/reports/end-of-day?date=${formattedDate}`);
             const eod = res.data.success?.data?.summary;
             const pb = eod?.payment_breakdown || {};
-            const exp = eod?.expenses?.records || [];
+            // Paid-outs from the drawer: expenses plus MoMo payments handed back in cash
+            const exp = [...(eod?.expenses?.records || []), ...(eod?.momo_refunds?.records || [])];
             const paidInRecs = eod?.paid_in?.records || [];
             const totalCashSales = pb.cash || 0;
             const totalPaidIn = eod?.paid_in?.total || 0;
-            const totalPaidOut = eod?.expenses?.total || 0;
+            const totalPaidOut = (eod?.expenses?.total || 0) + (eod?.momo_refunds?.total || 0);
             // Cash handed back to customers that day comes out of the drawer too
             const totalCashRefunds = eod?.cash_refunds?.total || 0;
             // Debt repayments taken in cash that day went into the drawer
@@ -73,7 +74,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
               },
               summary: {
                 // Sales made that day; refunds given that day come off to make net sales
-                gross_sales: (eod?.total_sales || 0) + (eod?.refunds?.total || 0),
+                gross_sales: eod?.gross_sales ?? (eod?.total_sales || 0) + (eod?.refunds?.total || 0),
                 // Fully refunded sales are out of the total, so out of the count too
                 total_transactions: (eod?.pos?.completed_transactions ?? eod?.pos?.transactions ?? 0) + (eod?.ecommerce?.transactions || 0),
                 net_sales: eod?.total_sales || 0,

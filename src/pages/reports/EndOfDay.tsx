@@ -6,7 +6,6 @@ import { CurrencyDisplay, useCurrency } from '@/hooks';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { useAuthStore } from '@/store/authStore';
 import { useFeaturesStore } from '@/store/featuresStore';
 import {
   CustomOnlyDateFilterComponent,
@@ -38,8 +37,6 @@ import { MIN_SALES_FOR_TYPICAL } from '@/utils/saleStats';
 export default function EndOfDay() {
   const navigate = useNavigate();
   const { formatGHS } = useCurrency();
-  const tenant = useAuthStore((state) => state.tenant);
-  const isPosOnly = tenant?.plan === 'starter' || tenant?.plan === 'standard';
   const posSettings = useFeaturesStore((state) => state.posSettings);
   const shiftTrackingEnabled = Boolean(posSettings?.pos_shift_management_enabled);
 
@@ -88,16 +85,28 @@ export default function EndOfDay() {
 
   // Helper: API interceptor wraps Decimal fields in {source, parsedValue} — unwrap safely
   const parseVal = (v: any): number => (v && typeof v === 'object' && 'parsedValue' in v ? v.parsedValue : (v ?? 0));
-  const grossSales = parseVal(eodData?.pos?.gross_sales ?? eodData?.total_sales);
-  const totalRefunds = parseVal(eodData?.pos?.refunds ?? 0);
+  const pb = eodData?.payment_breakdown || {};
+  // Both channels: Gross - Refunds = Net
+  const posGross = parseVal(eodData?.pos?.gross_sales ?? eodData?.total_sales);
+  const onlineGross = parseVal(eodData?.ecommerce?.gross_sales ?? 0);
+  const grossSales = parseVal(eodData?.gross_sales ?? posGross);
+  const posRefunds = parseVal(eodData?.pos?.refunds ?? 0);
+  const onlineRefunds = parseVal(eodData?.ecommerce?.refunds ?? 0);
+  const totalRefunds = parseVal(eodData?.refunds?.total ?? posRefunds);
   const netSales = parseVal(eodData?.total_sales);
+  // The channel split only shows when online sales or refunds happened in the period
+  const hasOnline = onlineGross > 0 || onlineRefunds > 0;
   const expenseRecords = eodData?.expenses?.records || [];
   const totalExpenses = parseVal(eodData?.expenses?.total);
+  // MoMo payments handed back in cash: out of the drawer, but not an expense
+  const momoRefunds = parseVal(eodData?.momo_refunds?.total ?? 0);
+  const paidOut = totalExpenses + momoRefunds;
+  const drawerCash = (pb.cash || 0) + (eodData?.total_paid_in || 0) - paidOut
+    - parseVal(eodData?.cash_refunds?.total ?? 0) + parseVal(eodData?.cash_repayments?.total ?? 0);
   const avgOrderValue = parseVal(eodData?.average_order_value);
   const medianSale = parseVal(eodData?.median_sale);
   const completedSales = (eodData?.pos?.completed_transactions || 0) + (eodData?.ecommerce?.transactions || 0);
 
-  const pb = eodData?.payment_breakdown || {};
   const paymentBreakdownChartData = [
     { name: 'Cash', value: pb.cash || 0, color: '#059669' },
     { name: 'MoMo', value: (pb.mobile_money || 0) + (pb.mobile_money_manual || 0), color: '#4f46e5' },
@@ -181,9 +190,13 @@ export default function EndOfDay() {
           title={isMultiDay ? "Period Gross Sales" : "Total Gross Sales"}
           value={<CurrencyDisplay amount={grossSales} />}
           subvalue={
-            totalRefunds > 0 ? (
+            hasOnline ? (
               <span className="text-[11px] text-muted-foreground">
-                {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.transactions || 0)} Txns &bull; Refunded: <CurrencyDisplay amount={totalRefunds} symbolClassName="mr-1 text-destructive font-semibold" />
+                POS <CurrencyDisplay amount={posGross} showStyling={false} /> &bull; Online <CurrencyDisplay amount={onlineGross} showStyling={false} />
+              </span>
+            ) : totalRefunds > 0 ? (
+              <span className="text-[11px] text-muted-foreground">
+                {(eodData?.pos?.transactions || 0) + (eodData?.ecommerce?.orders ?? eodData?.ecommerce?.transactions ?? 0)} sales
               </span>
             ) : undefined
           }
@@ -196,6 +209,9 @@ export default function EndOfDay() {
             totalRefunds > 0 ? (
               <span className="text-[11px] text-muted-foreground">
                 Less <span className="text-destructive font-semibold">-<CurrencyDisplay amount={totalRefunds} symbolClassName="mr-0.5" /></span> in refunds
+                {onlineRefunds > 0 && (
+                  <> (POS <CurrencyDisplay amount={posRefunds} showStyling={false} /> &bull; Online <CurrencyDisplay amount={onlineRefunds} showStyling={false} />)</>
+                )}
               </span>
             ) : undefined
           }
@@ -215,15 +231,13 @@ export default function EndOfDay() {
         ) : (
           <DashboardCard
             title="Cash in Register"
-            value={<CurrencyDisplay amount={(pb.cash || 0) + (eodData?.total_paid_in || 0) - totalExpenses} />}
-            subvalue="Cash sales + float in - expenses"
+            value={<CurrencyDisplay amount={drawerCash} />}
+            subvalue="Cash taken, less cash paid out and refunded"
             className="border border-border shadow-2xs"
           />
         )}
         
-        {/* Dynamic Card: ATV for POS Only vs Channel Split for Full Suite */}
-        {isPosOnly ? (
-          <DashboardCard
+        <DashboardCard
             title="Avg Order Value"
             value={<CurrencyDisplay amount={avgOrderValue} />}
             subvalue={
@@ -233,13 +247,6 @@ export default function EndOfDay() {
             }
             className="border border-border shadow-2xs"
           />
-        ) : (
-          <DashboardCard
-            title="POS vs E-Commerce"
-            value={`${eodData?.pos?.transactions || 0} / ${eodData?.ecommerce?.transactions || 0}`}
-            className="border border-border shadow-2xs"
-          />
-        )}
       </div>
 
       {/* Multi-Day: Day-by-Day Performance Breakdown */}
@@ -269,8 +276,9 @@ export default function EndOfDay() {
                   <th className="px-5 py-3 text-right">Gross Sales</th>
                   <th className="px-5 py-3 text-right">Cash</th>
                   <th className="px-5 py-3 text-right">MoMo / Card</th>
-                  <th className="px-5 py-3 text-right">Expenses</th>
+                  <th className="px-5 py-3 text-right">Refunds</th>
                   <th className="px-5 py-3 text-right">Net Sales</th>
+                  <th className="px-5 py-3 text-right">Expenses</th>
                   <th className="px-5 py-3 text-center">Audit Report</th>
                 </tr>
               </thead>
@@ -300,14 +308,21 @@ export default function EndOfDay() {
                         <CurrencyDisplay amount={digital} showStyling={false} />
                       </td>
                       <td className="px-5 py-3.5 text-right font-medium">
-                        {day.expenses > 0 ? (
-                          <span className="text-destructive font-medium">-<CurrencyDisplay amount={day.expenses} showStyling={false} /></span>
+                        {day.refunds > 0 ? (
+                          <span className="text-destructive font-medium">-<CurrencyDisplay amount={day.refunds} showStyling={false} /></span>
                         ) : (
                           <span className="text-muted-foreground/40">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-foreground">
                         <CurrencyDisplay amount={day.net_sales || 0} />
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-medium">
+                        {day.expenses > 0 ? (
+                          <span className="text-destructive font-medium">-<CurrencyDisplay amount={day.expenses} showStyling={false} /></span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <button
@@ -357,7 +372,7 @@ export default function EndOfDay() {
                   <th className="px-5 py-3 text-center">Transactions</th>
                   <th className="px-5 py-3 text-right">Gross Sales</th>
                   <th className="px-5 py-3 text-right">Cash Received</th>
-                  <th className="px-5 py-3 text-right">Expenses Paid Out</th>
+                  <th className="px-5 py-3 text-right">Paid Out</th>
                   <th className="px-5 py-3 text-right">Net Cash in Till</th>
                   <th className="px-5 py-3 text-center">Audit Report</th>
                 </tr>
@@ -382,20 +397,20 @@ export default function EndOfDay() {
                     {eodData?.pos?.transactions || 0}
                   </td>
                   <td className="px-5 py-3.5 text-right font-medium text-foreground">
-                    <CurrencyDisplay amount={grossSales} />
+                    <CurrencyDisplay amount={posGross} />
                   </td>
                   <td className="px-5 py-3.5 text-right font-medium text-foreground/85">
                     <CurrencyDisplay amount={pb.cash || 0} showStyling={false} />
                   </td>
                   <td className="px-5 py-3.5 text-right font-medium">
-                    {totalExpenses > 0 ? (
-                      <span className="text-destructive font-medium">-<CurrencyDisplay amount={totalExpenses} showStyling={false} /></span>
+                    {paidOut > 0 ? (
+                      <span className="text-destructive font-medium">-<CurrencyDisplay amount={paidOut} showStyling={false} /></span>
                     ) : (
                       <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-right font-bold text-foreground">
-                    <CurrencyDisplay amount={(pb.cash || 0) + (eodData?.total_paid_in || 0) - totalExpenses} />
+                    <CurrencyDisplay amount={drawerCash} />
                   </td>
                   <td className="px-5 py-3.5 text-center">
                     <button
@@ -659,6 +674,12 @@ export default function EndOfDay() {
                   </tbody>
                 </table>
               </div>
+              {momoRefunds > 0 && (
+                <div className="px-5 py-3 border-t border-border/50 flex justify-between items-center gap-3 text-xs text-muted-foreground">
+                  <span>MoMo payments handed back in cash (no sale), not counted as expenses</span>
+                  <span className="font-medium text-foreground shrink-0">-<CurrencyDisplay amount={momoRefunds} showStyling={false} /></span>
+                </div>
+              )}
           </div>
         </div>
 

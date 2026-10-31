@@ -7,6 +7,7 @@ import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { useFeaturesStore } from '@/store/featuresStore';
+import { useCan } from '@/hooks/usePermissions';
 import { Icon } from '@iconify/react';
 import {
   BarChart,
@@ -27,6 +28,9 @@ export default function SalesSummary() {
   const hasPos = hasModule('pos');
   const hasEcommerce = hasModule('ecommerce');
   const isMultiChannel = hasPos && hasEcommerce;
+  // Cost and profit need "Profit & costs"; "Sales reports" alone shows the sales figures
+  const can = useCan();
+  const canSeeProfit = can('reports.profit');
 
   // Global Date Filter for Page Header
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
@@ -65,7 +69,7 @@ export default function SalesSummary() {
     } finally {
       setIsLoading(false);
     }
-  }, [dateFilter, channel]);
+  }, [dateFilter, channel, isMultiChannel]);
 
   useEffect(() => {
     fetchSalesReport();
@@ -73,7 +77,8 @@ export default function SalesSummary() {
 
   const summary = summaryData || {};
   const costCoveragePct = summary.cost_coverage_pct ?? 100;
-  const isHighCoverage = costCoveragePct >= 80;
+  const refundsCount = summary.refunds_count ?? summary.refunded_orders_count ?? 0;
+  const fullyRefundedCount = summary.fully_refunded_count ?? 0;
 
   // Chart formatters
   const formatGHS = (val: number) => `GHS ${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -93,15 +98,15 @@ export default function SalesSummary() {
     >
       <div className="space-y-5">
         {/* 4 Enhanced Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${canSeeProfit ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           
           {/* Card 1: Total Gross Revenue */}
           <DashboardCard
             title="Total Gross Revenue"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_sales || 0} />}
             subvalue={
-              summary.total_refunds > 0
-                ? `${summary.total_orders || 0} transactions (${summary.completed_orders_count || 0} completed · ${summary.refunded_orders_count || 0} refunded)`
+              refundsCount > 0
+                ? `${summary.total_orders || 0} orders · ${refundsCount} ${refundsCount === 1 ? 'refund' : 'refunds'} given`
                 : undefined
             }
             collapsibleContent={
@@ -182,6 +187,7 @@ export default function SalesSummary() {
           />
 
           {/* Card 3: Gross Profit & Cost Coverage */}
+          {canSeeProfit && (
           <DashboardCard
             title="Gross Profit"
             value={isLoading ? '...' : <CurrencyDisplay amount={summary.gross_profit || 0} />}
@@ -192,7 +198,7 @@ export default function SalesSummary() {
                     {summary.gross_margin_pct || 0}% Margin
                   </span>
                   <span>
-                    {costCoveragePct}% Cost Coverage
+                    {costCoveragePct < 100 ? `On ${costCoveragePct}% of sales with cost` : '100% Cost Coverage'}
                   </span>
                 </div>
                 {/* Minimalist Monochrome Progress Line */}
@@ -220,7 +226,7 @@ export default function SalesSummary() {
                 </div>
                 {summary.uncosted_items_count > 0 && (
                   <div className="text-[11px] text-muted-foreground/80 pt-1.5 border-t border-border/30 italic">
-                    * {summary.uncosted_items_count} items sold without recorded cost price ({formatGHS(summary.uncosted_revenue || 0)})
+                    * {summary.uncosted_items_count} items sold without a cost price ({formatGHS(summary.uncosted_revenue || 0)}) are left out of profit
                   </div>
                 )}
                 {summary.period_expenses > 0 && (
@@ -242,14 +248,15 @@ export default function SalesSummary() {
               </div>
             }
           />
+          )}
 
           {/* Card 4: Total Orders & Sales Tickets */}
           <DashboardCard
             title="Total Orders"
             value={isLoading ? '...' : (summary.completed_orders_count || summary.total_orders || 0).toString()}
             subvalue={
-              summary.refunded_orders_count > 0
-                ? `${summary.refunded_orders_count} refunds excluded`
+              fullyRefundedCount > 0
+                ? `${fullyRefundedCount} refunded in full, not counted`
                 : undefined
             }
             collapsibleContent={
@@ -269,7 +276,7 @@ export default function SalesSummary() {
                 <div className="flex justify-between items-center text-muted-foreground pt-1.5 border-t border-border/40">
                   <span>Total Items Sold</span>
                   <span className="font-medium text-foreground">
-                    {(summary.costed_items_count || 0) + (summary.uncosted_items_count || 0)} units
+                    {Number(summary.units_sold || 0).toLocaleString('en-US', { maximumFractionDigits: 3 })} units
                   </span>
                 </div>
               </div>
@@ -376,9 +383,11 @@ export default function SalesSummary() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-base font-bold text-foreground">Payment Distribution</h3>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                  Top: {summary.top_payment_method || 'Cash'}
-                </span>
+                {summary.top_payment_method && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                    Top: {summary.top_payment_method}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mb-4">Revenue share by payment type</p>
             </div>
