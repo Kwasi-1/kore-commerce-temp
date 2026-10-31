@@ -354,6 +354,8 @@ export default function Transactions() {
         refundTotal: serverSummary.total_refunds || 0,
         completedCount: count,
         refundedCount: serverSummary.refunded_count || 0,
+        // Refunds given in the range (on the day given, whatever the sale's date)
+        refundsCount: serverSummary.refunds_count ?? serverSummary.refunded_count ?? 0,
         count: count,
         avg: count > 0 ? net / count : 0,
         cashTotal: (serverSummary.payment_breakdown?.cash || 0) + offlineCash,
@@ -407,6 +409,7 @@ export default function Transactions() {
       refundTotal,
       completedCount,
       refundedCount,
+      refundsCount: refundedCount,
       count,
       avg,
       cashTotal,
@@ -748,7 +751,7 @@ export default function Transactions() {
             <MobileMetricPill
               title="Refunded"
               value={<CurrencyDisplay amount={stats.refundTotal} />}
-              subtitle={`${stats.refundedCount} refund(s)`}
+              subtitle={`${stats.refundsCount} refund(s)`}
               icon={<AlertCircle className="h-3.5 w-3.5" />}
               iconColorClass="bg-rose-500/10 text-rose-500"
               isLoading={isLoading}

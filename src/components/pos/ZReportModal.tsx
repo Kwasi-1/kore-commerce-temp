@@ -72,12 +72,13 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                 variance: 0,
               },
               summary: {
-                gross_sales: eod?.total_sales || 0,
+                // Sales made that day; refunds given that day come off to make net sales
+                gross_sales: (eod?.total_sales || 0) + (eod?.refunds?.total || 0),
                 // Fully refunded sales are out of the total, so out of the count too
                 total_transactions: (eod?.pos?.completed_transactions ?? eod?.pos?.transactions ?? 0) + (eod?.ecommerce?.transactions || 0),
-                net_sales: (eod?.total_sales || 0) - totalPaidOut,
+                net_sales: eod?.total_sales || 0,
               },
-              refunds: { count: eod?.pos?.refunded_transactions || 0, total: eod?.pos?.refunds || 0 },
+              refunds: eod?.refunds || { count: 0, total: 0 },
               median_sale: eod?.median_sale,
               largest_sale: eod?.largest_sale,
               payment_breakdown: pb,
@@ -130,6 +131,7 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
 
   // The calendar-day report keeps its totals under "summary" and gives plain amounts per method
   const grossSales = reportData?.gross_sales ?? reportData?.summary?.gross_sales ?? 0;
+  const netSales = reportData?.net_sales ?? reportData?.summary?.net_sales ?? grossSales;
   const totalTransactions = reportData?.total_transactions ?? reportData?.summary?.total_transactions ?? 0;
   const averageSale = reportData?.average_order_value ?? (totalTransactions ? grossSales / totalTransactions : 0);
   // One big sale pulls the average up, so show the typical (median) and largest sale beside it.
@@ -246,12 +248,20 @@ export default function ZReportModal({ isOpen, onClose, shiftId, initialReportDa
                     <section className="space-y-1.5">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Sales</p>
                       <div className="rounded-xl border border-border/70 divide-y divide-border/60">
-                        {listRow('Total sales', <CurrencyDisplay amount={grossSales} />)}
-                        {refunds.count > 0 && listRow(
-                          `Refunded, not in total (${refunds.count})`,
-                          <CurrencyDisplay amount={refunds.total} />,
-                          undefined,
-                          true,
+                        {refunds.count > 0 ? (
+                          <>
+                            {/* Refunds given in this period, whenever the sale was made */}
+                            {listRow('Sales', <CurrencyDisplay amount={grossSales} />, undefined, true)}
+                            {listRow(
+                              `Refunds (${refunds.count})`,
+                              <span className="text-destructive">−<CurrencyDisplay amount={refunds.total} /></span>,
+                              undefined,
+                              true,
+                            )}
+                            {listRow('Net sales', <CurrencyDisplay amount={netSales} />)}
+                          </>
+                        ) : (
+                          listRow('Total sales', <CurrencyDisplay amount={grossSales} />)
                         )}
                         {listRow('Number of sales', totalTransactions, undefined, true)}
                         {listRow('Average sale', <CurrencyDisplay amount={averageSale} />, undefined, true)}
