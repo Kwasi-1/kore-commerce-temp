@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   Line,
   LineChart,
@@ -13,7 +14,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { OTHERS_COLOR, SERIES_COLORS, SHARE_BAR_COLOR } from '../constants';
+import { chartTooltipStyle } from '@/lib/chart';
+import { OTHERS_COLOR, SERIES_COLORS } from '../constants';
 import type { ProductReportRow, ProductReportSummary, TrendData } from '../types';
 import type { Highlight } from '../utils/insights';
 import { formatQty, rowDisplayName } from '../utils/format';
@@ -30,13 +32,12 @@ interface Props {
 
 const SHARE_LIMIT = 12;
 
-const tooltipStyle = {
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--card-foreground)',
-  fontSize: 12,
-};
+/*
+ * Share bars: the text colour, strongest for the top item. Opacity rather than a mixed colour
+ * because html2canvas draws the chart as an image for the PDF, where CSS variables don't exist;
+ * nothing sits behind the bars, so they still read as solid.
+ */
+const shareOpacity = (i: number, count: number) => (count <= 1 ? 0.85 : 0.85 - (0.55 * i) / (count - 1));
 
 const toneClass: Record<Highlight['tone'], string> = {
   good: 'text-emerald-600 dark:text-emerald-400',
@@ -146,12 +147,15 @@ const ProductCompareView = forwardRef<HTMLDivElement, Props>(function ProductCom
                     tick={{ fontSize: 11, fill: 'currentColor' }}
                   />
                   <Tooltip
-                    cursor={{ fill: 'currentColor', opacity: 0.06 }}
-                    contentStyle={tooltipStyle}
+                    cursor={false}
+                    contentStyle={chartTooltipStyle}
                     formatter={(v: any, _n: any, item: any) => [`${Number(v).toFixed(1)}% · ${formatQty(item?.payload?.units)} units`, 'Share']}
                     labelFormatter={(_l: any, payload: any) => payload?.[0]?.payload?.fullLabel || ''}
                   />
-                  <Bar dataKey="share" fill={SHARE_BAR_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false}>
+                  <Bar dataKey="share" fill="currentColor" radius={4} maxBarSize={18} isAnimationActive={false}>
+                    {shareData.map((d, i) => (
+                      <Cell key={d.fullLabel + i} className="text-foreground" fillOpacity={shareOpacity(i, shareData.length)} />
+                    ))}
                     <LabelList dataKey="share" position="right" formatter={(v: any) => `${Number(v).toFixed(1)}%`} style={{ fontSize: 11, fill: 'currentColor' }} />
                   </Bar>
                 </BarChart>
@@ -178,7 +182,7 @@ const ProductCompareView = forwardRef<HTMLDivElement, Props>(function ProductCom
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" strokeOpacity={0.15} />
                     <XAxis dataKey="date" tickFormatter={fmtBucket} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} minTickGap={16} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} allowDecimals={false} />
-                    <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: any) => fmtBucket(String(l))} formatter={(v: any, name: any) => [formatQty(Number(v)), name]} />
+                    <Tooltip contentStyle={chartTooltipStyle} labelFormatter={(l: any) => fmtBucket(String(l))} formatter={(v: any, name: any) => [formatQty(Number(v)), name]} />
                     {series.map((s, i) => (
                       <Line
                         key={s.id}

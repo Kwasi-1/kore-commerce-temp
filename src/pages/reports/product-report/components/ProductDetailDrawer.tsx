@@ -5,6 +5,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import apiClient from '@/api/client';
 import CustomModal from '@/components/modals/modal';
 import type { ProductReportFilters } from '../types';
+import { chartTooltipStyle } from '@/lib/chart';
 import { SHARE_BAR_COLOR } from '../constants';
 import { formatRangeLabel } from '../utils/dates';
 import { formatMoney, formatQty } from '../utils/format';
@@ -45,14 +46,6 @@ const DAYS = [
   { dow: 6, label: 'Sat' },
   { dow: 0, label: 'Sun' },
 ];
-
-const tooltipStyle = {
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--card-foreground)',
-  fontSize: 12,
-};
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -183,7 +176,7 @@ export default function ProductDetailDrawer({ target, onClose, filters, isMultiC
                       <XAxis dataKey="date" tickFormatter={fmtBucket} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} minTickGap={20} />
                       <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} allowDecimals={false} />
                       <Tooltip
-                        contentStyle={tooltipStyle}
+                        contentStyle={chartTooltipStyle}
                         labelFormatter={(l: any) => fmtBucket(String(l))}
                         formatter={(v: any, _n: any, item: any) => [`${formatQty(Number(v))} units · ${formatMoney(item?.payload?.revenue || 0)}`, '']}
                       />

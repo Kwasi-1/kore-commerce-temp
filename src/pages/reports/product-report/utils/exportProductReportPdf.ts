@@ -7,6 +7,7 @@ import type { ProductReportFilters, ProductReportRow, ProductReportSummary } fro
 import type { Highlight } from './insights';
 import { formatRangeLabel } from './dates';
 import { formatChange, formatCover, formatMoney, formatPct, formatQty } from './format';
+import neueHaasUrl from '@/assets/fonts/NeueHaasDisplay-Roman.ttf?url';
 
 export interface ExportProductReportOptions {
   rows: ProductReportRow[];
@@ -31,9 +32,34 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 40);
 
+/** The app's body font (one weight, as in the app) as base64, fetched once; null falls back to Helvetica */
+let fontData: Promise<string | null> | null = null;
+function loadAppFont() {
+  fontData ??= fetch(neueHaasUrl)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`font ${r.status}`))))
+    .then((buf) => {
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    })
+    .catch((e) => {
+      console.warn('PDF font failed to load, using Helvetica', e);
+      fontData = null;
+      return null;
+    });
+  return fontData;
+}
+
 async function captureChart(el: HTMLElement): Promise<HTMLCanvasElement | null> {
+  // html2canvas copies the live computed colours into SVG charts while it clones the page, which
+  // happens synchronously inside this call. Switch to the light theme just for that moment (no
+  // paint happens in between) so dark-mode colours don't end up white on the white page.
+  const root = document.documentElement;
+  const wasDark = root.classList.contains('dark');
   try {
-    return await html2canvas(el, {
+    if (wasDark) root.classList.remove('dark');
+    const capture = html2canvas(el, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
@@ -43,9 +69,13 @@ async function captureChart(el: HTMLElement): Promise<HTMLCanvasElement | null> 
         doc.documentElement.setAttribute('data-theme', 'light');
       },
     });
+    if (wasDark) root.classList.add('dark');
+    return await capture;
   } catch (e) {
     console.warn('Chart capture failed, exporting without chart', e);
     return null;
+  } finally {
+    if (wasDark) root.classList.add('dark');
   }
 }
 
@@ -59,6 +89,14 @@ export interface BuiltReportPdf {
 export async function buildProductReportPdf(opts: ExportProductReportOptions): Promise<BuiltReportPdf> {
   const { rows, summary, filters, highlights, storeName, generatedBy, scopeLabel, chartElement } = opts;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const appFont = await loadAppFont();
+  let font = 'helvetica';
+  if (appFont) {
+    doc.addFileToVFS('NeueHaasDisplay-Roman.ttf', appFont);
+    doc.addFont('NeueHaasDisplay-Roman.ttf', 'NeueHaas', 'normal');
+    doc.addFont('NeueHaasDisplay-Roman.ttf', 'NeueHaas', 'bold');
+    font = 'NeueHaas';
+  }
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 12;
@@ -71,7 +109,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   const sortLabel = SORT_PRESETS.find((s) => s.key === filters.sort)?.label || 'Top Revenue';
 
   /* ---------- Header ---------- */
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(font, 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   doc.text(storeName.toUpperCase(), margin, y + 3);
@@ -80,7 +118,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   doc.setTextColor(...INK);
   doc.text(scopeLabel ? `Product Performance — ${scopeLabel}` : 'Product Performance Report', margin, y + 11);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(font, 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   const meta = [
@@ -151,15 +189,15 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
     const x = margin + i * (boxW + gap);
     doc.setDrawColor(...RULE);
     doc.roundedRect(x, y, boxW, 19, 2, 2);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(font, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...MUTED);
     doc.text(k.label, x + 4, y + 5);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(font, 'bold');
     doc.setFontSize(13);
     doc.setTextColor(...INK);
     doc.text(k.value, x + 4, y + 11.5);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(font, 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
     doc.text(doc.splitTextToSize(k.sub, boxW - 8)[0], x + 4, y + 16);
@@ -168,12 +206,12 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
 
   /* ---------- Highlights ---------- */
   if (highlights.length) {
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(font, 'bold');
     doc.setFontSize(10);
     doc.setTextColor(...INK);
     doc.text('Key takeaways', margin, y);
     y += 5;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(font, 'normal');
     doc.setFontSize(9);
     highlights.forEach((h) => {
       const lines = doc.splitTextToSize(h.text, contentW - 5);
@@ -240,7 +278,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
     body,
     startY: y,
     margin: { left: margin, right: margin, bottom: 16 },
-    styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.8, textColor: INK, lineColor: RULE, lineWidth: 0.1 },
+    styles: { font, fontSize: 8, cellPadding: 1.8, textColor: INK, lineColor: RULE, lineWidth: 0.1 },
     headStyles: { fillColor: [245, 245, 242], textColor: MUTED, fontStyle: 'bold', fontSize: 7.5 },
     alternateRowStyles: { fillColor: [252, 252, 251] },
     columnStyles: {
@@ -275,7 +313,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   const stamp = `Generated by ${generatedBy} on ${format(new Date(), "d MMM yyyy 'at' HH:mm")}`;
   for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(font, 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
     doc.text(`${storeName} · ${stamp}`, margin, pageH - 7);
