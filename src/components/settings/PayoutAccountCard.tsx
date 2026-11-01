@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CustomInputTextField, SearchableSelectField } from '@/components/shared/text-field';
 import { cn } from '@/lib/utils';
 import { useFeaturesStore } from '@/store/featuresStore';
+import SettingsSection from '@/components/settings/SettingsSection';
 
 interface PayoutAccount {
   account_type: 'mobile_money' | 'bank';
@@ -78,12 +79,15 @@ export default function PayoutAccountCard() {
   };
 
   return (
-    <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
-      <h2 className="text-xl font-bold mb-1 text-foreground">Payouts</h2>
-      <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-        Where money from online payments is paid out: MoMo prompts at the till and your online store. Paystack sends your
-        share here automatically. Cash and payments you confirm yourself aren&apos;t affected.
-      </p>
+    <SettingsSection
+      title="Payouts"
+      description={
+        <>
+          Where Paystack sends your share of online payments (MoMo prompts and your online store). Cash and payments you
+          confirm yourself aren&apos;t affected.
+        </>
+      }
+    >
 
       {account && !editing && (
         <div className="max-w-2xl space-y-3">
@@ -163,6 +167,6 @@ export default function PayoutAccountCard() {
           </div>
         </div>
       )}
-    </section>
+    </SettingsSection>
   );
 }

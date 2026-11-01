@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { CustomInputTextField, CustomTextareaField } from '@/components/shared/text-field';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@nextui-org/react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
@@ -13,8 +12,8 @@ import toast from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 import { isOwnerOrAdmin } from '@/utils/roles';
 import TillsSection from '@/components/settings/TillsSection';
-import CustomModal from '@/components/modals/modal';
-import { setNavigationGuard } from '@/utils/navigationGuard';
+import UnsavedChanges from '@/components/shared/UnsavedChanges';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { useIsMobile } from '@/hooks/useScreenSize';
@@ -117,8 +116,6 @@ export default function POSSettings() {
   const [localSettings, setLocalSettings] = useState(posSettings);
   const [localFeatures, setLocalFeatures] = useState(featureSettings);
   const [localExpiry, setLocalExpiry] = useState(false);
-  // Where the person tried to go with unsaved changes; the save bar asks first
-  const [pendingLeave, setPendingLeave] = useState<string | null>(null);
 
   const effectiveStoreName = storeSettings?.name || tenant?.business_name || tenant?.name || '';
   const autoPrefix = getReceiptPrefix(effectiveStoreName);
@@ -154,44 +151,7 @@ export default function POSSettings() {
   const changeCount = featureChanges.length + settingChanges.length + (expiryChanged ? 1 : 0);
   const isDirty = changeCount > 0;
 
-  // Closing or reloading the tab
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      // Older browsers only warn when this is set to a non-empty value (they show their own text)
-      e.returnValue = 'You have unsaved changes';
-      return e.returnValue;
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
-  // Sidebar, header, bottom nav and notifications navigate in code: they ask the guard first
-  useEffect(() => {
-    if (!isDirty) return;
-    return setNavigationGuard((to) => {
-      setPendingLeave(to);
-      return true;
-    });
-  }, [isDirty]);
-
-  // Links (<a>) in the page: caught before the router sees the click
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as HTMLElement | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
-      if (!a || (a.target && a.target !== '_self')) return;
-      const url = new URL(a.href, window.location.href);
-      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setPendingLeave(url.pathname + url.search + url.hash);
-    };
-    document.addEventListener('click', handler, true);
-    return () => document.removeEventListener('click', handler, true);
-  }, [isDirty]);
+  const guard = useUnsavedChanges(isDirty);
 
   const discard = () => {
     setLocalFeatures(featureSettings);
@@ -241,11 +201,6 @@ export default function POSSettings() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const leaveTo = (path: string) => {
-    setPendingLeave(null);
-    navigate(path);
   };
 
   // Phones: one section at a time. Changes stay when going back to the list; one save covers all
@@ -789,72 +744,15 @@ export default function POSSettings() {
 
         {show('tills') && <TillsSection />}
 
-        {/* Only while something is unsaved: one save for the whole page */}
-        {isDirty && (
-          <div className="sticky bottom-4 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 mx-2 sm:mx-4">
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-full border border-border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
-              <p className="text-sm text-foreground min-w-0 pl-3 sm:pl-4">
-                {changeCount} unsaved change{changeCount > 1 ? 's' : ''}
-              </p>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button type="button" variant="ghost" disabled={isSaving} onClick={discard}>
-                  Discard
-                </Button>
-                <Button type="button" disabled={isSaving} onClick={saveAll} className="font-semibold px-5">
-                  {isSaving ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <UnsavedChanges
+          guard={guard}
+          count={changeCount}
+          saving={isSaving}
+          onDiscard={discard}
+          onSave={saveAll}
+          subject="your POS settings"
+        />
       </div>
-
-      {/* Leaving with unsaved changes */}
-      <CustomModal
-        isOpen={!!pendingLeave}
-        onOpenChange={() => !isSaving && setPendingLeave(null)}
-        size="sm"
-        header={
-          <div className="pt-2 px-1 border-b border-border/50 pb-2">
-            <h3 className="text-base font-bold text-foreground">Save your changes?</h3>
-          </div>
-        }
-        body={
-          <div className="py-2">
-            <p className="text-sm text-muted-foreground">
-              You have {changeCount} unsaved change{changeCount > 1 ? 's' : ''} to your POS settings.
-            </p>
-          </div>
-        }
-        footer={
-          <div className="grid grid-cols-2 gap-2 w-full pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              disabled={isSaving}
-              onClick={() => {
-                discard();
-                if (pendingLeave) leaveTo(pendingLeave);
-              }}
-              className="font-medium"
-            >
-              Discard
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              disabled={isSaving}
-              onClick={async () => {
-                if ((await saveAll()) && pendingLeave) leaveTo(pendingLeave);
-              }}
-              className="font-semibold"
-            >
-              {isSaving ? 'Saving…' : 'Save and leave'}
-            </Button>
-          </div>
-        }
-      />
     </PageLayout>
   );
 }
