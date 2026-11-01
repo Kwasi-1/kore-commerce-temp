@@ -69,8 +69,9 @@ export default function TillsSection() {
   };
 
   return (
-    <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-6 border border-border dark:border-border/60">
-      <h2 className="text-xl font-bold font-header tracking-tighter -mt-1 mb-1 text-foreground">Tills</h2>
+    <section className="bg-card dark:bg-card/60 text-card-foreground rounded-xl p-4 md:p-6 border border-border dark:border-border/60 animate-in fade-in slide-in-from-right-4 md:animate-none duration-200">
+      {/* Phones: the POS settings header already names the section */}
+      <h2 className="hidden md:block text-xl font-bold font-header tracking-tighter -mt-1 mb-1 text-foreground">Tills</h2>
       <p className="text-sm text-muted-foreground border-b mb-6 pb-4">
         Tills show the "Who's working?" screen, where staff tap their name and enter their PIN. Phones and laptops sign in with email
         and password.
@@ -90,7 +91,7 @@ export default function TillsSection() {
               onChange={(e) => setName(e.target.value)}
               maxLength={80}
               placeholder="Name, e.g. Front counter"
-              className="flex-1 h-10 px-3 text-sm border border-border rounded-md bg-background focus:outline-none focus:border-foreground/40"
+              className="flex-1 h-10 min-h-10 px-3 text-sm border border-border rounded-md bg-background focus:outline-none focus:border-foreground/40"
             />
             <Button onClick={register} disabled={busy} className="bg-primary text-primary-foreground font-semibold">
               Use this device as a till

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,7 +28,7 @@ interface Props {
  * a bottom sheet on phones.
  */
 export default function NotificationBell({ className, iconClassName, dotClassName }: Props) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const unread = useUnreadNotifications();

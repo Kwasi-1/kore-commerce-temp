@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
@@ -13,7 +13,7 @@ import { QuickStockIntakeModal, type ProductStockItem } from '@/pages/inventory/
  * online orders. Only for people allowed to (cashiers get none: they see stock alerts only).
  */
 export function useNotificationAction() {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const can = useCan();
   const canManage = useCanManageNotifications();
   const queryClient = useQueryClient();

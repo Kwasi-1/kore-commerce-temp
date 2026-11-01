@@ -2,7 +2,8 @@ import React from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import { useModuleContext } from "@/components/shared/ModuleRoute";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useGuardedNavigate } from "@/hooks/useGuardedNavigate";
 import { isBottomNavRoute } from "@/components/navigation/BottomNav";
 import {
   Settings,
@@ -73,7 +74,7 @@ export default function PageLayout({
   const { staffUser, graceInfo, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const { isGraceAccess } = useModuleContext();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
 
   const handleLogout = () => {
     logout();

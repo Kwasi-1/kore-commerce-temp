@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import clsx from 'clsx';
@@ -70,7 +70,7 @@ function ItemRow({ item, compact, canRestock, busy, onRestock }: {
  * Restock for people allowed to. Hidden when nothing is low.
  */
 export default function StockStrip({ summary, compact, onNavigate, search = '' }: Props) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const can = useCan();
   const canManage = useCanManageNotifications();
   const reduceMotion = useReducedMotion();

@@ -1,5 +1,6 @@
 import { useState, useEffect, useTransition, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLayoutStore } from '@/store/layoutStore';
 import { useAuthStore } from '@/store/authStore';
@@ -93,7 +94,7 @@ export default function Sidebar() {
   const posSettings = useFeaturesStore((s) => s.posSettings);
 
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed: setIsCollapsed } = useLayoutStore();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const location = useLocation();
   const [isPending, startTransition] = useTransition();
   const [showLoadingBar, setShowLoadingBar] = useState(false);

@@ -1,6 +1,7 @@
 import { useTransition, useCallback } from 'react';
 import { useNavigate, NavigateOptions, To } from 'react-router-dom';
 import { startTopProgress } from '@/components/shared/TopProgressBar';
+import { isNavigationBlocked } from '@/utils/navigationGuard';
 
 /**
  * Drop-in replacement for useNavigate that wraps route transitions in React 18
@@ -13,6 +14,9 @@ export function useAppNavigate() {
 
   const appNavigate = useCallback(
     (to: To | number, options?: NavigateOptions) => {
+      // The current page may hold this up (unsaved changes); it navigates itself afterwards
+      if (typeof to === 'string' && isNavigationBlocked(to)) return;
+
       // Trigger top loading bar progress for route transitions
       if (typeof to === 'string' || (typeof to === 'object' && to !== null)) {
         startTopProgress();
