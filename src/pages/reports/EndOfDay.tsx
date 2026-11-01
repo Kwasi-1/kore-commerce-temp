@@ -16,9 +16,9 @@ import {
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts';
+import { chartTooltipStyle, shade, shareStrength } from '@/lib/chart';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -122,16 +122,21 @@ export default function EndOfDay() {
   const medianSale = parseVal(eodData?.median_sale);
   const completedSales = (eodData?.pos?.completed_transactions || 0) + (eodData?.ecommerce?.transactions || 0);
 
+  // Largest share gets the strongest shade
   const paymentBreakdownChartData = [
-    { name: 'Cash', value: pb.cash || 0, color: '#059669' },
-    { name: 'MoMo', value: (pb.mobile_money || 0) + (pb.mobile_money_manual || 0), color: '#4f46e5' },
-    { name: 'Card', value: pb.card || 0, color: '#0284c7' },
-    { name: 'Credit', value: pb.credit || 0, color: '#7c3aed' }
-  ].filter(item => item.value > 0);
+    { name: 'Cash', value: pb.cash || 0 },
+    { name: 'MoMo', value: (pb.mobile_money || 0) + (pb.mobile_money_manual || 0) },
+    { name: 'Card', value: pb.card || 0 },
+    { name: 'Credit', value: pb.credit || 0 }
+  ]
+    .filter(item => item.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .map((item, i) => ({ ...item, strength: shareStrength(i) }));
+  const paymentTotal = paymentBreakdownChartData.reduce((sum, item) => sum + item.value, 0);
 
   const chartDataToRender = paymentBreakdownChartData.length > 0
     ? paymentBreakdownChartData
-    : [{ name: 'No Sales', value: 1, color: '#9CA3AF' }];
+    : [{ name: 'No Sales', value: 1, strength: 10 }];
 
 
   const shiftRecords = eodData?.shifts?.records || [];
@@ -634,7 +639,7 @@ export default function EndOfDay() {
           
             <div className="flex-1 min-h-[220px] flex flex-col">
               <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" className="text-foreground">
                   <PieChart>
                     <Pie
                       data={chartDataToRender}
@@ -644,23 +649,42 @@ export default function EndOfDay() {
                       outerRadius={75}
                       paddingAngle={3}
                       dataKey="value"
+                      cornerRadius={4}
+                      stroke="none"
+                      fill="currentColor"
                     >
-                      {chartDataToRender.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      {chartDataToRender.map((entry) => (
+                        <Cell key={entry.name} style={{ fill: shade(entry.strength) }} />
                       ))}
                     </Pie>
-                    <RechartsTooltip 
-                      formatter={(value: number) => formatGHS(value)}
-                      contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: '12px' }}
-                    />
-                    <Legend 
-                      verticalAlign="bottom" 
-                      height={32} 
-                      wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
-                    />
+                    {paymentBreakdownChartData.length > 0 && (
+                      <RechartsTooltip
+                        formatter={(value: number) => formatGHS(value)}
+                        contentStyle={chartTooltipStyle}
+                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                      />
+                    )}
                   </PieChart>
                 </ResponsiveContainer>
               </div>
+              {paymentBreakdownChartData.length > 0 && (
+                <div className="pt-3 border-t border-border/40 space-y-1.5">
+                  {paymentBreakdownChartData.map((pm) => (
+                    <div key={pm.name} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: shade(pm.strength) }} />
+                        <span className="text-muted-foreground font-medium">{pm.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground">{formatGHS(pm.value)}</span>
+                        <span className="text-[11px] text-muted-foreground w-9 text-right font-semibold">
+                          ({Math.round((pm.value / paymentTotal) * 100)}%)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
       
         </div>

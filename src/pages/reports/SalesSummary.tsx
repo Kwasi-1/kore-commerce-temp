@@ -9,19 +9,9 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 import { useFeaturesStore } from '@/store/featuresStore';
 import { useCan } from '@/hooks/usePermissions';
 import { Icon } from '@iconify/react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from 'recharts';
+import { Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import RampBarChart from '@/components/ui/ramp-bar-chart';
+import { chartTooltipStyle, shade, shareStrength } from '@/lib/chart';
 
 export default function SalesSummary() {
   const { hasModule } = useFeaturesStore();
@@ -87,6 +77,10 @@ export default function SalesSummary() {
   const fullyRefundedCount = summary.fully_refunded_count ?? 0;
 
   // Chart formatters
+  const payments = [...paymentDistribution]
+    .sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0))
+    .map((pm, i) => ({ ...pm, strength: shareStrength(i) }));
+
   const formatGHS = (val: number) => `GHS ${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
@@ -343,38 +337,7 @@ export default function SalesSummary() {
 
             <div className="flex-1 min-h-[280px]">
               {timeseriesData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={timeseriesData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-muted/30" />
-                    <XAxis
-                      dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: 'currentColor', fontSize: 11 }}
-                      className="text-muted-foreground"
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: 'currentColor', fontSize: 11 }}
-                      className="text-muted-foreground"
-                      tickFormatter={(val) => `${val}`}
-                    />
-                    <RechartsTooltip
-                      cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                      formatter={(val: number) => formatGHS(val)}
-                      contentStyle={{
-                        borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--card)',
-                        color: 'var(--card-foreground)',
-                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                      }}
-                    />
-                    <Bar dataKey="revenue" fill="#00C853" radius={[4, 4, 0, 0]} maxBarSize={45} name="Revenue" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <RampBarChart data={timeseriesData} xKey="date" yKey="revenue" name="Revenue" formatValue={formatGHS} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-xs text-muted-foreground">
                   <Icon icon="solar:chart-2-linear" className="h-10 w-10 mb-2 opacity-40" />
@@ -399,11 +362,11 @@ export default function SalesSummary() {
             </div>
 
             <div className="flex-1 min-h-[220px]">
-              {paymentDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+              {payments.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" className="text-foreground">
                   <PieChart>
                     <Pie
-                      data={paymentDistribution}
+                      data={payments}
                       cx="50%"
                       cy="50%"
                       innerRadius={55}
@@ -411,22 +374,19 @@ export default function SalesSummary() {
                       paddingAngle={4}
                       dataKey="amount"
                       nameKey="name"
+                      cornerRadius={4}
+                      stroke="none"
+                      fill="currentColor"
                     >
-                      {paymentDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      {payments.map((entry) => (
+                        <Cell key={entry.id} style={{ fill: shade(entry.strength) }} />
                       ))}
                     </Pie>
                     <RechartsTooltip
                       formatter={(val: number) => formatGHS(val)}
-                      contentStyle={{
-                        borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--card)',
-                        color: 'var(--card-foreground)',
-                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                      }}
+                      contentStyle={chartTooltipStyle}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                     />
-                    <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -438,12 +398,12 @@ export default function SalesSummary() {
             </div>
 
             {/* Payment List Breakdown */}
-            {paymentDistribution.length > 0 && (
+            {payments.length > 0 && (
               <div className="pt-3 border-t border-border/40 space-y-1.5">
-                {paymentDistribution.map((pm) => (
+                {payments.map((pm) => (
                   <div key={pm.id} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: pm.color }} />
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: shade(pm.strength) }} />
                       <span className="text-muted-foreground font-medium">{pm.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
