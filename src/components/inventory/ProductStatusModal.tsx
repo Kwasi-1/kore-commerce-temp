@@ -35,7 +35,10 @@ export function ProductStatusModal({
       onOpenChange={() => {
         if (!isUpdating) onClose();
       }}
-      size="md"
+      size="sm"
+      classNames={{
+        base: "w-[400px] rounded-3xl",
+      }}
       header={
         <div className="pt-1 px-1 border-b border-border/50 pb-2">
           <div className="flex items-center gap-2">
@@ -93,13 +96,10 @@ export function ProductStatusModal({
           <Button
             size="sm"
             type="button"
+            variant="neutral"
             onClick={onConfirm}
             disabled={isUpdating}
-            className={`font-semibold flex items-center gap-1.5 w-full ${
-              isActive
-                ? "bg-foreground text-background hover:bg-foreground/90"
-                : ""
-            }`}
+            className={`font-semibold flex items-center gap-1.5 w-full`}
           >
             {isUpdating ? (
               <>

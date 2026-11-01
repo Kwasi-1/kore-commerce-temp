@@ -59,7 +59,7 @@ const CustomModal: FC<CustomModalProps> = ({
   size,
   scrollBehavior,
   placement = "center",
-  radius = "md",
+  radius = "lg",
   isDismissable = true,
   isKeyboardDismissDisabled,
   classNames = {},

@@ -2063,22 +2063,22 @@ export default function Products() {
           setIsDeleteModalOpen(false);
           setProductToDelete(null);
         }}
-        size="md"
+        size="sm"
         placement="top"
         classNames={{
-          base: "!w-full !max-w-md rounded-2xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
+          base: "!w-full !max-w-[400px] rounded-3xl border border-border bg-background shadow-2xl mt-4 sm:mt-8 mx-3 sm:mx-auto",
           header: "pb-2 border-b border-border/40 px-4 sm:px-6 pt-4",
           body: "py-3 px-4 sm:px-6",
           footer: "px-4 sm:px-6 pb-4 pt-1",
         }}
         header={
           <div className="flex items-center gap-2.5 px-1 w-full">
-            <div className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+            {/* <div className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
               <Icon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />
-            </div>
+            </div> */}
             <div>
               <h3 className="font-bold text-base text-destructive leading-tight">Delete Product</h3>
-              <p className="text-xs text-muted-foreground">This action cannot be undone</p>
+              <p className="text-xs text-muted-foreground !tracking-wide">This action cannot be undone</p>
             </div>
           </div>
         }
@@ -2098,7 +2098,7 @@ export default function Products() {
               size="sm"
               onClick={() => setIsDeleteModalOpen(false)}
               disabled={isDeleting}
-              className="font-medium flex-1 h-9 rounded-xl border-border hover:bg-muted"
+              className="font-medium flex-1 h-9 border-border hover:bg-muted"
             >
               Cancel
             </Button>
@@ -2107,7 +2107,7 @@ export default function Products() {
               size="sm"
               onClick={handleDeleteProduct}
               disabled={isDeleting}
-              className="font-semibold flex-1 h-9 rounded-xl"
+              className="font-semibold flex-1 h-9"
             >
               {isDeleting ? "Deleting..." : "Delete Product"}
             </Button>
