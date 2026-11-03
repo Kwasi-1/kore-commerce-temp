@@ -7,7 +7,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from "@nextui-org/react";
-import { FC, useMemo } from "react";
+import { FC, useLayoutEffect, useState } from "react";
 
 interface CustomModalProps {
   onClose?: () => void;
@@ -66,12 +66,13 @@ const CustomModal: FC<CustomModalProps> = ({
 }) => {
   // Opened from inside an open drawer (the mobile cart): render inside it. An open drawer blocks
   // taps and focus everywhere else, so a window outside it closed the drawer on the first tap.
-  const drawerHost = useMemo(
-    () => (isOpen && typeof document !== "undefined"
-      ? document.querySelector('[data-vaul-drawer][data-state="open"]') ?? undefined
-      : undefined),
-    [isOpen],
-  );
+  // Looked up after the commit, not during render: when one click closes the drawer and opens this
+  // (Pay / Save in the mobile cart), the DOM still says "open" mid-render and the modal landed in
+  // the drawer sliding away, with no animation. Kept while closing so the exit plays where it began.
+  const [drawerHost, setDrawerHost] = useState<Element>();
+  useLayoutEffect(() => {
+    if (isOpen) setDrawerHost(document.querySelector('[data-vaul-drawer][data-state="open"]') ?? undefined);
+  }, [isOpen]);
 
   return (
     <NewModal
