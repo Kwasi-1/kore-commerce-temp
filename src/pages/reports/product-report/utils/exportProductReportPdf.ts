@@ -7,7 +7,8 @@ import type { ProductReportFilters, ProductReportRow, ProductReportSummary } fro
 import type { Highlight } from './insights';
 import { formatRangeLabel } from './dates';
 import { formatChange, formatCover, formatMoney, formatPct, formatQty } from './format';
-import neueHaasUrl from '@/assets/fonts/NeueHaasDisplay-Roman.ttf?url';
+import regularFontUrl from '@/assets/fonts/GoogleSansFlex-Regular.ttf?url';
+import boldFontUrl from '@/assets/fonts/GoogleSansFlex-SemiBold.ttf?url';
 
 export interface ExportProductReportOptions {
   rows: ProductReportRow[];
@@ -32,17 +33,21 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 40);
 
-/** The app's body font (one weight, as in the app) as base64, fetched once; null falls back to Helvetica */
-let fontData: Promise<string | null> | null = null;
-function loadAppFont() {
-  fontData ??= fetch(neueHaasUrl)
+const fetchBase64 = (url: string) =>
+  fetch(url)
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`font ${r.status}`))))
     .then((buf) => {
       const bytes = new Uint8Array(buf);
       let bin = '';
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       return btoa(bin);
-    })
+    });
+
+/** Google Sans Flex (regular + semibold) as base64, fetched once; null falls back to Helvetica */
+let fontData: Promise<{ regular: string; bold: string } | null> | null = null;
+function loadReportFont() {
+  fontData ??= Promise.all([fetchBase64(regularFontUrl), fetchBase64(boldFontUrl)])
+    .then(([regular, bold]) => ({ regular, bold }))
     .catch((e) => {
       console.warn('PDF font failed to load, using Helvetica', e);
       fontData = null;
@@ -89,13 +94,14 @@ export interface BuiltReportPdf {
 export async function buildProductReportPdf(opts: ExportProductReportOptions): Promise<BuiltReportPdf> {
   const { rows, summary, filters, highlights, storeName, generatedBy, scopeLabel, chartElement } = opts;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const appFont = await loadAppFont();
+  const reportFont = await loadReportFont();
   let font = 'helvetica';
-  if (appFont) {
-    doc.addFileToVFS('NeueHaasDisplay-Roman.ttf', appFont);
-    doc.addFont('NeueHaasDisplay-Roman.ttf', 'NeueHaas', 'normal');
-    doc.addFont('NeueHaasDisplay-Roman.ttf', 'NeueHaas', 'bold');
-    font = 'NeueHaas';
+  if (reportFont) {
+    doc.addFileToVFS('GoogleSansFlex-Regular.ttf', reportFont.regular);
+    doc.addFileToVFS('GoogleSansFlex-SemiBold.ttf', reportFont.bold);
+    doc.addFont('GoogleSansFlex-Regular.ttf', 'GoogleSansFlex', 'normal');
+    doc.addFont('GoogleSansFlex-SemiBold.ttf', 'GoogleSansFlex', 'bold');
+    font = 'GoogleSansFlex';
   }
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
