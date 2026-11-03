@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Selection } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import EnhancedTableComponent, { type TopContentAction } from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import { CurrencyDisplay } from '@/hooks';
 import { INSIGHT_META } from '../constants';
 import type { ProductReportRow, ProductReportSummary } from '../types';
@@ -61,13 +62,13 @@ export default function ProductReportTable({
   const comparing = !!summary?.comparison;
   const groupBy = summary?.group_by || 'variant';
 
-  const columns = [
-    { key: 'product', label: groupBy === 'brand' ? 'Brand' : groupBy === 'category' ? 'Category' : 'Product & SKU' },
-    { key: 'units_sold', label: comparing ? 'Units Sold · vs prev' : 'Units Sold · Share' },
-    { key: 'revenue', label: 'Net Revenue' },
-    { key: 'profit_margin', label: 'Gross Profit / Margin' },
-    { key: 'stock', label: 'Stock · Cover' },
-    { key: 'insight', label: 'Insight' },
+  const columns: TableColumn[] = [
+    { key: 'product', label: groupBy === 'brand' ? 'Brand' : groupBy === 'category' ? 'Category' : 'Product & SKU', mobile: 'title' },
+    { key: 'units_sold', label: comparing ? 'Units Sold · vs prev' : 'Units Sold · Share', mobile: 'detail' },
+    { key: 'revenue', label: 'Net Revenue', mobile: 'value' },
+    { key: 'profit_margin', label: 'Gross Profit / Margin', mobile: 'detail' },
+    { key: 'stock', label: 'Stock · Cover', mobile: 'detail' },
+    { key: 'insight', label: 'Insight', mobile: 'badge' },
   ];
 
   const tableRows = useMemo(

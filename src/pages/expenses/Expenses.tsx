@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import RecurringExpenseForm from '@/components/expenses/RecurringExpenseForm';
@@ -240,14 +241,14 @@ export default function Expenses() {
   }, [categoryFilter]);
 
   // Expense Log Table Definition
-  const columnsLog = [
-    { key: 'expense_date', label: 'Date' },
-    { key: 'category', label: 'Category' },
-    { key: 'description', label: 'Description' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'source', label: 'Source' },
-    { key: 'recorded_by', label: 'Recorded By' },
-    { key: 'status', label: 'Status' },
+  const columnsLog: TableColumn[] = [
+    { key: 'expense_date', label: 'Date', mobile: 'subtitle' },
+    { key: 'category', label: 'Category', mobile: 'detail' },
+    { key: 'description', label: 'Description', mobile: 'title' },
+    { key: 'amount', label: 'Amount', mobile: 'value' },
+    { key: 'source', label: 'Source', mobile: 'detail' },
+    { key: 'recorded_by', label: 'Recorded By', mobile: 'detail' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
   ];
 
   const rowsLog = expenses.map((item) => {
@@ -302,13 +303,13 @@ export default function Expenses() {
   });
 
   // Recurring Schedules Table Definition
-  const columnsRecurring = [
-    { key: 'name', label: 'Schedule Name' },
-    { key: 'category', label: 'Category' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'frequency', label: 'Frequency' },
-    { key: 'next_run', label: 'Next Due' },
-    { key: 'status', label: 'Status' },
+  const columnsRecurring: TableColumn[] = [
+    { key: 'name', label: 'Schedule Name', mobile: 'title' },
+    { key: 'category', label: 'Category', mobile: 'subtitle' },
+    { key: 'amount', label: 'Amount', mobile: 'value' },
+    { key: 'frequency', label: 'Frequency', mobile: 'detail' },
+    { key: 'next_run', label: 'Next Due', mobile: 'detail' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
   ];
 
   const rowsRecurring = recurringList.map((rule) => {

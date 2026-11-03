@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import SupplierForm from '@/components/inventory/SupplierForm';
 import SupplierStatusModal from '@/components/inventory/SupplierStatusModal';
@@ -142,13 +143,13 @@ export default function Suppliers() {
     return suppliers;
   }, [suppliers, mobileTab]);
 
-  const columns = [
-    { key: 'name', label: 'Supplier Name' },
-    { key: 'contact_person', label: 'Contact Person' },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
-    { key: 'outstanding_debt', label: 'Outstanding Debt' },
-    { key: 'status', label: 'Status' }
+  const columns: TableColumn[] = [
+    { key: 'name', label: 'Supplier Name', mobile: 'title' },
+    { key: 'contact_person', label: 'Contact Person', mobile: 'subtitle' },
+    { key: 'email', label: 'Email', mobile: 'detail' },
+    { key: 'phone', label: 'Phone', mobile: 'detail' },
+    { key: 'outstanding_debt', label: 'Outstanding Debt', mobile: 'value' },
+    { key: 'status', label: 'Status', mobile: 'badge' }
   ];
 
   const rows = suppliers.map((supplier) => {

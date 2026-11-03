@@ -3,6 +3,7 @@ import { simpleSearch } from '@/lib/searchUtils';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import { DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import CustomModal from '@/components/modals/modal';
 import DashboardCard from '@/components/ui/dashboard-card';
@@ -271,13 +272,13 @@ export default function PayrollManagement() {
     }
   };
 
-  const columnsLog = [
-    { key: 'period', label: 'Pay Period' },
-    { key: 'recipient', label: 'Recipient / Count' },
-    { key: 'amount', label: 'Total Amount' },
-    { key: 'method', label: 'Payment Method' },
-    { key: 'date', label: 'Disbursal Date' },
-    { key: 'status', label: 'Status' },
+  const columnsLog: TableColumn[] = [
+    { key: 'period', label: 'Pay Period', mobile: 'title' },
+    { key: 'recipient', label: 'Recipient / Count', mobile: 'detail' },
+    { key: 'amount', label: 'Total Amount', mobile: 'value' },
+    { key: 'method', label: 'Payment Method', mobile: 'detail' },
+    { key: 'date', label: 'Disbursal Date', mobile: 'subtitle' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
   ];
 
   const matchesLogSearch = (row: any) => {
@@ -342,12 +343,12 @@ export default function PayrollManagement() {
     };
   });
 
-  const columnsProfiles = [
-    { key: 'staff', label: 'Staff Member' },
-    { key: 'role', label: 'Role / Type' },
-    { key: 'base_amount', label: 'Base Pay' },
-    { key: 'cycle', label: 'Structure' },
-    { key: 'payment_info', label: 'Payment Account' },
+  const columnsProfiles: TableColumn[] = [
+    { key: 'staff', label: 'Staff Member', mobile: 'title' },
+    { key: 'role', label: 'Role / Type', mobile: 'subtitle' },
+    { key: 'base_amount', label: 'Base Pay', mobile: 'value' },
+    { key: 'cycle', label: 'Structure', mobile: 'detail' },
+    { key: 'payment_info', label: 'Payment Account', mobile: 'detail' },
   ];
 
   const rowsProfiles = filteredProfiles

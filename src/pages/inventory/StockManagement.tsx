@@ -191,12 +191,12 @@ export default function StockManagement() {
 
   // EnhancedTableComponent columns
   const columns: TableColumn[] = [
-    { key: 'image', label: 'Image' },
-    { key: 'name', label: 'Product Name' },
-    { key: 'category', label: 'Category' },
-    { key: 'sku', label: 'SKU' },
-    { key: 'current_stock', label: 'Current Stock' },
-    { key: 'status', label: 'Stock Status' },
+    { key: 'image', label: 'Image', mobile: 'thumb' },
+    { key: 'name', label: 'Product Name', mobile: 'title' },
+    { key: 'category', label: 'Category', mobile: 'subtitle' },
+    { key: 'sku', label: 'SKU', mobile: 'subtitle' },
+    { key: 'current_stock', label: 'Current Stock', mobile: 'value' },
+    { key: 'status', label: 'Stock Status', mobile: 'badge' },
   ];
 
   // EnhancedTableComponent rows mapping

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { smartSearch } from '@/lib/searchUtils';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -361,23 +362,23 @@ export default function CreditLedger() {
     return { totalDebt, count, settledThisMonth };
   }, [debtors, settledThisMonth, viewMode, activeCount, settledCount]);
 
-  const columns = useMemo(() => {
+  const columns = useMemo<TableColumn[]>(() => {
     if (viewMode === 'settled') {
       return [
-        { key: 'avatar', label: '' },
-        { key: 'name', label: 'Customer Name' },
-        { key: 'phone', label: 'Phone Number' },
-        { key: 'last_credit', label: 'Last Credit Date' },
-        { key: 'last_settled', label: 'Settled Date' },
-        { key: 'debt', label: 'Status' }
+        { key: 'avatar', label: '', mobile: 'thumb' },
+        { key: 'name', label: 'Customer Name', mobile: 'title' },
+        { key: 'phone', label: 'Phone Number', mobile: 'subtitle' },
+        { key: 'last_credit', label: 'Last Credit Date', mobile: 'detail' },
+        { key: 'last_settled', label: 'Settled Date', mobile: 'detail' },
+        { key: 'debt', label: 'Status', mobile: 'badge' }
       ];
     }
     return [
-      { key: 'avatar', label: '' },
-      { key: 'name', label: 'Customer Name' },
-      { key: 'phone', label: 'Phone Number' },
-      { key: 'last_credit', label: 'Last Credit Date' },
-      { key: 'debt', label: 'Outstanding Balance' }
+      { key: 'avatar', label: '', mobile: 'thumb' },
+      { key: 'name', label: 'Customer Name', mobile: 'title' },
+      { key: 'phone', label: 'Phone Number', mobile: 'subtitle' },
+      { key: 'last_credit', label: 'Last Credit Date', mobile: 'detail' },
+      { key: 'debt', label: 'Outstanding Balance', mobile: 'value' }
     ];
   }, [viewMode]);
 

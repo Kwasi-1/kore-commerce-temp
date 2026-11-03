@@ -492,11 +492,11 @@ export default function StockReconciliation() {
   };
 
   const columns: TableColumn[] = [
-    { key: 'name', label: 'Product / Variant' },
-    { key: 'category', label: 'Category' },
-    { key: 'current_stock', label: 'System Stock' },
-    { key: 'actual_count', label: 'Physical Count' },
-    { key: 'variance', label: 'Variance' },
+    { key: 'name', label: 'Product / Variant', mobile: 'title' },
+    { key: 'category', label: 'Category', mobile: 'subtitle' },
+    { key: 'current_stock', label: 'System Stock', mobile: 'detail' },
+    { key: 'actual_count', label: 'Physical Count', mobile: 'detail' },
+    { key: 'variance', label: 'Variance', mobile: 'value' },
   ];
 
   const rows = useMemo(() => {

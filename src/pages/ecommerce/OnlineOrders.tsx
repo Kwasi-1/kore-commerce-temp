@@ -3,6 +3,7 @@ import { smartSearch } from '@/lib/searchUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -244,14 +245,14 @@ export default function OnlineOrders() {
     }
   };
 
-  const columns = [
-    { key: 'reference', label: 'Order #' },
-    { key: 'customer', label: 'Customer' },
-    { key: 'items', label: 'Items' },
-    { key: 'total', label: 'Total' },
-    { key: 'payment', label: 'Payment' },
-    { key: 'status', label: 'Status' },
-    { key: 'date', label: 'Date Placed' }
+  const columns: TableColumn[] = [
+    { key: 'reference', label: 'Order #', mobile: 'title' },
+    { key: 'customer', label: 'Customer', mobile: 'subtitle' },
+    { key: 'items', label: 'Items', mobile: 'detail' },
+    { key: 'total', label: 'Total', mobile: 'value' },
+    { key: 'payment', label: 'Payment', mobile: 'detail' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
+    { key: 'date', label: 'Date Placed', mobile: 'subtitle' }
   ];
 
   const rows = orders.map((o: any) => {

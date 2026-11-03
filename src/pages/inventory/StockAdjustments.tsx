@@ -372,13 +372,13 @@ export default function StockAdjustments() {
 
   // Pending approvals columns definition
   const pendingColumns: TableColumn[] = [
-    { key: "date", label: "Date" },
-    { key: "variant", label: "Product Variant" },
-    { key: "quantity", label: "Quantity" },
-    { key: "reason", label: "Reason" },
-    { key: "notes", label: "Notes" },
-    { key: "initiated_by", label: "Initiated By" },
-    { key: "actions", label: "Actions" },
+    { key: "date", label: "Date", mobile: "detail" },
+    { key: "variant", label: "Product Variant", mobile: "title" },
+    { key: "quantity", label: "Quantity", mobile: "value" },
+    { key: "reason", label: "Reason", mobile: "subtitle" },
+    { key: "notes", label: "Notes", mobile: "detail" },
+    { key: "initiated_by", label: "Initiated By", mobile: "detail" },
+    { key: "actions", label: "Actions", mobile: "action" },
   ];
 
   // Pending approvals rows mapping
@@ -443,13 +443,13 @@ export default function StockAdjustments() {
 
   // EnhancedTableComponent columns definition
   const columns: TableColumn[] = [
-    { key: "date", label: "Date" },
-    { key: "variant", label: "Product Variant" },
-    { key: "quantity", label: "Quantity" },
-    { key: "reason", label: "Reason" },
-    { key: "status", label: "Status" },
-    { key: "initiated_by", label: "Initiated By" },
-    { key: "approved_by", label: "Approved By" },
+    { key: "date", label: "Date", mobile: "detail" },
+    { key: "variant", label: "Product Variant", mobile: "title" },
+    { key: "quantity", label: "Quantity", mobile: "value" },
+    { key: "reason", label: "Reason", mobile: "subtitle" },
+    { key: "status", label: "Status", mobile: "badge" },
+    { key: "initiated_by", label: "Initiated By", mobile: "detail" },
+    { key: "approved_by", label: "Approved By", mobile: "detail" },
     // { key: "notes", label: "Rejection / Notes" },
   ];
 

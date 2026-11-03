@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { simpleSearch } from '@/lib/searchUtils';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import DiscountForm from '@/components/ecommerce/DiscountForm';
 import apiClient from '@/api/client';
@@ -127,15 +128,15 @@ export default function Discounts() {
     { id: 'fixed', label: 'Fixed GHS' },
   ];
 
-  const columns = [
-    { key: 'code', label: 'Code' },
-    { key: 'type', label: 'Type' },
-    { key: 'value', label: 'Value' },
-    { key: 'min_order', label: 'Min Order' },
-    { key: 'uses', label: 'Uses' },
-    { key: 'expiry', label: 'Expiry' },
-    { key: 'status', label: 'Status' },
-    { key: 'actions', label: 'Actions' }
+  const columns: TableColumn[] = [
+    { key: 'code', label: 'Code', mobile: 'title' },
+    { key: 'type', label: 'Type', mobile: 'subtitle' },
+    { key: 'value', label: 'Value', mobile: 'value' },
+    { key: 'min_order', label: 'Min Order', mobile: 'detail' },
+    { key: 'uses', label: 'Uses', mobile: 'detail' },
+    { key: 'expiry', label: 'Expiry', mobile: 'detail' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
+    { key: 'actions', label: 'Actions', mobile: 'action' }
   ];
 
   const rows = discounts.map((d: any) => {

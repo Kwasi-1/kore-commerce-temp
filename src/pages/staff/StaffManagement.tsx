@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import CustomModal from '@/components/modals/modal';
 import StaffForm from '@/components/staff/StaffForm';
 import StaffStatusModal from '@/components/staff/StaffStatusModal';
@@ -222,12 +223,12 @@ export default function StaffManagement() {
     );
   };
 
-  const columns = [
-    { key: 'name', label: 'Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
-    { key: 'status', label: 'Status' },
-    { key: 'last_login', label: 'Last Login' }
+  const columns: TableColumn[] = [
+    { key: 'name', label: 'Name', mobile: 'title' },
+    { key: 'email', label: 'Email', mobile: 'subtitle' },
+    { key: 'role', label: 'Role', mobile: 'badge' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
+    { key: 'last_login', label: 'Last Login', mobile: 'detail' }
   ];
 
   // What the current user may do to this person. Mirrors the backend rules: the owner manages

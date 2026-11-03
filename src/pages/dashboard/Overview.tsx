@@ -6,6 +6,7 @@ import { CurrencyDisplay, useCurrency } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date-fns';
@@ -245,12 +246,12 @@ export default function Overview() {
 
   const userName = staffUser?.name?.split(' ')[0] || 'Team';
 
-  const orderColumns = [
-    { key: "reference", label: "Reference" },
-    { key: "customer", label: "Customer" },
-    { key: "amount", label: "Total Amount" },
-    { key: "date", label: "Date" },
-    { key: "status", label: "Status" }
+  const orderColumns: TableColumn[] = [
+    { key: "reference", label: "Reference", mobile: "title" },
+    { key: "customer", label: "Customer", mobile: "subtitle" },
+    { key: "amount", label: "Total Amount", mobile: "value" },
+    { key: "date", label: "Date", mobile: "subtitle" },
+    { key: "status", label: "Status", mobile: "badge" }
   ];
 
   const orderRows = recentOrders.map(order => ({

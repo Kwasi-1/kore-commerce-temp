@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -137,14 +138,14 @@ export default function Returns() {
     };
   }, [returns]);
 
-  const columns = [
-    { key: 'date', label: 'Date' },
-    { key: 'id_display', label: 'Return ID' },
-    { key: 'original_ref', label: 'Orig. Receipt' },
-    { key: 'items_count', label: 'Items Count' },
-    { key: 'amount', label: 'Total Refund' },
-    { key: 'status', label: 'Status' },
-    { key: 'approved_by', label: 'Approved By' }
+  const columns: TableColumn[] = [
+    { key: 'date', label: 'Date', mobile: 'subtitle' },
+    { key: 'id_display', label: 'Return ID', mobile: 'title' },
+    { key: 'original_ref', label: 'Orig. Receipt', mobile: 'subtitle' },
+    { key: 'items_count', label: 'Items Count', mobile: 'detail' },
+    { key: 'amount', label: 'Total Refund', mobile: 'value' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
+    { key: 'approved_by', label: 'Approved By', mobile: 'detail' }
   ];
 
   const rows = returns.map((r: ReturnRecord) => ({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { CustomOnlyDateFilterComponent, DateFilterValue } from '@/components/shared/custom-only-date-filter';
 import { CurrencyDisplay } from '@/hooks';
@@ -61,14 +62,14 @@ export default function CashierReport() {
 
   const summary = summaryData || {};
 
-  const columns = [
-    { key: 'cashier', label: 'Staff Member' },
-    { key: 'transaction_count', label: 'Completed Sales' },
-    { key: 'total_sales', label: 'Total Revenue' },
-    { key: 'avg_transaction', label: 'Avg Ticket (AOV)' },
-    { key: 'payment_breakdown', label: 'Payment Method Breakdown' },
-    { key: 'refunds', label: 'Refunds Handled' },
-    { key: 'shifts_variance', label: 'Till Discrepancy' },
+  const columns: TableColumn[] = [
+    { key: 'cashier', label: 'Staff Member', mobile: 'title' },
+    { key: 'transaction_count', label: 'Completed Sales', mobile: 'detail' },
+    { key: 'total_sales', label: 'Total Revenue', mobile: 'value' },
+    { key: 'avg_transaction', label: 'Avg Ticket (AOV)', mobile: 'detail' },
+    { key: 'payment_breakdown', label: 'Payment Method Breakdown', mobile: 'detail' },
+    { key: 'refunds', label: 'Refunds Handled', mobile: 'detail' },
+    { key: 'shifts_variance', label: 'Till Discrepancy', mobile: 'detail' },
   ];
 
   const rows = useMemo(() => {

@@ -3,6 +3,7 @@ import { smartSearch } from '@/lib/searchUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import CustomModal from '@/components/modals/modal';
 import apiClient from '@/api/client';
@@ -113,13 +114,13 @@ export default function Customers() {
     setIsDetailModalOpen(true);
   };
 
-  const columns = [
-    { key: 'avatar', label: '' },
-    { key: 'name', label: 'Full Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'orders', label: 'Total Orders' },
-    { key: 'spent', label: 'Total Spent' },
-    { key: 'date', label: 'Date Joined' }
+  const columns: TableColumn[] = [
+    { key: 'avatar', label: '', mobile: 'thumb' },
+    { key: 'name', label: 'Full Name', mobile: 'title' },
+    { key: 'email', label: 'Email', mobile: 'subtitle' },
+    { key: 'orders', label: 'Total Orders', mobile: 'detail' },
+    { key: 'spent', label: 'Total Spent', mobile: 'value' },
+    { key: 'date', label: 'Date Joined', mobile: 'detail' }
   ];
 
   const rows = customers.map((c: any) => {

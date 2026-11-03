@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import PurchaseOrderForm from '@/components/inventory/PurchaseOrderForm';
 import PurchaseOrderDetailModal from '@/components/inventory/PurchaseOrderDetailModal';
 import PurchaseOrderReceiveModal, { ReceiveItemRow } from '@/components/inventory/PurchaseOrderReceiveModal';
@@ -262,13 +263,13 @@ export default function PurchaseOrders() {
     return (statusFilter as string) || 'all';
   }, [statusFilter]);
 
-  const columns = [
-    { key: 'reference', label: 'Reference' },
-    { key: 'supplier', label: 'Supplier' },
-    { key: 'date', label: 'Date' },
-    { key: 'total', label: 'Total Amount' },
-    { key: 'type', label: 'Payment Terms' },
-    { key: 'status', label: 'Status' }
+  const columns: TableColumn[] = [
+    { key: 'reference', label: 'Reference', mobile: 'title' },
+    { key: 'supplier', label: 'Supplier', mobile: 'subtitle' },
+    { key: 'date', label: 'Date', mobile: 'detail' },
+    { key: 'total', label: 'Total Amount', mobile: 'value' },
+    { key: 'type', label: 'Payment Terms', mobile: 'detail' },
+    { key: 'status', label: 'Status', mobile: 'badge' }
   ];
 
   const rows = purchaseOrders.map((po: any) => {

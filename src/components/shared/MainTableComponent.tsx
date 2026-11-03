@@ -12,7 +12,7 @@ import {
 import { capitalize } from "lodash";
 import { motion, AnimatePresence } from "framer-motion";
 import CustomContainerComponent from "@/components/shared/custom.container.component";
-import CustomTableComponent from "@/components/shared/table.component";
+import CustomTableComponent, { type MobileRole } from "@/components/shared/table.component";
 import { Key } from "react";
 import {
   CustomOnlyDateFilterComponent,
@@ -25,6 +25,8 @@ import Pagination from "@/components/shared/pagination";
 export interface TableColumn {
   key: string;
   label: string;
+  /** Where this column goes on the phone/tablet card; see MobileRole */
+  mobile?: MobileRole;
 }
 
 export interface TableAction {
@@ -908,7 +910,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             }}
           >
             {/* Scrollable table area with max height */}
-            <div className="max-h-[520px] md:max-h-none md:flex-1 md:min-h-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
+            <div className="md:flex-1 md:min-h-0 md:overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
               <CustomTableComponent
                 columns={enhancedColumns}
                 rows={paginatedRows}

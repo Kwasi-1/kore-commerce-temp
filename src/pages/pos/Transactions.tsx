@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppNavigate } from "@/hooks/useAppNavigate";
 import PageLayout from "@/components/layout/PageLayout";
 import EnhancedTableComponent from "@/components/shared/MainTableComponent";
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 
 import DashboardCard from "@/components/ui/dashboard-card";
 import { CurrencyDisplay } from "@/hooks";
@@ -526,16 +527,16 @@ export default function Transactions() {
   }, [isCashier, searchQuery, cashierStats]);
 
   const columns = useMemo(() => {
-    const cols = [
-      { key: "receipt_number", label: "Receipt No." },
-      { key: "date", label: "Date & Time" },
+    const cols: TableColumn[] = [
+      { key: "receipt_number", label: "Receipt No.", mobile: "title" },
+      { key: "date", label: "Date & Time", mobile: "subtitle" },
     ];
     if (!isCashier) {
-      cols.push({ key: "cashier", label: "Cashier" });
+      cols.push({ key: "cashier", label: "Cashier", mobile: "subtitle" });
     }
     cols.push(
-      { key: "payment_method", label: "Payment Method" },
-      { key: "amount", label: "Total Amount" },
+      { key: "payment_method", label: "Payment Method", mobile: "badge" },
+      { key: "amount", label: "Total Amount", mobile: "value" },
     );
     return cols;
   }, [isCashier]);

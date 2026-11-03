@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent from '@/components/shared/MainTableComponent';
+import type { TableColumn } from '@/components/shared/MainTableComponent';
 import DashboardCard from '@/components/ui/dashboard-card';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -269,14 +270,14 @@ export default function SupplierCredit() {
     return (statusFilter as string) || 'all';
   }, [statusFilter]);
 
-  const columns = [
-    { key: 'name', label: 'Supplier Name' },
-    { key: 'po_ref', label: 'PO Reference' },
-    { key: 'total', label: 'Original Owed' },
-    { key: 'paid', label: 'Amount Paid' },
-    { key: 'balance', label: 'Remaining Balance' },
-    { key: 'status', label: 'Status' },
-    { key: 'due_date', label: 'Due Date' }
+  const columns: TableColumn[] = [
+    { key: 'name', label: 'Supplier Name', mobile: 'title' },
+    { key: 'po_ref', label: 'PO Reference', mobile: 'subtitle' },
+    { key: 'total', label: 'Original Owed', mobile: 'detail' },
+    { key: 'paid', label: 'Amount Paid', mobile: 'detail' },
+    { key: 'balance', label: 'Remaining Balance', mobile: 'value' },
+    { key: 'status', label: 'Status', mobile: 'badge' },
+    { key: 'due_date', label: 'Due Date', mobile: 'detail' }
   ];
 
   const rows = credits.map((s: SupplierCreditRecord) => {

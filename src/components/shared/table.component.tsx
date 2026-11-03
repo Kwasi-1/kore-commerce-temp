@@ -17,8 +17,20 @@ import { isEmpty, isEqual } from "lodash";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "../ui/button";
 
+/**
+ * Where a column goes on the phone/tablet card. Once any column has a role, columns without one
+ * are left off the card; a table with no roles keeps the old cell-by-cell card.
+ * - thumb: an image or avatar on the left · title: the main identifier · subtitle: a quiet line under it
+ * - value: the number that matters, right-aligned · badge: status chips under the value
+ * - detail: a small "label value" pair at the bottom · action: the row's menu (the shared
+ *   `actions` column gets this automatically) · hidden: kept off the card
+ */
+export type MobileRole = "thumb" | "title" | "subtitle" | "value" | "badge" | "detail" | "action" | "hidden";
+
+export type TableColumnDef = { key: string; label: any; mobile?: MobileRole } | string;
+
 interface ICustomTableComponent {
-  columns: Array<{ key: string; label: any } | string>;
+  columns: Array<TableColumnDef>;
   customColumns?: boolean;
   rows: Array<any>;
   isLoading?: boolean;
@@ -47,7 +59,7 @@ interface ICustomTableComponent {
   selected?: any;
   others?: any;
   mobileFriendly?: boolean;
-  mobileHeaders?: Array<{ key: string; label: any } | string>;
+  mobileHeaders?: Array<TableColumnDef>;
   mobileHeadersClassname?: string;
   bottomContentOnMoblile?: (props: any) => React.ReactNode;
   enableSmartHiding?: boolean; // New prop to enable smart column hiding
@@ -205,71 +217,133 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
   ) : <></>;
 
   if (screenSize != "desktop" && mobileFriendly) {
+    // Columns by card role; the shared actions column always becomes the card's action
+    const roleOf = (col: TableColumnDef): MobileRole | undefined =>
+      typeof col === "string" ? undefined : col.mobile ?? (col.key === "actions" ? "action" : undefined);
+    const roleColumns = headers.filter((col) => typeof col !== "string") as Array<{ key: string; label: any; mobile?: MobileRole }>;
+    const usesRoles = roleColumns.some((col) => col.mobile);
+    const byRole = (role: MobileRole) => roleColumns.filter((col) => roleOf(col) === role);
+    const thumbs = byRole("thumb");
+    const titles = byRole("title");
+    const subtitles = byRole("subtitle");
+    const values = byRole("value");
+    const badges = byRole("badge");
+    const details = byRole("detail");
+    const actionCols = byRole("action");
+
     return (
-      <div className="p-2 relative">
-        <div className="grid grid-cols-1 gap-3 mt-4 mb-10">
+      // Bottom room so the floating mobile nav never covers the last card or the pagination
+      <div className="pt-3 pb-24 lg:pb-0 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {isLoading || isFetching ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner withBackdrop={true} />
-            </div>
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-3 animate-pulse">
+                <div className="flex justify-between gap-3">
+                  <div className="h-4 w-2/5 rounded bg-muted" />
+                  <div className="h-4 w-16 rounded bg-muted" />
+                </div>
+                <div className="h-3 w-3/5 rounded bg-muted" />
+              </div>
+            ))
           ) : isEmpty(rows) ? (
-            <>
-            <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+            <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center gap-2">
               <Icon icon="ph:tray" className="text-4xl text-muted-foreground/50" />
               <p className="text-muted-foreground font-medium text-sm">Nothing to show here.</p>
             </div>
-          </>
           ) : (
-            <>
-              {rows?.map((row) => {
-                const rowId = row?.id || row?.key;
-                const isExpanded = expandedRows[rowId] || false;
+            rows?.map((row) => {
+              const rowId = row?.id || row?.key;
+              const isExpanded = expandedRows[rowId] || false;
+              const clickable = !!onclick || !!bottomContentOnMoblile;
+              const onCardClick = () => {
+                if (bottomContentOnMoblile) toggleExpanded(rowId);
+                if (onclick) onclick(rowId);
+              };
 
-                return (
-                  <div
-                    key={rowId}
-                    className={cn(
-                      "px-2 py-4 rounded-md relative bg-card text-card-foreground border border-border shadow-sm transition-all duration-200 text-[13px]",
-                      onclick && "cursor-pointer hover:border-primary/40"
-                    )}
-                    onClick={() => {
-                      if (bottomContentOnMoblile) {
-                        toggleExpanded(rowId);
-                      }
-                      if (onclick) {
-                        onclick(rowId);
-                      }
-                    }}
-                  >
+              return (
+                <div
+                  key={rowId}
+                  className={cn(
+                    "rounded-xl border border-border bg-card text-card-foreground p-4 text-[13px] transition-colors",
+                    clickable && "cursor-pointer hover:border-foreground/20 active:bg-muted/40",
+                    selectedRowId === rowId && "border-foreground/30",
+                  )}
+                  onClick={onCardClick}
+                >
+                  {usesRoles ? (
+                    <>
+                      <div className="flex items-start gap-3">
+                        {thumbs.map((col) => (
+                          <div key={col.key} className="shrink-0">
+                            {getKeyValue(row, col.key)}
+                          </div>
+                        ))}
+                        <div className="min-w-0 flex-1 space-y-1">
+                          {titles.map((col) => (
+                            <div key={col.key} className="text-sm font-medium text-foreground break-words">
+                              {getKeyValue(row, col.key)}
+                            </div>
+                          ))}
+                          {subtitles.map((col) => (
+                            <div key={col.key} className="text-xs text-muted-foreground break-words">
+                              {getKeyValue(row, col.key)}
+                            </div>
+                          ))}
+                        </div>
+                        {(values.length > 0 || badges.length > 0) && (
+                          <div className="shrink-0 flex flex-col items-end gap-1.5 text-right max-w-[50%]">
+                            {values.map((col) => (
+                              <div key={col.key} className="text-sm font-semibold text-foreground">
+                                {getKeyValue(row, col.key)}
+                              </div>
+                            ))}
+                            {badges.map((col) => (
+                              <div key={col.key}>{getKeyValue(row, col.key)}</div>
+                            ))}
+                          </div>
+                        )}
+                        {actionCols.map((col) => (
+                          // The row menu handles its own taps; don't also open the card
+                          <div key={col.key} className="shrink-0 -mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
+                            {getKeyValue(row, col.key)}
+                          </div>
+                        ))}
+                        {clickable && actionCols.length === 0 && (
+                          <Icon icon="solar:alt-arrow-right-linear" className="shrink-0 self-center text-base text-muted-foreground" />
+                        )}
+                      </div>
+                      {details.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-2 gap-x-4 gap-y-2">
+                          {details.map((col) => (
+                            <div key={col.key} className="min-w-0">
+                              <p className="text-[11px] text-muted-foreground">{col.label}</p>
+                              <div className="text-xs text-foreground break-words">{getKeyValue(row, col.key)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     <div className={cn(mobileHeadersClassname, "w-full")}>
                       {mobileHeaders?.map((header) => {
-                        const headerKey =
-                          typeof header == "string" ? header : header.key;
-                        const cellValue = getKeyValue(row, headerKey);
-
+                        const headerKey = typeof header == "string" ? header : header.key;
                         return (
-                          <div
-                            key={headerKey}
-                            className={cn(
-                              "px-3 transition-opacity duration-300 ease-in-out"
-                            )}
-                          >
-                            {cellValue}
+                          <div key={headerKey} className="px-1">
+                            {getKeyValue(row, headerKey)}
                           </div>
                         );
                       })}
                     </div>
+                  )}
 
-                    {/* bottom Content */}
-                    {isExpanded && bottomContentOnMoblile && (
-                      <div className="bg-muted mt-4 p-3 rounded-lg border border-border/50">
-                        {bottomContentOnMoblile(row)}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </>
+                  {isExpanded && bottomContentOnMoblile && (
+                    <div className="bg-muted mt-4 p-3 rounded-lg border border-border/50" onClick={(e) => e.stopPropagation()}>
+                      {bottomContentOnMoblile(row)}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
         {bottomContent}
