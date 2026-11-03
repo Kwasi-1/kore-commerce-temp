@@ -10,6 +10,7 @@ import { formatChange, formatCover, formatMoney, formatPct, formatQty } from './
 import regularFontUrl from '@/assets/fonts/GoogleSansFlex-Regular.ttf?url';
 import boldFontUrl from '@/assets/fonts/GoogleSansFlex-Medium.ttf?url';
 import headerFontUrl from '@/assets/fonts/AtypDisplay-Regular.ttf?url';
+import titleFontUrl from '@/assets/fonts/AtypDisplay-Medium.ttf?url';
 
 export interface ExportProductReportOptions {
   rows: ProductReportRow[];
@@ -46,13 +47,13 @@ const fetchBase64 = (url: string) =>
 
 /**
  * Report fonts as base64, fetched once: Google Sans Flex (regular, and medium for "bold") for the
- * body, and the app's header font (Atyp Display, Latin subset) for the store name. null falls
- * back to Helvetica.
+ * body, and the app's header font (Atyp Display, Latin subsets) for the store name (regular) and
+ * title (medium). null falls back to Helvetica.
  */
-let fontData: Promise<{ regular: string; bold: string; header: string } | null> | null = null;
+let fontData: Promise<{ regular: string; bold: string; header: string; title: string } | null> | null = null;
 function loadReportFont() {
-  fontData ??= Promise.all([fetchBase64(regularFontUrl), fetchBase64(boldFontUrl), fetchBase64(headerFontUrl)])
-    .then(([regular, bold, header]) => ({ regular, bold, header }))
+  fontData ??= Promise.all([regularFontUrl, boldFontUrl, headerFontUrl, titleFontUrl].map(fetchBase64))
+    .then(([regular, bold, header, title]) => ({ regular, bold, header, title }))
     .catch((e) => {
       console.warn('PDF font failed to load, using Helvetica', e);
       fontData = null;
@@ -102,6 +103,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   const reportFont = await loadReportFont();
   let font = 'helvetica';
   let headerFont: [string, string] = ['helvetica', 'bold'];
+  let titleFont: [string, string] = ['helvetica', 'bold'];
   if (reportFont) {
     doc.addFileToVFS('GoogleSansFlex-Regular.ttf', reportFont.regular);
     doc.addFileToVFS('GoogleSansFlex-Medium.ttf', reportFont.bold);
@@ -109,8 +111,11 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
     doc.addFont('GoogleSansFlex-Regular.ttf', 'GoogleSansFlex', 'normal');
     doc.addFont('GoogleSansFlex-Medium.ttf', 'GoogleSansFlex', 'bold');
     doc.addFont('AtypDisplay-Regular.ttf', 'AtypDisplay', 'normal');
+    doc.addFileToVFS('AtypDisplay-Medium.ttf', reportFont.title);
+    doc.addFont('AtypDisplay-Medium.ttf', 'AtypDisplay', 'bold');
     font = 'GoogleSansFlex';
     headerFont = ['AtypDisplay', 'normal'];
+    titleFont = ['AtypDisplay', 'bold'];
   }
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -129,7 +134,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   doc.setTextColor(...MUTED);
   doc.text(storeName.toUpperCase(), margin, y + 3);
 
-  doc.setFont(...headerFont);
+  doc.setFont(...titleFont);
   doc.setFontSize(18);
   doc.setTextColor(...INK);
   doc.text(scopeLabel ? `Product Performance — ${scopeLabel}` : 'Product Performance Report', margin, y + 11);
@@ -244,7 +249,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
     if (canvas) {
       const imgW = contentW;
       let imgH = (canvas.height * imgW) / canvas.width;
-      const maxH = 85;
+      const maxH = 95;
       let drawW = imgW;
       if (imgH > maxH) {
         drawW = (imgW * maxH) / imgH;
