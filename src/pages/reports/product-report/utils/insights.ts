@@ -31,7 +31,7 @@ export function buildHighlights(rows: ProductReportRow[], summary: ProductReport
     out.push({
       tone: 'critical',
       icon: 'lucide:package-plus',
-      text: `${restock.length} ${restock.length === 1 ? 'item needs' : `${itemNoun} need`} restocking: ${names.join(', ')}${restock.length > 3 ? '…' : ''}.`,
+      text: `${restock.length} ${restock.length === 1 ? 'item needs' : `${itemNoun} need`} restocking: ${names.join(', ')}${restock.length > 3 ? '…' : '.'}`,
     });
   }
 

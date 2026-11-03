@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { type Styles } from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 import { COMPARE_OPTIONS, GROUP_BY_OPTIONS, INSIGHT_META, SORT_PRESETS } from '../constants';
@@ -129,7 +129,7 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   doc.setTextColor(...MUTED);
   doc.text(storeName.toUpperCase(), margin, y + 3);
 
-  doc.setFont(font, 'bold');
+  doc.setFont(...headerFont);
   doc.setFontSize(18);
   doc.setTextColor(...INK);
   doc.text(scopeLabel ? `Product Performance — ${scopeLabel}` : 'Product Performance Report', margin, y + 11);
@@ -260,65 +260,75 @@ export async function buildProductReportPdf(opts: ExportProductReportOptions): P
   }
 
   /* ---------- Table ---------- */
-  const head = [
-    '#',
-    filters.groupBy === 'brand' ? 'Brand' : filters.groupBy === 'category' ? 'Category' : 'Product',
-    'SKU',
-    'Units',
-    comparing ? 'vs prev' : 'Share',
-    'Net revenue',
-    'Returns',
-    'Gross profit',
-    'Margin',
-    'Stock',
-    'Cover',
-    'Insight',
+  type Column = {
+    key: string;
+    head: string;
+    cell: (r: ProductReportRow, i: number) => string;
+    style?: Partial<Styles>;
+    /** Left out of the PDF, e.g. a column that is empty for the whole period */
+    hidden?: boolean;
+  };
+  const right: Partial<Styles> = { halign: 'right' };
+  const columns: Column[] = [
+    { key: 'rank', head: '#', cell: (_r, i) => String(i + 1), style: { cellWidth: 8, halign: 'right', textColor: MUTED } },
+    {
+      key: 'name',
+      head: filters.groupBy === 'brand' ? 'Brand' : filters.groupBy === 'category' ? 'Category' : 'Product',
+      cell: (r) => (r.variant_label ? `${r.name} · ${r.variant_label}` : r.name),
+      style: { cellWidth: 62 },
+    },
+    // Sized to the longest SKU so codes never break across lines
+    { key: 'sku', head: 'SKU', cell: (r) => r.sku || '—', style: { cellWidth: 'wrap', textColor: MUTED } },
+    { key: 'units', head: 'Units', cell: (r) => formatQty(r.units_sold), style: right },
+    {
+      key: 'share',
+      head: comparing ? 'vs prev' : 'Share',
+      cell: (r) => (comparing ? formatChange(r.units_change_pct) : `${(r.units_share_pct || 0).toFixed(1)}%`),
+      style: right,
+    },
+    { key: 'revenue', head: 'Net revenue', cell: (r) => formatMoney(r.net_revenue ?? r.revenue), style: right },
+    {
+      key: 'returns',
+      head: 'Returns',
+      cell: (r) => (r.returned_units > 0 ? formatPct(r.return_rate_pct) : '—'),
+      style: right,
+      hidden: !rows.some((r) => r.returned_units > 0),
+    },
+    { key: 'profit', head: 'Gross profit', cell: (r) => formatMoney(r.gross_profit), style: right },
+    { key: 'margin', head: 'Margin', cell: (r) => (r.has_cost ? formatPct(r.gross_margin) : 'Uncosted'), style: right },
+    { key: 'stock', head: 'Stock', cell: (r) => formatQty(r.stock_quantity), style: right },
+    {
+      key: 'cover',
+      head: 'Cover',
+      cell: (r) => (r.stock_status === 'out_of_stock' ? 'Out' : formatCover(r.days_of_cover)),
+      style: right,
+    },
+    { key: 'insight', head: 'Insight', cell: (r) => INSIGHT_META[r.insight]?.label || '' },
   ];
-  const body = rows.map((r, i) => [
-    String(i + 1),
-    r.variant_label ? `${r.name} · ${r.variant_label}` : r.name,
-    r.sku || '—',
-    formatQty(r.units_sold),
-    comparing ? formatChange(r.units_change_pct) : `${(r.units_share_pct || 0).toFixed(1)}%`,
-    formatMoney(r.net_revenue ?? r.revenue),
-    r.returned_units > 0 ? formatPct(r.return_rate_pct) : '—',
-    formatMoney(r.gross_profit),
-    r.has_cost ? formatPct(r.gross_margin) : 'Uncosted',
-    formatQty(r.stock_quantity),
-    r.stock_status === 'out_of_stock' ? 'Out' : formatCover(r.days_of_cover),
-    INSIGHT_META[r.insight]?.label || '',
-  ]);
+  const shown = columns.filter((c) => !c.hidden);
+  const head = shown.map((c) => c.head);
+  const body = rows.map((r, i) => shown.map((c) => c.cell(r, i)));
 
   autoTable(doc, {
     head: [head],
     body,
     startY: y,
     margin: { left: margin, right: margin, bottom: 16 },
-    styles: { font, fontSize: 8, cellPadding: 1.8, textColor: INK, lineColor: RULE, lineWidth: 0.1 },
+    // Horizontal rules only; the striped rows keep each line easy to follow
+    styles: { font, fontSize: 8, cellPadding: 1.8, textColor: INK, lineColor: RULE, lineWidth: { bottom: 0.1 } },
     headStyles: { fillColor: [245, 245, 242], textColor: MUTED, fontStyle: 'bold', fontSize: 7.5 },
     alternateRowStyles: { fillColor: [252, 252, 251] },
-    columnStyles: {
-      0: { cellWidth: 8, halign: 'right', textColor: MUTED },
-      1: { cellWidth: 62 },
-      2: { cellWidth: 26, textColor: MUTED },
-      3: { halign: 'right' },
-      4: { halign: 'right' },
-      5: { halign: 'right' },
-      6: { halign: 'right' },
-      7: { halign: 'right' },
-      8: { halign: 'right' },
-      9: { halign: 'right' },
-      10: { halign: 'right' },
-    },
+    columnStyles: Object.fromEntries(shown.map((c, i) => [i, c.style || {}])),
     didParseCell: (data) => {
       if (data.section !== 'body') return;
       const row = rows[data.row.index];
+      const key = shown[data.column.index]?.key;
       if (!row) return;
-      if (data.column.index === 11) {
+      if (key === 'insight') {
         data.cell.styles.textColor = INSIGHT_META[row.insight]?.pdf || INK;
         data.cell.styles.fontStyle = 'bold';
       }
-      if (comparing && data.column.index === 4 && row.units_change_pct !== null && row.units_change_pct !== undefined) {
+      if (comparing && key === 'share' && row.units_change_pct !== null && row.units_change_pct !== undefined) {
         data.cell.styles.textColor = row.units_change_pct >= 0 ? [12, 130, 12] : [208, 59, 59];
       }
     },
