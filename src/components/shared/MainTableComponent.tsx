@@ -27,6 +27,8 @@ export interface TableColumn {
   label: string;
   /** Where this column goes on the phone/tablet card; see MobileRole */
   mobile?: MobileRole;
+  /** Width of this detail column when shown inline on tablets (default 8rem) */
+  mobileWidth?: string;
 }
 
 export interface TableAction {

@@ -495,7 +495,7 @@ export default function StockReconciliation() {
     { key: 'name', label: 'Product / Variant', mobile: 'title' },
     { key: 'category', label: 'Category', mobile: 'subtitle' },
     { key: 'current_stock', label: 'System Stock', mobile: 'detail' },
-    { key: 'actual_count', label: 'Physical Count', mobile: 'detail' },
+    { key: 'actual_count', label: 'Physical Count', mobile: 'detail', mobileWidth: '14rem' },
     { key: 'variance', label: 'Variance', mobile: 'value' },
   ];
 
