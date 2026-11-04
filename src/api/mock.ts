@@ -1200,6 +1200,15 @@ export function setupMockApi() {
     }
   };
 
+  mock.onGet('/tenant/my-store/storefront').reply(200, {
+    success: { status: 'OK', code: 200, data: { storefront: {
+      status: 'active',
+      url: 'https://demo-store.korecommerce.app/',
+      template_id: 'vetshore-retail',
+      updated_at: new Date().toISOString(),
+    } } },
+  });
+
   mock.onGet('/tenant/settings').reply(200, {
     success: { status: 'OK', code: 200, data: mockTenantSettings }
   });
