@@ -13,6 +13,7 @@ import { startOfDay, endOfDay, subDays, format, formatDistanceToNow } from 'date
 import { ShoppingCart, PackagePlus, AlertCircle, Clock, ShoppingBag, Users, Tag, MonitorSmartphone, History as HistoryIcon, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
 import RampBarChart from '@/components/ui/ramp-bar-chart';
+import StorefrontPlanBanner from '@/components/shared/StorefrontPlanBanner';
 
 import { getModules } from '@/utils/permissions';
 import { useFeaturesStore } from '@/store/featuresStore';
@@ -355,6 +356,8 @@ export default function Overview() {
           )}
         </MobileHeroCard>
 
+        <StorefrontPlanBanner className="mt-4" />
+
         {/* 2. Floating Quick Action Capsule Bar */}
         <MobileActionCapsuleBar
           actions={[
@@ -513,6 +516,7 @@ export default function Overview() {
       {/* DESKTOP DASHBOARD VIEW (Hidden < md, Block >= md)                        */}
       {/* ========================================================================= */}
       <div className="hidden desk:block pb-24 md:pb-0">
+        <StorefrontPlanBanner className="mb-6" />
 
         {/* Section Header with View Switcher */}
         <div className="flex items-center justify-between mb-4 mt-1 md:mt-2">

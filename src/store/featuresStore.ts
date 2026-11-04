@@ -102,6 +102,15 @@ export const getPlanModules = (planName?: string): string[] => {
   return PLAN_MODULES[planName] || PLAN_MODULES.starter;
 };
 
+/** The online store's plan state, from /tenant/features */
+export interface StorefrontPlanState {
+  /** full: covered · grace: still open until pauses_at · lapsed: paused */
+  state: 'full' | 'grace' | 'lapsed';
+  pauses_at: string | null;
+  days_left: number | null;
+  has_store: boolean;
+}
+
 interface FeaturesState {
   plan: string;
   modules: string[];
@@ -115,6 +124,7 @@ interface FeaturesState {
   /** Signed-in staff member's permissions (from /tenant/features) and whose they are */
   permissions: string[] | null;
   permissionsFor: string | null;
+  storefront: StorefrontPlanState | null;
   isLoaded: boolean;
   lastFetchedAt: number | null;    // timestamp ms — for cache invalidation
   hasModule: (key: string) => boolean;
@@ -140,6 +150,7 @@ export const useFeaturesStore = create<FeaturesState>()(
       momo_prompts_reason: null,
       permissions: null,
       permissionsFor: null,
+      storefront: null,
       isLoaded: false,
       lastFetchedAt: null,
 
@@ -175,9 +186,16 @@ export const useFeaturesStore = create<FeaturesState>()(
           const res = await apiClient.get('/tenant/features');
           const data = res.data?.success?.data || res.data?.data || {};
           const plan: string = data.plan || 'starter';
-          const modules: string[] = data.modules?.length
+          const storefront: StorefrontPlanState | null = data.storefront ?? null;
+          const planModules: string[] = data.modules?.length
             ? data.modules
             : (PLAN_MODULES[plan] ?? PLAN_MODULES['starter']);
+          // A tenant whose plan lost ecommerce keeps the back office (orders, customers, discounts)
+          // for its store while the store itself is in grace or paused
+          const modules =
+            storefront?.has_store && storefront.state !== 'full' && !planModules.includes('ecommerce')
+              ? [...planModules, 'ecommerce']
+              : planModules;
           const addons: any[] = data.addons || [];
           const posSettings: POSSettings = {
             ...DEFAULT_POS_SETTINGS,
@@ -194,6 +212,7 @@ export const useFeaturesStore = create<FeaturesState>()(
             momo_prompts_reason: data.momo_prompts_reason || null,
             permissions: Array.isArray(data.permissions) ? data.permissions : null,
             permissionsFor: data.staff_id || null,
+            storefront,
             isLoaded: true,
             lastFetchedAt: Date.now(),
           });
@@ -223,6 +242,7 @@ export const useFeaturesStore = create<FeaturesState>()(
           posSettings: DEFAULT_POS_SETTINGS,
           permissions: null,
           permissionsFor: null,
+          storefront: null,
           isLoaded: false,
           lastFetchedAt: null,
         }),
@@ -236,6 +256,7 @@ export const useFeaturesStore = create<FeaturesState>()(
         posSettings: state.posSettings,
         permissions: state.permissions,
         permissionsFor: state.permissionsFor,
+        storefront: state.storefront,
         lastFetchedAt: state.lastFetchedAt,
       }),
     }

@@ -4,12 +4,14 @@ import PageLayout from '@/components/layout/PageLayout';
 import SettingsSection from '@/components/settings/SettingsSection';
 import apiClient from '@/api/client';
 import { cn } from '@/lib/utils';
+import StorefrontPlanBanner from '@/components/shared/StorefrontPlanBanner';
 
 interface Storefront {
   status: 'active' | 'maintenance' | 'unpublished';
   url: string;
   template_id: string | null;
   updated_at: string | null;
+  entitlement?: { state: 'full' | 'grace' | 'lapsed' };
 }
 
 const STATUS: Record<Storefront['status'], { label: string; note: string; className: string }> = {
@@ -52,11 +54,21 @@ export default function StorefrontSettings() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const status = storefront ? STATUS[storefront.status] ?? STATUS.unpublished : null;
+  // A paused plan overrides the deployment status: shoppers see "taking a short break"
+  const status = !storefront
+    ? null
+    : storefront.entitlement?.state === 'lapsed'
+      ? {
+          label: 'Paused',
+          note: 'Your plan no longer includes the online store, so shoppers see a "short break" page.',
+          className: 'bg-muted text-muted-foreground',
+        }
+      : STATUS[storefront.status] ?? STATUS.unpublished;
 
   return (
     <PageLayout title="Storefront">
-      <div className="max-w-4xl mb-4 custom-header">
+      <div className="max-w-4xl mb-4 custom-header space-y-4">
+        <StorefrontPlanBanner />
         <SettingsSection title="Your online store" description="Its address and whether shoppers can see it.">
           {isLoading ? (
             <div className="space-y-3 animate-pulse">
