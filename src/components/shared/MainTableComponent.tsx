@@ -297,7 +297,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
   rowActionsDisabledKeys = [],
 
   // Container
-  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 flex flex-col rounded-xl md:rounded-[10px] dark:border-border/50",
+  containerStyles = "min-h-[300px] md:flex-1 md:min-h-0 lg:min-h-[30rem] short:min-h-[260px] flex flex-col rounded-xl md:rounded-[10px] dark:border-border/50",
 
   // Additional
   additionalModals,
@@ -912,7 +912,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
             }}
           >
             {/* Scrollable table area with max height */}
-            <div className="md:flex-1 md:min-h-0 md:overflow-y-auto short:flex-none short:overflow-visible scrollbar-thin scrollbar-track-transparent scrollbar-hide scroll-smooth scrollbar-thumb-border">
+            <div className="md:flex-1 md:min-h-0 md:overflow-y-auto lg:[contain:size] short:flex-none short:overflow-visible short:[contain:none] scrollbar-hide scroll-smooth">
               <CustomTableComponent
                 columns={enhancedColumns}
                 rows={paginatedRows}
@@ -951,7 +951,7 @@ const EnhancedTableComponent: React.FC<EnhancedTableProps> = ({
 
             {/* Pagination bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-end px-2 pt-2 border-t border-border/70 mt-2">
+              <div className="flex items-center justify-end px-2 pt-2 lg:border-t border-border/70 mt-2">
                 <Pagination
                   currentPage={activePage}
                   totalPages={totalPages}

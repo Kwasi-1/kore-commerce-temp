@@ -311,8 +311,8 @@ const CustomTableComponent: React.FC<ICustomTableComponent> = ({
     );
 
     return (
-      // Bottom room so the floating mobile nav never covers the last row or the pagination
-      <div className="pt-3 pb-24 lg:pb-0 relative">
+      // Bottom room so the floating phone nav (hidden from md) never covers the last row or pagination
+      <div className="pt-3 pb-24 md:pb-0 relative">
         {isLoading || isFetching ? (
           <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
             {Array.from({ length: 5 }).map((_, i) => (

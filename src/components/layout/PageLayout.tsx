@@ -39,6 +39,12 @@ interface PageLayoutProps {
   subtitleStyles?: string;
   className?: string;
   children: React.ReactNode;
+  /**
+   * The page is at least screen height and its content a flex column, so a table fills the rest
+   * of the screen and scrolls its own rows (the shared table keeps its rows out of the page's
+   * height). When the table's minimum height doesn't fit, the page grows and scrolls as one,
+   * header included.
+   */
   constrainHeight?: boolean;
   showBackButton?: boolean;
   backUrl?: string;
@@ -90,7 +96,7 @@ const location = useLocation();
         "w-full min-h-full text-foreground scrollbar-hide flex flex-col py-2 md:p-4 short:py-2",
         desktopFrom === "sm" && "desk-sm",
         constrainHeight
-          ? "md:h-full md:overflow-hidden short:h-auto short:overflow-visible"
+          ? ""
           : showBottomNav
             ? "pb-20 md:pb-4"
             : "pb-4 md:pb-0",
@@ -292,7 +298,7 @@ const location = useLocation();
       )}
 
       <div
-        className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden short:overflow-visible" : ""}`}
+        className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0" : ""}`}
       >
         {children}
       </div>
