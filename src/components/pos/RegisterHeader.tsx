@@ -129,14 +129,14 @@ const savedTransactions = useCartStore((s) => s.savedTransactions);
           variant="ghost"
           size="icon"
           onClick={() => setIsPreferencesModalOpen(true)}
-          className={`${hidePreferencesOnMobile ? 'hidden' : 'flex md:hidden'} rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8`}
+          className={`${hidePreferencesOnMobile ? 'hidden' : 'flex md:hidden short:flex'} rounded-full text-muted-foreground hover:text-foreground transition-colors h-8 w-8`}
           title="Register Preferences"
         >
           <Settings className="h-4 w-4 transition-transform duration-300 hover:rotate-45" />
         </Button>
 
-        {/* Desktop Settings: Dropdown Menu */}
-        <div className="hidden md:flex">
+        {/* Desktop Settings: Dropdown Menu (short screens use the modal, like phones) */}
+        <div className="hidden md:flex short:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -258,7 +258,7 @@ const savedTransactions = useCartStore((s) => s.savedTransactions);
             variant="outline"
             size="icon"
             onClick={() => setIsCashMovementOpen(true)}
-            className="hidden md:flex rounded-full text-muted-foreground hover:text-foreground border-border/80 transition-colors h-8 w-8 md:h-10 md:w-10"
+            className="hidden md:flex short:hidden rounded-full text-muted-foreground hover:text-foreground border-border/80 transition-colors h-8 w-8 md:h-10 md:w-10"
             title="Log Petty Cash / Paid In / Paid Out"
           >
             <Icon icon="solar:wallet-money-bold" className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
@@ -325,7 +325,7 @@ const savedTransactions = useCartStore((s) => s.savedTransactions);
             {/* Register Preferences: only rendered in Profile menu on mobile when the header gear button is hidden */}
             {hidePreferencesOnMobile && (
               <DropdownMenuItem
-                className="flex md:hidden cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl"
+                className="flex md:hidden short:flex cursor-pointer gap-2 py-2.5 font-medium mt-1 rounded-xl"
                 onClick={() => setIsPreferencesModalOpen(true)}
               >
                 <Settings className="h-4 w-4 text-muted-foreground" />

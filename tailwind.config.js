@@ -22,8 +22,11 @@ export default {
       xl: "1280px",
       "2xl": "1536px",
       "3xl": "1640px",
-      // short: phones on their side (wide but under 500px tall). The min-width keeps portrait
-      // phones out even when the keyboard shrinks their height. Listed last so it wins.
+      // short: phones on their side (wide but under 500px tall); the min-width keeps portrait phones
+      // out even when the keyboard shrinks their height. A screen (listed last), so its CSS comes
+      // after md:/lg: and wins; plugin variants like pd: are emitted before the screens.
+      // A raw screen turns off arbitrary min-[..]:/max-[..]: variants, so don't use those.
+      // Keep the query in step with SHORT_SCREEN_QUERY in hooks/useIsShortScreen.ts.
       short: { raw: "(max-height: 500px) and (min-width: 640px)" },
     },
     container: {
@@ -143,8 +146,8 @@ export default {
     nextui(),
     // pd: "page desktop", for PageLayout's header. Desktop from md, or from desk (640px) on pages
     // already switched to their desktop layout there (PageLayout desktopFrom="sm" adds .desk-sm).
-    // Use it only for switches with no lg:/xl: override on the same property (plugin variants
-    // come after the breakpoints in the CSS).
+    // Use it only for switches with no sm:/md:/lg: class on the same property: plugin variants are
+    // emitted before the breakpoints in the CSS, so those would win.
     function ({ addVariant }) {
       addVariant("pd", ["@media (min-width: 768px) { & }", "@media (min-width: 640px) { .desk-sm & }"]);
     },

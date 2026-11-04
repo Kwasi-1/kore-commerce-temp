@@ -931,7 +931,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const renderPaymentFlow = () => (
     <div className="flex flex-col h-full min-h-0">
       {/* Desktop Fixed Header: Pinned at top above scroll container on desktop */}
-      <div className="hidden md:flex mb-6 justify-between items-end border-b border-border/50 pb-4 shrink-0">
+      <div className="hidden md:flex short:hidden mb-6 justify-between items-end border-b border-border/50 pb-4 shrink-0">
         <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
         {!isOnline && (
           <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
@@ -943,7 +943,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
       {/* Desktop Offline Banner (Fixed) */}
       {!isOnline && showOffline && (
-        <div className="hidden md:flex items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
+        <div className="hidden md:flex short:hidden items-start gap-3 p-3 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium shrink-0">
           <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-bold mb-0.5">No Internet Connection</p>
@@ -954,14 +954,14 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
       <div className="flex-1 overflow-y-auto min-h-fit md:pr-1 md:py-1 scrollbar-hide overflow-x-hidden flex flex-col gap-y-5 pb-6">
         {/* Mobile-only receipt summary: sits at top and scrolls with content */}
-        <div className="md:hidden">
+        <div className="md:hidden short:block">
           {renderMobileReceiptSummary()}
         </div>
 
         {/* Inset wrapper for payment details header and controls on mobile */}
-        <div className="px-2 py-1 md:px-0 md:py-0 flex flex-col gap-y-5">
+        <div className="px-2 py-1 md:px-0 md:py-0 short:px-2 short:py-1 flex flex-col gap-y-5">
           {/* Mobile-only Payment Details Title: sits below summary and scrolls with content so keyboard never crushes inputs */}
-          <div className="md:hidden flex justify-between items-end border-b border-border/50 pb-3">
+          <div className="md:hidden short:flex flex justify-between items-end border-b border-border/50 pb-3">
             <span className="text-muted-foreground font-semibold text-sm uppercase tracking-wider">Payment Details</span>
             {!isOnline && (
               <div onClick={() => setShowOffline(prev => !prev)} className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold cursor-pointer">
@@ -973,7 +973,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
 
           {/* Mobile-only Offline Banner (Scrolls with content) */}
           {!isOnline && showOffline && (
-            <div className="md:hidden flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+            <div className="md:hidden short:flex flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
               <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
               <div>
                 <p className="font-bold mb-0.5">No Internet Connection</p>
@@ -1245,17 +1245,17 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
       </div>
 
       {/* Bottom Footer — sticky, never scrolls away */}
-      <div className="mt-auto pt-4 md:pt-6 border-t border-border/50 shrink-0 md:bg-card m-2 md:m-0">
+      <div className="mt-auto pt-4 md:pt-6 short:pt-3 border-t border-border/50 shrink-0 md:bg-card m-2 md:m-0">
         <div className="flex justify-between items-end mb-4 px-1">
           <span className="text-muted-foreground font-bold text-sm uppercase tracking-wider">Total</span>
-          <span className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
+          <span className="text-xl md:text-2xl lg:text-3xl short:text-xl font-black tracking-tight text-foreground"><CurrencyDisplay amount={total} /></span>
         </div>
         {usePrompt && momoAction ? (
           <>
             <Button
               onClick={momoAction.onClick}
               disabled={momoAction.disabled || isProcessing}
-              className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm gap-2"
+              className="w-full h-[3.25rem] md:h-14 short:h-12 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm gap-2"
             >
               {(momoAction.loading || isProcessing) && <Loader2 className="h-5 w-5 animate-spin" />}
               {momoAction.label}
@@ -1274,7 +1274,7 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
           <Button
             onClick={handleTransaction}
             disabled={isProcessing || total === 0 || (activeTab === 'cash' && !isCreditSale && amountTendered < total) || !!splitProblem}
-            className="w-full h-[3.25rem] md:h-14 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
+            className="w-full h-[3.25rem] md:h-14 short:h-12 rounded-full font-bold text-[16px] transition-all bg-foreground text-background hover:bg-foreground/90 shadow-sm"
           >
             {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : isCreditSale ? 'Complete Credit Sale' : 'Complete Transaction'}
           </Button>
@@ -1397,16 +1397,16 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
   const modalBody = (
     // h-[90dvh] on mobile (dvh accounts for the mobile browser chrome so the
     // sheet doesn't get cut off by the address bar), h-[80vh] from md up.
-    <div className="flex flex-col md:flex-row w-full h-[85dvh] md:h-[80vh] min-h-0 overflow-hidden">
+    <div className="flex flex-col md:flex-row short:flex-col w-full h-[85dvh] md:h-[80vh] short:h-[88dvh] min-h-0 overflow-hidden">
 
       {/* Left Column: full Receipt Preview — desktop/tablet only. Mobile relies on the
           compact summary inside the scrollable flow; printing is handled separately via the portal below. */}
-      <div className="hidden md:flex md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-5 m-2 flex-shrink-0 flex-col min-h-0">
+      <div className="hidden md:flex short:hidden md:w-[380px] lg:w-[400px] bg-zinc-50 dark:bg-black/40 border border-border rounded-xl p-4 md:p-5 m-2 flex-shrink-0 flex-col min-h-0">
          {renderReceiptPreview()}
       </div>
 
       {/* Right Column: Flow — always gets the remaining space, guaranteed */}
-      <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-hidden relative md:bg-card flex flex-col min-h-0">
+      <div className="flex-1 p-4 sm:p-6 md:p-8 short:p-4 overflow-hidden relative md:bg-card flex flex-col min-h-0">
         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-between min-h-0">
            {isSuccess ? renderSuccessScreen() : renderPaymentFlow()}
         </div>
@@ -1434,7 +1434,9 @@ export default function PaymentModal({ isOpen, onClose, defaultMethod = 'cash' }
         isKeyboardDismissDisabled={paymentStarted}
         size="4xl"
         classNames={{
-          body: "p-0 overflow-hidden max-h-[90dvh] md:max-h-[90vh]",
+          body: "p-0 overflow-hidden max-h-[90dvh] md:max-h-[90vh] short:max-h-[90dvh]",
+          // Short screens: a phone-width window for the one-column layout
+          base: "short:max-w-lg",
           header: "hidden"
         }}
         body={modalBody}

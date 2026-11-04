@@ -175,7 +175,7 @@ export default function Register() {
       <div className="flex flex-1 gap-6 min-h-0 relative">
 
         {/* Left Panel: Products */}
-        <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden relative pb-16 lg:pb-0">
+        <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden relative pb-16 lg:pb-0 short:pb-0">
           <ProductSearchBar isCartCollapsed={panelState === 'collapsed'} />
         </div>
 
@@ -310,7 +310,7 @@ export default function Register() {
         <DrawerContent
           className={
             isShortScreen
-              ? 'bg-secondary outline-none inset-x-auto left-auto right-0 top-0 bottom-0 mt-0 h-full w-[min(460px,55vw)] rounded-t-none rounded-l-3xl'
+              ? 'bg-secondary outline-none inset-x-auto left-auto right-0 top-0 bottom-0 mt-0 h-full w-[min(460px,55vw)] rounded-t-none rounded-l-3xl overflow-hidden'
               : 'bg-secondary h-full max-h-[100vh] outline-none'
           }
           dragHandleClassName={isShortScreen ? 'hidden' : 'bg-muted-foreground/60'}

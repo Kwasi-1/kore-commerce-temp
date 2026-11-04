@@ -455,7 +455,7 @@ export default function BottomNav() {
 
       {/* ── 2. Native Mobile Menu Drawer (4-Column Box Grid with Sub-View Option A) ── */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className={`bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] ${!isCashier && "min-h-[250px]"} outline-none mx-2.5 max-w-[440px] min-[460px]:mx-auto mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden`}>
+        <DrawerContent className={`bg-card/95 dark:bg-neutral-900/95 backdrop-blur-2xl text-foreground dark:text-white max-h-[70vh] ${!isCashier && "min-h-[250px]"} outline-none mx-auto w-[calc(100%-1.25rem)] max-w-[440px] mb-3 rounded-[1.75rem] border border-border/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:ring-white/10 overflow-hidden after:!hidden`}>
 
           <div className="flex flex-col max-h-[calc(70vh-20px)] overflow-hidden mt-2">
             {/* Sub-view Header Navigation Bar (only rendered when drilling into a group) */}
