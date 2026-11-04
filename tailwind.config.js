@@ -22,6 +22,9 @@ export default {
       xl: "1280px",
       "2xl": "1536px",
       "3xl": "1640px",
+      // short: phones on their side (wide but under 500px tall). The min-width keeps portrait
+      // phones out even when the keyboard shrinks their height. Listed last so it wins.
+      short: { raw: "(max-height: 500px) and (min-width: 640px)" },
     },
     container: {
       center: true,

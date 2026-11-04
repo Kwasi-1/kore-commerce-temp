@@ -72,8 +72,8 @@ const savedTransactions = useCartStore((s) => s.savedTransactions);
   };
 
   return (
-    <header className="flex items-center justify-between pb-6 shrink-0 gap-4">
-      <h1 className="text-[26px] font-bold text-foreground tracking-tighter lg:trackingnormal font-header lg:fontsans">Create Transaction</h1>
+    <header className="flex items-center justify-between pb-6 short:pb-3 shrink-0 gap-4">
+      <h1 className="text-[26px] short:text-[26px] font-bold text-foreground tracking-tighter lg:trackingnormal font-header lg:fontsans">Create Transaction</h1>
 
       <div className="flex items-center gap-2 md:gap-4 border md:border-0 px-1 py-1 rounded-full shrink-0">
         <SavedTransactionsHeader />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useIsShortScreen } from '@/hooks/useIsShortScreen';
 import ProductSearchBar from '@/components/pos/ProductSearchBar';
 import CartPanel from '@/components/pos/CartPanel';
 import RegisterHeader from '@/components/pos/RegisterHeader';
@@ -57,6 +58,8 @@ export default function Register() {
     setIsMobileCartOpen(false); // Close mobile drawer so PaymentModal is the single active overlay
     setIsPaymentModalOpen(true);
   };
+
+  const isShortScreen = useIsShortScreen();
 
   // Top-level Save Transaction Modal State
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -157,7 +160,7 @@ export default function Register() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background p-3 pt-5 md:p-6 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-background p-3 pt-5 md:p-6 short:!p-3.5  short:!px-6 overflow-hidden relative">
 
       {/* Extracted Header Component */}
       <RegisterHeader onOpenShiftModal={() => setIsShiftModalOpen(true)} />
@@ -264,10 +267,10 @@ export default function Register() {
       )}
 
       {/* Mobile Floating Cart & Menu Action Row */}
-      <div className="lg:hidden fixed md:absolute bottom-4 left-3.5 right-3.5 z-40 flex items-center gap-2">
+      <div className="lg:hidden fixed md:absolute bottom-4 left-3.5 right-3.5 short:left-auto short:right-4 short:bottom-3 z-40 flex items-center gap-2">
         <Button
           onClick={() => setIsMobileCartOpen(true)}
-          className="flex-1 h-14 rounded-2xl bg-primary/90 backdrop-blur-md border border-white/20 shadow-md flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
+          className="flex-1 h-14 rounded-2xl short:flex-none short:h-11 short:rounded-full short:px-4 short:gap-4 bg-primary/90 backdrop-blur-md border border-white/20 shadow-md flex items-center justify-between px-5 text-primary-foreground hover:bg-primary transition-all"
         >
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -278,7 +281,7 @@ export default function Register() {
                 </span>
               )}
             </div>
-            <span className="font-semibold text-sm">View Cart</span>
+            <span className="font-semibold text-sm short:hidden">View Cart</span>
           </div>
           <span className="font-bold text-lg tracking-tight">
             <CurrencyDisplay amount={calculatedTotal} />
@@ -296,19 +299,23 @@ export default function Register() {
       </div>
 
       {/* Mobile Cart Drawer */}
+      {/* Phones on their side: a sheet from the right, so the products stay in view beside it */}
       <Drawer
         open={isMobileCartOpen}
         onOpenChange={setIsMobileCartOpen}
-        snapPoints={[0.85, 1]}
-        activeSnapPoint={snapPoint}
-        setActiveSnapPoint={setSnapPoint}
-        fadeFromIndex={0}
+        {...(isShortScreen
+          ? { direction: 'right' as const }
+          : { snapPoints: [0.85, 1], activeSnapPoint: snapPoint, setActiveSnapPoint: setSnapPoint, fadeFromIndex: 0 })}
       >
         <DrawerContent
-          className="bg-secondary h-full max-h-[100vh] outline-none"
-          dragHandleClassName="bg-muted-foreground/60"
+          className={
+            isShortScreen
+              ? 'bg-secondary outline-none inset-x-auto left-auto right-0 top-0 bottom-0 mt-0 h-full w-[min(460px,55vw)] rounded-t-none rounded-l-3xl'
+              : 'bg-secondary h-full max-h-[100vh] outline-none'
+          }
+          dragHandleClassName={isShortScreen ? 'hidden' : 'bg-muted-foreground/60'}
         >
-          <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
+          <div className={`flex-1 h-full flex flex-col relative overflow-hidden transition-all duration-300 ${!isShortScreen && snapPoint === 0.85 ? 'pb-[15vh]' : 'pb-0'}`}>
             <CartPanel
               isMobileView={true}
               onOpenPaymentModal={handleOpenPaymentModal}

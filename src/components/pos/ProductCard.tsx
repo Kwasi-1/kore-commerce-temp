@@ -393,7 +393,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       )}
 
       {/* Image Container */}
-      <div className={`relative w-full pt-[85%] lg:pt-[75%] bg-muted/50 rounded-lg md:rounded-xl overflow-hidden ${densityStyles.imageMb} shrink-0`}>
+      <div className={`relative w-full pt-[85%] lg:pt-[75%] short:pt-[60%] bg-muted/50 rounded-lg md:rounded-xl overflow-hidden ${densityStyles.imageMb} shrink-0`}>
         {/* Stock Badge */}
         {showStockCount && (
           <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-md border border-border text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">

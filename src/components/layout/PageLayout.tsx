@@ -87,10 +87,10 @@ const location = useLocation();
   return (
     <div
       className={cn(
-        "w-full min-h-full text-foreground scrollbar-hide flex flex-col py-2 md:p-4",
+        "w-full min-h-full text-foreground scrollbar-hide flex flex-col py-2 md:p-4 short:py-2",
         desktopFrom === "sm" && "desk-sm",
         constrainHeight
-          ? "md:h-full md:overflow-hidden"
+          ? "md:h-full md:overflow-hidden short:h-auto short:overflow-visible"
           : showBottomNav
             ? "pb-20 md:pb-4"
             : "pb-4 md:pb-0",
@@ -100,7 +100,7 @@ const location = useLocation();
       {title && (
         <div
           className={cn(
-            "w-full mb-4 flex flex-col gap-3 pd:gap-4 shrink-0",
+            "w-full mb-4 short:mb-2 flex flex-col gap-3 pd:gap-4 shrink-0",
             headerVariant === "action-bridge" &&
               "w-[calc(100%+2rem)] bg-action-bridge text-action-pill-foreground -mx-4 -mt-4 px-4 pt-3 pb-2 mb-0 pd:w-full pd:bg-transparent dark:pd:bg-transparent pd:text-foreground pd:mx-0 pd:mt-0 pd:px-0 pd:pt-0 pd:pb-0 pd:mb-4",
             titleSection,
@@ -113,7 +113,7 @@ const location = useLocation();
               <div className="flex flex-col gap-0.5 min-w-0">
                 <h1
                   className={cn(
-                    "text-2xl pd:text-2xl lg:text-[26px] font-bold text-foreground tracking-tighter font-header truncate",
+                    "text-2xl pd:text-2xl lg:text-[26px] short:!text-2xl font-bold text-foreground tracking-tighter font-header truncate",
                     headerVariant === "action-bridge" &&
                       "!text-[22px] pd:!text-2xl lg:!text-[26px] text-action-pill-foreground pd:text-foreground",
                     showBackButton ? "text-2xl" : "text-2xl",
@@ -292,7 +292,7 @@ const location = useLocation();
       )}
 
       <div
-        className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden" : ""}`}
+        className={`flex-1 ${constrainHeight ? "flex flex-col min-h-0 md:overflow-y-auto md:overflow-hidden short:overflow-visible" : ""}`}
       >
         {children}
       </div>
