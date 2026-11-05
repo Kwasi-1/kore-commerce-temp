@@ -15,6 +15,7 @@ interface Storefront {
   updated_at: string | null;
   entitlement?: { state: 'full' | 'grace' | 'lapsed' };
   payments?: StorefrontPayments;
+  domains?: { domain: string; status: 'pending' | 'verifying' | 'active' | 'failed'; is_primary: boolean }[];
 }
 
 const STATUS: Record<Storefront['status'], { label: string; note: string; className: string }> = {
@@ -110,6 +111,17 @@ export default function StorefrontSettings() {
                     </a>
                   </dd>
                 </div>
+                {(storefront.domains ?? []).filter((d) => d.status !== 'active').map((d) => (
+                  <div key={d.domain} className="flex items-center justify-between gap-4 px-4 py-3">
+                    <dt className="text-muted-foreground">Your domain</dt>
+                    <dd className="text-right min-w-0">
+                      <span className="block font-medium text-foreground truncate">{d.domain}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {d.status === 'failed' ? "Not connected: we'll be in touch" : 'Being connected: usually within a day'}
+                      </span>
+                    </dd>
+                  </div>
+                ))}
                 {storefront.template_id && (
                   <div className="flex items-center justify-between gap-4 px-4 py-3">
                     <dt className="text-muted-foreground">Design</dt>
