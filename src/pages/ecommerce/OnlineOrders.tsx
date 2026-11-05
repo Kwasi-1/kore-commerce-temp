@@ -267,7 +267,7 @@ export default function OnlineOrders() {
       ),
       items: <span className="text-muted-foreground">{o.items_count} items</span>,
       total: <span className="font-semibold"><CurrencyDisplay amount={o.total_amount} /></span>,
-      payment: <span className="capitalize text-muted-foreground">{o.payment_method?.replace('_', ' ')}</span>,
+      payment: <PaymentCell order={o} />,
       status: <StatusBadge status={o.status} />,
       date: <span className="text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</span>,
       __record: o
@@ -537,3 +537,25 @@ export default function OnlineOrders() {
 }
 
 
+const PAYMENT_FLAGS: Record<string, string> = {
+  amount_mismatch: 'Paid less than the total',
+  duplicate_payment: 'Paid twice: refund one',
+  paid_after_cancel: 'Paid after it was cancelled',
+};
+
+/** How the order is paid, and anything about the payment the shop needs to act on */
+function PaymentCell({ order }: { order: any }) {
+  const flag = order.payment_flag ? PAYMENT_FLAGS[order.payment_flag] ?? 'Check this payment' : null;
+  const label =
+    order.payment_status === 'paid'
+      ? 'Paid online'
+      : order.payment_status === 'awaiting'
+        ? 'Awaiting payment'
+        : 'Pay on delivery';
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={order.payment_status === 'paid' ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
+      {flag && <span className="text-[11px] font-medium text-destructive">{flag}</span>}
+    </div>
+  );
+}

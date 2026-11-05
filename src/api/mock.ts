@@ -1206,7 +1206,17 @@ export function setupMockApi() {
       url: 'https://demo-store.korecommerce.app/',
       template_id: 'vetshore-retail',
       updated_at: new Date().toISOString(),
+      entitlement: { state: 'full', pauses_at: null, days_left: null },
+      payments: { payment_options: 'both', fee_bearer: 'shop', online_ready: true, online_unavailable_reason: null, methods: ['online', 'on_delivery'], fee_percent: 1.95 },
     } } },
+  });
+
+  mock.onPut('/tenant/my-store/storefront/payments').reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    return [200, { success: { status: 'OK', code: 200, data: { payments: {
+      payment_options: body.payment_options, fee_bearer: body.fee_bearer, online_ready: true,
+      online_unavailable_reason: null, methods: ['online', 'on_delivery'], fee_percent: 1.95,
+    } } } }];
   });
 
   mock.onGet('/tenant/settings').reply(200, {

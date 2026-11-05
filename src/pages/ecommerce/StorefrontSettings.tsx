@@ -5,6 +5,8 @@ import SettingsSection from '@/components/settings/SettingsSection';
 import apiClient from '@/api/client';
 import { cn } from '@/lib/utils';
 import StorefrontPlanBanner from '@/components/shared/StorefrontPlanBanner';
+import StorefrontPaymentsSection, { type StorefrontPayments } from '@/components/settings/StorefrontPaymentsSection';
+import { useAuthStore } from '@/store/authStore';
 
 interface Storefront {
   status: 'active' | 'maintenance' | 'unpublished';
@@ -12,6 +14,7 @@ interface Storefront {
   template_id: string | null;
   updated_at: string | null;
   entitlement?: { state: 'full' | 'grace' | 'lapsed' };
+  payments?: StorefrontPayments;
 }
 
 const STATUS: Record<Storefront['status'], { label: string; note: string; className: string }> = {
@@ -45,6 +48,7 @@ export default function StorefrontSettings() {
   const [storefront, setStorefront] = useState<Storefront | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const canManage = useAuthStore((s) => s.staffUser?.role === 'owner' || s.staffUser?.role === 'manager');
 
   useEffect(() => {
     apiClient
@@ -130,6 +134,8 @@ export default function StorefrontSettings() {
             </div>
           )}
         </SettingsSection>
+
+        {storefront?.payments && canManage && <StorefrontPaymentsSection initial={storefront.payments} />}
       </div>
     </PageLayout>
   );
