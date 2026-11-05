@@ -11,6 +11,7 @@ import apiClient from '@/api/client';
 import { cn } from '@/lib/utils';
 import { useFeaturesStore } from '@/store/featuresStore';
 import type { LocationLimit, StoreLocation } from '@/store/locationStore';
+import { useAuthStore } from '@/store/authStore';
 
 type Row = StoreLocation & { tills: number; staff: number; openShifts: number };
 
@@ -46,6 +47,43 @@ export default function Locations() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const posSettings = useFeaturesStore((s) => s.posSettings);
   const [savingSetting, setSavingSetting] = useState<string | null>(null);
+  const isOwnerOrAdmin = ['owner', 'admin'].includes(useAuthStore((st) => st.staffUser?.role) || '');
+
+  // Store prices: switching off can first make one store's prices the main prices; switching on
+  // again asks whether to restore the store prices kept from before
+  const [storePriceCount, setStorePriceCount] = useState(0);
+  const [storePriceDialog, setStorePriceDialog] = useState<'off' | 'on' | null>(null);
+  const [adoptFrom, setAdoptFrom] = useState('');
+  useEffect(() => {
+    apiClient.get('/tenant/store-prices').then((r) => setStorePriceCount(r.data?.success?.data?.storePriceCount || 0)).catch(() => {});
+  }, [posSettings?.store_prices_enabled]);
+
+  const saveStorePrices = async (enabled: boolean, extra: Record<string, unknown> = {}) => {
+    setSavingSetting('store_prices');
+    try {
+      const r = await apiClient.put('/tenant/store-prices/settings', { enabled, ...extra });
+      useFeaturesStore.getState().updatePOSSettings({ store_prices_enabled: enabled });
+      setStorePriceCount(r.data?.success?.data?.storePriceCount || 0);
+      toast.success(r.data?.success?.message || 'Saved');
+      setStorePriceDialog(null);
+    } catch (err) {
+      toast.error(errorText(err, "Couldn't change store prices"));
+    } finally {
+      setSavingSetting(null);
+    }
+  };
+
+  const toggleStorePrices = (on: boolean) => {
+    if (!on) {
+      setAdoptFrom('');
+      setStorePriceDialog(storePriceCount > 0 ? 'off' : null);
+      if (storePriceCount === 0) saveStorePrices(false);
+    } else if (storePriceCount > 0) {
+      setStorePriceDialog('on');
+    } else {
+      saveStorePrices(true);
+    }
+  };
 
   // Transfer settings (several locations): saved straight away, then features reload for everyone
   const saveSetting = async (key: 'transfers_require_approval' | 'transfers_instant', value: boolean) => {
@@ -294,6 +332,26 @@ export default function Locations() {
             </label>
           </div>
         )}
+
+        {/* Store prices (owners and admins) */}
+        {isOwnerOrAdmin && limit?.enabled && rows.filter((r) => r.status !== 'archived' && r.type === 'store').length > 1 && (
+          <div className="bg-card rounded-xl border border-border">
+            <label className="p-4 md:p-5 flex items-center justify-between gap-4 cursor-pointer">
+              <span>
+                <span className="block text-sm text-foreground">Store prices</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Let stores set their own prices. The main price stays for every store without one.
+                </span>
+              </span>
+              <Switch
+                isSelected={Boolean(posSettings?.store_prices_enabled)}
+                isDisabled={savingSetting !== null}
+                onValueChange={toggleStorePrices}
+                color="primary"
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Add / edit */}
@@ -385,6 +443,66 @@ export default function Locations() {
               {saving ? 'Saving…' : form?.id ? 'Save' : 'Add location'}
             </Button>
           </div>
+        }
+      />
+
+      {/* Store prices off / on */}
+      <CustomModal
+        isOpen={!!storePriceDialog}
+        onOpenChange={() => savingSetting === null && setStorePriceDialog(null)}
+        size="sm"
+        classNames={{ base: 'w-[380px] rounded-3xl' }}
+        header={
+          <h3 className="text-base font-bold text-foreground pt-2">
+            {storePriceDialog === 'off' ? 'Switch off store prices?' : 'Switch store prices back on?'}
+          </h3>
+        }
+        body={
+          storePriceDialog === 'off' ? (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                {storePriceCount} store price{storePriceCount === 1 ? '' : 's'} will stop applying. Every location will use the main price.
+              </p>
+              <label className="block">
+                <span className="block text-sm text-foreground mb-1.5">Make a store's prices the main prices first (optional)</span>
+                <select
+                  value={adoptFrom}
+                  onChange={(e) => setAdoptFrom(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                >
+                  <option value="">Keep the main prices as they are</option>
+                  {rows.filter((r) => r.type === 'store' && r.status !== 'archived').map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-2">
+              {storePriceCount} store price{storePriceCount === 1 ? '' : 's'} from before {storePriceCount === 1 ? 'is' : 'are'} saved.
+              They may be out of date.
+            </p>
+          )
+        }
+        footer={
+          storePriceDialog === 'off' ? (
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button variant="outline" disabled={savingSetting !== null} onClick={() => setStorePriceDialog(null)}>Cancel</Button>
+              <Button variant="neutral" disabled={savingSetting !== null}
+                onClick={() => saveStorePrices(false, adoptFrom ? { adopt_location_id: adoptFrom } : {})}>
+                Switch off
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button variant="outline" disabled={savingSetting !== null} onClick={() => saveStorePrices(true, { restore: false })}>
+                Start fresh
+              </Button>
+              <Button variant="neutral" disabled={savingSetting !== null} onClick={() => saveStorePrices(true, { restore: true })}>
+                Restore them
+              </Button>
+            </div>
+          )
         }
       />
 

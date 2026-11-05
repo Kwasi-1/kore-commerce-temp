@@ -7,6 +7,7 @@ import CustomModal from '@/components/modals/modal';
 import Pagination from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
 import TransferFormModal, { TransferLine } from '@/components/inventory/TransferFormModal';
+import RestockSuggestions from '@/components/inventory/RestockSuggestions';
 import apiClient from '@/api/client';
 import { cn } from '@/lib/utils';
 import { useCan } from '@/hooks/usePermissions';
@@ -44,6 +45,7 @@ export default function StockByLocation() {
   const [levelsFor, setLevelsFor] = useState<GridRow | null>(null);
   const [levels, setLevels] = useState<Record<string, string>>({});
   const [savingLevels, setSavingLevels] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -138,6 +140,8 @@ export default function StockByLocation() {
   return (
     <PageLayout title="Stock by location">
       <div className="space-y-4 mb-4">
+        {can('stock.transfer') && <RestockSuggestions onCreate={setTransferPrefill} refreshKey={refreshKey} />}
+
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative flex-1">
             <Icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -263,6 +267,7 @@ export default function StockByLocation() {
         onClose={() => setTransferPrefill(null)}
         onCreated={() => {
           setSelected({});
+          setRefreshKey((k) => k + 1);
           load();
         }}
       />

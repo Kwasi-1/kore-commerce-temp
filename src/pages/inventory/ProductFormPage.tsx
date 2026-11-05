@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import StorePricesSection from '@/components/inventory/StorePricesSection';
 import { useParams, useNavigate } from "react-router-dom";
 import ProductForm, { type ProductSaveResult } from "@/components/inventory/ProductForm";
 import apiClient from "@/api/client";
@@ -100,6 +101,8 @@ export default function ProductFormPage() {
             onCancel={requestLeave}
             onDirtyChange={handleDirtyChange}
           />
+          {/* Several locations with store prices on: each store's own prices */}
+          {id && productData && <StorePricesSection product={productData} />}
         </div>
       )}
 

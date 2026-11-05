@@ -291,6 +291,7 @@ export default function Sidebar() {
         { name: 'Products', to: '/reports/products', icon: Tag, moduleKey: 'reports_advanced', permission: 'reports.profit' },
         { name: 'Cashiers', to: '/reports/cashiers', icon: UserSquare2, moduleKey: 'reports_advanced', permission: 'reports.profit' },
         { name: 'End of Day', to: '/reports/end-of-day', icon: CalendarCheck, moduleKey: 'reports_advanced', permission: 'reports.sales' },
+        ...(multiLocation ? [{ name: 'Branches', to: '/reports/branches', icon: Warehouse, permission: 'reports.sales' }] : []),
       ],
     },
     {

@@ -1253,6 +1253,68 @@ export function setupMockApi() {
     return [200, { success: { status: 'OK', code: 200, message: 'Location settings saved', data: { settings: mockPOSFeatureSettings } } }];
   });
 
+  // Store prices, restock suggestions and the branch report
+  let mockStorePrices: Record<string, Record<string, Record<string, number>>> = {};
+  const storePriceCount = () =>
+    Object.values(mockStorePrices).reduce((n, tiers) => n + Object.values(tiers).reduce((m, t) => m + Object.keys(t).length, 0), 0);
+  const storePriceSummary = () => ({
+    available: true,
+    enabled: !!(mockPOSFeatureSettings as any).store_prices_enabled,
+    active: !!(mockPOSFeatureSettings as any).store_prices_enabled,
+    storePriceCount: storePriceCount(),
+  });
+
+  mock.onGet(/\/tenant\/store-prices$/).reply(() => [200, { success: { status: 'OK', code: 200, data: storePriceSummary() } }]);
+
+  mock.onPut(/\/tenant\/store-prices\/settings$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    let removed = 0;
+    if (body.enabled && body.restore === false) {
+      removed = storePriceCount();
+      mockStorePrices = {};
+    }
+    mockPOSFeatureSettings = { ...mockPOSFeatureSettings, store_prices_enabled: !!body.enabled } as any;
+    return [200, { success: { status: 'OK', code: 200, message: body.enabled ? 'Store prices switched on' : 'Store prices switched off',
+      data: { ...storePriceSummary(), adopted: body.adopt_location_id ? 1 : 0, removed } } }];
+  });
+
+  mock.onGet(/\/tenant\/store-prices\/product\/[^/]+$/).reply(() => [200, { success: { status: 'OK', code: 200, data: {
+    stores: mockLocations.filter((l) => l.type === 'store' && l.status !== 'archived').map((l) => ({ id: l.id, name: l.name })),
+    prices: mockStorePrices, ...storePriceSummary() } } }]);
+
+  mock.onPut(/\/tenant\/store-prices\/location\/[^/]+$/).reply((config) => {
+    const loc = (config.url || '').split('/').pop() as string;
+    const body = JSON.parse(config.data || '{}');
+    for (const line of body.prices || []) {
+      mockStorePrices[loc] = mockStorePrices[loc] || {};
+      mockStorePrices[loc][line.tier_id] = mockStorePrices[loc][line.tier_id] || {};
+      if (line.price === null) delete mockStorePrices[loc][line.tier_id][line.price_type];
+      else mockStorePrices[loc][line.tier_id][line.price_type] = Number(line.price);
+    }
+    return [200, { success: { status: 'OK', code: 200, message: 'Prices saved', data: { saved: (body.prices || []).length } } }];
+  });
+
+  mock.onGet(/\/tenant\/locations\/restock-suggestions/).reply(() => [200, { success: { status: 'OK', code: 200, data: {
+    coverDays: 7,
+    suggestions: [{
+      toLocationId: 'loc-east', toLocationName: 'East Legon branch', fromLocationId: 'loc-wh', fromLocationName: 'Spintex warehouse',
+      items: [
+        { variantId: 'var-2', productName: 'Cooking Oil 1L', sku: 'OIL-1L', baseUnitName: 'bottle', baseTierId: 'tier-2', baseTierName: 'Bottle',
+          stock: 0, dailySales: 2.3, daysOfCover: 0, suggested: 32 },
+        { variantId: 'var-1', productName: 'Rice 5kg', sku: 'RICE-5KG', baseUnitName: 'bag', baseTierId: 'tier-1', baseTierName: 'Bag',
+          stock: 4, dailySales: 1.1, daysOfCover: 3.6, suggested: 12 },
+      ],
+    }],
+  } } }]);
+
+  mock.onGet(/\/tenant\/locations\/branch-report/).reply(() => [200, { success: { status: 'OK', code: 200, data: {
+    rows: [
+      { locationId: 'loc-main', name: 'Main store', type: 'store', status: 'active', sales: 18450.5, orders: 412, averageSale: 44.78, grossProfit: 5120.2, margin: 27.8, stockValue: 23100 },
+      { locationId: 'loc-east', name: 'East Legon branch', type: 'store', status: 'active', sales: 9320, orders: 236, averageSale: 39.49, grossProfit: 2730.4, margin: 29.3, stockValue: 8800 },
+      { locationId: 'loc-wh', name: 'Spintex warehouse', type: 'warehouse', status: 'active', sales: 0, orders: 0, averageSale: 0, grossProfit: 0, margin: null, stockValue: 61250 },
+    ],
+  } } }]);
+
   mock.onPut(/\/tenant\/locations\/staff\/[^/]+$/).reply((config) => {
     const body = JSON.parse(config.data || '{}');
     return [200, { success: { status: 'OK', code: 200, data: { staff_id: (config.url || '').split('/').pop(), location_ids: body.location_ids || [] } } }];

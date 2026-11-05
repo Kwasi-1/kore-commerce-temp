@@ -50,6 +50,7 @@ const StockAuditScreen = lazyWithRetry(() => import('@/pages/inventory/StockAudi
 const StockAdjustments = lazyWithRetry(() => import('@/pages/inventory/StockAdjustments'));
 const Transfers = lazyWithRetry(() => import('@/pages/inventory/Transfers'));
 const StockByLocation = lazyWithRetry(() => import('@/pages/inventory/StockByLocation'));
+const BranchComparison = lazyWithRetry(() => import('@/pages/reports/BranchComparison'));
 
 // Staff, Expenses & Notifications
 const StaffManagement = lazyWithRetry(() => import('@/pages/staff/StaffManagement'));
@@ -156,6 +157,7 @@ function AppRoutes() {
           <Route path="/inventory/stock-reconciliation" element={<ProtectedRoute permission={'stock.count'}><ModuleRoute requiredModule="stock_reconciliation"><StockReconciliation /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/stock-upload/audit" element={<ProtectedRoute permission={'stock.adjust'}><ModuleRoute requiredModule="adjustments"><StockAuditScreen /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/adjustments" element={<ProtectedRoute permission={['stock.adjust', 'stock.approve']}><ModuleRoute requiredModule="adjustments"><StockAdjustments /></ModuleRoute></ProtectedRoute>} />
+          <Route path="/reports/branches" element={<ProtectedRoute permission={'reports.sales'}><ModuleRoute requiredModule="multi_location"><BranchComparison /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/transfers" element={<ProtectedRoute permission={['stock.transfer', 'stock.approve']}><ModuleRoute requiredModule="multi_location"><Transfers /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/stock-by-location" element={<ProtectedRoute permission={['stock.adjust', 'stock.transfer', 'products.edit']}><ModuleRoute requiredModule="multi_location"><StockByLocation /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/supplier-credit" element={<ProtectedRoute permission={['purchasing.manage', 'purchasing.supplier_payments']}><ModuleRoute requiredModule="supplier_credit"><SupplierCredit /></ModuleRoute></ProtectedRoute>} />

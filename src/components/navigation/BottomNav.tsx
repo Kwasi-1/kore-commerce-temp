@@ -53,6 +53,7 @@ export const BOTTOM_NAV_ROUTES = new Set([
   '/reports/products',
   '/reports/cashiers',
   '/reports/end-of-day',
+  '/reports/branches',
   // Settings
   '/settings/account',
   '/settings/profile',
@@ -282,6 +283,7 @@ export default function BottomNav() {
         { name: 'Products', to: '/reports/products', icon: 'solar:box-minimalistic-linear', permission: 'reports.profit' },
         { name: 'Cashiers', to: '/reports/cashiers', icon: 'solar:users-group-rounded-linear', permission: 'reports.profit' },
         { name: 'End of Day', to: '/reports/end-of-day', icon: 'solar:calendar-date-linear', permission: 'reports.sales' },
+        ...(multiLocation ? [{ name: 'Branches', to: '/reports/branches', icon: 'solar:buildings-2-linear', permission: 'reports.sales' }] : []),
       ].filter((item) => allowed(item.permission)),
     },
     settings: {
