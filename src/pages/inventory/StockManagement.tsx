@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocationStore } from '@/store/locationStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import EnhancedTableComponent, { TableColumn } from '@/components/shared/MainTableComponent';
@@ -105,6 +106,19 @@ export default function StockManagement() {
     return flatItems;
   };
 
+  // "All locations" with several locations: each row also shows its stock at each location
+  const { multi, locations: allLocations, selectedId } = useLocationStore();
+  const [byLocation, setByLocation] = useState<Record<string, Record<string, number>>>({});
+  const loadBreakdown = useCallback(async (variantIds: string[]) => {
+    if (!multi || selectedId !== 'all' || variantIds.length === 0) return;
+    try {
+      const res = await apiClient.get(`/tenant/locations/stock?variant_ids=${variantIds.join(',')}`);
+      setByLocation((prev) => ({ ...prev, ...(res.data?.success?.data?.stock || {}) }));
+    } catch {
+      // the totals still show
+    }
+  }, [multi, selectedId]);
+
   /** Server-paginated fetch: search, category, and stock status are sent as query params */
   const fetchProducts = useCallback(async (pageNumber: number = 1, append: boolean = false) => {
     if (append) {
@@ -136,6 +150,7 @@ export default function StockManagement() {
       setPagination(pag);
 
       const flatItems = flattenProducts(rawProducts);
+      loadBreakdown(flatItems.map((i: any) => String(i.id)));
       if (append) {
         setProducts((prev) => [...prev, ...flatItems]);
       } else {
@@ -148,7 +163,7 @@ export default function StockManagement() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [searchQuery, categoryFilter, stockStatusFilter, sourceFilter]);
+  }, [searchQuery, categoryFilter, stockStatusFilter, sourceFilter, loadBreakdown]);
 
   const handleLoadMore = () => {
     if (isLoading || isLoadingMore || !pagination?.hasNext) return;
@@ -226,14 +241,24 @@ export default function StockManagement() {
           <span className="font-mono text-sm text-muted-foreground">{p.sku}</span>
         ),
         current_stock: (
-          <PackagingStockDisplay
-            quantity={p.quantity}
-            baseUnitName={p.base_unit_name}
-            packagingTiers={p.packaging_tiers}
-            primaryClassName={`font-bold text-sm ${
-              isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'
-            }`}
-          />
+          <div>
+            <PackagingStockDisplay
+              quantity={p.quantity}
+              baseUnitName={p.base_unit_name}
+              packagingTiers={p.packaging_tiers}
+              primaryClassName={`font-bold text-sm ${
+                isOutOfStock ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-foreground'
+              }`}
+            />
+            {byLocation[p.id] && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {allLocations
+                  .filter((l) => byLocation[p.id][l.id] !== undefined)
+                  .map((l) => `${l.name} ${Number(byLocation[p.id][l.id]).toLocaleString()}`)
+                  .join(' · ')}
+              </p>
+            )}
+          </div>
         ),
         status: (
           <span className={`capitalize inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold ${
@@ -249,7 +274,7 @@ export default function StockManagement() {
         __record: p,
       };
     });
-  }, [products]);
+  }, [products, byLocation, allLocations]);
 
   return (
     <PageLayout desktopFrom="sm"

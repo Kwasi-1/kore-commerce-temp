@@ -1052,7 +1052,23 @@ export function setupMockApi() {
   // TENANT FEATURES & GATING
   // -----------------------------------------------------
 
-  mock.onGet(/\/tenant\/features$/).reply(200, {
+  // Locations (shops and warehouses): a main store, a branch and a warehouse
+  let mockLocations: any[] = [
+    { id: 'loc-main', name: 'Main store', type: 'store', address: '12 Oxford St, Osu', phone: '0302000000', receiptPrefix: null, isMain: true, fulfilsOnline: true, status: 'active', tills: 1, staff: 2, openShifts: 0 },
+    { id: 'loc-east', name: 'East Legon branch', type: 'store', address: 'Lagos Ave, East Legon', phone: '0302111111', receiptPrefix: 'ELB', isMain: false, fulfilsOnline: false, status: 'active', tills: 1, staff: 1, openShifts: 0 },
+    { id: 'loc-wh', name: 'Spintex warehouse', type: 'warehouse', address: 'Spintex Rd', phone: null, receiptPrefix: null, isMain: false, fulfilsOnline: false, status: 'active', tills: 0, staff: 0, openShifts: 0 },
+  ];
+  const mockLocationLimit = () => {
+    const used = mockLocations.filter((l) => l.status !== 'archived').length;
+    return { enabled: true, limit: 3, included: 3, extra: 0, used, active: mockLocations.filter((l) => l.status === 'active').length };
+  };
+  const locationsPayload = (all = false) => ({
+    locations: mockLocations.filter((l) => all || l.status !== 'archived'),
+    limit: mockLocationLimit(),
+    canManage: true,
+  });
+
+  mock.onGet(/\/tenant\/features$/).reply(() => [200, {
     success: {
       status: 'OK',
       code: 200,
@@ -1062,11 +1078,79 @@ export function setupMockApi() {
           'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
           'suppliers', 'purchase_orders', 'supplier_credit', 'stock_reconciliation',
           'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
-          'ecommerce', 'payroll', 'settings',
+          'ecommerce', 'payroll', 'multi_location', 'settings',
         ],
-        pos_settings: mockPOSFeatureSettings
+        pos_settings: mockPOSFeatureSettings,
+        locations: {
+          list: mockLocations.filter((l) => l.status !== 'archived'),
+          multi: mockLocations.filter((l) => l.status !== 'archived').length > 1,
+          limit: mockLocationLimit(),
+          till_location_id: null,
+          sees_all: true,
+        },
       }
     }
+  }]);
+
+  mock.onGet(/\/tenant\/locations\/stock/).reply((config) => {
+    const ids = String(new URLSearchParams((config.url || '').split('?')[1] || '').get('variant_ids') || '').split(',').filter(Boolean);
+    const stock: Record<string, Record<string, number>> = {};
+    ids.forEach((id, i) => {
+      stock[id] = { 'loc-main': 10 + (i % 7), 'loc-east': 3 + (i % 4), 'loc-wh': 40 + i * 2 };
+    });
+    return [200, { success: { status: 'OK', code: 200, data: { stock } } }];
+  });
+
+  mock.onGet(/\/tenant\/locations(\?.*)?$/).reply((config) => [
+    200, { success: { status: 'OK', code: 200, data: locationsPayload((config.url || '').includes('include_archived=1')) } },
+  ]);
+
+  mock.onPost(/\/tenant\/locations$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const { used, limit } = mockLocationLimit();
+    if (used >= limit) {
+      return [403, { error: { status: 'PLAN_LIMIT', message: `All ${limit} locations on your plan are in use. Archive one, or add a location to your plan.`, code: 403 } }];
+    }
+    const loc = {
+      id: `loc-${Date.now()}`, name: body.name, type: body.type || 'store', address: body.address || null, phone: body.phone || null,
+      receiptPrefix: body.receiptPrefix || null, isMain: false, fulfilsOnline: !!body.fulfilsOnline, status: 'active', tills: 0, staff: 0, openShifts: 0,
+    };
+    if (loc.fulfilsOnline) mockLocations = mockLocations.map((l) => ({ ...l, fulfilsOnline: false }));
+    mockLocations.push(loc);
+    return [201, { success: { status: 'CREATED', code: 201, message: `${loc.name} added`, data: { location: loc, ...locationsPayload() } } }];
+  });
+
+  mock.onPatch(/\/tenant\/locations\/[^/]+$/).reply((config) => {
+    const id = (config.url || '').split('/').pop();
+    const body = JSON.parse(config.data || '{}');
+    mockLocations = mockLocations.map((l) => {
+      if (l.id === id) return { ...l, ...body, isMain: body.isMain || l.isMain, fulfilsOnline: body.fulfilsOnline ?? l.fulfilsOnline };
+      return {
+        ...l,
+        isMain: body.isMain ? false : l.isMain,
+        fulfilsOnline: body.fulfilsOnline ? false : l.fulfilsOnline,
+      };
+    });
+    const loc = mockLocations.find((l) => l.id === id);
+    return [200, { success: { status: 'OK', code: 200, data: { location: loc, ...locationsPayload() } } }];
+  });
+
+  mock.onPost(/\/tenant\/locations\/[^/]+\/(archive|activate|pause)$/).reply((config) => {
+    const parts = (config.url || '').split('/');
+    const action = parts.pop();
+    const id = parts.pop();
+    const loc = mockLocations.find((l) => l.id === id);
+    if (!loc) return [404, { error: { status: 'NOT_FOUND', message: 'Location not found', code: 404 } }];
+    if (action === 'archive' && loc.isMain) {
+      return [409, { error: { status: 'LOCATION_IN_USE', message: "The main store can't be closed.", reasons: ["The main store can't be closed. Make another store the main store first."], code: 409 } }];
+    }
+    loc.status = action === 'archive' ? 'archived' : action === 'pause' ? 'paused' : 'active';
+    return [200, { success: { status: 'OK', code: 200, data: { location: loc, ...locationsPayload() } } }];
+  });
+
+  mock.onPut(/\/tenant\/locations\/staff\/[^/]+$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    return [200, { success: { status: 'OK', code: 200, data: { staff_id: (config.url || '').split('/').pop(), location_ids: body.location_ids || [] } } }];
   });
 
   mock.onPut(/\/tenant\/features\/pos$/).reply((config) => {

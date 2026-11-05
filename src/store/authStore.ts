@@ -123,6 +123,9 @@ export const useAuthStore = create<AuthState>()(
         import('@/store/featuresStore').then(({ useFeaturesStore }) => {
           useFeaturesStore.getState().reset();
         });
+        import('@/store/locationStore').then(({ useLocationStore }) => {
+          useLocationStore.getState().reset();
+        });
         // Clear POS cart and product cache on logout to prevent cross-tenant state bleed
         import('@/store/cartStore').then(({ useCartStore }) => {
           useCartStore.getState().clearCart();

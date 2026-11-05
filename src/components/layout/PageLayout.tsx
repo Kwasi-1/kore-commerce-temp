@@ -28,6 +28,7 @@ import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
+import LocationSwitcher from "@/components/layout/LocationSwitcher";
 interface PageLayoutProps {
   title?: React.ReactNode;
   titleClassName?: string;
@@ -192,6 +193,7 @@ const location = useLocation();
                   )}
                 >
                   {alertSlot}
+                  <LocationSwitcher className="hidden md:flex" />
                   <NotificationBell
                     className={cn(
                       "rounded-full transition-colors h-8 w-8 pd:h-9 pd:w-9 md:h-10 md:w-10",

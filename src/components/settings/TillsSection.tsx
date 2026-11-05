@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocationStore } from '@/store/locationStore';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import apiClient from '@/api/client';
@@ -40,7 +41,10 @@ export default function TillsSection() {
   const register = async () => {
     setBusy(true);
     try {
-      const r = await apiClient.post('/tenant/tills', { name: name.trim() || 'Till' });
+      // The till sells at the location picked in the header (a store), else the main store
+      const pick = useLocationStore.getState();
+      const at = pick.locations.find((l) => l.id === pick.selectedId && l.type === 'store');
+      const r = await apiClient.post('/tenant/tills', { name: name.trim() || 'Till', ...(at ? { location_id: at.id } : {}) });
       const data = r.data?.success?.data;
       setTill({ key: data.till_key, id: data.till.id, name: data.till.name, businessName });
       toast.success(`${data.till.name} is set up. Staff can now sign in here with their PIN.`);

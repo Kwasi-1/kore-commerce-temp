@@ -54,6 +54,7 @@ export const BOTTOM_NAV_ROUTES = new Set([
   '/settings/account',
   '/settings/profile',
   '/settings/pos',
+  '/settings/locations',
   '/settings/plan',
 ]);
 
@@ -286,6 +287,7 @@ export default function BottomNav() {
         { name: 'Account', to: '/settings/account', icon: 'solar:user-circle-linear' },
         { name: 'Business', to: '/settings/profile', icon: 'solar:shop-2-linear', permission: 'settings.store' },
         { name: 'POS Config', to: '/settings/pos', icon: 'solar:tuning-square-2-linear', permission: 'settings.pos' },
+        { name: 'Locations', to: '/settings/locations', icon: 'solar:map-point-linear', permission: 'settings.locations' },
         ...(isCashier ? [] : [{ name: 'Billing', to: '/settings/plan', icon: 'solar:card-2-linear' }]),
       ].filter((item: { permission?: string }) => allowed(item.permission)),
     },

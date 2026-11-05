@@ -10,6 +10,7 @@
  *   - loadFeatures(): fetches from GET /tenant/features
  */
 import { create } from 'zustand';
+import { useLocationStore } from '@/store/locationStore';
 import { persist } from 'zustand/middleware';
 import apiClient from '@/api/client';
 
@@ -79,7 +80,7 @@ export const PLAN_MODULES: Record<string, string[]> = {
     'pos', 'credit_ledger', 'returns', 'inventory_basic', 'inventory_advanced',
     'suppliers', 'purchase_orders', 'supplier_credit', 'stock_reconciliation',
     'adjustments', 'staff', 'expenses', 'reports_basic', 'reports_advanced',
-    'ecommerce', 'payroll', 'price_override', 'settings',
+    'ecommerce', 'payroll', 'price_override', 'multi_location', 'settings',
   ],
   ecom_only: ['inventory_basic', 'ecommerce', 'reports_basic', 'settings'],
   // Legacy plan names — graceful fallback
@@ -202,6 +203,8 @@ export const useFeaturesStore = create<FeaturesState>()(
             ...(data.pos_settings || {}),
           };
           const platform_paystack_enabled = data.platform_paystack_enabled ?? true;
+          // Shops and warehouses, and the switcher's pick (kept in its own store)
+          useLocationStore.getState().setFromFeatures(data.locations);
           set({
             plan,
             modules,

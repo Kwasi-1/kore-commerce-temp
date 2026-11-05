@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { locationHeader } from '@/store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import { useApprovalStore } from '../store/approvalStore';
 import { useTillStore } from '../store/tillStore';
@@ -46,6 +47,11 @@ apiClient.interceptors.request.use(
     const { tillKey } = useTillStore.getState();
     if (tillKey && config.headers) {
       config.headers['X-Till-Key'] = tillKey;
+    }
+    // The location picked in the header (lists, reports and stock follow it); tills use their own
+    const locationId = locationHeader();
+    if (locationId && config.headers) {
+      config.headers['X-Location-Id'] = locationId;
     }
     // Reports split days at local midnight (minutes east of UTC; 0 in Ghana)
     if (config.headers) {

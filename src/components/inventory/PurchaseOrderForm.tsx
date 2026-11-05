@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocationStore } from '@/store/locationStore';
 import { CustomInputTextField, CustomSelectField, CustomTextareaField } from '@/components/shared/text-field';
 import { Switch } from '@nextui-org/react';
 import { CreditCard, Calendar, Package, Upload, PackageCheck, RefreshCw } from 'lucide-react';
@@ -55,11 +56,22 @@ interface POItem {
   cost_price: number;
 }
 
+/** A new PO's "Deliver to": the warehouse if there is one, else the picked location, else the main store */
+const defaultDeliverTo = () => {
+  const { locations, selectedId } = useLocationStore.getState();
+  const open = locations.filter((l) => l.status !== 'archived');
+  return (open.find((l) => l.type === 'warehouse') || open.find((l) => l.id === selectedId) || open.find((l) => l.isMain))?.id || '';
+};
+
 export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, initialPO }: PurchaseOrderFormProps) {
   const { formatAmount } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
 
   const [suppliers, setSuppliers] = useState<{ label: string; value: string }[]>([]);
+  // "Deliver to" (several locations only): default the warehouse, else the picked location
+  const { multi, locations } = useLocationStore();
+  const deliverable = locations.filter((l) => l.status !== 'archived');
+  const [deliverTo, setDeliverTo] = useState<string>('');
   const [formData, setFormData] = useState({
     supplier_id: '',
     reference_number: '',
@@ -86,6 +98,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
           is_credit_purchase: Boolean(initialPO.is_credit_purchase ?? initialPO.isCreditPurchase),
           credit_due_date: (initialPO.credit_due_date || initialPO.creditDueDate || '').slice(0, 10),
         });
+        setDeliverTo(initialPO.location_id || defaultDeliverTo());
 
         const initialItems: POItem[] = (initialPO.items || []).map((item: any) => ({
           variant_id: item.variant_id || item.variantId,
@@ -109,6 +122,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
           credit_due_date: '',
         });
         setItems([]);
+        setDeliverTo(defaultDeliverTo());
       }
 
       apiClient
@@ -269,6 +283,7 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
         reference_number: formData.reference_number.trim(),
         notes: formData.notes,
         is_credit_purchase: formData.is_credit_purchase,
+        ...(multi && deliverTo ? { location_id: deliverTo } : {}),
         items: items.map((i) => ({
           variant_id: i.variant_id,
           packaging_tier_id: i.packaging_tier_id,
@@ -361,6 +376,16 @@ export default function PurchaseOrderForm({ isOpen, onOpenChange, onSuccess, ini
                   placeholder="Select a supplier"
                   required
                 />
+
+                {multi && (
+                  <CustomSelectField
+                    label="Deliver to"
+                    options={deliverable.map((l) => ({ label: l.type === 'warehouse' ? `${l.name} (warehouse)` : l.name, value: l.id }))}
+                    value={deliverTo}
+                    inputProps={{ onSelectionChange: (keys: any) => setDeliverTo(String(Array.from(keys)[0] || '')) }}
+                    required
+                  />
+                )}
 
                 <CustomInputTextField
                   label="Reference Number (Invoice / Receipt / PO #)"

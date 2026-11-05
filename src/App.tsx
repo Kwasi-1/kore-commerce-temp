@@ -30,6 +30,7 @@ const Register = lazyWithRetry(() => import('@/pages/pos/register/Register'));
 const Overview = lazyWithRetry(() => import('@/pages/dashboard/Overview'));
 const BusinessProfile = lazyWithRetry(() => import('@/pages/settings/BusinessProfile'));
 const POSSettings = lazyWithRetry(() => import('@/pages/settings/POSSettings'));
+const LocationsSettings = lazyWithRetry(() => import('@/pages/settings/Locations'));
 const PlanBilling = lazyWithRetry(() => import('@/pages/settings/PlanBilling'));
 
 // POS
@@ -135,6 +136,7 @@ function AppRoutes() {
           <Route path="/settings/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
           <Route path="/settings/profile" element={<ProtectedRoute permission={'settings.store'}><BusinessProfile /></ProtectedRoute>} />
           <Route path="/settings/pos" element={<ProtectedRoute permission={'settings.pos'}><POSSettings /></ProtectedRoute>} />
+          <Route path="/settings/locations" element={<ProtectedRoute permission={'settings.locations'}><LocationsSettings /></ProtectedRoute>} />
           <Route path="/settings/plan" element={<ProtectedRoute allowedRoles={['owner', 'manager']}><PlanBilling /></ProtectedRoute>} />
 
           {/* POS Dashboard Views */}

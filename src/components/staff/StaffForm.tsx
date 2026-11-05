@@ -6,6 +6,8 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { ROLE_LABELS } from '@/utils/roles';
+import { useLocationStore } from '@/store/locationStore';
+import { cn } from '@/lib/utils';
 
 interface StaffFormProps {
   initialData?: any;
@@ -40,6 +42,19 @@ export default function StaffForm({ initialData, roleOptions = ['cashier'], onSu
     role: initialData?.role || (assignable.includes('cashier') ? 'cashier' : assignable[0] || 'cashier')
   });
 
+  // Locations they work at (several locations only). Owners and admins see every location.
+  const { multi, locations, selectedId } = useLocationStore();
+  const activeLocations = locations.filter((l) => l.status !== 'archived');
+  const mainId = activeLocations.find((l) => l.isMain)?.id;
+  const [locationIds, setLocationIds] = useState<string[]>(
+    initialData?.location_ids?.length
+      ? initialData.location_ids
+      : [selectedId !== 'all' ? selectedId : mainId].filter(Boolean) as string[],
+  );
+  const needsLocations = multi && !['owner', 'admin'].includes(formData.role);
+  const toggleLocation = (id: string) =>
+    setLocationIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name) {
@@ -54,6 +69,10 @@ export default function StaffForm({ initialData, roleOptions = ['cashier'], onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (needsLocations && locationIds.length === 0) {
+      toast.error('Pick at least one location they work at');
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -63,6 +82,9 @@ export default function StaffForm({ initialData, roleOptions = ['cashier'], onSu
           last_name: formData.last_name,
           role: formData.role
         });
+        if (needsLocations) {
+          await apiClient.put(`/tenant/locations/staff/${initialData.id}`, { location_ids: locationIds });
+        }
         toast.success('Staff details updated');
       } else {
         if (!formData.email || !formData.password || !formData.first_name) {
@@ -70,7 +92,11 @@ export default function StaffForm({ initialData, roleOptions = ['cashier'], onSu
           setIsLoading(false);
           return;
         }
-        await apiClient.post('/tenant/staff', formData);
+        const res = await apiClient.post('/tenant/staff', formData);
+        const newId = res.data?.success?.data?.staff?.id || res.data?.success?.data?.id;
+        if (needsLocations && newId) {
+          await apiClient.put(`/tenant/locations/staff/${newId}`, { location_ids: locationIds });
+        }
         toast.success('Staff member created successfully');
       }
       onSuccess();
@@ -128,6 +154,29 @@ export default function StaffForm({ initialData, roleOptions = ['cashier'], onSu
         {isSelf && (
           <p className="-mt-2 text-[11px] text-muted-foreground">You can't change your own role.</p>
         )}
+        {needsLocations && (
+          <div>
+            <p className="text-sm text-foreground mb-1.5">Works at</p>
+            <div className="flex flex-wrap gap-2">
+              {activeLocations.map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => toggleLocation(loc.id)}
+                  className={cn(
+                    'h-8 px-3 rounded-full border text-xs font-medium transition-colors',
+                    locationIds.includes(loc.id)
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'border-border text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {loc.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {formData.role === 'admin' && !roleLocked && (
           <p className="-mt-2 text-[11px] text-muted-foreground">
             Admins can do everything except billing, payouts and managing other admins.
