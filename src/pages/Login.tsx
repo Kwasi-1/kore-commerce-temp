@@ -7,7 +7,7 @@ import SetPinModal from '@/components/pos/SetPinModal';
 import apiClient from '@/api/client';
 import { APP_CONFIG } from '@/config/app.config';
 import PinPad from '@/components/pos/PinPad';
-import { ROLE_LABELS } from '@/utils/roles';
+import { ROLE_LABELS, homePath } from '@/utils/roles';
 import { toast } from 'sonner';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,13 +73,8 @@ export default function Login() {
   const handleSuccessfulAuth = (access_token: string, refresh_token: string, staff: any, tenant: any, isFirstLogin = false, graceInfo = null) => {
     login(access_token, refresh_token, staff, tenant, isFirstLogin, graceInfo);
 
-    // Smart Routing
-    if (staff.role === 'cashier') {
-      navigate('/pos/register');
-    } else {
-      // Owners / Managers go to dashboard
-      navigate('/dashboard');
-    }
+    // Smart Routing: cashiers to the till, stock keepers to stock, everyone else the dashboard
+    navigate(homePath(staff.role));
   };
 
   const handlePinSubmit = async (pin: string) => {

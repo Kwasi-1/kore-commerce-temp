@@ -5,14 +5,19 @@
  * - manager: back office, manages cashiers only.
  * - cashier: POS only.
  */
-export type StaffRoleKey = 'owner' | 'admin' | 'manager' | 'cashier';
+export type StaffRoleKey = 'owner' | 'admin' | 'manager' | 'cashier' | 'stock_keeper';
 
 export const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
   admin: 'Admin',
   manager: 'Manager',
   cashier: 'Cashier',
+  stock_keeper: 'Stock keeper',
 };
+
+/** Where someone lands after signing in: cashiers at the till, stock keepers on stock, everyone else the dashboard. */
+export const homePath = (role?: string | null) =>
+  role === 'cashier' ? '/pos/register' : role === 'stock_keeper' ? '/inventory/stock' : '/dashboard';
 
 export const isOwner = (role?: string | null) => role === 'owner';
 

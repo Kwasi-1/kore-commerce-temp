@@ -1092,7 +1092,7 @@ export function setupMockApi() {
     }
   }]);
 
-  mock.onGet(/\/tenant\/locations\/stock/).reply((config) => {
+  mock.onGet(/\/tenant\/locations\/stock(\?|$)/).reply((config) => {
     const ids = String(new URLSearchParams((config.url || '').split('?')[1] || '').get('variant_ids') || '').split(',').filter(Boolean);
     const stock: Record<string, Record<string, number>> = {};
     ids.forEach((id, i) => {
@@ -1146,6 +1146,111 @@ export function setupMockApi() {
     }
     loc.status = action === 'archive' ? 'archived' : action === 'pause' ? 'paused' : 'active';
     return [200, { success: { status: 'OK', code: 200, data: { location: loc, ...locationsPayload() } } }];
+  });
+
+  // Transfers between locations, the per-location stock grid, alert levels and settings
+  const locName = (id: string) => mockLocations.find((l) => l.id === id)?.name || 'Location';
+  let mockTransfers: any[] = [
+    {
+      id: 'trf-1', reference: 'TRF-20261104-A1B2', status: 'dispatched', fromLocationId: 'loc-wh', toLocationId: 'loc-east',
+      notes: null, requestedBy: 'Ama Owusu', requestedAt: '2026-11-04T09:10:00Z', approvedBy: null, approvedAt: null,
+      dispatchedBy: 'Kofi Mensah', dispatchedAt: '2026-11-04T11:00:00Z', receivedBy: null, receivedAt: null,
+      cancelledBy: null, cancelledAt: null, cancelReason: null,
+      items: [{ id: 'trfi-1', variantId: 'var-1', productName: 'Rice 5kg', variantLabel: null, sku: 'RICE-5KG', baseUnitName: 'bag',
+                packagingTierId: null, packagingTierName: 'Bag', unitsPerTier: 1, qtyRequested: 20, qtyDispatched: 20, qtyReceived: null,
+                discrepancyReason: null, discrepancyNote: null, batches: [] }],
+    },
+  ];
+  const withNames = (t: any) => ({
+    ...t, fromLocationName: locName(t.fromLocationId), toLocationName: locName(t.toLocationId),
+    itemCount: t.items.length, unitsRequested: t.items.reduce((a: number, i: any) => a + i.qtyRequested, 0),
+  });
+
+  mock.onGet(/\/tenant\/transfers\/[^/?]+$/).reply((config) => {
+    const t = mockTransfers.find((x) => x.id === (config.url || '').split('/').pop());
+    return t ? [200, { success: { status: 'OK', code: 200, data: { transfer: withNames(t) } } }]
+      : [404, { error: { status: 'NOT_FOUND', message: 'Transfer not found', code: 404 } }];
+  });
+
+  mock.onGet(/\/tenant\/transfers(\?.*)?$/).reply((config) => {
+    const status = new URLSearchParams((config.url || '').split('?')[1] || '').get('status') || '';
+    const list = mockTransfers.filter((t) =>
+      !status ? true : status === 'open' ? ['requested', 'approved', 'dispatched'].includes(t.status) : t.status === status);
+    const counts: Record<string, number> = {};
+    mockTransfers.forEach((t) => (counts[t.status] = (counts[t.status] || 0) + 1));
+    return [200, { success: { status: 'OK', code: 200, data: {
+      transfers: list.map(withNames), counts, pagination: { page: 1, perPage: 20, total: list.length, pages: 1 } } } }];
+  });
+
+  mock.onPost(/\/tenant\/transfers$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    const now = new Date().toISOString();
+    const t = {
+      id: `trf-${Date.now()}`, reference: `TRF-${now.slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      status: body.instant ? 'received' : 'requested', fromLocationId: body.from_location_id, toLocationId: body.to_location_id,
+      notes: body.notes || null, requestedBy: 'You', requestedAt: now, approvedBy: null, approvedAt: null,
+      dispatchedBy: body.instant ? 'You' : null, dispatchedAt: body.instant ? now : null,
+      receivedBy: body.instant ? 'You' : null, receivedAt: body.instant ? now : null, cancelledBy: null, cancelledAt: null, cancelReason: null,
+      items: (body.items || []).map((i: any, n: number) => ({
+        id: `trfi-${Date.now()}-${n}`, variantId: i.variant_id, productName: 'Product', variantLabel: null, sku: '', baseUnitName: 'unit',
+        packagingTierId: i.packaging_tier_id, packagingTierName: null, unitsPerTier: 1, qtyRequested: Number(i.quantity),
+        qtyDispatched: body.instant ? Number(i.quantity) : null, qtyReceived: body.instant ? Number(i.quantity) : null,
+        discrepancyReason: null, discrepancyNote: null, batches: [],
+      })),
+    };
+    mockTransfers = [t, ...mockTransfers];
+    return [201, { success: { status: 'OK', code: 201, message: `Transfer ${t.reference} ${body.instant ? 'done' : 'requested'}`, data: { transfer: withNames(t) } } }];
+  });
+
+  mock.onPost(/\/tenant\/transfers\/[^/]+\/(approve|reject|dispatch|receive|cancel)$/).reply((config) => {
+    const parts = (config.url || '').split('/');
+    const action = parts.pop();
+    const t = mockTransfers.find((x) => x.id === parts.pop());
+    if (!t) return [404, { error: { status: 'NOT_FOUND', message: 'Transfer not found', code: 404 } }];
+    const body = JSON.parse(config.data || '{}');
+    const now = new Date().toISOString();
+    if (action === 'approve') Object.assign(t, { status: 'approved', approvedBy: 'You', approvedAt: now });
+    if (action === 'reject') Object.assign(t, { status: 'rejected', cancelledBy: 'You', cancelledAt: now, cancelReason: body.reason || null });
+    if (action === 'cancel') Object.assign(t, { status: 'cancelled', cancelledBy: 'You', cancelledAt: now, cancelReason: body.reason || null });
+    if (action === 'dispatch') {
+      t.items.forEach((i: any) => (i.qtyDispatched = body.items?.find((x: any) => x.item_id === i.id)?.quantity ?? i.qtyRequested));
+      Object.assign(t, { status: 'dispatched', dispatchedBy: 'You', dispatchedAt: now });
+    }
+    if (action === 'receive') {
+      let short = false;
+      t.items.forEach((i: any) => {
+        const line = body.items?.find((x: any) => x.item_id === i.id);
+        i.qtyReceived = line?.quantity_received ?? i.qtyDispatched;
+        if (i.qtyReceived < i.qtyDispatched) { short = true; i.discrepancyReason = line?.reason || 'other'; }
+      });
+      Object.assign(t, { status: short ? 'partially_received' : 'received', receivedBy: 'You', receivedAt: now });
+    }
+    return [200, { success: { status: 'OK', code: 200, message: `Transfer ${t.reference} updated`, data: { transfer: withNames(t) } } }];
+  });
+
+  mock.onGet(/\/tenant\/locations\/stock-grid/).reply(() => {
+    const names = [['Rice 5kg', 'RICE-5KG', 'bag'], ['Cooking Oil 1L', 'OIL-1L', 'bottle'], ['Sugar 1kg', 'SUG-1KG', 'pack'], ['Milo 400g', 'MILO-400', 'tin']];
+    const rows = names.map(([name, sku, unit], i) => {
+      const stock: Record<string, number> = { 'loc-main': 12 - i * 3, 'loc-east': i === 1 ? 0 : 4 + i, 'loc-wh': 60 - i * 10 };
+      const reorder: Record<string, number> = { 'loc-main': 5, 'loc-east': 5, 'loc-wh': 20 };
+      const below = Object.keys(stock).filter((l) => stock[l] <= reorder[l]);
+      return { variantId: `var-${i + 1}`, productId: `prod-${i + 1}`, productName: name, variantLabel: null, sku, baseUnitName: unit,
+               baseTierId: `tier-${i + 1}`, baseTierName: unit, imageUrl: null, stock, reorder, below,
+               inTransit: i === 0 ? 20 : 0, total: Object.values(stock).reduce((a, b) => a + b, 0) };
+    });
+    return [200, { success: { status: 'OK', code: 200, data: {
+      locations: mockLocations.filter((l) => l.status !== 'archived'), rows, pagination: { page: 1, perPage: 25, total: rows.length, pages: 1 } } } }];
+  });
+
+  mock.onPut(/\/tenant\/locations\/[^/]+\/reorder-points$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    return [200, { success: { status: 'OK', code: 200, message: 'Alert levels saved', data: { points: body.points || {} } } }];
+  });
+
+  mock.onPut(/\/tenant\/locations\/settings$/).reply((config) => {
+    const body = JSON.parse(config.data || '{}');
+    mockPOSFeatureSettings = { ...mockPOSFeatureSettings, ...body };
+    return [200, { success: { status: 'OK', code: 200, message: 'Location settings saved', data: { settings: mockPOSFeatureSettings } } }];
   });
 
   mock.onPut(/\/tenant\/locations\/staff\/[^/]+$/).reply((config) => {

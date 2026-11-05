@@ -1,4 +1,5 @@
 import { useEffect, Suspense } from 'react';
+import { homePath } from '@/utils/roles';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { ModuleRoute } from '@/components/shared/ModuleRoute';
@@ -47,6 +48,8 @@ const StockManagement = lazyWithRetry(() => import('@/pages/inventory/StockManag
 const StockReconciliation = lazyWithRetry(() => import('@/pages/inventory/StockReconciliation'));
 const StockAuditScreen = lazyWithRetry(() => import('@/pages/inventory/StockAuditScreen'));
 const StockAdjustments = lazyWithRetry(() => import('@/pages/inventory/StockAdjustments'));
+const Transfers = lazyWithRetry(() => import('@/pages/inventory/Transfers'));
+const StockByLocation = lazyWithRetry(() => import('@/pages/inventory/StockByLocation'));
 
 // Staff, Expenses & Notifications
 const StaffManagement = lazyWithRetry(() => import('@/pages/staff/StaffManagement'));
@@ -84,7 +87,6 @@ function AppRoutes() {
   usePrefetchModules();
   const staffUser = useAuthStore((state) => state.staffUser);
   const token = useAuthStore((state) => state.token);
-  const isCashier = staffUser?.role === 'cashier';
 
   useEffect(() => {
     if (token) {
@@ -154,6 +156,8 @@ function AppRoutes() {
           <Route path="/inventory/stock-reconciliation" element={<ProtectedRoute permission={'stock.count'}><ModuleRoute requiredModule="stock_reconciliation"><StockReconciliation /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/stock-upload/audit" element={<ProtectedRoute permission={'stock.adjust'}><ModuleRoute requiredModule="adjustments"><StockAuditScreen /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/adjustments" element={<ProtectedRoute permission={['stock.adjust', 'stock.approve']}><ModuleRoute requiredModule="adjustments"><StockAdjustments /></ModuleRoute></ProtectedRoute>} />
+          <Route path="/inventory/transfers" element={<ProtectedRoute permission={['stock.transfer', 'stock.approve']}><ModuleRoute requiredModule="multi_location"><Transfers /></ModuleRoute></ProtectedRoute>} />
+          <Route path="/inventory/stock-by-location" element={<ProtectedRoute permission={['stock.adjust', 'stock.transfer', 'products.edit']}><ModuleRoute requiredModule="multi_location"><StockByLocation /></ModuleRoute></ProtectedRoute>} />
           <Route path="/inventory/supplier-credit" element={<ProtectedRoute permission={['purchasing.manage', 'purchasing.supplier_payments']}><ModuleRoute requiredModule="supplier_credit"><SupplierCredit /></ModuleRoute></ProtectedRoute>} />
 
           {/* Operations & Notifications */}
@@ -181,7 +185,7 @@ function AppRoutes() {
         </Route>
 
         {/* 404 Catch-all */}
-        <Route path="*" element={<Navigate to={isCashier ? "/pos/register" : "/dashboard"} replace />} />
+        <Route path="*" element={<Navigate to={homePath(staffUser?.role)} replace />} />
       </Routes>
     </>
   );

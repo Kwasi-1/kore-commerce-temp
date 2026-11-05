@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import ForcePasswordChangeModal from '@/components/modals/ForcePasswordChangeModal';
-import { roleAllowed } from '@/utils/roles';
+import { roleAllowed, homePath } from '@/utils/roles';
 import { useCan } from '@/hooks/usePermissions';
 
 export const ProtectedRoute = ({
@@ -26,10 +26,7 @@ export const ProtectedRoute = ({
 
   const allowed = permission ? can(permission) : !allowedRoles || roleAllowed(staffUser?.role, allowedRoles);
   if (staffUser && !allowed) {
-    if (staffUser.role === 'cashier') {
-      return <Navigate to="/pos/register" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePath(staffUser.role)} replace />;
   }
 
   return (

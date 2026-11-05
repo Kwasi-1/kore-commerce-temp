@@ -1,4 +1,5 @@
 import { useState, useEffect, useTransition, useMemo, useRef } from 'react';
+import { useLocationStore } from '@/store/locationStore';
 import { useLocation } from 'react-router-dom';
 import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,6 +41,7 @@ import {
   ChevronsLeft,
   Sliders,
   MapPin,
+  Warehouse,
   CreditCard,
   Lock,
   Bell,
@@ -87,6 +89,8 @@ export default function Sidebar() {
   const graceInfo = useAuthStore((state) => state.graceInfo);
   const inGracePeriod = Boolean(graceInfo && graceInfo.active);
   const isCashier = staffUser?.role === 'cashier';
+  // Several locations: transfers and the per-location stock grid
+  const multiLocation = useLocationStore((s) => s.multi);
   const logout = useAuthStore((state) => state.logout);
   const plan = tenant?.plan || 'starter';
   const modules = getModules(plan);
@@ -235,6 +239,10 @@ export default function Sidebar() {
         { name: 'Reconcile Stock', to: '/inventory/stock-reconciliation', icon: ClipboardCheck, moduleKey: 'stock_reconciliation', permission: 'stock.count' },
         { name: 'Suppliers', to: '/inventory/suppliers', icon: Truck, moduleKey: 'suppliers', permission: ['purchasing.manage', 'purchasing.supplier_payments'] },
         { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: FileBadge, moduleKey: 'purchase_orders', permission: 'purchasing.manage' },
+        ...(multiLocation ? [
+          { name: 'Transfers', to: '/inventory/transfers', icon: ArrowLeftRight, permission: ['stock.transfer', 'stock.approve'] },
+          { name: 'Stock by Location', to: '/inventory/stock-by-location', icon: Warehouse, permission: ['stock.adjust', 'stock.transfer', 'products.edit'] },
+        ] : []),
       ],
     },
 

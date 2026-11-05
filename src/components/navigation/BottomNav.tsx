@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { useLocationStore } from '@/store/locationStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
@@ -33,6 +34,8 @@ export const BOTTOM_NAV_ROUTES = new Set([
   '/inventory/stock-reconciliation',
   '/inventory/suppliers',
   '/inventory/purchase-orders',
+  '/inventory/transfers',
+  '/inventory/stock-by-location',
   // Expenses
   '/expenses',
   // Ecommerce
@@ -73,6 +76,7 @@ export default function BottomNav() {
   const inGracePeriod = Boolean(graceInfo && graceInfo.active);
   const hasModule = useFeaturesStore((s) => s.hasModule);
   const isCashier = staffUser?.role === 'cashier';
+  const multiLocation = useLocationStore((s) => s.multi);
   const can = useCan();
   const allowed = (permission?: string | string[]) => !permission || can(permission);
   const plan = tenant?.plan || 'starter';
@@ -319,6 +323,10 @@ export default function BottomNav() {
     { name: 'Reconcile', to: '/inventory/stock-reconciliation', icon: 'solar:clipboard-check-linear', moduleKey: 'stock_reconciliation', permission: 'stock.count' },
     { name: 'Suppliers', to: '/inventory/suppliers', icon: 'solar:delivery-linear', moduleKey: 'suppliers', permission: ['purchasing.manage', 'purchasing.supplier_payments'] },
     { name: 'Purchase Orders', to: '/inventory/purchase-orders', icon: 'solar:file-check-linear', moduleKey: 'purchase_orders', permission: 'purchasing.manage' },
+    ...(multiLocation ? [
+      { name: 'Transfers', to: '/inventory/transfers', icon: 'solar:transfer-horizontal-linear', permission: ['stock.transfer', 'stock.approve'] },
+      { name: 'By Location', to: '/inventory/stock-by-location', icon: 'solar:box-linear', permission: ['stock.adjust', 'stock.transfer', 'products.edit'] },
+    ] : []),
     // Operations & Staff
     { name: 'Expenses', to: '/expenses', icon: 'solar:bill-check-linear', moduleKey: 'expenses', permission: 'expenses.manage' },
     { name: 'Staff', to: '/staff', icon: 'solar:user-id-linear', moduleKey: 'staff', permission: ['staff.manage_cashiers', 'staff.manage_managers', 'staff.manage_admins'] },

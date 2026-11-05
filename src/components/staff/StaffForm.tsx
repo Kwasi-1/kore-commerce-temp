@@ -18,7 +18,7 @@ interface StaffFormProps {
 }
 
 const DEFAULT_PASSWORD = 'Welcome@123';
-const ROLE_ORDER = ['admin', 'manager', 'cashier'];
+const ROLE_ORDER = ['admin', 'manager', 'cashier', 'stock_keeper'];
 
 export default function StaffForm({ initialData, roleOptions = ['cashier'], onSuccess, onCancel }: StaffFormProps) {
   const isEditing = !!initialData;

@@ -44,6 +44,22 @@ export default function Locations() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<{ row: Row; action: 'archive' | 'pause' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const posSettings = useFeaturesStore((s) => s.posSettings);
+  const [savingSetting, setSavingSetting] = useState<string | null>(null);
+
+  // Transfer settings (several locations): saved straight away, then features reload for everyone
+  const saveSetting = async (key: 'transfers_require_approval' | 'transfers_instant', value: boolean) => {
+    setSavingSetting(key);
+    try {
+      await apiClient.put('/tenant/locations/settings', { [key]: value });
+      useFeaturesStore.getState().updatePOSSettings({ [key]: value });
+      toast.success('Saved');
+    } catch (err) {
+      toast.error(errorText(err, "Couldn't save the setting"));
+    } finally {
+      setSavingSetting(null);
+    }
+  };
 
   const apply = (data: any) => {
     setRows(data?.locations || []);
@@ -245,6 +261,39 @@ export default function Locations() {
           <Switch size="sm" isSelected={showClosed} onValueChange={setShowClosed} color="primary" />
           Show closed locations
         </label>
+
+        {/* Transfers between locations */}
+        {canManage && rows.filter((r) => r.status !== 'archived').length > 1 && (
+          <div className="bg-card rounded-xl border border-border divide-y divide-border">
+            <div className="p-4 md:p-5">
+              <h2 className="text-sm font-semibold text-foreground">Transfers</h2>
+            </div>
+            <label className="p-4 md:p-5 flex items-center justify-between gap-4 cursor-pointer">
+              <span>
+                <span className="block text-sm text-foreground">Approve transfers before they're sent</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">An owner or a manager at the sending location approves each one.</span>
+              </span>
+              <Switch
+                isSelected={Boolean(posSettings?.transfers_require_approval)}
+                isDisabled={savingSetting !== null}
+                onValueChange={(v) => saveSetting('transfers_require_approval', v)}
+                color="primary"
+              />
+            </label>
+            <label className="p-4 md:p-5 flex items-center justify-between gap-4 cursor-pointer">
+              <span>
+                <span className="block text-sm text-foreground">Instant transfers</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">Send and receive in one step, for locations close together.</span>
+              </span>
+              <Switch
+                isSelected={Boolean(posSettings?.transfers_instant)}
+                isDisabled={savingSetting !== null}
+                onValueChange={(v) => saveSetting('transfers_instant', v)}
+                color="primary"
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Add / edit */}

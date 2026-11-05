@@ -41,6 +41,14 @@ export interface POSSettings {
   pos_require_momo_txn_id: boolean;
   /** Count the drawer by notes and coins at shift open/close */
   pos_cash_count_by_denomination: boolean;
+  /** Locations: transfers wait for approval before dispatch */
+  transfers_require_approval?: boolean;
+  /** Locations: one-step transfers (request, dispatch and receive at once) */
+  transfers_instant?: boolean;
+  /** Locations: stores can set their own prices */
+  store_prices_enabled?: boolean;
+  /** Locations: restock suggestions below this many days of cover */
+  restock_cover_days?: number;
 }
 
 const DEFAULT_POS_SETTINGS: POSSettings = {
